@@ -57,12 +57,12 @@ class Asfvolt16RxHandler(object):
         return bal_err
 
     @twisted_async
-    def BalAccTermInd(self, request, context):
+    def BalAccTermProcErr(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Received-access-terminal-Indication',
+        self.log.info('Received-access-terminal-Processing-Error',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
-        self.ind_handler.bal_acc_term_ind(request, device_handler)
+        self.ind_handler.bal_acc_term_processing_error(request, device_handler)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
@@ -79,12 +79,12 @@ class Asfvolt16RxHandler(object):
         return bal_err
 
     @twisted_async
-    def BalFlowInd(self, request, context):
+    def BalFlowProcErr(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not-implemented-yet',
+        self.log.info('Received-bal-flow-processing-error',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
-        self.ind_handler.bal_flow_ind(request, device_handler)
+        self.ind_handler.bal_flow_processing_error(request, device_handler)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
@@ -189,34 +189,100 @@ class Asfvolt16RxHandler(object):
         return bal_err
 
     @twisted_async
-    def BalSubsTermInd(self, request, context):
+    def BalSubsTermDowiInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Subscriber-terminal-indication-received',
+        self.log.info('Subscriber-terminal-dowi', \
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
-        self.ind_handler.bal_subs_term_ind(request, device_handler)
+        self.ind_handler.bal_subs_term_dowi_ind(request, device_handler)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
 
     @twisted_async
-    def BalTmQueueIndInfo(self, request, context):
+    def BalSubsTermLoociInd(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not-implemented-yet',
+        self.log.info('Subscriber-terminal-looci', \
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
-        self.ind_handler.bal_tm_queue_ind_info(request, device_handler)
+        self.ind_handler.bal_subs_term_looci_ind(request, device_handler)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err
 
     @twisted_async
-    def BalTmSchedIndInfo(self, request, context):
+    def BalSubsTermProcErr(self, request, context):
         device_id = request.device_id.decode('unicode-escape')
-        self.log.info('Not-implemented-yet',
+        self.log.info('Subscriber-terminal-processing-error-received',
                       device_id=device_id, obj_type=request.objType)
         device_handler = self.adapter.devices_handlers[device_id]
-        self.ind_handler.bal_tm_sched_ind_info(request, device_handler)
+        self.ind_handler.bal_subs_term_processing_error(request, device_handler)
+        bal_err = bal_pb2.BalErr()
+        bal_err.err = bal_errno_pb2.BAL_ERR_OK
+        return bal_err
+
+    @twisted_async
+    def BalSubsTermSdiInd(self, request, context):
+        device_id = request.device_id.decode('unicode-escape')
+        self.log.info('Subscriber-terminal-sdi-received',
+                      device_id=device_id, obj_type=request.objType)
+        device_handler = self.adapter.devices_handlers[device_id]
+        self.ind_handler.bal_subs_term_sdi_ind(request, device_handler)
+        bal_err = bal_pb2.BalErr()
+        bal_err.err = bal_errno_pb2.BAL_ERR_OK
+        return bal_err
+
+    @twisted_async
+    def BalSubsTermSfiInd(self, request, context):
+        device_id = request.device_id.decode('unicode-escape')
+        self.log.info('Subscriber-terminal-sfi-received',
+                      device_id=device_id, obj_type=request.objType)
+        device_handler = self.adapter.devices_handlers[device_id]
+        self.ind_handler.bal_subs_term_sfi_ind(request, device_handler)
+        bal_err = bal_pb2.BalErr()
+        bal_err.err = bal_errno_pb2.BAL_ERR_OK
+        return bal_err
+
+    @twisted_async
+    def BalSubsTermSufiInd(self, request, context):
+        device_id = request.device_id.decode('unicode-escape')
+        self.log.info('Subscriber-terminal-sufi-received',
+                      device_id=device_id, obj_type=request.objType)
+        device_handler = self.adapter.devices_handlers[device_id]
+        self.ind_handler.bal_subs_term_sufi_ind(request, device_handler)
+        bal_err = bal_pb2.BalErr()
+        bal_err.err = bal_errno_pb2.BAL_ERR_OK
+        return bal_err
+
+    @twisted_async
+    def BalSubsTermTiwiInd(self, request, context):
+        device_id = request.device_id.decode('unicode-escape')
+        self.log.info('Subscriber-terminal-tiwi-received',
+                      device_id=device_id, obj_type=request.objType)
+        device_handler = self.adapter.devices_handlers[device_id]
+        self.ind_handler.bal_subs_term_tiwi_ind(request, device_handler)
+        bal_err = bal_pb2.BalErr()
+        bal_err.err = bal_errno_pb2.BAL_ERR_OK
+        return bal_err
+
+    @twisted_async
+    def BalSubTermActFailInd(self, request, context):
+        device_id = request.device_id.decode('unicode-escape')
+        self.log.info('Subscriber-terminal-activation-fail-received',
+                      device_id=device_id, obj_type=request.objType)
+        device_handler = self.adapter.devices_handlers[device_id]
+        self.ind_handler.bal_subs_term_activation_fail(request, device_handler)
+        bal_err = bal_pb2.BalErr()
+        bal_err.err = bal_errno_pb2.BAL_ERR_OK
+        return bal_err
+
+    @twisted_async
+    def BalTmSchedOperStatsChange(self, request, context):
+        device_id = request.device_id.decode('unicode-escape')
+        self.log.info('Tm-Scheduler-Operation-status-change-received',
+                      device_id=device_id, obj_type=request.objType)
+        device_handler = self.adapter.devices_handlers[device_id]
+        self.ind_handler.bal_tm_sched_oper_status_change(request, device_handler)
         bal_err = bal_pb2.BalErr()
         bal_err.err = bal_errno_pb2.BAL_ERR_OK
         return bal_err

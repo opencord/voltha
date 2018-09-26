@@ -79,4 +79,24 @@ message BalObj
     BalObj_msg_dir       dir = 7;           /**< Direction - request / response */
     BalErrno		 status = 8;        /**< BAL status code (BCM_ERR_OK–success, error code otherwise) */
     uint64               presence_mask = 9; /**< Indicates which attribute parameters are present */
+    uint32               err_field_index = 10;  /**< if status != BCM_ERR_OK: index of erroneous attribute or BCMBAL_ERR_FIELD_NONE */
+    string               err_text = 11;     /**< if status != BCM_ERR_OK: Error text */
+}
+
+/**< Information structure for use with BAL configuration API (get/set/clear)*/
+message BalApiCfg
+{
+    BalObj               bal_obj = 1;
+}
+
+/** Information structure for BAL indication configuration API */
+message BalAuto
+{
+    BalObj               bal_obj = 1;
+}
+
+/** Information structure for BAL statistics API */
+message BalStat
+{
+    BalObj               bal_obj = 1;
 }

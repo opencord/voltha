@@ -778,6 +778,13 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             downstream_ports = [
                 port for port in ports if port.type == Port.ETHERNET_UNI
             ]
+
+            # it is possible that the downstream ports are not
+            # created, but the flow_decomposition has already
+            # kicked in. In such scenarios, cut short the processing
+            # and return.
+            if len(downstream_ports) == 0:
+                return None, None
             # assert len(downstream_ports) == 1
             flows = OrderedDict((f.id, f) for f in [
                 mk_flow_stat(

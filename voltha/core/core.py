@@ -216,6 +216,22 @@ class VolthaCore(object):
         path = '/devices/{}'.format(device.id)
         self.xpon_agent.register_interface(device.id, path, update=False)
 
+        # tcont related path details stored separately /tcont, this
+        # path need to be updated instead of /devices. /tconts have
+        # reference towards both olt and onu device, so we update the
+        # callback only in case of olt, as olt takes care for onu internally
+        # THIS IS A WORKAROUND AS xPON IS GOING TO BE REMOVED IN vOLTHA 2.0
+        tconts = self.local_root_proxy.get('/tconts')
+        for tcont in tconts:
+            try:
+                olt_device = self.xpon_agent.get_device(tcont, 'olt')
+            except Exception as e:
+                log.error("exception-getting-olt", e=e)
+                return
+            if olt_device and olt_device.id == device.id:
+                tcont_path = '/tconts/{}'.format(tcont.name)
+                self.xpon_agent.register_interface(device.id, tcont_path)
+
     @inlineCallbacks
     def _handle_remove_device(self, device):
         if device.id in self.device_agents:
