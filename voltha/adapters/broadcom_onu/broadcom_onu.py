@@ -24,6 +24,7 @@ from twisted.internet import reactor, task
 from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue
 from zope.interface import implementer
 
+from common.utils.asleep import asleep
 from voltha.adapters.interface import IAdapterInterface
 from voltha.core.logical_device_agent import mac_str_to_tuple
 import voltha.core.flow_decomposer as fd
@@ -53,10 +54,12 @@ _ = third_party
 log = structlog.get_logger()
 
 
+MANAGEMENT_VLAN = 4090
 BRDCM_DEFAULT_VLAN = 4091
 ADMIN_STATE_LOCK = 1
 ADMIN_STATE_UNLOCK = 0
 RESERVED_VLAN_ID = 4095
+FLOW_TYPE_EAPOL = 34958
 
 @implementer(IAdapterInterface)
 class BroadcomOnuAdapter(object):
@@ -68,7 +71,8 @@ class BroadcomOnuAdapter(object):
             id=name,
             vendor_ids=['NONE'],
             adapter=name,
-            accepts_bulk_flow_update=True
+            accepts_bulk_flow_update=True,
+            accepts_add_remove_flow_updates=True
         )
     ]
 
@@ -173,9 +177,7 @@ class BroadcomOnuAdapter(object):
             if handler is not None:
                 log.debug('calling-handler-delete', handler=handler)
                 handler.delete(device)
-                del self.devices_handlers[device.id]
-        else:
-            log.warn('device-not-found-in-handlers', device=device, device_handlers=self.devices_handlers)
+            del self.devices_handlers[device.id]
         return
 
     def get_device_details(self, device):
@@ -194,7 +196,20 @@ class BroadcomOnuAdapter(object):
         return handler.update_flow_table(device, flows.items)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
-        raise NotImplementedError()
+        log.info('incremental-flow-update', device_id=device.id,
+                 flows=flow_changes, groups=group_changes)
+        # For now, there is no support for group changes
+        assert len(group_changes.to_add.items) == 0
+        assert len(group_changes.to_remove.items) == 0
+
+        handler = self.devices_handlers[device.id]
+        # Remove flows
+        if len(flow_changes.to_remove.items) != 0:
+            handler.remove_from_flow_table(flow_changes.to_remove.items)
+
+        # Add flows
+        if len(flow_changes.to_add.items) != 0:
+            handler.add_to_flow_table(flow_changes.to_add.items)
 
     def send_proxied_message(self, proxy_address, msg):
         log.debug('send-proxied-message', proxy_address=proxy_address, msg=msg)
@@ -260,7 +275,7 @@ class BroadcomOnuAdapter(object):
                 handler.create_tcont(tcont_data, traffic_descriptor_data)
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
-        raise NotImplementedError()
+        log.info('update_tcont not implemented in onu')
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
         log.debug('remove-tcont', device_id=device.id)
@@ -326,14 +341,12 @@ class BroadcomOnuHandler(object):
         self.event_messages = DeferredQueue()
         self.proxy_address = None
         self.tx_id = 0
-
-        # Proxy for api calls
-        self.core = registry('core')
-        self.proxy = self.core.get_proxy('/')
+        self.flow_map = dict()
 
         # Need to query ONU for number of supported uni ports
         # For now, temporarily set number of ports to 1 - port #2
         self.uni_ports = (1, 2, 3, 4, 5)
+        self.flow_config_in_progress = False
 
         # Handle received ONU event messages
         reactor.callLater(0, self.handle_onu_events)
@@ -362,6 +375,7 @@ class BroadcomOnuHandler(object):
                 device.connect_status = ConnectStatus.UNREACHABLE
                 device.oper_status = OperStatus.FAILED
                 self.adapter_agent.update_device(device)
+                self.flow_map.clear()
 
         elif event_msg['event'] == 'deactivation-completed':
             device = self.adapter_agent.get_device(self.device_id)
@@ -374,11 +388,13 @@ class BroadcomOnuHandler(object):
             device.connect_status = ConnectStatus.UNREACHABLE
             device.oper_status = OperStatus.DISCOVERED
             self.adapter_agent.update_device(device)
+            self.flow_map.clear()
 
         elif (event_msg['event'] == 'olt-reboot'):
             device = self.adapter_agent.get_device(self.device_id)
             device.connect_status = ConnectStatus.UNREACHABLE
             self.adapter_agent.update_device(device)
+            self.flow_map.clear()
 
         elif event_msg['event'] == 'ranging-completed':
 
@@ -397,6 +413,7 @@ class BroadcomOnuHandler(object):
             device = self.adapter_agent.get_device(self.device_id)
             device.connect_status = ConnectStatus.UNREACHABLE
             self.adapter_agent.update_device(device)
+            self.flow_map.clear()
 
         elif event_msg['event'] == 'olt-enabled':
             self.adapter_agent.enable_all_ports(self.device_id)
@@ -499,7 +516,6 @@ class BroadcomOnuHandler(object):
         except Exception as e:
             self.log.exception("exception-updating-port",e=e)
 
-    @inlineCallbacks
     def delete(self, device):
         self.log.info('delete-onu', device=device)
 
@@ -516,179 +532,104 @@ class BroadcomOnuHandler(object):
 
     @inlineCallbacks
     def update_flow_table(self, device, flows):
+
+        # Twisted code is not inherently thread safe. This API could
+        # be invoked again by reactor while previous one is in progress.
+        # Since we maintain some stateful information here, we better
+        # synchronize parallel invocations on this API.
+        yield self._wait_for_previous_update_flow_to_finish()
+        self.flow_config_in_progress = True
+
         #
         # We need to proxy through the OLT to get to the ONU
         # Configuration from here should be using OMCI
         #
-        #self.log.info('bulk-flow-update', device_id=device.id, flows=flows)
+        try:
+            # Calculates flows_to_adds and flows_to_delete using
+            # incoming_flows and current_flows.
+            current_flows = set(self.flow_map.keys())
 
-        def is_downstream(port):
-            return port == 100  # Need a better way
+            # Only adding those flows to incoming_flows which are having cookie.
+            incoming_flows = set(flow.cookie for flow in flows if flow.cookie)
+            flows_to_add = incoming_flows.difference(current_flows)
+            flows_to_delete = current_flows.difference(incoming_flows)
 
-        def is_upstream(port):
-            return not is_downstream(port)
+            # Sends request to delete flows for ONU flows in flows_to_delete list.
+            for cookie in flows_to_delete:
+                if cookie in self.flow_map:
+                    c_tag = self.flow_map[cookie]["vlan_id"]
+                    self.log.debug("flow-to-delete-cookie",
+                                   cookie=cookie, c_tag=c_tag)
 
-        for flow in flows:
-            _type = None
-            _port = None
-            _vlan_vid = None
-            _udp_dst = None
-            _udp_src = None
-            _ipv4_dst = None
-            _ipv4_src = None
-            _metadata = None
-            _output = None
-            _push_tpid = None
-            _field = None
-            _set_vlan_vid = None
-            self.log.debug('bulk-flow-update', device_id=device.id, flow=flow)
-            try:
-                _in_port = fd.get_in_port(flow)
-                assert _in_port is not None
+                    # Deleting flow from ONU.
+                    yield self._delete_onu_flow(self.flow_map[cookie])
 
-                if is_downstream(_in_port):
-                    self.log.debug('downstream-flow')
-                elif is_upstream(_in_port):
-                    self.log.debug('upstream-flow')
+                    # Removing flow_map entry for deleted flow.
+                    del self.flow_map[cookie]
                 else:
-                    raise Exception('port should be 1 or 2 by our convention')
+                    self.log.info('ignoring-cookie_received', cookie=cookie)
 
-                _out_port = fd.get_out_port(flow)  # may be None
-                self.log.debug('out-port', out_port=_out_port)
-
-                for field in fd.get_ofb_fields(flow):
-                    if field.type == fd.ETH_TYPE:
-                        _type = field.eth_type
-                        self.log.debug('field-type-eth-type',
-                                      eth_type=_type)
-
-                    elif field.type == fd.IP_PROTO:
-                        _proto = field.ip_proto
-                        self.log.debug('field-type-ip-proto',
-                                      ip_proto=_proto)
-
-                    elif field.type == fd.IN_PORT:
-                        _port = field.port
-                        self.log.debug('field-type-in-port',
-                                      in_port=_port)
-
-                    elif field.type == fd.VLAN_VID:
-                        _vlan_vid = field.vlan_vid & 0xfff
-                        self.log.debug('field-type-vlan-vid',
-                                      vlan=_vlan_vid)
-
-                    elif field.type == fd.VLAN_PCP:
-                        _vlan_pcp = field.vlan_pcp
-                        self.log.debug('field-type-vlan-pcp',
-                                      pcp=_vlan_pcp)
-
-                    elif field.type == fd.UDP_DST:
-                        _udp_dst = field.udp_dst
-                        self.log.debug('field-type-udp-dst',
-                                      udp_dst=_udp_dst)
-
-                    elif field.type == fd.UDP_SRC:
-                        _udp_src = field.udp_src
-                        self.log.debug('field-type-udp-src',
-                                      udp_src=_udp_src)
-
-                    elif field.type == fd.IPV4_DST:
-                        _ipv4_dst = field.ipv4_dst
-                        self.log.debug('field-type-ipv4-dst',
-                                      ipv4_dst=_ipv4_dst)
-
-                    elif field.type == fd.IPV4_SRC:
-                        _ipv4_src = field.ipv4_src
-                        self.log.debug('field-type-ipv4-src',
-                                      ipv4_dst=_ipv4_src)
-
-                    elif field.type == fd.METADATA:
-                        _metadata = field.table_metadata
-                        self.log.debug('field-type-metadata',
-                                      metadata=_metadata)
-
-                    else:
-                        raise NotImplementedError('field.type={}'.format(
-                            field.type))
-
-                for action in fd.get_actions(flow):
-
-                    if action.type == fd.OUTPUT:
-                        _output = action.output.port
-                        self.log.debug('action-type-output',
-                                      output=_output, in_port=_in_port)
-
-                    elif action.type == fd.POP_VLAN:
-                        self.log.debug('action-type-pop-vlan',
-                                      in_port=_in_port)
-
-                    elif action.type == fd.PUSH_VLAN:
-                        _push_tpid = action.push.ethertype
-                        self.log.debug('action-type-push-vlan',
-                                 push_tpid=_push_tpid, in_port=_in_port)
-                        if action.push.ethertype != 0x8100:
-                            self.log.error('unhandled-tpid',
-                                           ethertype=action.push.ethertype)
-
-                    elif action.type == fd.SET_FIELD:
-                        _field = action.set_field.field.ofb_field
-                        assert (action.set_field.field.oxm_class ==
-                                OFPXMC_OPENFLOW_BASIC)
-                        self.log.debug('action-type-set-field',
-                                      field=_field, in_port=_in_port)
-                        if _field.type == fd.VLAN_VID:
-                            _set_vlan_vid = _field.vlan_vid & 0xfff
-                            self.log.debug('set-field-type-valn-vid', _set_vlan_vid)
-                        else:
-                            self.log.error('unsupported-action-set-field-type',
-                                           field_type=_field.type)
-                    else:
-                        self.log.error('unsupported-action-type',
-                                  action_type=action.type, in_port=_in_port)
-
-                if _type is not None:
+            # If flow is not in flow_to_add, no need to add flow to ONU.
+            for flow in flows:
+                if flow.cookie not in flows_to_add:
+                    self.log.debug("flow-not-to-be-added", cookie=flow.cookie)
                     continue
 
-                #
-                # All flows created from ONU adapter should be OMCI based
-                #
-                if _vlan_vid == 0 and _set_vlan_vid != None and _set_vlan_vid != 0:
-                    # allow priority tagged packets
-                    # Set AR - ExtendedVlanTaggingOperationConfigData
-                    #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
+                # Adding flow to ONU.
+                yield self._add_onu_flow(flow)
 
-                    self.send_delete_vlan_tagging_filter_data(0x2102)
-                    yield self.wait_for_response()
+        except Exception as e:
+            self.log.exception('failed-to-update-flow-table', e=e)
 
-                    # self.send_set_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
-                    if _set_vlan_vid != RESERVED_VLAN_ID:
-                        # As per G.988 - Table 9.3.11-1 - Forward operation attribute values
-                        # Forward action of 0x10 allows VID Investigation
-                        self.send_create_vlan_tagging_filter_data(0x2102, _set_vlan_vid, 0x10)
-                        yield self.wait_for_response()
+        self.flow_config_in_progress = False
 
-                        for port_id in self.uni_ports:
+    @inlineCallbacks
+    def add_to_flow_table(self, flows):
+        """
+        This function is called for update_flows_incrementally to add
+        only delta flows to ONU.
+        :param flows: flows to add to ONU.
+        """
+        yield self._wait_for_previous_update_flow_to_finish()
+        self.flow_config_in_progress = True
+        self.log.debug('add-to-flow-table', flows=flows)
+        try:
+            for flow in flows:
+                # if incoming flow contains cookie, then add to ONU
+                if flow.cookie:
+                    # Adds flow to ONU.
+                    yield self._add_onu_flow(flow)
+        except Exception as e:
+            self.log.exception('failed-to-add-to-flow-table', e=e)
 
-                            self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(\
-                                                                     0x200 + port_id, 0x1000, _set_vlan_vid)
-                            yield self.wait_for_response()
+        self.flow_config_in_progress = False
 
-                            self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x200 + port_id, 8, 0, 0,
-                                                                                                             1, 8, _set_vlan_vid)
-                            yield self.wait_for_response()
-                    else:
-                        # As per G.988 - Table 9.3.11-1 - Forward operation attribute values
-                        # Forward action of 0x00 does not perform VID Investigation for transparent vlan case
-                        self.send_create_vlan_tagging_filter_data(0x2102, _set_vlan_vid, 0x00)
-                        yield self.wait_for_response()
-
-                        for port_id in self.uni_ports:
-                            self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(\
-                                                                       0x200 + port_id, 14, 4096, 0, 0, 15, 0)
-                            yield self.wait_for_response()
-
-            except Exception as e:
-                self.log.exception('failed-to-install-flow', e=e, flow=flow)
+    @inlineCallbacks
+    def remove_from_flow_table(self, flows):
+        """
+        This function is called for update_flow_incrementally to delete
+        only delta flows from ONU.
+        :param flows: flows to delete from ONU
+        """
+        yield self._wait_for_previous_update_flow_to_finish()
+        self.flow_config_in_progress = True
+        self.log.debug('remove-from-flow-table', flows=flows)
+        try:
+            cookies = [flow.cookie for flow in flows]
+            for cookie in cookies:
+                if cookie in self.flow_map:
+                    c_tag = self.flow_map[cookie]["vlan_id"]
+                    self.log.debug("remove-from-flow-table",
+                                   cookie=cookie, c_tag=c_tag)
+                    # Deleting flow from ONU.
+                    yield self._delete_onu_flow(self.flow_map[cookie])
+                    # Removing flow_map entry for deleted flow.
+                    del self.flow_map[cookie]
+                else:
+                    self.log.error('ignoring-cookie_received', cookie=cookie)
+        except Exception as e:
+            self.log.exception('failed-to-remove-from-flow-table', e=e)
+        self.flow_config_in_progress = False
 
     def get_tx_id(self):
         self.tx_id += 1
@@ -905,17 +846,17 @@ class BroadcomOnuHandler(object):
 
     def send_set_8021p_mapper_service_profile(self,
                                               entity_id,
-                                              interwork_tp_id):
-        data = dict(
-            interwork_tp_pointer_for_p_bit_priority_0=interwork_tp_id,
-            interwork_tp_pointer_for_p_bit_priority_1=interwork_tp_id,
-            interwork_tp_pointer_for_p_bit_priority_2=interwork_tp_id,
-            interwork_tp_pointer_for_p_bit_priority_3=interwork_tp_id,
-            interwork_tp_pointer_for_p_bit_priority_4=interwork_tp_id,
-            interwork_tp_pointer_for_p_bit_priority_5=interwork_tp_id,
-            interwork_tp_pointer_for_p_bit_priority_6=interwork_tp_id,
-            interwork_tp_pointer_for_p_bit_priority_7=interwork_tp_id
-        )
+                                              interwork_tp_id=None):
+        data = dict()
+        data['interwork_tp_pointer_for_p_bit_priority_0']=interwork_tp_id
+        data['interwork_tp_pointer_for_p_bit_priority_1']=interwork_tp_id
+        data['interwork_tp_pointer_for_p_bit_priority_2']=interwork_tp_id
+        data['interwork_tp_pointer_for_p_bit_priority_3']=interwork_tp_id
+        data['interwork_tp_pointer_for_p_bit_priority_4']=interwork_tp_id
+        data['interwork_tp_pointer_for_p_bit_priority_5']=interwork_tp_id
+        data['interwork_tp_pointer_for_p_bit_priority_6']=interwork_tp_id
+        data['interwork_tp_pointer_for_p_bit_priority_7']=interwork_tp_id
+
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
             message_type=OmciSet.message_id,
@@ -1092,6 +1033,18 @@ class BroadcomOnuHandler(object):
         )
         self.send_omci_message(frame)
 
+    def send_delete_extended_vlan_tagging_operation_vlan_configuration_data_untagged(self,
+                                                                                     entity_id):
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciDelete.message_id,
+            omci_message=OmciDelete(
+                entity_class=ExtendedVlanTaggingOperationConfigurationData.class_id,
+                entity_id=entity_id
+            )
+        )
+        self.send_omci_message(frame)
+
     def send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(self,
                                                                                     entity_id,
                                                                                     filter_inner_priority,
@@ -1133,6 +1086,62 @@ class BroadcomOnuHandler(object):
                     ExtendedVlanTaggingOperationConfigurationData.mask_for(
                         *data.keys()),
                 data=data
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_set_extended_vlan_tagging_operation_vlan_configuration_data_double_tag(self,
+                                                                                    entity_id,
+                                                                                    filter_outer_vid,
+                                                                                    filter_inner_vid,
+                                                                                    treatment_tags_to_remove
+                                                                                    ):
+        # Note: The default values below are meaningful if transparent handling is
+        # needed for double vlan tagged packets with matching inner and outer vlans.
+        # If any other handling is needed for double vlan tagged packets, the default
+        # values may not work and the function needs to be adapted accordingly.
+        data = dict(
+            received_frame_vlan_tagging_operation_table=
+                VlanTaggingOperation(
+                    filter_outer_priority=14,
+                    filter_outer_vid=filter_outer_vid,
+                    filter_outer_tpid_de=0,
+                    filter_inner_priority=14,
+                    filter_inner_vid=filter_inner_vid,
+                    filter_inner_tpid_de=0,
+                    filter_ether_type=0,
+                    treatment_tags_to_remove=treatment_tags_to_remove,
+                    treatment_outer_priority=15,
+                    treatment_outer_vid=0,  # N/A
+                    treatment_outer_tpid_de=0,  # N/A
+                    treatment_inner_priority=15,
+                    treatment_inner_vid=0,  # N/A
+                    treatment_inner_tpid_de=0  # N/A
+                )
+        )
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciSet.message_id,
+            omci_message=OmciSet(
+                entity_class=
+                ExtendedVlanTaggingOperationConfigurationData.class_id,
+                entity_id=entity_id,
+                attributes_mask=
+                ExtendedVlanTaggingOperationConfigurationData.mask_for(
+                        *data.keys()),
+                data=data
+            )
+        )
+        self.send_omci_message(frame)
+
+    def send_delete_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(self,
+                                                                                       entity_id):
+        frame = OmciFrame(
+            transaction_id=self.get_tx_id(),
+            message_type=OmciDelete.message_id,
+            omci_message=OmciDelete(
+                entity_class=ExtendedVlanTaggingOperationConfigurationData.class_id,
+                entity_id=entity_id
             )
         )
         self.send_omci_message(frame)
@@ -1361,6 +1370,7 @@ class BroadcomOnuHandler(object):
         self.send_omci_message(frame)
 
     def send_reboot(self):
+        self.log.info('send omci reboot message')
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
             message_type=OmciReboot.message_id,
@@ -1385,11 +1395,13 @@ class BroadcomOnuHandler(object):
             self.log.info('wait-for-response-exception', exc=str(e))
 
     @inlineCallbacks
-    def message_exchange(self, cvid=BRDCM_DEFAULT_VLAN):
+    def message_exchange(self):
         # reset incoming message queue
         while self.incoming_messages.pending:
             _ = yield self.incoming_messages.get()
 
+        mcvid = MANAGEMENT_VLAN
+        cvid = BRDCM_DEFAULT_VLAN
 
         # construct message
         # MIB Reset - OntData - 0
@@ -1441,12 +1453,6 @@ class BroadcomOnuHandler(object):
             #                                       IEEE MApper poniter
             self.send_create_mac_bridge_port_configuration_data(0x200 + port_id, 0x201, port_id, 1, 0x100 + port_id)
             yield self.wait_for_response()
-
-
-            # Set AR - ExtendedVlanTaggingOperationConfigData
-            #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
-            # self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x200 + port_id, 8, 0, 0, 1, 8, cvid)
-            # yield self.wait_for_response()
 
             # Set AR - ExtendedVlanTaggingOperationConfigData
             #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to untagged pkts - c-vid
@@ -1533,9 +1539,6 @@ class BroadcomOnuHandler(object):
                     peer=cap,
                     curr_speed=OFPPF_1GB_FD,
                     max_speed=OFPPF_1GB_FD
-                ),
-                ofp_port_stats=ofp_port_stats(
-                    port_no=port_no
                 ),
                 device_id=device.id,
                 device_port_no=uni_port.port_no
@@ -1640,6 +1643,7 @@ class BroadcomOnuHandler(object):
 
     def remove_interface(self, data):
         if isinstance(data, VEnetConfig):
+            parent_port_num = None
             onu_device = self.adapter_agent.get_device(self.device_id)
             ports = self.adapter_agent.get_ports(onu_device.parent_id, Port.ETHERNET_UNI)
             parent_port_num = None
@@ -1684,8 +1688,9 @@ class BroadcomOnuHandler(object):
             # Mapper Service Profile config
             # Set AR - 802.1pMapperServiceProfile - Mapper_ profile_id -
             #                                       gem_port_tp pointer
-            self.send_set_8021p_mapper_service_profile(0x8001,
-                                                       gem_port.gemport_id)
+
+            self.send_set_8021p_mapper_service_profile(0x8001, interwork_tp_id=gem_port.gemport_id)
+               
             yield self.wait_for_response()
 
 
@@ -1699,8 +1704,7 @@ class BroadcomOnuHandler(object):
             self.log.error('device-unreachable')
             return
 
-        self.send_set_8021p_mapper_service_profile(0x8001,
-                                                  0xFFFF)
+        self.send_set_8021p_mapper_service_profile(0x8001, interwork_tp_id=0xFFFF)
         yield self.wait_for_response()
 
         self.send_delete_omci_mesage(GemInterworkingTp.class_id,
@@ -1747,6 +1751,7 @@ class BroadcomOnuHandler(object):
             # Disable all ports on that device
             self.disable_ports(device)
             device.oper_status = OperStatus.UNKNOWN
+            device.connect_status = ConnectStatus.UNREACHABLE
             self.adapter_agent.update_device(device)
         except Exception as e:
             log.exception('exception-in-onu-disable', exception=e)
@@ -1786,6 +1791,7 @@ class BroadcomOnuHandler(object):
                     device.oper_status = OperStatus.DISCOVERED
                     self.adapter_agent.update_device(device)
                     self.disable_ports(device)
+                    self.flow_map.clear()
                 else:
                     self.log.error("reboot-failed", success_code=success_code)
             else:
@@ -1806,7 +1812,13 @@ class BroadcomOnuHandler(object):
         ports = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)
         for port in ports:
             port_id = 'uni-{}'.format(port.port_no)
-            self.update_logical_port(logical_device_id, port_id, OFPPS_LINK_DOWN)
+            try:
+                lgcl_port = self.adapter_agent.get_logical_port(logical_device_id, port_id)
+                lgcl_port.ofp_port.state = OFPPS_LINK_DOWN
+                self.adapter_agent.update_logical_port(logical_device_id, lgcl_port)
+            except KeyError:
+                self.log.info('logical-port-not-found', device_id=self.device_id,
+                              portid=port_id)
 
     def enable_ports(self, device):
         self.log.info('enable-ports', device_id=self.device_id)
@@ -1821,4 +1833,229 @@ class BroadcomOnuHandler(object):
         ports = self.adapter_agent.get_ports(device.id, Port.ETHERNET_UNI)
         for port in ports:
             port_id = 'uni-{}'.format(port.port_no)
-            self.update_logical_port(logical_device_id, port_id, OFPPS_LIVE)
+            try:
+                lgcl_port = self.adapter_agent.get_logical_port(logical_device_id, port_id)
+                lgcl_port.ofp_port.state = OFPPS_LIVE
+                self.adapter_agent.update_logical_port(logical_device_id, lgcl_port)
+            except KeyError:
+                self.log.info('logical-port-not-found', device_id=self.device_id,
+                              portid=port_id)
+
+    @inlineCallbacks
+    def _add_onu_flow(self, flow):
+        _type = None
+        _port = None
+        _vlan_vid = None
+        _udp_dst = None
+        _udp_src = None
+        _ipv4_dst = None
+        _ipv4_src = None
+        _metadata = None
+        _output = None
+        _push_tpid = None
+        _field = None
+        _set_vlan_vid = None
+        self.log.info('add-flow', flow=flow)
+
+        def is_downstream(port):
+            return port == 100  # Need a better way
+
+        def is_upstream(port):
+            return not is_downstream(port)
+
+        try:
+            _in_port = fd.get_in_port(flow)
+            assert _in_port is not None
+
+            if is_downstream(_in_port):
+                self.log.info('downstream-flow')
+            elif is_upstream(_in_port):
+                self.log.info('upstream-flow')
+            else:
+                raise Exception('port should be 1 or 2 by our convention')
+
+            _out_port = fd.get_out_port(flow)  # may be None
+            self.log.info('out-port', out_port=_out_port)
+
+            for field in fd.get_ofb_fields(flow):
+                if field.type == fd.ETH_TYPE:
+                    _type = field.eth_type
+                    self.log.info('field-type-eth-type',
+                                  eth_type=_type)
+
+                elif field.type == fd.IP_PROTO:
+                    _proto = field.ip_proto
+                    self.log.info('field-type-ip-proto',
+                                  ip_proto=_proto)
+
+                elif field.type == fd.IN_PORT:
+                    _port = field.port
+                    self.log.info('field-type-in-port',
+                                  in_port=_port)
+
+                elif field.type == fd.VLAN_VID:
+                    _vlan_vid = field.vlan_vid & 0xfff
+                    self.log.info('field-type-vlan-vid',
+                                  vlan=_vlan_vid)
+
+                elif field.type == fd.VLAN_PCP:
+                    _vlan_pcp = field.vlan_pcp
+                    self.log.info('field-type-vlan-pcp',
+                                  pcp=_vlan_pcp)
+
+                elif field.type == fd.UDP_DST:
+                    _udp_dst = field.udp_dst
+                    self.log.info('field-type-udp-dst',
+                                  udp_dst=_udp_dst)
+
+                elif field.type == fd.UDP_SRC:
+                    _udp_src = field.udp_src
+                    self.log.info('field-type-udp-src',
+                                  udp_src=_udp_src)
+
+                elif field.type == fd.IPV4_DST:
+                    _ipv4_dst = field.ipv4_dst
+                    self.log.info('field-type-ipv4-dst',
+                                  ipv4_dst=_ipv4_dst)
+
+                elif field.type == fd.IPV4_SRC:
+                    _ipv4_src = field.ipv4_src
+                    self.log.info('field-type-ipv4-src',
+                                  ipv4_dst=_ipv4_src)
+
+                elif field.type == fd.METADATA:
+                    _metadata = field.table_metadata
+                    self.log.info('field-type-metadata',
+                                  metadata=_metadata)
+
+                else:
+                    raise NotImplementedError('field.type={}'.format(
+                        field.type))
+
+            for action in fd.get_actions(flow):
+
+                if action.type == fd.OUTPUT:
+                    _output = action.output.port
+                    self.log.info('action-type-output',
+                                  output=_output, in_port=_in_port)
+
+                elif action.type == fd.POP_VLAN:
+                    self.log.info('action-type-pop-vlan',
+                                  in_port=_in_port)
+
+                elif action.type == fd.PUSH_VLAN:
+                    _push_tpid = action.push.ethertype
+                    self.log.info('action-type-push-vlan',
+                                  push_tpid=_push_tpid, in_port=_in_port)
+                    if action.push.ethertype != 0x8100:
+                        self.log.error('unhandled-tpid',
+                                       ethertype=action.push.ethertype)
+
+                elif action.type == fd.SET_FIELD:
+                    _field = action.set_field.field.ofb_field
+                    assert (action.set_field.field.oxm_class ==
+                            OFPXMC_OPENFLOW_BASIC)
+                    self.log.info('action-type-set-field',
+                                  field=_field, in_port=_in_port)
+                    if _field.type == fd.VLAN_VID:
+                        _set_vlan_vid = _field.vlan_vid & 0xfff
+                        self.log.info('set-field-type-vlan-vid',vlan=_set_vlan_vid)
+                    else:
+                        self.log.error('unsupported-action-set-field-type',
+                                       field_type=_field.type)
+                else:
+                    self.log.error('unsupported-action-type',
+                                   action_type=action.type, in_port=_in_port)
+
+            #
+            # All flows created from ONU adapter should be OMCI based
+            #
+            if _vlan_vid == 0 and _set_vlan_vid != None and _set_vlan_vid != 0:
+                # allow priority tagged packets
+                # Set AR - ExtendedVlanTaggingOperationConfigData
+                #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
+
+
+                if _set_vlan_vid != RESERVED_VLAN_ID:
+                    # As per G.988 - Table 9.3.11-1 - Forward operation attribute values
+                    # Forward action of 0x10 allows VID Investigation
+                    if _type != FLOW_TYPE_EAPOL:
+                        self.log.info("Triggering-extended-vlan-configurations",vlan=_set_vlan_vid,eth_type=_type)
+                        self.send_set_vlan_tagging_filter_data(0x2102, _set_vlan_vid)
+                        #self.send_create_vlan_tagging_filter_data(0x2102, _set_vlan_vid, 0x10)
+                        yield self.wait_for_response()
+
+                        for port_id in self.uni_ports:
+
+                            self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x200 + port_id, 0x1000, _set_vlan_vid)
+                            yield self.wait_for_response()
+
+                            self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x200 + port_id, 8, 0, 0, 1, 8, _set_vlan_vid)
+                            yield self.wait_for_response()
+                    else:
+                        self.log.info("Use-vlan-4091-for-eapol",eth_type=_type)
+
+                else:
+                    # As per G.988 - Table 9.3.11-1 - Forward operation attribute values
+                    # Forward action of 0x00 does not perform VID Investigation for transparent vlan case
+                    self.send_delete_vlan_tagging_filter_data(0x2102)
+                    yield self.wait_for_response()
+
+                    self.send_create_vlan_tagging_filter_data(0x2102, _set_vlan_vid, 0x00)
+                    yield self.wait_for_response()
+
+                    for port_id in self.uni_ports:
+                        self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x200 + port_id, 14, 4096, 0, 0, 15, 0)
+                        yield self.wait_for_response()
+                        #self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_double_tag( \
+                        #    0x200 + port_id, 4096, 4096, 0)
+                        #yield self.wait_for_response()
+
+                # Create the entry in the internal flow table
+                self.flow_map[flow.cookie] = {"vlan_id": _set_vlan_vid,
+                                              "eth_type":_type,
+                                              "vlan_tagging_filter_data_entity_id": 0x2102,
+                                              "extended_vlan_tagging_filter_data": [0x200 + port_id for port_id in self.uni_ports]}
+        except Exception as e:
+            self.log.exception('failed-to-install-flow', e=e, flow=flow)
+
+    @inlineCallbacks
+    def _delete_onu_flow(self, flow_map_value):
+        # Deletes ONU flows.
+        try:
+            if flow_map_value["vlan_id"] != RESERVED_VLAN_ID:
+                for extended_vlan_tagging_filter_data in flow_map_value["extended_vlan_tagging_filter_data"]:
+                    if flow_map_value["eth_type"] != FLOW_TYPE_EAPOL:
+                        self.send_delete_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(
+                            extended_vlan_tagging_filter_data)
+                        yield self.wait_for_response()
+
+                        self.send_delete_extended_vlan_tagging_operation_vlan_configuration_data_untagged(
+                            extended_vlan_tagging_filter_data)
+                        yield self.wait_for_response()
+
+            else:
+                for extended_vlan_tagging_filter_data in flow_map_value["extended_vlan_tagging_filter_data"]:
+                    self.send_delete_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(
+                        extended_vlan_tagging_filter_data)
+                    yield self.wait_for_response()
+
+            for port_id in self.uni_ports:
+                # Extended VLAN Tagging Operation config
+                # Create AR - ExtendedVlanTaggingOperationConfigData - 514 - 2 - 0x102(Uni-Port-Num)
+                self.send_create_extended_vlan_tagging_operation_configuration_data(0x200 + port_id, 2, 0x100 + port_id)
+                yield self.wait_for_response()
+
+                # Set AR - ExtendedVlanTaggingOperationConfigData - 514 - 8100 - 8100
+                self.send_set_extended_vlan_tagging_operation_tpid_configuration_data(0x200 + port_id, 0x8100, 0x8100)
+                yield self.wait_for_response()
+
+        except Exception as e:
+            self.log.exception('failed-to-delete-flow', e=e, flow_map_value=flow_map_value)
+
+    @inlineCallbacks
+    def _wait_for_previous_update_flow_to_finish(self):
+        while self.flow_config_in_progress:
+            # non-blocking wait for 200ms
+            yield asleep(0.2)
+        return

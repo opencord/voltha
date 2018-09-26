@@ -27,17 +27,7 @@ enum BalAccessTerminalCfgId
     BAL_ACCESS_TERMINAL_CFG_ID_IWF_MODE      = 2;    /**< Interworking function mode. */
     BAL_ACCESS_TERMINAL_CFG_ID_TOPOLOGY      = 3;    /**< Topology mode. */
     BAL_ACCESS_TERMINAL_CFG_ID_SW_VERSION    = 4;    /**< Software version mode. */
-}
-
-/** Identifiers for all properties contained in the access_terminal_ind group.
- */
-enum BalAccessTerminalIndId
-{
-    BAL_ACCESS_TERMINAL_IND_ID_ADMIN_STATE   = 0;    /**< Administrative state. */
-    BAL_ACCESS_TERMINAL_IND_ID_OPER_STATUS   = 1;    /**< Operational status. */
-    BAL_ACCESS_TERMINAL_IND_ID_IWF_MODE      = 2;    /**< Interworking function mode. */
-    BAL_ACCESS_TERMINAL_IND_ID_TOPOLOGY      = 3;    /**< Topology mode */
-    BAL_ACCESS_TERMINAL_IND_ID_SW_VERSION    = 4;    /**< Software version mode */
+    BAL_ACCESS_TERMINAL_CFG_ID_CONN_ID       = 5;    /**< Connection ID. */
 }
 
 /** Identifiers for all properties contained in the access_terminal_key group.
@@ -66,37 +56,15 @@ enum BalFlowCfgId
     BAL_FLOW_CFG_ID_ACCESS_INT_ID            = 2;    /**< Access Interface ID. */
     BAL_FLOW_CFG_ID_NETWORK_INT_ID           = 3;    /**< Network Interface ID. */
     BAL_FLOW_CFG_ID_SUB_TERM_ID              = 4;    /**< Subscriber Terminal ID. */
-    BAL_FLOW_CFG_ID_SUB_TERM_UNI_IDX         = 5;    /**< Subscriber Terminal uni port index. */
-    BAL_FLOW_CFG_ID_SVC_PORT_ID              = 6;    /**< Service Port ID. */
-    BAL_FLOW_CFG_ID_RESOLVE_MAC              = 7;    /**< Resolve mac. */
-    BAL_FLOW_CFG_ID_CLASSIFIER               = 8;    /**< Classifier. */
-    BAL_FLOW_CFG_ID_ACTION                   = 9;    /**< Action. */
-    BAL_FLOW_CFG_ID_COOKIE                   = 10;   /**< Cookie. */
-    BAL_FLOW_CFG_ID_PRIORITY                 = 11;   /**< Priority. */
-    BAL_FLOW_CFG_ID_GROUP_ID                 = 12;   /**< Group ID. */
-    BAL_FLOW_CFG_ID_QUEUE                    = 13;   /**< Egress queue. */
-    BAL_FLOW_CFG_ID_DBA_TM_SCHED_ID          = 14;   /**< Tm Sched. */
-}
-
-/** Identifiers for all properties contained in the flow_ind group.
- */
-enum BalFlowIndId
-{
-    BAL_FLOW_IND_ID_ADMIN_STATE              = 0;    /**< Administrative state. */
-    BAL_FLOW_IND_ID_OPER_STATUS              = 1;    /**< Operational status. */
-    BAL_FLOW_IND_ID_ACCESS_INT_ID            = 2;    /**< Access interface ID. */
-    BAL_FLOW_IND_ID_NETWORK_INT_ID           = 3;    /**< Network Interface ID. */
-    BAL_FLOW_IND_ID_SUB_TERM_ID              = 4;    /**< Subscriber terminal ID. */
-    BAL_FLOW_IND_ID_SUB_TERM_UNI_IDX         = 5;    /**< Subscriber terminal UNI ID. */
-    BAL_FLOW_IND_ID_SVC_PORT_ID              = 6;    /**< Service port ID. */
-    BAL_FLOW_IND_ID_RESOLVE_MAC              = 7;    /**< Resolve mac. */
-    BAL_FLOW_IND_ID_CLASSIFIER               = 8;    /**< Classifier. */
-    BAL_FLOW_IND_ID_ACTION                   = 9;   /**< Action. */
-    BAL_FLOW_IND_ID_COOKIE                   = 10;   /**< Cookie. */
-    BAL_FLOW_IND_ID_PRIORITY                 = 11;   /**< Priority. */
-    BAL_FLOW_IND_ID_GROUP_ID                 = 12;   /**< Group ID. */
-    BAL_FLOW_IND_ID_QUEUE                    = 13;   /**< Egress queue. */
-    BAL_FLOW_IND_ID_DBA_TM_SCHED_ID          = 14;   /**< Tm Sched. */
+    BAL_FLOW_CFG_ID_SVC_PORT_ID              = 5;    /**< Service Port ID. */
+    BAL_FLOW_CFG_ID_RESOLVE_MAC              = 6;    /**< Resolve mac. */
+    BAL_FLOW_CFG_ID_CLASSIFIER               = 7;    /**< Classifier. */
+    BAL_FLOW_CFG_ID_ACTION                   = 8;    /**< Action. */
+    BAL_FLOW_CFG_ID_COOKIE                   = 9;    /**< Cookie. */
+    BAL_FLOW_CFG_ID_PRIORITY                 = 10;   /**< Priority. */
+    BAL_FLOW_CFG_ID_GROUP_ID                 = 11;   /**< Group ID. */
+    BAL_FLOW_CFG_ID_QUEUE                    = 12;   /**< Egress queue. */
+    BAL_FLOW_CFG_ID_DBA_TM_SCHED_ID          = 13;   /**< Tm Sched. */
 }
 
 /** Identifiers for all properties contained in the flow_key group.
@@ -119,16 +87,6 @@ enum BalFlowOperStatusChangeId
    BAL_FLOW_OPER_STATUS_CHANGE_ID_COOKIE                    = 5;
 }
 
-/** Identifiers for all properties contained in the flow_stat group.
- */
-enum BalFlowStatId
-{
-    BAL_FLOW_STAT_ID_RX_PACKETS              = 0;    /**< Received packets. */
-    BAL_FLOW_STAT_ID_RX_BYTES                = 1;    /**< Received bytes. */
-    BAL_FLOW_STAT_ID_TX_PACKETS              = 2;    /**< Transmitted packets. */
-    BAL_FLOW_STAT_ID_TX_BYTES                = 3;    /**< Transmitted bytes. */
-}
-
 /** Identifiers for all properties contained in the group_cfg group.
  */
 enum BalGroupCfgId
@@ -137,18 +95,7 @@ enum BalGroupCfgId
     BAL_GROUP_CFG_ID_MEMBERS                 = 1;    /**< Member. */
     BAL_GROUP_CFG_ID_COOKIE                  = 2;    /**< Application cookie. */
     BAL_GROUP_CFG_ID_FLOWS                   = 3;    /**< List of flows associated with the group . */
-    BAL_GROUP_CFG_ID_OWNER                   = 4;    /**< Owner of the group. */
-}
-
-/** Identifiers for all properties contained in the group_ind group.
-    */
-enum BalGroupIndId
-{
-   BAL_GROUP_IND_ID_MEMBERS_CMD              = 0;
-   BAL_GROUP_IND_ID_MEMBERS                  = 1;
-   BAL_GROUP_IND_ID_COOKIE                   = 2;
-   BAL_GROUP_IND_ID_FLOWS                    = 3;
-   BAL_GROUP_IND_ID_OWNER                    = 4;
+    BAL_GROUP_CFG_ID_TYPE                    = 4;    /**< type of the group. */
 }
 
 /** Identifiers for all properties contained in the group_key group.
@@ -167,37 +114,15 @@ enum BalInterfaceCfgId
     BAL_INTERFACE_CFG_ID_MIN_DATA_AGG_PORT_ID= 2;            /**< Minimum aggregate port ID. */
     BAL_INTERFACE_CFG_ID_MIN_DATA_SVC_PORT_ID= 3;            /**< Minimum service port ID. */
     BAL_INTERFACE_CFG_ID_TRANSCEIVER_TYPE    = 4;            /**< Transceiver type. */
-    BAL_INTERFACE_CFG_ID_DS_MISS_MODE        = 5;            /**< Downstream unknown packet action. */
-    BAL_INTERFACE_CFG_ID_MTU                 = 6;            /**< MTU. */
-    BAL_INTERFACE_CFG_ID_FLOW_CONTROL        = 7;            /**< Flow control. */
-    BAL_INTERFACE_CFG_ID_DS_TM               = 8;            /**< Downstream scheduler and shaper. */
-    BAL_INTERFACE_CFG_ID_US_TM               = 9;            /**< Upstream scheduler and shaper. */
-    BAL_INTERFACE_CFG_ID_SUB_TERM_ID_LIST    = 10;           /**< Sub-term id list. */
-    BAL_INTERFACE_CFG_ID_PON_DISTANCE        = 11;           /**< pon_distance. */
-    BAL_INTERFACE_CFG_ID_BER_MONITOR         = 12;           /**< ber_monitor. */
-    BAL_INTERFACE_CFG_ID_US_BANDWIDTH_LIMIT  = 13;           /**< us_bandwidth_limit. */
-    BAL_INTERFACE_CFG_ID_DS_FEC              = 14;           /**< ds_fec. */
-}
-
-/** Identifiers for all properties contained in the interface_ind group.
- */
-enum BalInterfaceIndId
-{
-    BAL_INTERFACE_IND_ID_ADMIN_STATE         = 0;            /**< Administrative state. */
-    BAL_INTERFACE_IND_ID_OPER_STATUS         = 1;            /**< Operational status. */
-    BAL_INTERFACE_IND_ID_MIN_DATA_AGG_PORT_ID= 2;            /**< Minimum aggregate port ID. */
-    BAL_INTERFACE_IND_ID_MIN_DATA_SVC_PORT_ID= 3;            /**< Minimum service port ID. */
-    BAL_INTERFACE_IND_ID_TRANSCEIVER_TYPE    = 4;            /**< Transceiver type. */
-    BAL_INTERFACE_IND_ID_DS_MISS_MODE        = 5;            /**< Downstream unknown packet action. */
-    BAL_INTERFACE_IND_ID_MTU                 = 6;            /**< MTU. */
-    BAL_INTERFACE_IND_ID_FLOW_CONTROL        = 7;            /**< Flow control. */
-    BAL_INTERFACE_IND_ID_DS_TM               = 8;            /**< Downstream scheduler and shaper. */
-    BAL_INTERFACE_IND_ID_US_TM               = 9;            /**< Upstream scheduler and shaper. */
-    BAL_INTERFACE_IND_ID_SUB_TERM_ID_LIST    = 10;           /**< Sub term id list */
-    BAL_INTERFACE_IND_ID_PON_DISTANCE        = 11;           /**< pon_distance. */
-    BAL_INTERFACE_IND_ID_BER_MONITOR         = 12;           /**< ber_monitor. */
-    BAL_INTERFACE_IND_ID_US_BANDWIDTH_LIMIT  = 13;           /**< us_bandwidth_limit. */
-    BAL_INTERFACE_IND_ID_DS_FEC              = 14;           /**< ds_fec. */
+    BAL_INTERFACE_CFG_ID_MTU                 = 5;            /**< MTU. */
+    BAL_INTERFACE_CFG_ID_DS_TM               = 6;            /**< Downstream scheduler and shaper. */
+    BAL_INTERFACE_CFG_ID_US_TM               = 7;            /**< Upstream scheduler and shaper. */
+    BAL_INTERFACE_CFG_ID_SUB_TERM_ID_LIST    = 8;            /**< Sub-term id list. */
+    BAL_INTERFACE_CFG_ID_PON_DISTANCE        = 9;            /**< pon_distance. */
+    BAL_INTERFACE_CFG_ID_BER_MONITOR         = 10;           /**< ber_monitor. */
+    BAL_INTERFACE_CFG_ID_US_BANDWIDTH_LIMIT  = 11;           /**< us_bandwidth_limit. */
+    BAL_INTERFACE_CFG_ID_DS_FEC              = 12;           /**< ds_fec. */
+    BAL_INTERFACE_CFG_ID_NGPON_2             = 13;           /**< ngpon2. */
 }
 
 /** Identifiers for all properties contained in the interface_key group.
@@ -231,19 +156,49 @@ enum BalInterfaceStatId
 {
     BAL_INTERFACE_STAT_ID_RX_BYTES                           = 0;    /**< Received bytes. */
     BAL_INTERFACE_STAT_ID_RX_PACKETS                         = 1;    /**< Recieved packets. */
-    BAL_INTERFACE_STAT_ID_RX_UCAST_PACKETS                   = 2;    /**< Received unicast packets. */
-    BAL_INTERFACE_STAT_ID_RX_MCAST_PACKETS                   = 3;    /**< Received multicast packets. */
-    BAL_INTERFACE_STAT_ID_RX_BCAST_PACKETS                   = 4;    /**< Received broadcast packets. */
-    BAL_INTERFACE_STAT_ID_RX_ERROR_PACKETS                   = 5;    /**< Received error packets. */
-    BAL_INTERFACE_STAT_ID_RX_UNKNOWN_PROTOS                  = 6;    /**< Received unknown-proto packets. */
-    BAL_INTERFACE_STAT_ID_TX_BYTES                           = 7;    /**< Transmitted bytes. */
-    BAL_INTERFACE_STAT_ID_TX_PACKETS                         = 8;    /**< Transmitted packets. */
-    BAL_INTERFACE_STAT_ID_TX_UCAST_PACKETS                   = 9;    /**< Transmitted unicast packets. */
-    BAL_INTERFACE_STAT_ID_TX_MCAST_PACKETS                   = 10;   /**< Transmitted multicast packets. */
-    BAL_INTERFACE_STAT_ID_TX_BCAST_PACKETS                   = 11;   /**< Transmitted broadcast packets. */
-    BAL_INTERFACE_STAT_ID_TX_ERROR_PACKETS                   = 12;   /**< Transmitted error packets. */
-    BAL_INTERFACE_STAT_ID_RX_CRC_ERRORS                      = 13;   /**< Received packets with CRC error. */
-    BAL_INTERFACE_STAT_ID_BIP_ERRORS                         = 14;   /**< Received bip errors (bip8 for gpon, bip32 for xgpon). */
+    BAL_INTERFACE_STAT_ID_RX_DATA_BYTES                      = 2;    /**< Received data bytes. */
+    BAL_INTERFACE_STAT_ID_RX_UCAST_PACKETS                   = 3;    /**< Received unicast packets. */
+    BAL_INTERFACE_STAT_ID_RX_MCAST_PACKETS                   = 4;    /**< Received multicast packets. */
+    BAL_INTERFACE_STAT_ID_RX_BCAST_PACKETS                   = 5;    /**< Received broadcast packets. */
+    BAL_INTERFACE_STAT_ID_RX_64_PACKETS                      = 6;    /**< Received 64 byte packets. */
+    BAL_INTERFACE_STAT_ID_RX_65_127_PACKETS                  = 7;    /**< Received 65-127 byte packets. */
+    BAL_INTERFACE_STAT_ID_RX_128_255_PACKETS                 = 8;    /**< Received 128-255 byte packets. */
+    BAL_INTERFACE_STAT_ID_RX_256_511_PACKETS                 = 9;    /**< Received 256-511 byte packets. */
+    BAL_INTERFACE_STAT_ID_RX_512_1023_PACKETS                = 10;   /**< Received 512-1023 byte packets. */
+    BAL_INTERFACE_STAT_ID_RX_1024_1518_PACKETS               = 11;   /**< Received 1024-1518 byte packets. */
+    BAL_INTERFACE_STAT_ID_RX_1519_2047_PACKETS               = 12;   /**< Received 1519-2047 byte packets. */
+    BAL_INTERFACE_STAT_ID_RX_2048_4095_PACKETS               = 13;   /**< Received 2048-4095 byte packets. */
+    BAL_INTERFACE_STAT_ID_RX_4096_9216_PACKETS               = 14;   /**< Received 4096-9216 byte packets. */
+    BAL_INTERFACE_STAT_ID_RX_9217_16383_PACKETS              = 15;   /**< Received 9217-16383 byte packets. */
+    BAL_INTERFACE_STAT_ID_RX_ERROR_PACKETS                   = 16;   /**< Received error packets. */
+    BAL_INTERFACE_STAT_ID_RX_UNKNOWN_PROTOS                  = 17;   /**< Received unknown-proto packets. */
+    BAL_INTERFACE_STAT_ID_RX_CRC_ERRORS                      = 18;   /**< Received packets with CRC error. */
+    BAL_INTERFACE_STAT_ID_BIP_ERRORS                         = 19;   /**< Received bip errors (bip8 for gpon, bip32 for xgpon). */
+    BAL_INTERFACE_STAT_ID_RX_MPCP                            = 20;   /**< Received MPCP packets. */
+    BAL_INTERFACE_STAT_ID_RX_REPORT                          = 21;   /**< Received report packets. */
+    BAL_INTERFACE_STAT_ID_RX_OAM_BYTES                       = 22;   /**< Received OAM bytes. */
+    BAL_INTERFACE_STAT_ID_RX_OAM_PACKETS                     = 23;   /**< Received OAM packets. */
+    BAL_INTERFACE_STAT_ID_TX_BYTES                           = 24;   /**< Transmitted bytes. */
+    BAL_INTERFACE_STAT_ID_TX_PACKETS                         = 25;   /**< Transmitted packets. */
+    BAL_INTERFACE_STAT_ID_TX_DATA_BYTES                      = 26;   /**< Transmitted data bytes. */
+    BAL_INTERFACE_STAT_ID_TX_UCAST_PACKETS                   = 27;   /**< Transmitted unicast packets. */
+    BAL_INTERFACE_STAT_ID_TX_MCAST_PACKETS                   = 28;   /**< Transmitted multicast packets. */
+    BAL_INTERFACE_STAT_ID_TX_BCAST_PACKETS                   = 29;   /**< Transmitted broadcast packets. */
+    BAL_INTERFACE_STAT_ID_TX_64_PACKETS                      = 30;   /**< Transmitted 64 byte packets. */
+    BAL_INTERFACE_STAT_ID_TX_65_127_PACKETS                  = 31;   /**< Transmitted 65-127 byte packets. */
+    BAL_INTERFACE_STAT_ID_TX_128_255_PACKETS                 = 32;   /**< Transmitted 128-255 byte packets. */
+    BAL_INTERFACE_STAT_ID_TX_256_511_PACKETS                 = 33;   /**< Transmitted 256-511 byte packets. */
+    BAL_INTERFACE_STAT_ID_TX_512_1023_PACKETS                = 34;   /**< Transmitted 512-1023 byte packets. */
+    BAL_INTERFACE_STAT_ID_TX_1024_1518_PACKETS               = 35;   /**< Transmitted 1024-1518 byte packets. */
+    BAL_INTERFACE_STAT_ID_TX_1519_2047_PACKETS               = 36;   /**< Transmitted 1519-2047 byte packets. */
+    BAL_INTERFACE_STAT_ID_TX_2048_4095_PACKETS               = 37;   /**< Transmitted 2048-4095 byte packets. */
+    BAL_INTERFACE_STAT_ID_TX_4096_9216_PACKETS               = 38;   /**< Transmitted 4096-9216 byte packets. */
+    BAL_INTERFACE_STAT_ID_TX_9217_16383_PACKETS              = 39;   /**< Transmitted 9217-16383 byte packets. */
+    BAL_INTERFACE_STAT_ID_TX_ERROR_PACKETS                   = 40;   /**< Transmitted error packets. */
+    BAL_INTERFACE_STAT_ID_TX_MPCP                            = 41;   /**< Transmitted MPCP packets. */
+    BAL_INTERFACE_STAT_ID_TX_GATE                            = 42;   /**< Transmitted gate packets. */
+    BAL_INTERFACE_STAT_ID_TX_OAM_BYTES                       = 43;   /**< Transmitted OAM bytes. */
+    BAL_INTERFACE_STAT_ID_TX_OAM_PACKETS                     = 44;   /**< Transmitted OAM packets. */
 }
 
 /** Identifiers for all properties contained in the packet_bearer_channel_rx
@@ -333,26 +288,6 @@ enum BalSubscriberTerminalDowiId
     BAL_SUBSCRIBER_TERMINAL_DOWI_ID_NEW_EQD                  = 2;    /**< new_eqd. */
 }
 
-/** Identifiers for all properties contained in the subscriber_terminal_ind
- * group.
- */
-enum BalSubscriberTerminalIndId
-{
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_ADMIN_STATE               = 0;    /**< Administrative state. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_OPER_STATUS               = 1;    /**< Operational status. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_SERIAL_NUMBER             = 2;    /**< Serial number. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_PASSWORD                  = 3;    /**< Password. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_REGISTRATION_ID           = 4;    /**< Registration id. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_SVC_PORT_ID               = 5;    /**< Service port ID. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_MAC_ADDRESS               = 6;    /**< MAC address. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_DS_TM                     = 7;    /**< Downstream scheduler and shaper. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_US_TM                     = 8;    /**< Upstream scheduler and shaper. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_SVC_PORT_ID_LIST          = 9;    /**< svc_port_id list. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_AGG_PORT_ID_LIST          = 10;   /**< agg_port_id list. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_SUB_TERM_RATE             = 11;   /**< sub_term_rate. */
-    BAL_SUBSCRIBER_TERMINAL_IND_ID_US_EFC                    = 12;   /**< us_fec. */
-}
-
 /** Identifiers for all properties contained in the subscriber_terminal_key
  * group.
  */
@@ -398,15 +333,12 @@ enum BalSubscriberTerminalSfiId
     BAL_SUBSCRIBER_TERMINAL_SFI_ID_BER                           = 1;    /**< ber. */
 }
 
-/** Identifiers for all properties contained in the subscriber_terminal_stat
- * group.
+/** Identifiers for all properties contained in the
+ * subscriber_terminal_sub_term_act_fail group.
  */
-enum BalSubscriberTerminalStatId
+enum BalSubscriberTerminalSubTermFailId
 {
-    BAL_SUBSCRIBER_TERMINAL_STAT_ID_RX_PACKETS       = 0;    /**< Received  packets. */
-    BAL_SUBSCRIBER_TERMINAL_STAT_ID_RX_BYTES         = 1;    /**< Received bytes. */
-    BAL_SUBSCRIBER_TERMINAL_STAT_ID_TX_PACKETS       = 2;    /**< Transmitted packets. */
-    BAL_SUBSCRIBER_TERMINAL_STAT_ID_TX_BYTES         = 3;    /**< Transmitted bytes. */
+    BAL_SUBSCRIBER_TERMINAL_SUB_TERM_ACT_FAIL_ID_FAIL_REASON     = 0;    /**< Fail Reason. */
 }
 
 /** Identifiers for all properties contained in the
@@ -414,7 +346,7 @@ enum BalSubscriberTerminalStatId
  */
 enum BalSubscriberTerminalSubTermAlarmId
 {
-    BCMBAL_SUBSCRIBER_TERMINAL_SUB_TERM_ALARM_ID_ALARM              = 0;    /**< Alarm. */
+    BAL_SUBSCRIBER_TERMINAL_SUB_TERM_ALARM_ID_ALARM              = 0;    /**< Alarm. */
 }
 
 /** Identifiers for all properties contained in the
@@ -422,7 +354,8 @@ enum BalSubscriberTerminalSubTermAlarmId
  */
 enum BalSubscriberTerminalSubTermDiscId
 {
-    BCMBAL_SUBSCRIBER_TERMINAL_SUB_TERM_DISC_ID_SERIAL_NUMBER       = 0;    /**< Serial number. */
+    BAL_SUBSCRIBER_TERMINAL_SUB_TERM_DISC_ID_SERIAL_NUMBER       = 0;    /**< Serial number. */
+    BAL_SUBSCRIBER_TERMINAL_SUB_TERM_DISC_ID_ONU_MAC             = 1;    /**< ONU Mac Address. */
 }
 
 /** Identifiers for all properties contained in the subscriber_terminal_sufi
@@ -442,6 +375,34 @@ enum BalSubscriberTerminalTiwiId
     BAL_SUBSCRIBER_TERMINAL_TIWI_ID_DRIFT_VALUE                  = 1;    /**< drift_value. */
 }
 
+/** Identifiers for all properties contained in the sys_channel_profile_cfg
+ * group.
+ */
+enum BalSysChannelProfileCfgId
+{
+    BAL_SYS_CHANNEL_PROFILE_CFG_ID_SYSTEM_PROFILE                = 0;    /**< System profile. */
+    BAL_SYS_CHANNEL_PROFILE_CFG_ID_CHANNEL_PROFILE               = 1;    /**< Channel profile. */
+    BAL_SYS_CHANNEL_PROFILE_CFG_ID_REF_COUNT                     = 2;    /**< ref_count. */
+}
+
+/** Identifiers for all properties contained in the sys_channel_profile_ind
+ * group.
+ */
+enum BalSysChannelProfileIndId
+{
+    BAL_SYS_CHANNEL_PROFILE_IND_ID_SYSTEM_PROFILE                = 0;    /**< system profile. */
+    BAL_SYS_CHANNEL_PROFILE_IND_ID_CHANNEL_PROFILE               = 1;    /**< channel profile. */
+    BAL_SYS_CHANNEL_PROFILE_IND_ID_REF_COUNT                     = 2;    /**< ref_count. */
+}
+
+/** Identifiers for all properties contained in the sys_channel_profile_key
+ * group.
+ */
+enum BalSysChannelProfileKeyId
+{
+    BAL_SYS_CHANNEL_PROFILE_KEY_ID_SYS_ID                        = 0;    /**< system id. */
+}
+
 /** Identifiers for all properties contained in the tm_queue_cfg group.
  */
 enum BalTmQueueCfgId
@@ -454,18 +415,6 @@ enum BalTmQueueCfgId
     BAL_TM_QUEUE_CFG_ID_REF_COUNT                    = 5;    /**< ref_count. */
 }
 
-/** Identifiers for all properties contained in the tm_queue_ind group.
- */
-enum BalTmQueueIndId
-{
-    BAL_TM_QUEUE_IND_ID_PRIORITY                     = 0;    /**< priority. */
-    BAL_TM_QUEUE_IND_ID_WEIGHT                       = 1;    /**< weight. */
-    BAL_TM_QUEUE_IND_ID_RATE                         = 2;    /**< rate. */
-    BAL_TM_QUEUE_IND_ID_BAC                          = 3;    /**< bac. */
-    BAL_TM_QUEUE_IND_ID_CREATE_MODE                  = 4;    /**< create_mode. */
-    BAL_TM_QUEUE_IND_ID_REF_COUNT                    = 5;    /**< ref_count. */
-}
-
 /** Identifiers for all properties contained in the tm_queue_key group.
  */
 enum BalTmQueueKeyId
@@ -475,16 +424,6 @@ enum BalTmQueueKeyId
     BAL_TM_QUEUE_KEY_ID_ID                           = 2;    /**< id. */
 }
 
-/** Identifiers for all properties contained in the tm_queue_stat group.
- */
-enum BalTmQueueStatId
-{
-    BAL_TM_QUEUE_STAT_ID_PACKETS_OK                  = 0;    /**< packets_ok. */
-    BAL_TM_QUEUE_STAT_ID_BYTES_OK                    = 1;    /**< bytes_ok. */
-    BAL_TM_QUEUE_STAT_ID_PACKETS_DISCARDED           = 2;    /**< packets_discarded. */
-    BAL_TM_QUEUE_STAT_ID_BYTES_DISCARDED             = 3;    /**< bytes_discarded. */
-}
-
 /** Identifiers for all properties contained in the tm_sched_cfg group.
  */
 enum BalTmSchedCfgId
@@ -492,31 +431,14 @@ enum BalTmSchedCfgId
     BAL_TM_SCHED_CFG_ID_OWNER                                    = 0;    /**< owner. */
     BAL_TM_SCHED_CFG_ID_SCHED_TYPE                               = 1;    /**< type. */
     BAL_TM_SCHED_CFG_ID_SCHED_PARENT                             = 2;    /**< parent. */
-    BAL_TM_SCHED_CFG_ID_SCHED_CHILD_TYPE                         = 3;    /**< child_type. */
-    BAL_TM_SCHED_CFG_ID_NUM_PRIORITIES                           = 4;    /**< num_priorities. */
-    BAL_TM_SCHED_CFG_ID_RATE                                     = 5;    /**< rate. */
-    BAL_TM_SCHED_CFG_ID_EXT_ITU_DBA                              = 6;    /**< extended itu dba. */
-    BAL_TM_SCHED_CFG_ID_EXT_EPON_DBA                             = 7;    /**< extended epon dba. */
-    BAL_TM_SCHED_CFG_ID_CREATION_MODE                            = 8;    /**< creation_mode. */
-    BAL_TM_SCHED_CFG_ID_QUEUES                                   = 9;    /**< queues. */
-    BAL_TM_SCHED_CFG_ID_SUB_SCHEDS                               = 10;   /**< sub_scheds. */
-}
-
-/** Identifiers for all properties contained in the tm_sched_ind group.
- */
-enum BalTmSchedIndId
-{
-    BAL_TM_SCHED_IND_ID_OWNER                                    = 0;    /**< owner. */
-    BAL_TM_SCHED_IND_ID_SCHED_TYPE                               = 1;    /**< type. */
-    BAL_TM_SCHED_IND_ID_SCHED_PARENT                             = 2;    /**< parent. */
-    BAL_TM_SCHED_IND_ID_SCHED_CHILD_TYPE                         = 3;    /**< child_type. */
-    BAL_TM_SCHED_IND_ID_NUM_PRIORITIES                           = 4;    /**< num_priorities. */
-    BAL_TM_SCHED_IND_ID_RATE                                     = 5;    /**< rate. */
-    BAL_TM_SCHED_IND_ID_EXT_ITU_DBA                              = 6;    /**< extended itu dba. */
-    BAL_TM_SCHED_IND_ID_EXT_EPON_DBA                             = 7;    /**< extended epon dba. */
-    BAL_TM_SCHED_IND_ID_CREATION_MODE                            = 8;    /**< creation_mode. */
-    BAL_TM_SCHED_IND_ID_QUEUES                                   = 9;    /**< queues. */
-    BAL_TM_SCHED_IND_ID_SUB_SCHEDS                               = 10;   /**< sub_scheds. */
+    BAL_TM_SCHED_CFG_ID_NUM_PRIORITIES                           = 3;    /**< num_priorities. */
+    BAL_TM_SCHED_CFG_ID_RATE                                     = 4;    /**< rate. */
+    BAL_TM_SCHED_CFG_ID_EXT_ITU_DBA                              = 5;    /**< extended itu dba. */
+    BAL_TM_SCHED_CFG_ID_EXT_EPON_DBA                             = 6;    /**< extended epon dba. */
+    BAL_TM_SCHED_CFG_ID_CREATION_MODE                            = 7;    /**< creation_mode. */
+    BAL_TM_SCHED_CFG_ID_QUEUE_LIST                               = 8;    /**< queue list. */
+    BAL_TM_SCHED_CFG_ID_SUB_SCHED_LIST                           = 9;    /**< sub_scheds. */
+    BAL_TM_SCHED_CFG_ID_OPER_STATUS                              = 10;   /**< oper status. */
 }
 
 /** Identifiers for all properties contained in the tm_sched_key group.
@@ -527,18 +449,29 @@ enum BalTmSchedKeyId
     BAL_TM_SCHED_KEY_ID_ID                           = 1;    /**< id. */
 }
 
+/** Identifiers for all properties contained in the tm_sched_oper_status_change
+ * group.
+ */
+enum BalTmSchedOperStatusChangeId
+{
+    BAL_TM_SCHED_OPER_STATUS_CHANGE_ID_NEW_OPER_STATUS           = 0;    /**< new oper status. */
+    BAL_TM_SCHED_OPER_STATUS_CHANGE_ID_OLD_OPER_STATUS           = 1;    /**< old oper status. */
+}
+
 /** Identifiers for all objects in the system.
  */
 enum BalObjId
 {
-    BAL_OBJ_ID_ACCESS_TERMINAL                       = 0;    /**< BAL Access Terminal */
-    BAL_OBJ_ID_FLOW                                  = 1;    /**< BAL Flow */
-    BAL_OBJ_ID_GROUP                                 = 2;    /**< BAL Group */
-    BAL_OBJ_ID_INTERFACE                             = 3;    /**< BAL Interface */
-    BAL_OBJ_ID_PACKET                                = 4;    /**< packet */
-    BAL_OBJ_ID_SUBSCRIBER_TERMINAL                   = 5;    /**< BAL Subscriber Terminal */
-    BAL_OBJ_ID_TM_QUEUE                              = 6;    /**< tm_queue */
-    BAL_OBJ_ID_TM_SCHED                              = 7;    /**< tm_sched */
+    BAL_OBJ_ID_ACCESS_TERMINAL                                   = 0;    /**< BAL Access Terminal */
+    BAL_OBJ_ID_FLOW                                              = 1;    /**< BAL Flow */
+    BAL_OBJ_ID_GROUP                                             = 2;    /**< BAL Group */
+    BAL_OBJ_ID_INTERFACE                                         = 3;    /**< BAL Interface */
+    BAL_OBJ_ID_PACKET                                            = 4;    /**< packet */
+    BAL_OBJ_ID_SUBSCRIBER_TERMINAL                               = 5;    /**< BAL Subscriber Terminal */
+    BAL_OBJ_ID_SYS_CHANNEL_PROFILE                               = 6;    /**< sys_channel_profile  */
+    BAL_OBJ_ID_TM_QUEUE                                          = 7;    /**< tm_queue */
+    BAL_OBJ_ID_TM_SCHED                                          = 8;    /**< tm_sched */
+
 }
 
 /** Identifiers for all possible groups under all objects in the system.
@@ -547,80 +480,71 @@ enum BalObjGroupId
 {
     BAL_OBJ_GROUP_ID_ACCESS_TERMINAL_KEY                         = 0;    /**< BAL Access Terminal - key */
     BAL_OBJ_GROUP_ID_ACCESS_TERMINAL_CFG                         = 1;    /**< BAL Access Terminal - cfg */
-    BAL_OBJ_GROUP_ID_ACCESS_TERMINAL_IND                         = 2;    /**< BAL Access Terminal - Access Terminal Indication */
-    BAL_OBJ_GROUP_ID_ACCESS_TERMINAL_OPER_STATUS_CHANGE          = 3;    /**< BAL Access Terminal - Change of operational status */
+    BAL_OBJ_GROUP_ID_ACCESS_TERMINAL_OPER_STATUS_CHANGE          = 2;    /**< BAL Access Terminal - Change of operational status */
+    BAL_OBJ_GROUP_ID_ACCESS_TERMINAL_PROCESSING_ERROR            = 3;    /**< BAL Access Terminal - general processing error */
     BAL_OBJ_GROUP_ID_FLOW_KEY                                    = 4;    /**< BAL Flow - key */
     BAL_OBJ_GROUP_ID_FLOW_CFG                                    = 5;    /**< BAL Flow - cfg */
-    BAL_OBJ_GROUP_ID_FLOW_STAT                                   = 6;    /**< BAL Flow - stat */
-    BAL_OBJ_GROUP_ID_FLOW_IND                                    = 7;    /**< BAL Flow - Flow Indication */
-    BAL_OBJ_GROUP_ID_FLOW_OPER_STATUS_CHANGE                     = 8;    /**< BAL Flow - Change of operational status */
-    BAL_OBJ_GROUP_ID_GROUP_KEY                                   = 9;    /**< BAL Group - key */
-    BAL_OBJ_GROUP_ID_GROUP_CFG                                   = 10;   /**< BAL Group - cfg */
-    BAL_OBJ_GROUP_ID_GROUP_IND                                   = 11;   /**< BAL Group - Group indication */
-    BAL_OBJ_GROUP_ID_INTERFACE_KEY                               = 12;   /**< BAL Interface - key */
-    BAL_OBJ_GROUP_ID_INTERFACE_CFG                               = 13;   /**< BAL Interface - cfg */
-    BAL_OBJ_GROUP_ID_INTERFACE_STAT                              = 14;   /**< BAL Interface - stat */
-    BAL_OBJ_GROUP_ID_INTERFACE_IND                               = 15;   /**< BAL Interface - Interface Indication */
-    BAL_OBJ_GROUP_ID_INTERFACE_LOS                               = 16;   /**< BAL Interface - LOS */
-    BAL_OBJ_GROUP_ID_INTERFACE_OPER_STATUS_CHANGE                = 17;   /**< BAL Interface - Change of operational status */
-    BAL_OBJ_GROUP_ID_PACKET_KEY                                  = 18;   /**< packet - key */
-    BAL_OBJ_GROUP_ID_PACKET_CFG                                  = 19;   /**< packet - cfg */
-    BAL_OBJ_GROUP_ID_PACKET_BEARER_CHANNEL_RX                    = 20;   /**< packet - Bearer channel rx packet indication */
-    BAL_OBJ_GROUP_ID_PACKET_IEEE_OAM_CHANNEL_RX                  = 21;   /**< packet - IEEE OAM channel rx packet indication */
-    BAL_OBJ_GROUP_ID_PACKET_ITU_OMCI_CHANNEL_RX                  = 22;   /**< packet - ITU OMCI channel rx packet indication */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_KEY                     = 23;   /**< BAL Subscriber Terminal - key */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_CFG                     = 24;   /**< BAL Subscriber Terminal - cfg */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_STAT                    = 25;   /**< BAL Subscriber Terminal - stat */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_DGI                     = 26;   /**< BAL Subscriber Terminal - Receive Dying-Gasp of subscriber terminal */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_DOWI                    = 27;   /**< BAL Subscriber Terminal - dowi */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_IND                     = 28;   /**< BAL Subscriber Terminal - Subscriber Terminal Indication */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_LOOCI                   = 29;   /**< BAL Subscriber Terminal - looci */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_OPER_STATUS_CHANGE      = 30;   /**< BAL Subscriber Terminal - Change of operational status */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SDI                     = 31;   /**< BAL Subscriber Terminal - sdi */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SFI                     = 32;   /**< BAL Subscriber Terminal - sfi */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUB_TERM_ALARM          = 33;   /**< BAL Subscriber Terminal - Subscriber Terminal Alarm Indication */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUB_TERM_DISC           = 34;   /**< BAL Subscriber Terminal - Subscriber Terminal Discovery Indication */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUFI                    = 35;   /**< BAL Subscriber Terminal - sufi */
-    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_TIWI                    = 36;   /**< BAL Subscriber Terminal - tiwi */
+    BAL_OBJ_GROUP_ID_FLOW_OPER_STATUS_CHANGE                     = 6;    /**< BAL Flow - Change of operational status */
+    BAL_OBJ_GROUP_ID_FLOW_PROCESSING_ERROR                       = 7;    /**< BAL Flow - general processing error */
+    BAL_OBJ_GROUP_ID_GROUP_KEY                                   = 8;    /**< BAL Group - key */
+    BAL_OBJ_GROUP_ID_GROUP_CFG                                   = 9;    /**< BAL Group - cfg */
+    BAL_OBJ_GROUP_ID_INTERFACE_KEY                               = 10;   /**< BAL Interface - key */
+    BAL_OBJ_GROUP_ID_INTERFACE_CFG                               = 11;   /**< BAL Interface - cfg */
+    BAL_OBJ_GROUP_ID_INTERFACE_STAT                              = 12;   /**< BAL Interface - stat */
+    BAL_OBJ_GROUP_ID_INTERFACE_LOS                               = 13;   /**< BAL Interface - LOS */
+    BAL_OBJ_GROUP_ID_INTERFACE_OPER_STATUS_CHANGE                = 14;   /**< BAL Interface - Change of operational status */
+    BAL_OBJ_GROUP_ID_PACKET_KEY                                  = 15;   /**< packet - key */
+    BAL_OBJ_GROUP_ID_PACKET_CFG                                  = 16;   /**< packet - cfg */
+    BAL_OBJ_GROUP_ID_PACKET_BEARER_CHANNEL_RX                    = 17;   /**< packet - Bearer channel rx packet indication */
+    BAL_OBJ_GROUP_ID_PACKET_IEEE_OAM_CHANNEL_RX                  = 18;   /**< packet - IEEE OAM channel rx packet indication */
+    BAL_OBJ_GROUP_ID_PACKET_ITU_OMCI_CHANNEL_RX                  = 19;   /**< packet - ITU OMCI channel rx packet indication */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_KEY                     = 20;   /**< BAL Subscriber Terminal - key */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_CFG                     = 21;   /**< BAL Subscriber Terminal - cfg */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_DGI                     = 22;   /**< BAL Subscriber Terminal - Receive Dying-Gasp of subscriber terminal */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_DOWI                    = 23;   /**< BAL Subscriber Terminal - dowi */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_LOOCI                   = 24;   /**< BAL Subscriber Terminal - looci */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_OPER_STATUS_CHANGE      = 25;   /**< BAL Subscriber Terminal - Change of operational status */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_PROCESSING_ERROR        = 26;   /**< BAL Subscriber Terminal - general processing error */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SDI                     = 27;   /**< BAL Subscriber Terminal - sdi */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SFI                     = 28;   /**< BAL Subscriber Terminal - sfi */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUB_TERM_ACT_FAIL       = 29;   /**< BAL Subscriber Terminal - Subscriber Terminal Activation Failure Indication */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUB_TERM_ALARM          = 30;   /**< BAL Subscriber Terminal - Subscriber Terminal Alarm Indication */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUB_TERM_DISC           = 31;   /**< BAL Subscriber Terminal - Subscriber Terminal Discovery Indication */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_SUFI                    = 32;   /**< BAL Subscriber Terminal - sufi */
+    BAL_OBJ_GROUP_ID_SUBSCRIBER_TERMINAL_TIWI                    = 33;   /**< BAL Subscriber Terminal - tiwi */
+    BAL_OBJ_GROUP_ID_SYS_CHANNEL_PROFILE_KEY                     = 34;   /**< sys_channel_profile  - key */
+    BAL_OBJ_GROUP_ID_SYS_CHANNEL_PROFILE_CFG                     = 35;   /**< sys_channel_profile  - cfg */
+    BAL_OBJ_GROUP_ID_SYS_CHANNEL_PROFILE_IND                     = 36;   /**< sys_channel_profile  - channel indication */
     BAL_OBJ_GROUP_ID_TM_QUEUE_KEY                                = 37;   /**< tm_queue - key */
     BAL_OBJ_GROUP_ID_TM_QUEUE_CFG                                = 38;   /**< tm_queue - cfg */
-    BAL_OBJ_GROUP_ID_TM_QUEUE_STAT                               = 39;   /**< tm_queue - stat */
-    BAL_OBJ_GROUP_ID_TM_QUEUE_IND                                = 40;   /**< tm_queue - tm queue indication */
-    BAL_OBJ_GROUP_ID_TM_SCHED_KEY                                = 41;   /**< tm_sched - key */
-    BAL_OBJ_GROUP_ID_TM_SCHED_CFG                                = 42;   /**< tm_sched - cfg */
-    BAL_OBJ_GROUP_ID_TM_SCHED_IND                                = 43;   /**< tm_sched - Tm Sched Indication */
+    BAL_OBJ_GROUP_ID_TM_SCHED_KEY                                = 39;   /**< tm_sched - key */
+    BAL_OBJ_GROUP_ID_TM_SCHED_CFG                                = 40;   /**< tm_sched - cfg */
+    BAL_OBJ_GROUP_ID_TM_SCHED_OPER_STATUS_CHANGE                 = 41;   /**< tm_sched - Operational Status Change Indication */
+
 }
 
 /** List of all access_terminal groups of type auto.
  */
 enum BalAccessTerminalAutoId
 {
-    BAL_ACCESS_TERMINAL_AUTO_ID_IND                  = 0;    /**< Access Terminal Indication. */
-    BAL_ACCESS_TERMINAL_AUTO_ID_OPER_STATUS_CHANGE   = 1;    /**< Change of operational status. */
+    BAL_ACCESS_TERMINAL_AUTO_ID_OPER_STATUS_CHANGE   = 0;    /**< Change of operational status. */
+    BAL_ACCESS_TERMINAL_AUTO_ID_PROCESSING_ERROR     = 1;    /**< general processing error. */
 }
 
 /** List of all flow groups of type auto.
  */
 enum BalFlowAutoId
 {
-    BAL_FLOW_AUTO_ID_IND                             = 0;    /**< Flow Indication. */
-    BAL_FLOW_AUTO_ID_OPER_STATUS_CHANGE              = 1;    /**< Change of operational status. */
-}
-
-/** List of all group groups of type auto.
- */
-enum BalGroupAutoId
-{
-    BAL_GROUP_AUTO_ID_IND                        = 0;    /**< Group indication. */
+    BAL_FLOW_AUTO_ID_OPER_STATUS_CHANGE                      = 0;    /**< Change of operational status. */
+    BAL_FLOW_AUTO_ID_PROCESSING_ERROR                        = 1;    /**< general processing error. */
 }
 
 /** List of all interface groups of type auto.
  */
 enum BalInterfaceAutoId
 {
-    BAL_INTERFACE_AUTO_ID_IND                    = 0;    /**< Interface Indication. */
-    BAL_INTERFACE_AUTO_ID_LOS                    = 1;    /**< LOS. */
-    BAL_INTERFACE_AUTO_ID_OPER_STATUS_CHANGE     = 2;    /**< Change of operational status. */
+    BAL_INTERFACE_AUTO_ID_LOS                    = 0;    /**< LOS. */
+    BAL_INTERFACE_AUTO_ID_OPER_STATUS_CHANGE     = 1;    /**< Change of operational status. */
 }
 
 /** List of all packet groups of type auto.
@@ -636,29 +560,31 @@ enum BalPacketAutoId
  */
 enum BalSubscriberTerminalAutoId
 {
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_DGI                 = 0;    /**< Receive Dying-Gasp of subscriber terminal. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_DOWI                = 1;    /**< dowi. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_IND                 = 2;    /**< Subscriber Terminal Indication. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_LOOCI               = 3;    /**< looci. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_OPER_STATUS_CHANGE  = 4;    /**< Change of operational status. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SDI                 = 5;    /**< sdi. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SFI                 = 6;    /**< sfi. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUB_TERM_ALARM      = 7;    /**< Subscriber Terminal Alarm Indication. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUB_TERM_DISC       = 8;    /**< Subscriber Terminal Discovery Indication. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUFI                = 9;    /**< sufi. */
-    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_TIWI                = 10;   /**< tiwi. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_DGI                = 0;    /**< Receive Dying-Gasp of subscriber terminal. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_DOWI               = 1;    /**< dowi. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_LOOCI              = 2;    /**< looci. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_OPER_STATUS_CHANGE = 3;    /**< Change of operational status. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_PROCESSING_ERROR   = 4;    /**< general processing error. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SDI                = 5;    /**< sdi. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SFI                = 6;    /**< sfi. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUB_TERM_ACT_FAIL  = 7;    /**< Subscriber Terminal Activation Failure Indication. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUB_TERM_ALARM     = 8;    /**< Subscriber Terminal Alarm Indication. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUB_TERM_DISC      = 9;    /**< Subscriber Terminal Discovery Indication. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_SUFI               = 10;   /**< sufi. */
+    BAL_SUBSCRIBER_TERMINAL_AUTO_ID_TIWI               = 11;   /**< tiwi. */
+
 }
 
-/** List of all tm_queue groups of type auto.
+/** List of all sys_channel_profile groups of type auto.
  */
-enum BalTmQueueAutoId
+enum BalSysChannelProfileAutoId
 {
-    BAL_TM_QUEUE_AUTO_ID_IND                         = 0;    /**< Tm Queue Indication. */
+    BAL_SYS_CHANNEL_PROFILE_AUTO_ID_IND  = 0;    /**< channel indication. */
 }
 
 /** List of all tm_sched groups of type auto.
  */
 enum BalTmSchedAutoId
 {
-    BAL_TM_SCHED_AUTO_ID_IND                         = 0;    /**< Tm Sched Indication. */
+    BAL_TM_SCHED_AUTO_ID_OPER_STATUS_CHANGE  = 0;    /**< Operational Status Change Indication. */
 }
