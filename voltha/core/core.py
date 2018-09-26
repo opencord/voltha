@@ -216,6 +216,20 @@ class VolthaCore(object):
         path = '/devices/{}'.format(device.id)
         self.xpon_agent.register_interface(device.id, path, update=False)
 
+        # Register for updates to '/tconts/{}'.
+        # Otherwise TrafficDescriptorProfile updates after VOLTHA restart
+        # are dropped at VOLTHA core.
+        tconts = self.local_root_proxy.get('/tconts')
+        for tcont in tconts:
+            try:
+                olt_device = self.xpon_agent.get_device(tcont, 'olt')
+            except Exception as e:
+                log.error("exception-getting-olt", e=e)
+                return
+            if olt_device and olt_device.id == device.id:
+                tcont_path = '/tconts/{}'.format(tcont.name)
+                self.xpon_agent.register_interface(device.id, tcont_path)
+
     @inlineCallbacks
     def _handle_remove_device(self, device):
         if device.id in self.device_agents:

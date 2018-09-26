@@ -123,6 +123,7 @@ message AlarmEventCategory {
         OLT = 1;
         ONT = 2;
         ONU = 3;
+        NNI = 4;
     }
 }
 
