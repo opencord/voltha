@@ -34,7 +34,8 @@ class Asfvolt16Adapter(OltAdapter):
                                                name='asfvolt16_olt',
                                                vendor='Edgecore',
                                                version='0.98',
-                                               device_type='asfvolt16_olt')
+                                               device_type='asfvolt16_olt',
+                                               accepts_add_remove_flow_updates = True)
         # register for adapter messages
         self.port = 60001
         self.rx_handler = Asfvolt16RxHandler(self, self.port, log)

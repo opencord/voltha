@@ -24,55 +24,65 @@ import "bal.proto";
 
 message BalIndications{
    BalObjId     objType = 1; //type of object for which the indications have been received
-   uint32       sub_group = 22; //Its a new parameter introduced by broadcom to indicate
+   uint32       sub_group = 26; //Its a new parameter introduced by broadcom to indicate
                                 //type of an indication within the object Type.
    oneof u {
-         BalAccessTerminalInd access_term_ind                        = 2;  // Access Terminal
-         BalAccessTerminalOperStatusChange access_term_ind_op_state  = 3;  // Access Terminal Operational State Change
+         BalAccessTerminalOperStatusChange access_term_ind_op_state  = 2;  // Access Terminal Operational State Change
+         BalAccessTerminalProcessingError access_term_proc_err       = 3;  // Access Terminal - general processing error
          BalFlowOperStatusChange flow_op_state                       = 4;  // Flow Operational State Change
-         BalFlowInd flow_ind                                         = 5;  // Flow
-         BalGroupInd group_ind                                       = 6;  // Group
+         BalFlowProcessingError flow_proc_err                        = 5;  // Flow - general processing error
+         BalInterfaceLos interface_los                               = 6;  // OLT alarms
          BalInterfaceOperStatusChange interface_op_state             = 7;  // Interface Operational State Change
-         BalInterfaceLos interface_los                               = 8;  // OLT alarms
-         BalInterfaceInd interface_ind                               = 9;  // Interface
-         BalInterfaceStat interface_stats                            = 10; // NNI statistics
-         BalSubscriberTerminalOperStatusChange terminal_op_state     = 11; // Subscriber Terminal Operational State Change
-         BalSubscriberTerminalSubTermDisc terminal_disc              = 12; // Subscriber discovery
-         BalSubscriberTerminalSubTermAlarm terminal_alarm            = 13; // Subscriber alarm
-         BalSubscriberTerminalDgi terminal_dgi                       = 14; // Subscriber dgi
-         BalSubscriberTerminalInd terminal_ind                       = 15; // Subscriber
-         BalTmQueueInd tm_queue_Ind                                  = 16; // TmQueue Ind
-         BalTmSchedInd tm_sched_Ind                                  = 17; // TmScheduler Ind
-         BalPacketBearerChannelRx  pktData                           = 18; // packet data
-         BalPacketItuOmciChannelRx balOmciResp                       = 19; // OMCI response
-         BalPacketIeeeOamChannelRx balOamResp                        = 20; // PLOAM response
+         BalPacketBearerChannelRx  pktData                           = 8; // packet data
+         BalPacketIeeeOamChannelRx balOamResp                        = 9; // PLOAM response
+         BalPacketItuOmciChannelRx balOmciResp                       = 10; // OMCI response
+         BalSubscriberTerminalDgi terminal_dgi                       = 11; // Subscriber dgi
+         BalSubscriberTerminalDowi terminal_dowi                     = 12; // Subscriber dowi
+         BalSubscriberTerminalLooci terminal_looci                   = 13; // Subscriber dowi
+         BalSubscriberTerminalOperStatusChange terminal_op_state     = 14;  // Subscriber Terminal Operational State Change
+         BalSubscriberTerminalProcessingError terminal_proc_err      = 15;  // Subscriber Terminal Processing Error
+         BalSubscriberTerminalSdi terminal_sdi                       = 16; // Subscriber Sdi
+         BalSubscriberTerminalSfi terminal_sfi                       = 17; // Subscriber Sfi
+         BalSubscriberTerminalSubTermActFail terminal_sub_term_act_fail = 18; // Subscriber Termial act Fail
+         BalSubscriberTerminalSubTermAlarm terminal_alarm            = 19; // Subscriber alarm
+         BalSubscriberTerminalSubTermDisc terminal_disc              = 20; // Subscriber discovery
+         BalSubscriberTerminalSufi terminal_sufi                     = 21; // Subscriber Sufi
+         BalSubscriberTerminalTiwi terminal_tiwi                     = 22; // Subscriber Tiwi
+         BalTmSchedOperStatusChange tm_sched_oper_stats_change       = 23; // TmScheduler Oper Status Change
+	/* We are not supporting BalSysChannelProfileInd as of now. */
+         //BalSysChannelProfileInd bal_profile_ind                     = 24; // Sys Channel Profile Indication
       }
-      string device_id                                               = 21; //Deviced Id
-      uint32 ind_present                                             = 23;
+      string device_id                                               = 25; //Deviced Id
+      uint32 ind_present                                             = 27;
 }
 
 service BalInd {
 
       //Handling of bal indications from the device
-      rpc BalAccTermInd(BalIndications) returns(BalErr) {}
       rpc BalAccTermOperStsCngInd(BalIndications) returns(BalErr) {}
+      rpc BalAccTermProcErr(BalIndications) returns(BalErr) {}
       rpc BalFlowOperStsCng(BalIndications) returns(BalErr) {}
-      rpc BalFlowInd(BalIndications) returns(BalErr) {}
-      rpc BalGroupInd(BalIndications) returns(BalErr) {}
-      rpc BalIfaceOperStsCng(BalIndications) returns(BalErr) {}
+      rpc BalFlowProcErr(BalIndications) returns(BalErr) {}
       rpc BalIfaceLos(BalIndications) returns(BalErr) {}
-      rpc BalIfaceInd(BalIndications) returns(BalErr) {}
-      rpc BalIfaceStat(BalIndications) returns(BalErr) {}
-      rpc BalSubsTermOperStsCng(BalIndications) returns(BalErr) {}
-      rpc BalSubsTermDiscoveryInd(BalIndications) returns(BalErr) {}
-      rpc BalSubsTermAlarmInd(BalIndications) returns(BalErr) {}
-      rpc BalSubsTermDgiInd(BalIndications) returns(BalErr) {}
-      rpc BalSubsTermInd(BalIndications) returns(BalErr) {}
-      rpc BalTmQueueIndInfo(BalIndications) returns(BalErr) {}
-      rpc BalTmSchedIndInfo(BalIndications) returns(BalErr) {}
+      rpc BalIfaceOperStsCng(BalIndications) returns(BalErr) {}
       rpc BalPktBearerChannelRxInd(BalIndications) returns(BalErr) {}
-      rpc BalPktOmciChannelRxInd(BalIndications) returns(BalErr) {}
       rpc BalPktIeeeOamChannelRxInd(BalIndications) returns(BalErr) {}
+      rpc BalPktOmciChannelRxInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermDgiInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermDowiInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermLoociInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermOperStsCng(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermProcErr(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermSdiInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermSfiInd(BalIndications) returns(BalErr) {}
+      rpc BalSubTermActFailInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermAlarmInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermDiscoveryInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermSufiInd(BalIndications) returns(BalErr) {}
+      rpc BalSubsTermTiwiInd(BalIndications) returns(BalErr) {}
+      rpc BalTmSchedOperStatsChange(BalIndications) returns(BalErr) {}
+      /* We are not supporting BalSysProfileInd as of now. */
+      //rpc BalSysProfileInd(BalIndications) returns(BalErr) {}
 }
 
 service BalGetInd {
