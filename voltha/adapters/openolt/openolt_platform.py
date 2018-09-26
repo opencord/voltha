@@ -103,7 +103,8 @@ PON OLT (OF) port number
 
 """
 
-MAX_ONUS_PER_PON = 112
+# MAX_ONUS_PER_PON = 112
+MAX_ONUS_PER_PON = 32
 
 def mk_alloc_id(intf_id, onu_id, idx=0):
     # FIXME - driver should do prefixing 1 << 10 as it is Maple specific
@@ -121,7 +122,7 @@ def mk_uni_port_num(intf_id, onu_id):
     return intf_id << 11 | onu_id << 4
 
 def mk_flow_id(intf_id, onu_id, idx):
-    return intf_id << 11 | onu_id << 4 | idx
+    return intf_id << 9 | onu_id << 4 | idx
 
 
 def onu_id_from_port_num(port_num):

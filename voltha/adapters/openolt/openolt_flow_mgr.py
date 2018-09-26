@@ -334,7 +334,7 @@ class OpenOltFlowMgr(object):
     def add_dhcp_trap(self, intf_id, onu_id, classifier, action, logical_flow):
 
         self.log.debug('add dhcp upstream trap', classifier=classifier,
-                       action=action)
+                       intf_id=intf_id, onu_id=onu_id, action=action)
 
         action.clear()
         action[TRAP_TO_HOST] = True
