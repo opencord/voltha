@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "a1922bf9_f26d64cd",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-26T08:36:45Z",
+      "side": 1,
+      "message": "Ok, moved",
+      "parentUuid": "502f2f3e_6487a3c6",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "78fb21ee_56523731",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2018-09-25T15:11:38Z",
       "side": 1,
       "message": "What is the purpose of the sched_id (last parameter)? Unless we have a good explanation for why this should be dictated by the voltha adapter, it should be kept internal to the device.",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4f47e4ab_35e0b897",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 437,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-26T08:36:45Z",
+      "side": 1,
+      "message": "Ok. Taken care",
+      "parentUuid": "78fb21ee_56523731",
       "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "3da4390e_139b348d",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1062,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-26T08:36:45Z",
+      "side": 1,
+      "message": "Ok, taken care. I have pushed another patch for openolt driver side of changes.",
+      "parentUuid": "ac5775fe_12ad924c",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f20204ea_29ba6f73",
         "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
         "patchSetId": 1
@@ -64,6 +118,24 @@
       "writtenOn": "2018-09-24T17:59:01Z",
       "side": 1,
       "message": "This dict needs to be moved to KV store. If you notice, OpenOLT does not maintain any per-ONU state in-memory.",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "70da8f34_440c1c52",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-26T08:36:45Z",
+      "side": 1,
+      "message": "This moved to KV store now.",
+      "parentUuid": "f20204ea_29ba6f73",
       "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "e296bbb4_173f58a5",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-26T08:36:45Z",
+      "side": 1,
+      "message": "I have moved as much functionality possible to PONResourceManager in latest commit",
+      "parentUuid": "6d3976fb_cb4a4dfc",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "10dc5869_9ee19569",
         "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
         "patchSetId": 1
@@ -98,6 +188,24 @@
       "writtenOn": "2018-09-24T17:59:01Z",
       "side": 1,
       "message": "Same here - what is OpenOLT specific about this? Why cannot it be common to all adapters? Same comment applies to other methods - can we distill the common functionality out to the PONResourceManager and have only the very adapter dependant logic here.",
+      "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c8790901_771a5ae8",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 123,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-26T08:36:45Z",
+      "side": 1,
+      "message": "I have moved as much functionality possible to PONResourceManager in latest commit",
+      "parentUuid": "10dc5869_9ee19569",
       "revId": "f93778e6601bb70a3b33a3b5f399368c7bfbb84a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
