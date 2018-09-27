@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5b78d91c_84c51582",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 411,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-27T21:44:49Z",
+      "side": 1,
+      "message": "Just like get_alloc_id(), and get_gemport_id(), add another function get_onu_id().\n\nMove the init_resource_map into get_onu_id().\n\nThis will make the resource mgr interface simpler and closer to what it was earlier.",
+      "revId": "ce4ce9f666f49c7805cdaca4b38b8f2c355d3935",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0d5cc47d_cd5c4564",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 425,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-27T21:44:49Z",
+      "side": 1,
+      "message": "It is non-intuitive to have to make 2 calls to clear onu_id resource. Add a free_onu_id() method to OpenOltResourceMgr that internally handles these 2 calls - free_resource_id(), remove_resource_map().\n\nYou may consider adding similar methods for clear_alloc_id(), clear_gemport_id().\n\nThe goal should be that openolt_device.py should not have to\nimport common.pon_resource_manager.resource_manager.",
+      "revId": "ce4ce9f666f49c7805cdaca4b38b8f2c355d3935",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9403445c_3d266b0b",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 989,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-27T21:44:49Z",
+      "side": 1,
+      "message": "See comment in openolt_resource_manager.py - add a deconstructor __del__(). Call the deconstructor here.",
+      "revId": "ce4ce9f666f49c7805cdaca4b38b8f2c355d3935",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e0851554_d3f8f979",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 1056,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-27T21:44:49Z",
+      "side": 1,
+      "message": "Move the call to remove_resource_map to free_pon_resources_for_onu.",
+      "revId": "ce4ce9f666f49c7805cdaca4b38b8f2c355d3935",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "eaaa8445_ecf12be5",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 196,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-27T21:44:49Z",
+      "side": 1,
+      "message": "Use a deconstructor __del__ instead and del the instance",
+      "revId": "ce4ce9f666f49c7805cdaca4b38b8f2c355d3935",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
