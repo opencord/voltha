@@ -16,6 +16,47 @@
       "revId": "e2dceae9025b890745a1d004f908a51a15fb592b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f3add881_ada8a25b",
+        "filename": "voltha/adapters/cig_openomci_onu/cig_openomci_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-09-27T17:21:17Z",
+      "side": 1,
+      "message": "Yes the reference onu and the alpha did not properly answer for the capabilities ME so i had to manually fill them in the overriding class.",
+      "parentUuid": "ca12261d_186f0298",
+      "revId": "e2dceae9025b890745a1d004f908a51a15fb592b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e9b7627d_edb081b6",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-09-27T17:21:17Z",
+      "side": 1,
+      "message": "So i started out doing this not really liking it, mostly because of the conflicting old vs new adapter.  Now that other adapters are coming along i hope we can remove this check altogether and let the adapter functions run.   Shad had a change he may have been working on to clean this up.   For now its fine, just need to keep in mind.",
+      "range": {
+        "startLine": 542,
+        "startChar": 12,
+        "endLine": 542,
+        "endChar": 33
+      },
+      "revId": "e2dceae9025b890745a1d004f908a51a15fb592b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
