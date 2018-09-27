@@ -656,6 +656,8 @@ class AdapterAgent(object):
 
         out_port = get_port_out(ofp_packet_out)
         frame = ofp_packet_out.data
+        self.log.debug('rcv-packet-out', logical_device_id=logical_device_id,
+                       egress_port_no=out_port, adapter_name=self.adapter_name)
         self.adapter.receive_packet_out(logical_device_id, out_port, frame)
 
     def add_logical_port(self, logical_device_id, port):

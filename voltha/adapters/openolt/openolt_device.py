@@ -663,12 +663,13 @@ class OpenoltDevice(object):
 
     def packet_out(self, egress_port, msg):
         pkt = Ether(msg)
-        self.log.info('packet out', egress_port=egress_port,
-                      packet=str(pkt).encode("HEX"))
+        self.log.debug('packet out', egress_port=egress_port,
+                       device_id=self.device_id,
+                       logical_device_id=self.logical_device_id,
+                       packet=str(pkt).encode("HEX"))
 
         # Find port type
         egress_port_type = self.port_type(egress_port)
-
         if egress_port_type == Port.ETHERNET_UNI:
 
             if pkt.haslayer(Dot1Q):
@@ -948,8 +949,8 @@ class OpenoltDevice(object):
             # Rebooting to reset the state
             self.reboot()
             # Removing logical device
-            self.proxy.remove('/logical_devices/{}'.
-                              format(self.logical_device_id))
+            ld = self.adapter_agent.get_logical_device(self.logical_device_id)
+            self.adapter_agent.delete_logical_device(ld)
         except Exception as e:
             self.log.error('Failure to delete openolt device', error=e)
             raise e
