@@ -230,7 +230,8 @@ class OpenoltDevice(object):
             uni_name = self.port_name(uni_no, Port.ETHERNET_UNI,
                                       serial_number=onu_device.serial_number)
 
-            if onu_device.adapter == 'brcm_openomci_onu':
+
+            if onu_device.adapter == 'brcm_openomci_onu' or onu_device.adapter == 'cig_openomci_onu':
                 self.log.debug('using-brcm_openomci_onu, update_interface '
                                'down')
                 onu_adapter_agent = \
@@ -538,7 +539,7 @@ class OpenoltDevice(object):
             self.onu_ports_down(onu_device, uni_no, uni_name,
                                 OperStatus.DISCOVERED)
 
-            if onu_device.adapter == 'brcm_openomci_onu':
+            if onu_device.adapter == 'brcm_openomci_onu' or onu_device.adapter == 'cig_openomci_onu':
                 self.log.debug('using-brcm_openomci_onu')
                 onu_adapter_agent.update_interface(onu_device,
                                                    {'oper_state': 'down'})
@@ -563,7 +564,7 @@ class OpenoltDevice(object):
             # If we are  brcm_openomci adapter proceed
 
 
-            if onu_device.adapter == 'brcm_openomci_onu':
+            if onu_device.adapter == 'brcm_openomci_onu' or onu_device.adapter == 'cig_openomci_onu':
                 self.log.debug('using-brcm_openomci_onu')
 
                 # tcont creation (onu)
