@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ca12261d_186f0298",
+        "filename": "voltha/adapters/cig_openomci_onu/cig_openomci_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-09-27T17:13:36Z",
+      "side": 1,
+      "message": "The BroadCom adapter does not query the OMCI ME to get capabilities, probably due to T\u0026W problems retrieving the supported message types.\n\nIf you have not tried the OpenOMCI capabilities task, you may want to.  If you have issues with retrieving either the ME classes supported or the message types, make sure you check what the brcm_capabilities_tasks returns for these two items as you may want to modify them for your OMCI stack on the ONU.\n\nThe main place this could be an issue if not correct is in automatic setup of Historical Interval PMs by the OpenOMCI PM state machine.  Later, the ME Class capabilities may also play out in how to report on multicast capabilities.",
+      "revId": "e2dceae9025b890745a1d004f908a51a15fb592b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
