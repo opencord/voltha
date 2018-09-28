@@ -16,6 +16,24 @@
       "revId": "ab1a9db10bc318d84fd924f9ac181ae846b2081d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "24f7ab44_855623e1",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 224,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-28T03:56:37Z",
+      "side": 1,
+      "message": "Up until Voltha1.x we want xPON support.\nI have tested this code with OpenOlt and it doesn\u0027t affect it. When \u0027/tconts\u0027 are not available, it returns an empty list and the \u0027for\u0027 loop wont get executed. \nAs an extra protection I just added an try-except block, so it shall in no way impact anyone else.",
+      "parentUuid": "d7463f0d_9f721559",
+      "revId": "ab1a9db10bc318d84fd924f9ac181ae846b2081d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
