@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d7463f0d_9f721559",
+        "filename": "voltha/core/core.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 224,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-09-28T00:59:31Z",
+      "side": 1,
+      "message": "Why are we using xpon? What about adapters that do not use xpon?",
+      "revId": "ab1a9db10bc318d84fd924f9ac181ae846b2081d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
