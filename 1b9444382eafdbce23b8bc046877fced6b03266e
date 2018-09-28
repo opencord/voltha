@@ -1,0 +1,303 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ef3d8c9d_855df370",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 225,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "This is not a requirement for all vendor platforms. Does this need to be part of device_info to reflect pools-per-device or pools-per-interface and move back inside interface iterator loop?",
+      "range": {
+        "startLine": 225,
+        "startChar": 0,
+        "endLine": 225,
+        "endChar": 26
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "86a8ba62_5ed1e815",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 233,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "Same comment on fixing GEM Ports to one global pool vs pool per interface. And moving back inside iterator loop.",
+      "range": {
+        "startLine": 233,
+        "startChar": 0,
+        "endLine": 233,
+        "endChar": 26
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c4343aa5_79f7f17f",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 253,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "Ditto",
+      "range": {
+        "startLine": 253,
+        "startChar": 0,
+        "endLine": 253,
+        "endChar": 26
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "cae233de_f1f54d1b",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 258,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "Ditto",
+      "range": {
+        "startLine": 258,
+        "startChar": 0,
+        "endLine": 258,
+        "endChar": 26
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "93e198a9_4e1bd655",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 301,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "I am not overly familiar with architecture. But, is there concern over atomicity of read-modify-write logic on the KV store with multiple threads calling get_resource_id() or free_resource_id() concurrently?",
+      "range": {
+        "startLine": 301,
+        "startChar": 0,
+        "endLine": 301,
+        "endChar": 71
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "61bf08d6_298d68d3",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 320,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "Global vs per-intf pool",
+      "range": {
+        "startLine": 320,
+        "startChar": 0,
+        "endLine": 320,
+        "endChar": 27
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f80b2641_e72b1123",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 328,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "Could assert num_ids\u003d1 for ONU ID resource type and leave this logic common with below provided scalar vs list results are handled based upon comment below.",
+      "range": {
+        "startLine": 328,
+        "startChar": 0,
+        "endLine": 328,
+        "endChar": 58
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "98e499cb_28d80ddf",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 334,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "Is there any value to returning a scalar rather than list if caller explicitly only asked for 1 ID, like what was done above for ONU-IDs.",
+      "range": {
+        "startLine": 334,
+        "startChar": 0,
+        "endLine": 334,
+        "endChar": 31
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "60d25e33_68154102",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 369,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "Ditto",
+      "range": {
+        "startLine": 369,
+        "startChar": 0,
+        "endLine": 369,
+        "endChar": 27
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d7b51ca1_e7b67a1b",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 682,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "Potential performance bottleneck for every packet indication hitting KV store.",
+      "range": {
+        "startLine": 682,
+        "startChar": 0,
+        "endLine": 682,
+        "endChar": 74
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "316912b4_5c487484",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "See comment in Resource Manager, it could be cleaner to return directly to the scalar alloc_id rather than a list of 1 element based upon the number of ids requested.",
+      "range": {
+        "startLine": 109,
+        "startChar": 0,
+        "endLine": 109,
+        "endChar": 35
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e0bb88a5_b9553ec9",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "Ditto",
+      "range": {
+        "startLine": 142,
+        "startChar": 0,
+        "endLine": 142,
+        "endChar": 36
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c0e53caa_b1b46f64",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 196,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-09-28T19:00:52Z",
+      "side": 1,
+      "message": "What happens if device and KV store differ. For instance, if the device changes it\u0027s default ranges? Or if two different devices from the same vendor-type return different ranges?",
+      "range": {
+        "startLine": 196,
+        "startChar": 0,
+        "endLine": 196,
+        "endChar": 32
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
