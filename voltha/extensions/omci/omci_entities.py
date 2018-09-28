@@ -138,6 +138,9 @@ class EntityClass(object):
     mandatory_operations = set()
     optional_operations = set()
     notifications = set()
+    hidden = False        # If true, this attribute is not reported by a MIB upload.
+                          # This attribute is needed to be able to properly perform
+                          # MIB Audits.
 
     # will be map of attr_name -> index in attributes, initialized by metaclass
     attribute_name_to_index_map = None
@@ -220,6 +223,7 @@ OP = EntityOperations
 
 class OntData(EntityClass):
     class_id = 2
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R},
             range_check=lambda x: x == 0),
@@ -1060,6 +1064,7 @@ class VirtualEthernetInterfacePt(EntityClass):
 
 class Omci(EntityClass):
     class_id = 287
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R},
             range_check=lambda x: x == 0),
@@ -1120,6 +1125,7 @@ class EnhSecurityControl(EntityClass):
 
 class EthernetPMMonitoringHistoryData(EntityClass):
     class_id = 24
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
         ECA(ByteField("interval_end_time", None), {AA.R}),
@@ -1145,6 +1151,7 @@ class EthernetPMMonitoringHistoryData(EntityClass):
 
 class FecPerformanceMonitoringHistoryData(EntityClass):
     class_id = 312
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
         ECA(ByteField("interval_end_time", None), {AA.R}),
@@ -1161,6 +1168,7 @@ class FecPerformanceMonitoringHistoryData(EntityClass):
 
 class EthernetFrameDownstreamPerformanceMonitoringHistoryData(EntityClass):
     class_id = 321
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
         ECA(ByteField("interval_end_time", None), {AA.R}),
@@ -1186,6 +1194,7 @@ class EthernetFrameDownstreamPerformanceMonitoringHistoryData(EntityClass):
 
 class EthernetFrameUpstreamPerformanceMonitoringHistoryData(EntityClass):
     class_id = 322
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
         ECA(ByteField("interval_end_time", None), {AA.R}),
@@ -1211,7 +1220,7 @@ class EthernetFrameUpstreamPerformanceMonitoringHistoryData(EntityClass):
 
 class EthernetFrameExtendedPerformanceMonitoring(EntityClass):
     class_id = 334
-
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
         ECA(ByteField("interval_end_time", None), {AA.R}),
@@ -1247,7 +1256,7 @@ class EthernetFrameExtendedPerformanceMonitoring(EntityClass):
 
 class EthernetFrameExtendedPerformanceMonitoring64Bit(EntityClass):
     class_id = 426
-
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
         ECA(ByteField("interval_end_time", None), {AA.R}),
@@ -1283,6 +1292,7 @@ class EthernetFrameExtendedPerformanceMonitoring64Bit(EntityClass):
 
 class GemPortNetworkCtpMonitoringHistoryData(EntityClass):
     class_id = 341
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
         ECA(ByteField("interval_end_time", None), {AA.R}),
@@ -1299,6 +1309,7 @@ class GemPortNetworkCtpMonitoringHistoryData(EntityClass):
 
 class XgPonTcPerformanceMonitoringHistoryData(EntityClass):
     class_id = 344
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
         ECA(ByteField("interval_end_time", None), {AA.R}),
@@ -1319,6 +1330,7 @@ class XgPonTcPerformanceMonitoringHistoryData(EntityClass):
 
 class XgPonDownstreamPerformanceMonitoringHistoryData(EntityClass):
     class_id = 345
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
         ECA(ByteField("interval_end_time", None), {AA.R},),
@@ -1345,6 +1357,7 @@ class XgPonDownstreamPerformanceMonitoringHistoryData(EntityClass):
 
 class XgPonUpstreamPerformanceMonitoringHistoryData(EntityClass):
     class_id = 346
+    hidden = True
     attributes = [
         ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
         ECA(ByteField("interval_end_time", None), {AA.R}),
