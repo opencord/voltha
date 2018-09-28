@@ -57,6 +57,30 @@
       "revId": "e2dceae9025b890745a1d004f908a51a15fb592b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c5d33173_61a66833",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-09-28T10:43:57Z",
+      "side": 1,
+      "message": "Shad has a commit about to be merged that will address this.  \n\nhttps://gerrit.opencord.org/#/c/11224/",
+      "parentUuid": "e9b7627d_edb081b6",
+      "range": {
+        "startLine": 542,
+        "startChar": 12,
+        "endLine": 542,
+        "endChar": 33
+      },
+      "revId": "e2dceae9025b890745a1d004f908a51a15fb592b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
