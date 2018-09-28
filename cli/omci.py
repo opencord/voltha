@@ -168,8 +168,8 @@ class OmciCli(Cmd):
         for cls_id in class_ids:
             class_data = mib[cls_id]
             self.poutput('  ----------------------------------------------')
-            self.poutput('  Class ID: {0} - ({0:#x})'.format(cls_id))
-
+            self.poutput('  Class ID     : {0} - ({0:#x}): {1}'.
+                         format(cls_id, mib[OmciCli.ME_KEY].get(cls_id, 'Unknown')))
             inst_ids = [k for k in class_data.iterkeys()
                         if isinstance(k, int) and
                         (opts.instance_id is None or opts.instance_id == k)]
@@ -190,21 +190,22 @@ class OmciCli(Cmd):
 
                 attributes = inst_data[OmciCli.ATTRIBUTES_KEY]
                 attr_names = attributes.keys()
-                attr_names.sort()
-                max_len = max([len(attr) for attr in attr_names])
+                if len(attr_names):
+                    attr_names.sort()
+                    max_len = max([len(attr) for attr in attr_names])
 
-                for attr in attr_names:
-                    name = self._cleanup_attribute_name(attr).ljust(max_len)
-                    value = attributes[attr]
-                    try:
-                        ivalue = int(value)
-                        self.poutput('      {0}: {1} - ({1:#x})'.format(name, ivalue))
+                    for attr in attr_names:
+                        name = self._cleanup_attribute_name(attr).ljust(max_len)
+                        value = attributes[attr]
+                        try:
+                            ivalue = int(value)
+                            self.poutput('      {0}: {1} - ({1:#x})'.format(name, ivalue))
 
-                    except ValueError:
-                        self.poutput('      {}: {}'.format(name, value))
+                        except ValueError:
+                            self.poutput('      {}: {}'.format(name, value))
 
-                if inst_id is not inst_ids[-1]:
-                    self.poutput(linesep)
+                    if inst_id is not inst_ids[-1]:
+                        self.poutput(linesep)
 
     def _cleanup_attribute_name(self, attr):
         """Change underscore to space and capitalize first character"""
