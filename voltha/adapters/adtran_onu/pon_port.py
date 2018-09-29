@@ -112,7 +112,7 @@ class PonPort(object):
 
     @entity_id.setter
     def entity_id(self, value):
-        assert self._entity_id is None, 'Cannot reset the Entity ID'
+        assert self._entity_id is None or self._entity_id == value, 'Cannot reset the Entity ID'
         self._entity_id = value
 
     @property
