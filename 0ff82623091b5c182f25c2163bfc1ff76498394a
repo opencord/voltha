@@ -22,6 +22,30 @@
       "revId": "0ff82623091b5c182f25c2163bfc1ff76498394a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f90b553f_57e52a6d",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 644,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2018-09-30T21:07:21Z",
+      "side": 1,
+      "message": "Does it matter - there won\u0027t be any other kinds of interfaces ...",
+      "parentUuid": "6199fcfb_81b98976",
+      "range": {
+        "startLine": 637,
+        "startChar": 0,
+        "endLine": 644,
+        "endChar": 34
+      },
+      "revId": "0ff82623091b5c182f25c2163bfc1ff76498394a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
