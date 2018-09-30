@@ -199,6 +199,7 @@ message OmciIndication {
 }
 
 message PacketIndication {
+    string intf_type = 5;		// nni, pon, unknown
     fixed32 intf_id = 1;
     fixed32 gemport_id = 2;
     fixed32 flow_id = 3;
@@ -218,9 +219,7 @@ message Onu {
     fixed32 onu_id = 2;
     SerialNumber serial_number = 3;
     fixed32 pir = 4;   // peak information rate assigned to onu
-    fixed32 agg_port_id = 5;
-    fixed32 sched_id = 6;
-
+    fixed32 alloc_id = 5;
 }
 
 message OmciMsg {

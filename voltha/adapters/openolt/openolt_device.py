@@ -628,18 +628,31 @@ class OpenoltDevice(object):
 
     def packet_indication(self, pkt_indication):
 
-        self.log.debug("packet indication", intf_id=pkt_indication.intf_id,
+        self.log.debug("packet indication",
+                       intf_type=pkt_indication.intf_type,
+                       intf_id=pkt_indication.intf_id,
                        gemport_id=pkt_indication.gemport_id,
                        flow_id=pkt_indication.flow_id)
 
-        onu_id = platform.onu_id_from_gemport_id(pkt_indication.gemport_id)
-        logical_port_num = platform.mk_uni_port_num(pkt_indication.intf_id,
-                                                    onu_id)
+        if pkt_indication.intf_type == "pon":
+            onu_id = platform.onu_id_from_gemport_id(pkt_indication.gemport_id)
+            logical_port_num = platform.mk_uni_port_num(pkt_indication.intf_id,
+                                                        onu_id)
+        elif pkt_indication.intf_type == "nni":
+            logical_port_num = platform.intf_id_to_port_no(
+                pkt_indication.intf_id,
+                Port.ETHERNET_NNI)
 
         pkt = Ether(pkt_indication.pkt)
-        kw = dict(logical_device_id=self.logical_device_id,
-                  logical_port_no=logical_port_num)
-        self.adapter_agent.send_packet_in(packet=str(pkt), **kw)
+
+        self.log.debug("packet indication",
+                       logical_device_id=self.logical_device_id,
+                       logical_port_no=logical_port_num)
+
+        self.adapter_agent.send_packet_in(
+            logical_device_id=self.logical_device_id,
+            logical_port_no=logical_port_num,
+            packet=str(pkt))
 
     def packet_out(self, egress_port, msg):
         pkt = Ether(msg)
