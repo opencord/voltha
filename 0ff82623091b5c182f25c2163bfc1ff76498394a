@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6199fcfb_81b98976",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 644,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-09-30T14:25:48Z",
+      "side": 1,
+      "message": "As mentioned in the driver review comment, can we introduce enumerations of for interface types on the gRPC interface and use them here instead of hard coded strings.",
+      "range": {
+        "startLine": 637,
+        "startChar": 0,
+        "endLine": 644,
+        "endChar": 34
+      },
+      "revId": "0ff82623091b5c182f25c2163bfc1ff76498394a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
