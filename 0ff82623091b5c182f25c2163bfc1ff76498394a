@@ -46,6 +46,30 @@
       "revId": "0ff82623091b5c182f25c2163bfc1ff76498394a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a39953a0_f6bed102",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 644,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-01T05:54:37Z",
+      "side": 1,
+      "message": "In general, it is a good practice to use some constants instead of hardcoding strings.",
+      "parentUuid": "f90b553f_57e52a6d",
+      "range": {
+        "startLine": 637,
+        "startChar": 0,
+        "endLine": 644,
+        "endChar": 34
+      },
+      "revId": "0ff82623091b5c182f25c2163bfc1ff76498394a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
