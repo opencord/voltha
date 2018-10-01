@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "74f720c7_68f6732a",
+        "filename": "voltha/adapters/cig_openomci_onu/cig_openomci_onu.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1000456
+      },
+      "writtenOn": "2018-10-01T23:21:43Z",
+      "side": 1,
+      "message": "Yes, it\u0027s a good advice to do openomci capability sync in CIG ONU Adapter.",
+      "parentUuid": "f3add881_ada8a25b",
+      "revId": "e2dceae9025b890745a1d004f908a51a15fb592b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e9b7627d_edb081b6",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 2
