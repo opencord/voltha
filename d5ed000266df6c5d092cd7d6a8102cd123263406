@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8d334228_16d0fd3d",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 811,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-10-02T18:03:25Z",
+      "side": 1,
+      "message": "Does this be delegate this back through the openolt parent_adapter_agent to the potentially overridden platform class?",
+      "range": {
+        "startLine": 811,
+        "startChar": 23,
+        "endLine": 811,
+        "endChar": 38
+      },
+      "revId": "d5ed000266df6c5d092cd7d6a8102cd123263406",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
