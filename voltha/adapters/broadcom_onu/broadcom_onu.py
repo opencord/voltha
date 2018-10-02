@@ -846,16 +846,26 @@ class BroadcomOnuHandler(object):
 
     def send_set_8021p_mapper_service_profile(self,
                                               entity_id,
-                                              interwork_tp_id=None):
+                                              interwork_tp_id_0_6=None,
+                                              interwork_tp_id_7=None):
         data = dict()
-        data['interwork_tp_pointer_for_p_bit_priority_0']=interwork_tp_id
-        data['interwork_tp_pointer_for_p_bit_priority_1']=interwork_tp_id
-        data['interwork_tp_pointer_for_p_bit_priority_2']=interwork_tp_id
-        data['interwork_tp_pointer_for_p_bit_priority_3']=interwork_tp_id
-        data['interwork_tp_pointer_for_p_bit_priority_4']=interwork_tp_id
-        data['interwork_tp_pointer_for_p_bit_priority_5']=interwork_tp_id
-        data['interwork_tp_pointer_for_p_bit_priority_6']=interwork_tp_id
-        data['interwork_tp_pointer_for_p_bit_priority_7']=interwork_tp_id
+        if interwork_tp_id_0_6 is not None:
+            data['interwork_tp_pointer_for_p_bit_priority_0']=interwork_tp_id_0_6
+            data['interwork_tp_pointer_for_p_bit_priority_1']=interwork_tp_id_0_6
+            data['interwork_tp_pointer_for_p_bit_priority_2']=interwork_tp_id_0_6
+            data['interwork_tp_pointer_for_p_bit_priority_3']=interwork_tp_id_0_6
+            data['interwork_tp_pointer_for_p_bit_priority_4']=interwork_tp_id_0_6
+            data['interwork_tp_pointer_for_p_bit_priority_5']=interwork_tp_id_0_6
+            data['interwork_tp_pointer_for_p_bit_priority_6']=interwork_tp_id_0_6
+        if interwork_tp_id_7 is not None:
+            data['interwork_tp_pointer_for_p_bit_priority_0']=interwork_tp_id_7
+            data['interwork_tp_pointer_for_p_bit_priority_1']=interwork_tp_id_7
+            data['interwork_tp_pointer_for_p_bit_priority_2']=interwork_tp_id_7
+            data['interwork_tp_pointer_for_p_bit_priority_3']=interwork_tp_id_7
+            data['interwork_tp_pointer_for_p_bit_priority_4']=interwork_tp_id_7
+            data['interwork_tp_pointer_for_p_bit_priority_5']=interwork_tp_id_7
+            data['interwork_tp_pointer_for_p_bit_priority_6']=interwork_tp_id_7
+            data['interwork_tp_pointer_for_p_bit_priority_7']=interwork_tp_id_7
 
         frame = OmciFrame(
             transaction_id=self.get_tx_id(),
@@ -1455,6 +1465,18 @@ class BroadcomOnuHandler(object):
             yield self.wait_for_response()
 
             # Set AR - ExtendedVlanTaggingOperationConfigData
+            #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
+            # To be removed once DPU supports sending vlan4090p3 instead of vlan4090p0
+            self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x200 + port_id, 0, mcvid, 0, 1, 7, mcvid)
+            yield self.wait_for_response()
+
+
+            # Set AR - ExtendedVlanTaggingOperationConfigData
+            #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to priority tagged pkts - c-vid
+            self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_single_tag(0x200 + port_id, 3, mcvid, 0, 1, 7, mcvid)
+            yield self.wait_for_response()
+
+            # Set AR - ExtendedVlanTaggingOperationConfigData
             #          514 - RxVlanTaggingOperationTable - add VLAN <cvid> to untagged pkts - c-vid
             self.send_set_extended_vlan_tagging_operation_vlan_configuration_data_untagged(0x200 + port_id, 0x1000, cvid)
             yield self.wait_for_response()
@@ -1689,7 +1711,12 @@ class BroadcomOnuHandler(object):
             # Set AR - 802.1pMapperServiceProfile - Mapper_ profile_id -
             #                                       gem_port_tp pointer
 
-            self.send_set_8021p_mapper_service_profile(0x8001, interwork_tp_id=gem_port.gemport_id)
+            if gem_port.traffic_class == 2:
+                self.send_set_8021p_mapper_service_profile(0x8001,
+                                                           interwork_tp_id_7=gem_port.gemport_id)
+            else:
+                self.send_set_8021p_mapper_service_profile(0x8001,
+                                                           interwork_tp_id_0_6=gem_port.gemport_id)
                
             yield self.wait_for_response()
 
@@ -1704,7 +1731,9 @@ class BroadcomOnuHandler(object):
             self.log.error('device-unreachable')
             return
 
-        self.send_set_8021p_mapper_service_profile(0x8001, interwork_tp_id=0xFFFF)
+        self.send_set_8021p_mapper_service_profile(0x8001,
+                                                   interwork_tp_id_0_6=0xFFFF,
+                                                   interwork_tp_id_7=0xFFFF)
         yield self.wait_for_response()
 
         self.send_delete_omci_mesage(GemInterworkingTp.class_id,

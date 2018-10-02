@@ -98,6 +98,8 @@ ASFVOLT_DOWNLINK_DHCP_TAGGED_ID = 6
 
 ASFVOLT_HSIA_ID = 7
 
+# NOTE: Flow Ids 8 to 15 are reserved for No-L2-Modification flows. Do not use them
+
 RESERVED_VLAN_ID = 4095
 
 ASFVOLT16_NUM_PON_PORTS = 16
@@ -119,7 +121,9 @@ ASFVOLT16_LLDP_DL_FLOW_ID = 16368
 # be sufficient for most practical uses cases
 MAX_ONU_ID_PER_PON_PORT = 128
 
-# traffic class specifier
+# Traffic class defined for traffic where PON passes the traffic tranparently
+TRAFFIC_CLASS_1 = 1
+# Traffic class defined for traffic where PON adds/removes tags
 TRAFFIC_CLASS_2 = 2
 
 class FlowInfo(object):
@@ -258,6 +262,17 @@ class Asfvolt16Handler(OltDeviceHandler):
         # defaults to first NNI ports. Overriden after reading from the device 
         self.nni_intf_id = 0
 
+        # Up to 12 no L2 modificaton (transparent) flows per ONU allowed
+        # When transparent flow is to be added, an Id is popped from this set, and when
+        # the this flow is deleted, the Id is put back to the set.
+        # When the set is empty and is being popped, it raises a KeyError.
+        # Note: This is stateful data and is lot during reconciliation.
+        # There may be failure in adding/removing transparent flows after voltha restart
+        # as a result of storing this stateful data. This needs to be addressed
+        # in the future.
+        self.no_l2_mod_traffic_flow_ids = set([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+        self.num_of_no_l2_mod_flows = len(self.no_l2_mod_traffic_flow_ids)
+
     def __del__(self):
         super(Asfvolt16Handler, self).__del__()
 
@@ -355,7 +370,9 @@ class Asfvolt16Handler(OltDeviceHandler):
         # ++++++++++++++++++++++++++++++++++++++++++++++
         # Note: Theoretical limit of onu_id is 255, but
         # practically we have upto 32 or 64 or 128 ONUs per pon port.
-        # For now limiting the ONU Id to 6 bits (or 32 ONUs)
+        # For now limiting the ONU Id to 6 bits (or 32 ONUs) to
+        # accomadate more transparent flows per ONU (this frees up more bits
+        # for flow id)
         return (onu_id << (self.FLOW_ID_BITS + self.PON_INTF_BITS)
                 | (intf_id << self.FLOW_ID_BITS) | id)
 
@@ -450,8 +467,7 @@ class Asfvolt16Handler(OltDeviceHandler):
             if flow.traffic_class == traffic_class:
                 self.divide_and_add_flow(v_enet,
                                          flow.classifier,
-                                         flow.action,
-                                         flow.priority)
+                                         flow.action)
                 v_enet.pending_flows.remove(flow)
         return
 
@@ -2206,7 +2222,7 @@ class Asfvolt16Handler(OltDeviceHandler):
                                    in_port=classifier_info['in_port'])
                     return
                 yield self.divide_and_add_flow(v_enet, classifier_info,
-                                               action_info, flow.priority)
+                                               action_info)
             elif is_down_stream:
                 yield self.add_downstream_only_flow(classifier_info, action_info)
 
@@ -2223,7 +2239,6 @@ class Asfvolt16Handler(OltDeviceHandler):
                 onu_id = flow['onu_id']
                 intf_id = flow['intf_id']
                 gemport_id = flow['gemport_id']
-                priority = flow['priority']
                 queue_id = flow['queue_id']
                 ds_scheduler_id = flow['ds_scheduler_id']
                 us_scheduler_id = flow['us_scheduler_id']
@@ -2233,40 +2248,64 @@ class Asfvolt16Handler(OltDeviceHandler):
 
                 # Deactivating and deleting downlink flow
                 is_down_stream = True
-                yield self.bal.deactivate_flow(flow_id,
-                                               is_down_stream,
-                                               onu_id=onu_id, intf_id=intf_id,
-                                               network_int_id=self.nni_intf_id,
-                                               gemport_id=gemport_id,
-                                               priority=priority,
-                                               stag=stag, ctag=ctag,
-                                               ds_scheduler_id=ds_scheduler_id,
-                                               queue_id=queue_id)
+                if self._is_no_l2_mod_flow(flow_id):
+                    yield self.bal.deactivate_no_l2_mod_flow(flow_id,
+                                                        is_down_stream,
+                                                        onu_id=onu_id, intf_id=intf_id,
+                                                        network_int_id=self.nni_intf_id,
+                                                        gemport_id=gemport_id,
+                                                        stag=stag, ctag=ctag,
+                                                        ds_scheduler_id=ds_scheduler_id,
+                                                        queue_id=queue_id)
+                else:
+                    yield self.bal.deactivate_ftth_flow(flow_id,
+                                                        is_down_stream,
+                                                        onu_id=onu_id, intf_id=intf_id,
+                                                        network_int_id=self.nni_intf_id,
+                                                        gemport_id=gemport_id,
+                                                        stag=stag, ctag=ctag,
+                                                        ds_scheduler_id=ds_scheduler_id,
+                                                        queue_id=queue_id)
+ 
                 yield asleep(0.1)
                 yield self.bal.delete_flow(flow_id, is_down_stream)
                 yield asleep(0.1)
 
                 # Deactivating and deleting uplink flow
                 is_down_stream = False
-                yield self.bal.deactivate_flow(flow_id,
-                                               is_down_stream, onu_id=onu_id,
-                                               intf_id=intf_id,
-                                               network_int_id=self.nni_intf_id,
-                                               gemport_id=gemport_id,
-                                               priority=priority,
-                                               stag=stag, ctag=ctag,
-                                               dba_sched_id=dba_sched_id,
-                                               us_scheduler_id=us_scheduler_id)
+                if self._is_no_l2_mod_flow(flow_id):
+                    yield self.bal.deactivate_no_l2_mod_flow(flow_id,
+                                                        is_down_stream, onu_id=onu_id,
+                                                        intf_id=intf_id,
+                                                        network_int_id=self.nni_intf_id,
+                                                        gemport_id=gemport_id,
+                                                        stag=stag, ctag=ctag,
+                                                        dba_sched_id=dba_sched_id,
+                                                        us_scheduler_id=us_scheduler_id)
+                else:
+                    yield self.bal.deactivate_ftth_flow(flow_id,
+                                                        is_down_stream, onu_id=onu_id,
+                                                        intf_id=intf_id,
+                                                        network_int_id=self.nni_intf_id,
+                                                        gemport_id=gemport_id,
+                                                        stag=stag, ctag=ctag,
+                                                        dba_sched_id=dba_sched_id,
+                                                        us_scheduler_id=us_scheduler_id)
                 yield asleep(0.1)
                 yield self.bal.delete_flow(flow_id, is_down_stream)
                 yield asleep(0.1)
 
+                if self._is_no_l2_mod_flow(flow_id):
+                    id = self._get_flow_id(flow_id)
+                    self.log.debug("freeing-up-no-l2-mod-flow-id", id=id)
+                    self.no_l2_mod_traffic_flow_ids.add(id)
+
             elif flow['direction'] == "DOWNSTREAM":
                 flow_id = flow['bal_flow_id']
                 is_down_stream = True
-                # deactivate_flow has generic flow deactivation handling
+                # deactivate_ftth_flow has generic flow deactivation handling
                 # Used this to deactivate LLDP flow
-                yield self.bal.deactivate_flow(flow_id=flow_id,
+                yield self.bal.deactivate_ftth_flow(flow_id=flow_id,
                                                is_downstream=is_down_stream,
                                                network_int_id=self.nni_intf_id)
                 yield asleep(0.1)
@@ -2399,14 +2438,20 @@ class Asfvolt16Handler(OltDeviceHandler):
     # expects down stream flows to be added to handle
     # packet_out messge from controller.
     @inlineCallbacks
-    def divide_and_add_flow(self, v_enet, classifier, action, priority):
+    def divide_and_add_flow(self, v_enet, classifier, action):
         flow_classifier_set = set(classifier.keys())
         flow_action_set = set(action.keys())
+        no_l2_modification_flow_classifier_set = set(['in_port', 'metadata'])
+        no_l2_modification_flow_action_set = set(['output'])
 
         self.log.debug('flow_classifier_set',
                        flow_classifier_set=flow_classifier_set)
+        self.log.debug('no_l2_modification_flow_classifier_set',
+                       no_l2_modification_flow_classifier_set=no_l2_modification_flow_classifier_set)
         self.log.debug('flow_action_set',
                        flow_action_set=flow_action_set)
+        self.log.debug('no_l2_modification_flow_action_set',
+                       no_l2_modification_flow_action_set=no_l2_modification_flow_action_set)
 
         if 'ip_proto' in classifier:
             if classifier['ip_proto'] == 17:
@@ -2438,7 +2483,13 @@ class Asfvolt16Handler(OltDeviceHandler):
                 yield self.prepare_and_add_eapol_flow(classifier, action, v_enet,
                                                       ASFVOLT_EAPOL_ID_DATA_VLAN,
                                                       ASFVOLT_DOWNLINK_EAPOL_ID_DATA_VLAN)
-            yield self.add_data_flow(classifier, action, v_enet, priority)
+            yield self.add_data_flow(classifier, action, v_enet)
+        elif no_l2_modification_flow_classifier_set.issubset(flow_classifier_set) and \
+                no_l2_modification_flow_action_set.issubset(flow_action_set):
+            '''
+            No L2 modification specific flow
+            '''
+            yield self.prepare_no_l2_modification_flow(classifier, action, v_enet)
         else:
             self.log.info('Invalid-flow-type-to-handle',
                           classifier=classifier,
@@ -2751,7 +2802,7 @@ class Asfvolt16Handler(OltDeviceHandler):
         return
 
     @inlineCallbacks
-    def add_data_flow(self, uplink_classifier, uplink_action, v_enet, priority):
+    def add_data_flow(self, uplink_classifier, uplink_action, v_enet):
 
         downlink_classifier = dict(uplink_classifier)
         downlink_action = dict(uplink_action)
@@ -2776,17 +2827,39 @@ class Asfvolt16Handler(OltDeviceHandler):
         # We need to revisit when mulitple gem port per p bits is needed.
         yield self.add_hsia_flow(uplink_classifier, uplink_action,
                                  downlink_classifier, downlink_action,
-                                 v_enet, priority, ASFVOLT_HSIA_ID)
+                                 v_enet, ASFVOLT_HSIA_ID)
+
+    @inlineCallbacks
+    def prepare_no_l2_modification_flow(self, uplink_classifier,
+                                        uplink_action, v_enet):
+        self.log.debug('prepare_no_l2_modification_flow',
+                       ul_c=uplink_classifier, ul_a=uplink_action, v_en=v_enet)
+        uplink_classifier['pkt_tag_type'] = 'double_tag'
+        del uplink_classifier['metadata']
+        downlink_classifier = dict(uplink_classifier)
+        uplink_action = None
+        downlink_action = None
+        try:
+            no_l2_mod_flow_id = self.no_l2_mod_traffic_flow_ids.pop()
+        except KeyError as err:
+            self.log.error("no-available-flow-ids", err=err)
+            return
+        yield self.add_hsia_flow(uplink_classifier, uplink_action,
+                                 downlink_classifier, downlink_action,
+                                 v_enet, no_l2_mod_flow_id, False)
+
 
     @inlineCallbacks
     def add_hsia_flow(self, uplink_classifier, uplink_action,
                       downlink_classifier, downlink_action,
-                      v_enet, priority, hsia_id, l2_modification_flow=True):
+                      v_enet, hsia_id, l2_modification_flow=True):
         # Add Upstream Firmware Flow.
         # To-Do For a time being hard code the traffic class value.
         # Need to know how to get the traffic class info from flows.
         if l2_modification_flow:
             traffic_class = TRAFFIC_CLASS_2
+        else:
+            traffic_class = TRAFFIC_CLASS_1
 
         queue_id = ASFVOLT16_DEFAULT_QUEUE_ID_START
         gem_port = self.get_gem_port_info(v_enet, traffic_class=traffic_class)
@@ -2842,7 +2915,6 @@ class Asfvolt16Handler(OltDeviceHandler):
                                     flow_id, gem_port.gemport_id,
                                     uplink_classifier, is_down_stream,
                                     action_info=uplink_action,
-                                    priority=priority,
                                     dba_sched_id=tcont.alloc_id,
                                     queue_id=queue_id,
                                     queue_sched_id=scheduler_id)
@@ -2880,7 +2952,6 @@ class Asfvolt16Handler(OltDeviceHandler):
                                     downlink_flow_id, gem_port.gemport_id,
                                     downlink_classifier, is_down_stream,
                                     action_info=downlink_action,
-                                    priority=priority,
                                     queue_id=queue_id,
                                     queue_sched_id=scheduler_id)
             # To-Do. While addition of one flow is in progress,
@@ -2903,7 +2974,6 @@ class Asfvolt16Handler(OltDeviceHandler):
         bal_id_dir_info["onu_id"] = onu_device.proxy_address.onu_id
         bal_id_dir_info["intf_id"] = onu_device.proxy_address.channel_id
         bal_id_dir_info["gemport_id"] = gem_port.gemport_id
-        bal_id_dir_info["priority"] = priority
         bal_id_dir_info["queue_id"] = queue_id
         bal_id_dir_info["queue_sched_id"] = scheduler_id
         bal_id_dir_info["dba_sched_id"] = tcont.alloc_id
@@ -3097,14 +3167,24 @@ class Asfvolt16Handler(OltDeviceHandler):
         self.log.info('Deleting-Downstream-flow', flow_id=downlink_flow_id)
 
         self.log.info('Retrieving-stored-stag', stag=onu_device.vlan)
-        yield self.bal.deactivate_flow(downlink_flow_id,
-                                       is_down_stream,
-                                       onu_id=onu_id, intf_id=intf_id,
-                                       network_int_id=self.nni_intf_id,
-                                       gemport_id=gem_port.gemport_id,
-                                       stag=onu_device.vlan,
-                                       queue_id=queue_id,
-                                       ds_scheduler_id=ds_scheduler_id)
+        if self._is_no_l2_mod_flow(downlink_flow_id):
+            yield self.bal.deactivate_no_l2_mod_flow(downlink_flow_id,
+                                                is_down_stream,
+                                                onu_id=onu_id, intf_id=intf_id,
+                                                network_int_id=self.nni_intf_id,
+                                                gemport_id=gem_port.gemport_id,
+                                                stag=onu_device.vlan,
+                                                queue_id=queue_id,
+                                                ds_scheduler_id=ds_scheduler_id)
+        else:
+            yield self.bal.deactivate_ftth_flow(downlink_flow_id,
+                                           is_down_stream,
+                                           onu_id=onu_id, intf_id=intf_id,
+                                           network_int_id=self.nni_intf_id,
+                                           gemport_id=gem_port.gemport_id,
+                                           stag=onu_device.vlan,
+                                           ds_scheduler_id=ds_scheduler_id,
+                                           queue_id=queue_id)
 
         # While deletion of one flow is in progress,
         # we cannot delete an another flow. Right now use sleep
@@ -3117,14 +3197,24 @@ class Asfvolt16Handler(OltDeviceHandler):
         is_down_stream = False
         self.log.info('deleting-Upstream-flow',
                       flow_id=uplink_flow_id)
-        yield self.bal.deactivate_flow(uplink_flow_id,
-                                       is_down_stream, onu_id=onu_id,
-                                       intf_id=intf_id,
-                                       network_int_id=self.nni_intf_id,
-                                       gemport_id=gem_port.gemport_id,
-                                       stag=onu_device.vlan,
-                                       dba_sched_id=dba_sched_id,
-                                       us_scheduler_id=us_scheduler_id)
+        if self._is_no_l2_mod_flow(uplink_flow_id):
+            yield self.bal.deactivate_no_l2_mod_flow(uplink_flow_id,
+                                                is_down_stream, onu_id=onu_id,
+                                                intf_id=intf_id,
+                                                network_int_id=self.nni_intf_id,
+                                                gemport_id=gem_port.gemport_id,
+                                                stag=onu_device.vlan,
+                                                dba_sched_id=dba_sched_id,
+                                                us_scheduler_id=us_scheduler_id)
+        else:
+            yield self.bal.deactivate_ftth_flow(uplink_flow_id,
+                                                is_down_stream, onu_id=onu_id,
+                                                intf_id=intf_id,
+                                                network_int_id=self.nni_intf_id,
+                                                gemport_id=gem_port.gemport_id,
+                                                stag=onu_device.vlan,
+                                                dba_sched_id=dba_sched_id,
+                                                us_scheduler_id=us_scheduler_id)
 
         # While deletion of one flow is in progress,
         # we cannot delete an another flow. Right now use sleep
@@ -3194,6 +3284,13 @@ class Asfvolt16Handler(OltDeviceHandler):
             # non-blocking wait for 200ms
             yield asleep(0.2)
         return
+
+    def _is_no_l2_mod_flow(self, flow_id):
+        id = flow_id & ((2**self.FLOW_ID_BITS) - 1)
+        if ASFVOLT_HSIA_ID < id <= (ASFVOLT_HSIA_ID + self.num_of_no_l2_mod_flows):
+            return True
+
+        return False
 
     def _get_flow_id(self, flow_id):
         return flow_id & ((2**self.FLOW_ID_BITS) - 1)

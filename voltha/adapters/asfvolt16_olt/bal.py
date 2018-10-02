@@ -259,7 +259,7 @@ class Bal(object):
     @inlineCallbacks
     def add_flow(self, onu_id=None, intf_id=None, network_int_id=None,
                  flow_id=None, gem_port=None, classifier_info=None,
-                 is_downstream=None, action_info=None, priority=None,
+                 is_downstream=None, action_info=None,
                  dba_sched_id=None, queue_id=None, queue_sched_id=None):
         try:
             obj = bal_pb2.BalCfg()
@@ -291,8 +291,6 @@ class Bal(object):
                 obj.flow.data.sub_term_id = onu_id
             if gem_port:
                 obj.flow.data.svc_port_id = gem_port
-            if priority:
-                obj.flow.data.priority = priority
             obj.flow.data.classifier.presence_mask = 0
 
             if classifier_info is None:
@@ -396,19 +394,18 @@ class Bal(object):
         return
 
     @inlineCallbacks
-    def deactivate_flow(self, flow_id,
-                        is_downstream,
-                        onu_id=None,
-                        intf_id=None,
-                        network_int_id=None,
-                        gemport_id=None,
-                        priority=None,
-                        stag=None,
-                        ctag=None,
-                        dba_sched_id=None,
-                        us_scheduler_id=None,
-                        ds_scheduler_id=None,
-                        queue_id=None):
+    def deactivate_ftth_flow(self, flow_id,
+                             is_downstream,
+                             onu_id=None,
+                             intf_id=None,
+                             network_int_id=None,
+                             gemport_id=None,
+                             stag=None,
+                             ctag=None,
+                             dba_sched_id=None,
+                             us_scheduler_id=None,
+                             ds_scheduler_id=None,
+                             queue_id=None):
         try:
             obj = bal_pb2.BalCfg()
             # Fill Header details
@@ -426,8 +423,6 @@ class Bal(object):
                 obj.flow.data.sub_term_id = onu_id
             if gemport_id is not None:
                 obj.flow.data.svc_port_id = gemport_id
-            if priority is not None:
-                obj.flow.data.priority = priority
 
             if is_downstream is True:
                 obj.flow.key.flow_type = \
@@ -469,6 +464,73 @@ class Bal(object):
                     obj.flow.data.classifier.o_vid = ctag
                     obj.flow.data.classifier.presence_mask |= \
                         bal_model_types_pb2.BAL_CLASSIFIER_ID_O_VID
+
+            if dba_sched_id is not None:
+                obj.flow.data.dba_tm_sched_id = dba_sched_id
+
+            if queue_id is not None:
+                obj.flow.data.queue.queue_id = queue_id
+                if ds_scheduler_id is not None:
+                    obj.flow.data.queue.sched_id = ds_scheduler_id
+            else:
+                obj.flow.data.queue.queue_id = 0
+                if us_scheduler_id is not None:
+                    obj.flow.data.queue.sched_id = us_scheduler_id
+
+            self.log.info('deactivating-flows-from-OLT-Device',
+                          flow_details=obj)
+            yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
+        except Exception as e:
+            self.log.exception('deactivate_flow-exception',
+                          flow_id, onu_id, exc=str(e))
+        return
+
+    @inlineCallbacks
+    def deactivate_no_l2_mod_flow(self, flow_id,
+                             is_downstream,
+                             onu_id=None,
+                             intf_id=None,
+                             network_int_id=None,
+                             gemport_id=None,
+                             stag=None,
+                             ctag=None,
+                             dba_sched_id=None,
+                             us_scheduler_id=None,
+                             ds_scheduler_id=None,
+                             queue_id=None):
+        try:
+            obj = bal_pb2.BalCfg()
+            # Fill Header details
+            obj.device_id = self.device_id.encode('ascii', 'ignore')
+            obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_FLOW
+            # Fill Access Terminal Details
+            # To-DO flow ID need to be retrieved from flow details
+            obj.flow.key.flow_id = flow_id
+            obj.flow.data.admin_state = bal_model_types_pb2.BAL_STATE_DOWN
+            if intf_id is not None:
+                obj.flow.data.access_int_id = intf_id
+            if network_int_id is not None:
+                obj.flow.data.network_int_id = network_int_id
+            if onu_id is not None:
+                obj.flow.data.sub_term_id = onu_id
+            if gemport_id is not None:
+                obj.flow.data.svc_port_id = gemport_id
+            if is_downstream is True:
+                obj.flow.key.flow_type = \
+                    bal_model_types_pb2.BAL_FLOW_TYPE_DOWNSTREAM
+            else:
+                obj.flow.key.flow_type = \
+                    bal_model_types_pb2.BAL_FLOW_TYPE_UPSTREAM
+
+            obj.flow.data.classifier.pkt_tag_type = \
+                bal_model_types_pb2.BAL_PKT_TAG_TYPE_DOUBLE_TAG
+            obj.flow.data.classifier.presence_mask |= \
+                bal_model_types_pb2.BAL_CLASSIFIER_ID_PKT_TAG_TYPE
+            obj.flow.data.classifier.o_vid = stag
+            if ctag != RESERVED_VLAN_ID:
+                obj.flow.data.classifier.o_vid = ctag
+                obj.flow.data.classifier.presence_mask |= \
+                    bal_model_types_pb2.BAL_CLASSIFIER_ID_O_VID
 
             if dba_sched_id is not None:
                 obj.flow.data.dba_tm_sched_id = dba_sched_id
@@ -674,30 +736,6 @@ class Bal(object):
         return
 
     @inlineCallbacks
-    def delete_scheduler(self, id, direction):
-        try:
-            obj = bal_pb2.BalKey()
-            obj.hdr.obj_type = bal_model_ids_pb2.BAL_OBJ_ID_TM_SCHED
-            # Fill Access Terminal Details
-            if direction == 'downstream':
-                obj.tm_sched_key.dir =\
-                    bal_model_types_pb2.BAL_TM_SCHED_DIR_DS
-            else:
-                obj.tm_sched_key.dir = \
-                    bal_model_types_pb2.BAL_TM_SCHED_DIR_US
-            obj.tm_sched_key.id = id
-            self.log.info('Deleting Scheduler',
-                          scheduler_details=obj)
-            yield self.stub.BalCfgClear(obj, timeout=GRPC_TIMEOUT)
-        except Exception as e:
-            self.log.info('creat-scheduler-exception',
-                          olt=self.olt.olt_id,
-                          sched_id=id,
-                          direction=direction,
-                          exc=str(e))
-        return
-
-    @inlineCallbacks
     def delete_flow(self, flow_id, is_downstream):
         try:
             obj = bal_pb2.BalKey()
@@ -832,7 +870,6 @@ class Bal(object):
             Need to fetch schd_type then assign either one of them
             '''
             if weight is not None:
-                #obj.tm_queue_cfg.data.priority = priority
                 obj.tm_queue_cfg.data.weight = weight
 
             if rate_info is not None:
