@@ -116,6 +116,30 @@
       "revId": "4a175cfa102226d97da2c5707d91eb53cba475d4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ce7187fa_6a054049",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-02T18:57:31Z",
+      "side": 1,
+      "message": "That is a big hole that you have identified in the current implementation. The current scheme of resource allocation (either here or in the proposed resource manager) is centralized in the olt adapter. We have no way to address specific ONU vendor constraints. \n\nI think addressing your very valid concern will need  some more design consideration. I am willing to take it up in a subsequent commit after discussing the solution with voltha community.\n\nEssentially, as we discussed, what we need is some form of optional resource mgmt at the ONU adapter (if the ONU type has specific constraints). And the olt resource mgr needs to consult the ONU resource mgr when allocating resources.\n\nIf this sounds like what you have in mind, then we can work together via voltha-discuss to come up with something which I will be happy to implement. I think this commit is a step in that direction.",
+      "parentUuid": "0b360c49_b4628e11",
+      "range": {
+        "startLine": 93,
+        "startChar": 63,
+        "endLine": 93,
+        "endChar": 63
+      },
+      "revId": "4a175cfa102226d97da2c5707d91eb53cba475d4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
