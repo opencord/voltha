@@ -93,6 +93,29 @@
       "revId": "4a175cfa102226d97da2c5707d91eb53cba475d4",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0b360c49_b4628e11",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1000456
+      },
+      "writtenOn": "2018-10-02T17:35:59Z",
+      "side": 1,
+      "message": "Platform provides a common interface to generate resources, GEM Port ID/Alloc ID, etc, based on specific hardware.\nGiven ONUs of multiple vendors are connected to a PON port will the OLT support multiple platform objects/instances existing at the same time?",
+      "range": {
+        "startLine": 93,
+        "startChar": 63,
+        "endLine": 93,
+        "endChar": 63
+      },
+      "revId": "4a175cfa102226d97da2c5707d91eb53cba475d4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
