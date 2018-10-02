@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "97508b5f_928d78b3",
+        "filename": "voltha/adapters/openolt/openolt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-02T16:00:34Z",
+      "side": 1,
+      "message": "I can explain in a README. This will be configured in a new adapter not here. A new adapter with its own \"class MyOltAdapter(OpenoltAdapter)\" will define its own support_classes.",
+      "parentUuid": "635ba101_3996f87b",
+      "range": {
+        "startLine": 42,
+        "startChar": 0,
+        "endLine": 50,
+        "endChar": 1
+      },
+      "revId": "4a175cfa102226d97da2c5707d91eb53cba475d4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "14b9bd1a_290839c6",
         "filename": "voltha/adapters/openolt/openolt.py",
         "patchSetId": 2
@@ -36,6 +60,30 @@
       "writtenOn": "2018-10-02T15:40:36Z",
       "side": 1,
       "message": "Why is this done separately?",
+      "range": {
+        "startLine": 107,
+        "startChar": 8,
+        "endLine": 107,
+        "endChar": 54
+      },
+      "revId": "4a175cfa102226d97da2c5707d91eb53cba475d4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a4d53a43_dc624081",
+        "filename": "voltha/adapters/openolt/openolt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-02T16:00:34Z",
+      "side": 1,
+      "message": "This line needs to go.",
+      "parentUuid": "14b9bd1a_290839c6",
       "range": {
         "startLine": 107,
         "startChar": 8,
