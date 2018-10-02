@@ -22,6 +22,30 @@
       "revId": "d5ed000266df6c5d092cd7d6a8102cd123263406",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ad6c1ced_bdf9165d",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 811,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-02T18:57:31Z",
+      "side": 1,
+      "message": "No - but I am working on a patch to fix this - to refer back to the openolt\u0027s platfrom.",
+      "parentUuid": "8d334228_16d0fd3d",
+      "range": {
+        "startLine": 811,
+        "startChar": 23,
+        "endLine": 811,
+        "endChar": 38
+      },
+      "revId": "d5ed000266df6c5d092cd7d6a8102cd123263406",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
