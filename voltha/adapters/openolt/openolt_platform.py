@@ -106,80 +106,88 @@ PON OLT (OF) port number
 # MAX_ONUS_PER_PON = 112
 MAX_ONUS_PER_PON = 32
 
-def mk_alloc_id(intf_id, onu_id, idx=0):
-    # FIXME - driver should do prefixing 1 << 10 as it is Maple specific
-    # return 1<<10 | onu_id<<6 | idx
-    return 1023 + intf_id * MAX_ONUS_PER_PON + onu_id  # FIXME
+class OpenOltPlatform(object):
+
+    def __init__(self, log, device_info):
+        self.log = log
+        self.device_info = device_info
+
+    def mk_alloc_id(self, intf_id, onu_id, idx=0):
+        # FIXME - driver should do prefixing 1 << 10 as it is Maple specific
+        # return 1<<10 | onu_id<<6 | idx
+        return 1023 + intf_id * MAX_ONUS_PER_PON + onu_id  # FIXME
 
 
-def mk_gemport_id(intf_id, onu_id, idx=0):
-    return 1024 + (((MAX_ONUS_PER_PON * intf_id + onu_id - 1) * 7) + idx)
+    def mk_gemport_id(self, intf_id, onu_id, idx=0):
+        return 1024 + (((MAX_ONUS_PER_PON * intf_id + onu_id - 1) * 7) + idx)
 
-def onu_id_from_gemport_id(gemport_id):
-    return (((gemport_id - 1024) // 7) % MAX_ONUS_PER_PON) + 1
+    def onu_id_from_gemport_id(self, gemport_id):
+        return (((gemport_id - 1024) // 7) % MAX_ONUS_PER_PON) + 1
 
-def mk_uni_port_num(intf_id, onu_id):
-    return intf_id << 11 | onu_id << 4
+    def mk_uni_port_num(self, intf_id, onu_id):
+        return intf_id << 11 | onu_id << 4
 
-def mk_flow_id(intf_id, onu_id, idx):
-    return intf_id << 9 | onu_id << 4 | idx
-
-
-def onu_id_from_port_num(port_num):
-    return (port_num >> 4) & 0x7F
+    def mk_flow_id(self, intf_id, onu_id, idx):
+        return intf_id << 9 | onu_id << 4 | idx
 
 
-def intf_id_from_uni_port_num(port_num):
-    return (port_num >> 11) & 0xF
+    def onu_id_from_port_num(self, port_num):
+        return (port_num >> 4) & 0x7F
 
 
-def intf_id_from_pon_port_no(port_no):
-    return port_no & 0xF
+    def intf_id_from_uni_port_num(self, port_num):
+        return (port_num >> 11) & 0xF
 
 
-def intf_id_to_port_no(intf_id, intf_type):
-    if intf_type is Port.ETHERNET_NNI:
-        return (0x1 << 16) | intf_id
-    elif intf_type is Port.PON_OLT:
-        return 0x2 << 28 | intf_id
-    else:
-        raise Exception('Invalid port type')
+    def intf_id_from_pon_port_no(self, port_no):
+        return port_no & 0xF
 
 
-def intf_id_from_nni_port_num(port_num):
-    return port_num & 0xFFFF
+    def intf_id_to_port_no(self, intf_id, intf_type):
+        if intf_type is Port.ETHERNET_NNI:
+            return (0x1 << 16) | intf_id
+        elif intf_type is Port.PON_OLT:
+            return 0x2 << 28 | intf_id
+        else:
+            raise Exception('Invalid port type')
 
 
-def intf_id_to_port_type_name(intf_id):
-    if (2 << 28 ^ intf_id) < 16:
-        return Port.PON_OLT
-    elif intf_id & (0x1 << 16) == (0x1 << 16):
-        return Port.ETHERNET_NNI
-    else:
-        return None
+    def intf_id_from_nni_port_num(self, port_num):
+        return port_num & 0xFFFF
 
-def port_type_name_by_port_index(port_index):
-    try:
-        return dev_pb2._PORT_PORTTYPE.values_by_number[port_index].name
-    except Exception as err:
-        raise Exception(err)
 
-def extract_access_from_flow(in_port, out_port):
-    if is_upstream(out_port):
-        return (intf_id_from_uni_port_num(in_port), onu_id_from_port_num(
-            in_port))
-    else:
-        return (intf_id_from_uni_port_num(out_port), onu_id_from_port_num(
-            out_port))
+    def intf_id_to_port_type_name(self, intf_id):
+        if (2 << 28 ^ intf_id) < 16:
+            return Port.PON_OLT
+        elif intf_id & (0x1 << 16) == (0x1 << 16):
+            return Port.ETHERNET_NNI
+        else:
+            return None
 
-def is_upstream(out_port):
+    def port_type_name_by_port_index(self, port_index):
+        try:
+            return dev_pb2._PORT_PORTTYPE.values_by_number[port_index].name
+        except Exception as err:
+            raise Exception(err)
 
-    if out_port in [0xfffd, 0xfffffffd]:
-        # To Controller
-        return True
-    if (out_port & (0x1 << 16)) == (0x1 << 16):
-        # NNI interface
-        return True
+    def extract_access_from_flow(self, in_port, out_port):
+        if self.is_upstream(out_port):
+            return (self.intf_id_from_uni_port_num(in_port),
+                    self.onu_id_from_port_num(in_port))
+        else:
+            return (self.intf_id_from_uni_port_num(out_port),
+                    self.onu_id_from_port_num(out_port))
 
-    return False
+    def is_upstream(self, out_port):
 
+        if out_port in [0xfffd, 0xfffffffd]:
+            # To Controller
+            return True
+        if (out_port & (0x1 << 16)) == (0x1 << 16):
+            # NNI interface
+            return True
+
+        return False
+
+    def max_onus_per_pon(self):
+        return MAX_ONUS_PER_PON
