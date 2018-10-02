@@ -15,7 +15,6 @@
 #
 # from voltha.protos.events_pb2 import KpiEvent, MetricValuePairs
 # from voltha.protos.events_pb2 import KpiEventType
-# import voltha.adapters.openolt.openolt_platform as platform
 
 # from voltha.adapters.openolt.nni_port import NniPort
 # from voltha.adapters.openolt.pon_port import PonPort
@@ -24,11 +23,10 @@
 from twisted.internet import reactor, defer
 from voltha.extensions.kpi.olt.olt_pm_metrics import OltPmMetrics
 from voltha.protos.device_pb2 import PmConfig, PmConfigs, PmGroupConfig, Port
-import voltha.adapters.openolt.openolt_platform as platform
 
 
 class OpenOltStatisticsMgr(object):
-    def __init__(self, openolt_device, log, **kargs):
+    def __init__(self, openolt_device, log, platform, **kargs):
 
         """
         kargs are used to pass debugging flags at this time.
@@ -38,6 +36,7 @@ class OpenOltStatisticsMgr(object):
         """
         self.device = openolt_device
         self.log = log
+        self.platform = platform
         # Northbound and Southbound ports
         # added to initialize the pm_metrics
         self.northbound_ports = self.init_ports(type="nni")
@@ -66,7 +65,7 @@ class OpenOltStatisticsMgr(object):
                 """
                     override the default naming structures in the OltPmMetrics class.
                     This is being done until the protos can be modified in the BAL driver
-                    
+
                 """
                 self.pm_metrics.nni_pm_names = (self.get_openolt_port_pm_names())['nni_pm_names']
                 self.pm_metrics.nni_metrics_config = {m: PmConfig(name=m, type=t, enabled=True)
@@ -135,8 +134,8 @@ class OpenOltStatisticsMgr(object):
         try:
             intf_id = port_stats.intf_id
 
-            if platform.intf_id_to_port_no(0, Port.ETHERNET_NNI) < intf_id < \
-                    platform.intf_id_to_port_no(4, Port.ETHERNET_NNI) :
+            if self.platform.intf_id_to_port_no(0, Port.ETHERNET_NNI) < intf_id < \
+                    self.platform.intf_id_to_port_no(4, Port.ETHERNET_NNI) :
                 """
                 for this release we are only interested in the first NNI for
                 Northbound.
@@ -166,15 +165,15 @@ class OpenOltStatisticsMgr(object):
                 """
                    Based upon the intf_id map to an nni port or a pon port
                     the intf_id is the key to the north or south bound collections
-                    
+
                     Based upon the intf_id the port object (nni_port or pon_port) will
                     have its data attr. updated by the current dataset collected.
-                    
+
                     For prefixing the rule is currently to use the port number and not the intf_id
-                    
+
                 """
                 #FIXME : Just use first NNI for now
-                if intf_id == platform.intf_id_to_port_no(0,
+                if intf_id == self.platform.intf_id_to_port_no(0,
                                                           Port.ETHERNET_NNI):
                     #NNI port (just the first one)
                     self.update_port_object_kpi_data(
@@ -218,9 +217,9 @@ class OpenOltStatisticsMgr(object):
     """
     The following 4 methods customer naming, the generation of the port objects, building of those
     objects and populating new data.   The pm metrics operate on the value that are contained in the Port objects.
-    This class updates those port objects with the current data from the grpc indication and 
+    This class updates those port objects with the current data from the grpc indication and
     post the data on a fixed interval.
-    
+
     """
     def get_openolt_port_pm_names(self):
         """
@@ -386,14 +385,14 @@ class OpenOltStatisticsMgr(object):
         :return:
         """
         try:
-            """ 
-             This builds a port object which is added to the 
+            """
+             This builds a port object which is added to the
              appropriate northbound or southbound values
             """
             if type == "nni":
                 kwargs = {
                     'port_no': port_num,
-                    'intf_id': platform.intf_id_to_port_no(port_num,
+                    'intf_id': self.platform.intf_id_to_port_no(port_num,
                                                            Port.ETHERNET_NNI),
                     "device_id": self.device.device_id
                 }
@@ -405,9 +404,9 @@ class OpenOltStatisticsMgr(object):
                 #  intf_id and pon_id are currently equal.
                 kwargs = {
                     'port_no': port_num,
-                    'intf_id':  platform.intf_id_to_port_no(port_num,
+                    'intf_id':  self.platform.intf_id_to_port_no(port_num,
                                                            Port.PON_OLT),
-                    'pon-id':  platform.intf_id_to_port_no(port_num,
+                    'pon-id':  self.platform.intf_id_to_port_no(port_num,
                                                            Port.PON_OLT),
                     "device_id": self.device.device_id
                 }
@@ -487,12 +486,12 @@ class PonPort(object):
         Statistics  taken from nni_port
         self.intf_id = 0  #handled by getter
         self.port_no = 0  #handled by getter
-        self.port_id = 0  #handled by getter  
+        self.port_id = 0  #handled by getter
 
         Note:  In the current implementation of the kpis coming from the BAL the stats are the
         samne model for NNI and PON.
 
-        TODO:   Integrate additional kpis for the PON and other southbound port objecgts.      
+        TODO:   Integrate additional kpis for the PON and other southbound port objecgts.
 
         """
 

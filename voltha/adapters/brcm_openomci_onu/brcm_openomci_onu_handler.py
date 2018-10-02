@@ -42,8 +42,6 @@ from voltha.adapters.brcm_openomci_onu.pon_port import *
 from voltha.adapters.brcm_openomci_onu.uni_port import *
 from voltha.adapters.brcm_openomci_onu.onu_traffic_descriptor import *
 
-import voltha.adapters.openolt.openolt_platform as platform
-
 OP = EntityOperations
 RC = ReasonCodes
 
@@ -806,8 +804,10 @@ class BrcmOpenomciOnuHandler(object):
             self.log.error('openolt_adapter_agent-could-not-be-retrieved')
 
         # TODO: This knowledge is locked away in openolt.  and it assumes one onu equals one uni...
-        uni_no_start = platform.mk_uni_port_num(self._onu_indication.intf_id,
-                                                self._onu_indication.onu_id)
+        parent_device = self.adapter_agent.get_device(device.parent_id)
+        parent_adapter = parent_adapter_agent.adapter.devices[parent_device.id]
+        uni_no_start = parent_adapter.platform.mk_uni_port_num(
+            self._onu_indication.intf_id, self._onu_indication.onu_id)
 
         # TODO: Some or parts of this likely need to move to UniPort. especially the format stuff
         working_port = self._next_port_number

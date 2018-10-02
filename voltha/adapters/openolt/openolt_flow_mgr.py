@@ -22,7 +22,6 @@ from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
     OFPXMT_OFB_VLAN_VID
 from voltha.protos.device_pb2 import Port
 import voltha.core.flow_decomposer as fd
-import openolt_platform as platform
 from voltha.adapters.openolt.protos import openolt_pb2
 from voltha.registry import registry
 
@@ -72,11 +71,13 @@ TRAP_TO_HOST = 'trap_to_host'
 
 class OpenOltFlowMgr(object):
 
-    def __init__(self, log, stub, device_id, logical_device_id):
+    def __init__(self, log, stub, device_id, logical_device_id,
+                 platform):
         self.log = log
         self.stub = stub
         self.device_id = device_id
         self.logical_device_id = logical_device_id
+        self.platform = platform
         self.logical_flows_proxy = registry('core').get_proxy(
             '/logical_devices/{}/flows'.format(self.logical_device_id))
         self.flows_proxy = registry('core').get_proxy(
@@ -188,7 +189,7 @@ class OpenOltFlowMgr(object):
                     classifier_info[METADATA] = field.vlan_vid & 0xfff
 
 
-        (intf_id, onu_id) = platform.extract_access_from_flow(
+        (intf_id, onu_id) = self.platform.extract_access_from_flow(
             classifier_info[IN_PORT], action_info[OUTPUT])
 
 
@@ -317,9 +318,9 @@ class OpenOltFlowMgr(object):
     def add_hsia_flow(self, intf_id, onu_id, classifier, action,
                       direction, hsia_id, logical_flow):
 
-        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
-        alloc_id = platform.mk_alloc_id(intf_id, onu_id)
-        flow_id = platform.mk_flow_id(intf_id, onu_id, hsia_id)
+        gemport_id = self.platform.mk_gemport_id(intf_id, onu_id)
+        alloc_id = self.platform.mk_alloc_id(intf_id, onu_id)
+        flow_id = self.platform.mk_flow_id(intf_id, onu_id, hsia_id)
 
         flow = openolt_pb2.Flow(
                 onu_id=onu_id, flow_id=flow_id, flow_type=direction,
@@ -341,9 +342,9 @@ class OpenOltFlowMgr(object):
         classifier[PACKET_TAG_TYPE] = SINGLE_TAG
         classifier.pop(VLAN_VID, None)
 
-        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
-        alloc_id = platform.mk_alloc_id(intf_id, onu_id)
-        flow_id = platform.mk_flow_id(intf_id, onu_id, DHCP_FLOW_INDEX)
+        gemport_id = self.platform.mk_gemport_id(intf_id, onu_id)
+        alloc_id = self.platform.mk_alloc_id(intf_id, onu_id)
+        flow_id = self.platform.mk_flow_id(intf_id, onu_id, DHCP_FLOW_INDEX)
 
         upstream_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=flow_id, flow_type=UPSTREAM,
@@ -362,15 +363,15 @@ class OpenOltFlowMgr(object):
         for oxm_field in downstream_logical_flow.match.oxm_fields:
             if oxm_field.ofb_field.type == OFPXMT_OFB_IN_PORT:
                 oxm_field.ofb_field.port = \
-                    platform.intf_id_to_port_no(0, Port.ETHERNET_NNI)
+                    self.platform.intf_id_to_port_no(0, Port.ETHERNET_NNI)
 
         classifier[UDP_SRC] = 67
         classifier[UDP_DST] = 68
         classifier[PACKET_TAG_TYPE] = DOUBLE_TAG
         action.pop(PUSH_VLAN, None)
 
-        flow_id = platform.mk_flow_id(intf_id, onu_id,
-                                      DHCP_DOWNLINK_FLOW_INDEX)
+        flow_id = self.platform.mk_flow_id(intf_id, onu_id,
+                                           DHCP_DOWNLINK_FLOW_INDEX)
 
         downstream_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=flow_id, flow_type=DOWNSTREAM,
@@ -395,9 +396,9 @@ class OpenOltFlowMgr(object):
 
         # Add Upstream EAPOL Flow.
 
-        gemport_id = platform.mk_gemport_id(intf_id, onu_id)
-        alloc_id = platform.mk_alloc_id(intf_id, onu_id)
-        uplink_flow_id = platform.mk_flow_id(intf_id, onu_id, eapol_id)
+        gemport_id = self.platform.mk_gemport_id(intf_id, onu_id)
+        alloc_id = self.platform.mk_alloc_id(intf_id, onu_id)
+        uplink_flow_id = self.platform.mk_flow_id(intf_id, onu_id, eapol_id)
 
         upstream_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=uplink_flow_id, flow_type=UPSTREAM,
@@ -428,8 +429,8 @@ class OpenOltFlowMgr(object):
             downlink_action[PUSH_VLAN] = True
             downlink_action[VLAN_VID] = vlan_id
 
-            downlink_flow_id = platform.mk_flow_id(intf_id, onu_id,
-                                               DOWNSTREAM_FLOW_FOR_PACKET_OUT)
+            downlink_flow_id = self.platform.mk_flow_id(
+                intf_id, onu_id, DOWNSTREAM_FLOW_FOR_PACKET_OUT)
 
             downstream_flow = openolt_pb2.Flow(
                 onu_id=onu_id, flow_id=downlink_flow_id, flow_type=DOWNSTREAM,
@@ -450,7 +451,7 @@ class OpenOltFlowMgr(object):
 
             downstream_logical_flow.instructions.extend(
                 fd.mk_instructions_from_actions([fd.output(
-                    platform.mk_uni_port_num(intf_id, onu_id))]))
+                    self.platform.mk_uni_port_num(intf_id, onu_id))]))
 
             self.add_flow_to_device(downstream_flow, downstream_logical_flow)
 
@@ -560,9 +561,9 @@ class OpenOltFlowMgr(object):
                     if field.eth_type == EAP_ETH_TYPE:
                         eap_flow = True
                 if field.type == fd.IN_PORT:
-                    eap_intf_id = platform.intf_id_from_uni_port_num(
+                    eap_intf_id = self.platform.intf_id_from_uni_port_num(
                         field.port)
-                    eap_onu_id = platform.onu_id_from_port_num(field.port)
+                    eap_onu_id = self.platform.onu_id_from_port_num(field.port)
 
             if eap_flow:
                 self.log.debug('eap flow detected', onu_id=onu_id,
@@ -581,7 +582,7 @@ class OpenOltFlowMgr(object):
             in_port = fd.get_in_port(flow)
             out_port = fd.get_out_port(flow)
             if in_port == port and \
-                platform.intf_id_to_port_type_name(out_port) \
+                self.platform.intf_id_to_port_type_name(out_port) \
                     == Port.ETHERNET_NNI:
                 fields = fd.get_ofb_fields(flow)
                 self.log.debug('subscriber flow found', fields=fields)

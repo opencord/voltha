@@ -15,8 +15,6 @@
 #
 
 import arrow
-import voltha.adapters.openolt.openolt_platform as platform
-# from voltha.protos.device_pb2 import Port
 from voltha.extensions.alarms.adapter_alarms import AdapterAlarms
 from voltha.extensions.alarms.simulator.simulate_alarms import AdapterAlarmSimulator
 from voltha.extensions.alarms.olt.olt_los_alarm import OltLosAlarm
@@ -37,7 +35,8 @@ import voltha.protos.device_pb2 as device_pb2
 
 
 class OpenOltAlarmMgr(object):
-    def __init__(self, log, adapter_agent, device_id, logical_device_id):
+    def __init__(self, log, adapter_agent, device_id, logical_device_id,
+                 platform):
         """
         20180711 -  Addition of adapter_agent and device_id
             to facilitate alarm processing and kafka posting
@@ -49,6 +48,7 @@ class OpenOltAlarmMgr(object):
         self.adapter_agent = adapter_agent
         self.device_id = device_id
         self.logical_device_id = logical_device_id
+        self.platform = platform
         """
         The following is added to reduce the continual posting of OLT LOS alarming
         to Kafka.   Set enable_alarm_suppress = true to enable  otherwise the
@@ -112,13 +112,13 @@ class OpenOltAlarmMgr(object):
             self.log.debug('los indication received', los_ind=los_ind,
                            int_id=los_ind.intf_id, status=los_ind.status)
             try:
-                port_type_name = platform.intf_id_to_port_type_name(los_ind.intf_id)
+                port_type_name = self.platform.intf_id_to_port_type_name(los_ind.intf_id)
                 if los_ind.status == 1 or los_ind.status == "on":
                     # Zero out the suppression counter on OLT_LOS raise
                     self.alarm_suppress['olt_los_clear'] = 0
                     OltLosAlarm(self.alarms, intf_id=los_ind.intf_id, port_type_name=port_type_name).raise_alarm()
                 else:
-                    """ 
+                    """
                         Check if there has been more that one los clear following a previous los
                     """
                     if self.alarm_suppress['olt_los_clear'] == 0 and self.enable_alarm_suppress:
@@ -455,7 +455,7 @@ class OpenOltAlarmMgr(object):
             onu_device = None
             onu_device = self.adapter_agent.get_child_device(
                 self.device_id,
-                parent_port_no=platform.intf_id_to_port_no(
+                parent_port_no=self.platform.intf_id_to_port_no(
                     port_intf_id, device_pb2.Port.PON_OLT),
                 onu_id=onu_id)
             onu_device_id = onu_device.id

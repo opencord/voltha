@@ -17,96 +17,10 @@
 from voltha.protos.device_pb2 import Port
 import voltha.protos.device_pb2 as dev_pb2
 
-"""
-Encoding of identifiers
-=======================
-GEM port ID
 
-    GEM port id is unique per PON port
+MAX_ONUS_PER_PON = 2
 
-     10              3      0
-    +--+--------------+------+
-    |1 |     onu id   | GEM  |
-    |  |              | idx  |
-    +--+--------------+------+
-
-    GEM port id range (0, 1023) is reserved
-    onu id = 7 bits = 128 ONUs per PON
-    GEM index = 3 bits = 8 GEM ports per ONU
-
-Alloc ID
-
-    Uniquely identifies a T-CONT
-    Ranges from 0 to 4095
-    Unique per PON interface
-
-     12         6            0
-    +------------+------------+
-    |   onu id   | Alloc idx  |
-    +------------+------------+
-
-    onu id = 7 bits = 128 ONUs per PON
-    Alloc index = 6 bits = 64 GEM ports per ONU
-
-Flow id
-
-    Identifies a flow within a single OLT
-    Flow Id is unique per OLT
-    Multiple GEM ports can map to same flow id
-
-     13    11              4      0
-    +--------+--------------+------+
-    | pon id |    onu id    | Flow |
-    |        |              | idx  |
-    +--------+--------------+------+
-
-    14 bits = 16384 flows (per OLT).
-
-    pon id = 4 bits = 16 PON ports
-    onu id = 7 bits = 128 ONUss per PON port
-    Flow index = 3 bits = 4 bi-directional flows per ONU
-                        = 8 uni-directional flows per ONU
-
-
-Logical (OF) UNI port number
-
-    OpenFlow port number corresponding to PON UNI
-
-     15       11              4      0
-    +--+--------+--------------+------+
-    |0 | pon id |    onu id    |   0  |
-    +--+--------+--------------+------+
-
-    pon id = 4 bits = 16 PON ports
-    onu id = 7 bits = 128 ONUs per PON port
-
-Logical (OF) NNI port number
-
-    OpenFlow port number corresponding to PON UNI
-
-     16                             0
-    +--+----------------------------+
-    |1 |                    intf_id |
-    +--+----------------------------+
-
-    No overlap with UNI port number space
-
-
-PON OLT (OF) port number
-
-    OpenFlow port number corresponding to PON OLT ports
-
-     31    28                                 0
-    +--------+------------------------~~~------+
-    |  0x2   |          pon intf id            |
-    +--------+------------------------~~~------+
-
-"""
-
-# MAX_ONUS_PER_PON = 112
-MAX_ONUS_PER_PON = 32
-
-class OpenOltPlatform(object):
+class AcmePlatform(object):
 
     def __init__(self, log, device_info):
         self.log = log
