@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "970c1307_9b5bad4a",
+        "filename": "voltha/adapters/example/example.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000431
+      },
+      "writtenOn": "2018-10-02T22:08:25Z",
+      "side": 1,
+      "message": "I think it should import DeviceType, Adapter, AdapterConfig",
+      "range": {
+        "startLine": 25,
+        "startChar": 0,
+        "endLine": 25,
+        "endChar": 0
+      },
+      "revId": "6794c93ed2379cba14bfe6cae05134bdd4b8721c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
