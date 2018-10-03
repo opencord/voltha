@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1e5f36a8_9f411888",
+        "filename": "voltha/adapters/acme/acme_platform.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-03T03:15:31Z",
+      "side": 1,
+      "message": "Should this inherit from OpenOltPlatform",
+      "revId": "2a0b9f360b326cb2ad4273de8b1b47fe6acf0ec1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
