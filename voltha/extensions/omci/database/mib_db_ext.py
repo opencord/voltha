@@ -20,6 +20,49 @@ from voltha.extensions.omci.omci_entities import *
 from scapy.fields import StrField, FieldListField
 
 
+class MibDbStatistic(object):
+    """
+    For debug/tuning purposes.
+
+    With etcd around the v1.5 time frame, seeing the following:
+
+        o Creates:  Avg:  57.1 mS, Min:  76 mS, Max: 511 mS    (146 samples)
+        o Sets:     Avg: 303.9 mS, Min: 126 mS, Max: 689 mS    (103 samples)
+        o Gets:     Avg:   3.3 mS, Min:   0 mS, Max:   8 mS    (  9 samples)
+        o Deletes:  No samples
+    """
+    def __init__(self, name):
+        self._name = name
+        self._count = 0
+        self._total_time = 0        # Total milliseconds
+        self._min_time = 99999999
+        self._max_time = 0
+
+    def get_statistics(self):
+        return {
+            'name': self._name,
+            'count': self._count,
+            'total_time': self._total_time,
+            'min_time': self._min_time,
+            'max_time': self._max_time,
+            'avg_time': self._total_time / self._count if self._count > 0 else 0
+        }
+
+    def clear_statistics(self):
+        self._count = 0
+        self._total_time = 0        # Total milliseconds
+        self._min_time = 99999999
+        self._max_time = 0
+
+    def increment(self, time):
+        self._count += 1
+        self._total_time += time        # Total milliseconds
+        if self._min_time > time:
+            self._min_time = time
+        if self._max_time < time:
+            self._max_time = time
+
+
 class MibDbExternal(MibDbApi):
     """
     A persistent external OpenOMCI MIB Database
@@ -50,6 +93,13 @@ class MibDbExternal(MibDbApi):
         """
         super(MibDbExternal, self).__init__(omci_agent)
         self._core = omci_agent.core
+        # Some statistics to help with debug/tuning/...
+        self._statistics = {
+            'get': MibDbStatistic('get'),
+            'set': MibDbStatistic('set'),
+            'create': MibDbStatistic('create'),
+            'delete': MibDbStatistic('delete')
+        }
 
     def start(self):
         """
@@ -113,11 +163,12 @@ class MibDbExternal(MibDbApi):
             if isinstance(field, StrFixedLenField):
                 from scapy.base_classes import Packet_metaclass
                 #  For StrFixedLenField, value is a str already (or possibly JSON encoded)
-                if hasattr(value, 'to_json'):
+                if hasattr(value, 'to_json') and not isinstance(value, basestring):
                     # Packet Class to string
                     str_value = value.to_json()
                 elif isinstance(field.default, Packet_metaclass) \
-                        and hasattr(field.default, 'json_from_value'):
+                        and hasattr(field.default, 'json_from_value')\
+                        and not isinstance(value, basestring):
                     # Value/hex of Packet Class to string
                     str_value = field.default.json_from_value(value)
                 else:
@@ -546,18 +597,13 @@ class MibDbExternal(MibDbApi):
                        instance_id=instance_id, attributes=attributes)
 
         now = self._time_to_string(datetime.utcnow())
-#        attrs = [MibAttributeData(name=k,
-#                                  value=self._attribute_to_string(device_id,
-#                                                                  class_id,
-#                                                                  k,
-#                                                                  v)) for k, v in attributes.items()]
         attrs = []
         for k, v in attributes.items():
             if k == 'serial_number':
                 vendor_id = str(v[0:4])
                 vendor_specific = v[4:]
                 vendor_specific = str(vendor_specific.encode('hex'))
-                str_value=vendor_id+vendor_specific
+                str_value = vendor_id + vendor_specific
                 attrs.append(MibAttributeData(name=k, value=str_value))
             else:
                 str_value = self._attribute_to_string(device_id, class_id, k, v)
@@ -590,18 +636,13 @@ class MibDbExternal(MibDbApi):
                        instance_id=instance_id, attributes=attributes)
 
         now = self._time_to_string(datetime.utcnow())
-#        attrs = [MibAttributeData(name=k,
-#                                  value=self._attribute_to_string(device_id,
-#                                                                  class_id,
-#                                                                  k,
-#                                                                  v)) for k, v in attributes.items()]
         attrs = []
         for k, v in attributes.items():
             if k == 'serial_number':
                 vendor_id = str(v[0:4])
                 vendor_specific = v[4:]
                 vendor_specific = str(vendor_specific.encode('hex'))
-                str_value=vendor_id+vendor_specific
+                str_value = vendor_id+vendor_specific
                 attrs.append(MibAttributeData(name=k, value=str_value))
             else:
                 str_value = self._attribute_to_string(device_id, class_id, k, v)
@@ -656,6 +697,8 @@ class MibDbExternal(MibDbApi):
             # Determine the best strategy to add the information
             dev_proxy = self._device_proxy(device_id)
 
+            operation = 'set'
+            start_time = None
             try:
                 class_data = dev_proxy.get(MibDbExternal.CLASS_PATH.format(class_id), deep=True)
 
@@ -663,35 +706,43 @@ class MibDbExternal(MibDbApi):
                                  if inst.instance_id == instance_id), None)
 
                 if inst_data is None:
+                    operation = 'create'
+                    start_time = datetime.utcnow()
                     return self._add_new_instance(device_id, class_id, instance_id, attributes)
 
                 # Possibly adding to or updating an existing instance
                 # Get instance proxy, creating it if needed
 
+                modified = False
+                new_attributes = []
                 exist_attr_indexes = dict()
                 attr_len = len(inst_data.attributes)
 
                 for index in xrange(0, attr_len):
-                    exist_attr_indexes[inst_data.attributes[index].name] = index
-
-                modified = False
-                new_attributes = []
+                    name = inst_data.attributes[index].name
+                    value = inst_data.attributes[index].value
+                    exist_attr_indexes[name] = index
+                    new_attributes.append(MibAttributeData(name=name, value=value))
 
                 for k, v in attributes.items():
                     try:
                         str_value = self._attribute_to_string(device_id, class_id, k, v)
-                        new_attributes.append(MibAttributeData(name=k, value=str_value))
+
+                        if k not in exist_attr_indexes:
+                            new_attributes.append(MibAttributeData(name=k, value=str_value))
+                            modified = True
+
+                        elif new_attributes[exist_attr_indexes[k]].value != str_value:
+                            new_attributes[exist_attr_indexes[k]].value = str_value
+                            modified = True
 
                     except Exception as e:
                         self.log.exception('save-error', e=e, class_id=class_id,
                                            attr=k, value_type=type(v))
 
-                    if k not in exist_attr_indexes or \
-                            inst_data.attributes[exist_attr_indexes[k]].value != str_value:
-                        modified = True
-
                 if modified:
                     now = datetime.utcnow()
+                    start_time = now
                     new_data = MibInstanceData(instance_id=instance_id,
                                                created=inst_data.created,
                                                modified=self._time_to_string(now),
@@ -699,9 +750,6 @@ class MibDbExternal(MibDbApi):
                     dev_proxy.remove(MibDbExternal.INSTANCE_PATH.format(class_id, instance_id))
                     self._root_proxy.add(MibDbExternal.INSTANCES_PATH.format(device_id,
                                                                              class_id), new_data)
-
-                self.log.debug('set-complete', device_id=device_id, class_id=class_id,
-                               entity_id=instance_id, attributes=attributes, modified=modified)
                 return modified
 
             except KeyError:
@@ -709,6 +757,14 @@ class MibDbExternal(MibDbApi):
                 self.log.info("adding-key-not-found", class_id=class_id)
                 return self._add_new_class(device_id, class_id, instance_id,
                                            attributes)
+            finally:
+                if start_time is not None:
+                    diff = datetime.utcnow() - start_time
+                    # NOTE: Change to 'debug' when checked in, manually change to 'info'
+                    #       for development testing.
+                    self.log.debug('db-{}-time'.format(operation), milliseconds=diff.microseconds/1000)
+                    self._statistics[operation].increment(diff.microseconds/1000)
+
         except Exception as e:
             self.log.exception('set-exception', device_id=device_id, class_id=class_id,
                                instance_id=instance_id, attributes=attributes, e=e)
@@ -744,6 +800,7 @@ class MibDbExternal(MibDbApi):
         if not 0 <= entity_id <= 0xFFFF:
             raise ValueError('instance-id is 0..0xFFFF')
 
+        start_time = datetime.utcnow()
         try:
             # Remove instance
             self._instance_proxy(device_id, class_id, entity_id).remove('/')
@@ -766,6 +823,13 @@ class MibDbExternal(MibDbApi):
             self.log.exception('get-last-sync-exception', device_id=device_id, e=e)
             raise
 
+        finally:
+            diff = datetime.utcnow() - start_time
+            # NOTE: Change to 'debug' when checked in, manually change to 'info'
+            #       for development testing.
+            self.log.info('db-delete-time', milliseconds=diff.microseconds/1000)
+            self._statistics['delete'].increment(diff.microseconds/1000)
+
     def query(self, device_id, class_id=None, instance_id=None, attributes=None):
         """
         Get database information.
@@ -785,16 +849,21 @@ class MibDbExternal(MibDbApi):
         """
         self.log.debug('query', device_id=device_id, class_id=class_id,
                        instance_id=instance_id, attributes=attributes)
+
+        start_time = datetime.utcnow()
+        end_time = None
         try:
             if class_id is None:
                 # Get full device info
                 dev_data = self._device_proxy(device_id).get('/', depth=-1)
+                end_time = datetime.utcnow()
                 data = self._device_to_dict(dev_data)
 
             elif instance_id is None:
                 # Get all instances of the class
                 try:
                     cls_data = self._class_proxy(device_id, class_id).get('/', depth=-1)
+                    end_time = datetime.utcnow()
                     data = self._class_to_dict(device_id, cls_data)
 
                 except KeyError:
@@ -805,6 +874,7 @@ class MibDbExternal(MibDbApi):
                 try:
                     inst_data = self._instance_proxy(device_id, class_id, instance_id).\
                         get('/', depth=-1)
+                    end_time = datetime.utcnow()
 
                     if attributes is None:
                         # All Attributes
@@ -834,6 +904,15 @@ class MibDbExternal(MibDbApi):
         except Exception as e:
             self.log.exception('get-last-sync-exception', device_id=device_id, e=e)
             raise
+
+        finally:
+            if end_time is not None:
+                diff = end_time.utcnow() - start_time
+                # NOTE: Change to 'debug' when checked in, manually change to 'info'
+                #       for development testing.
+                self.log.info('db-get-time', milliseconds=diff.microseconds/1000, class_id=class_id,
+                              instance_id=instance_id)
+                self._statistics['get'].increment(diff.microseconds/1000)
 
     def _instance_to_dict(self, device_id, class_id, instance):
         if not isinstance(instance, MibInstanceData):
