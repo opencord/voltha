@@ -472,6 +472,30 @@
     },
     {
       "key": {
+        "uuid": "800d7205_3cbc4473",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 682,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-10-03T19:39:08Z",
+      "side": 1,
+      "message": "I agree the goal is stateless. We might consider passing the onuid back as a data member of the pkt_indication from the OLT driver. The driver \u0026 BAL should know the mapping of onu-id to flow-id.",
+      "parentUuid": "0aa41615_890ee10f",
+      "range": {
+        "startLine": 682,
+        "startChar": 0,
+        "endLine": 682,
+        "endChar": 74
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "316912b4_5c487484",
         "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
         "patchSetId": 3
