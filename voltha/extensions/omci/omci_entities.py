@@ -715,7 +715,7 @@ class AniG(EntityClass):
         ECA(ShortField("optical_signal_level", None), {AA.R}),
         ECA(ByteField("lower_optical_threshold", 0xFF), {AA.R, AA.W}),
         ECA(ByteField("upper_optical_threshold", 0xFF), {AA.R, AA.W}),
-        ECA(ByteField("ont_response_time", None), {AA.R}),
+        ECA(ShortField("ont_response_time", None), {AA.R}),
         ECA(ShortField("transmit_optical_level", None), {AA.R}),
         ECA(ByteField("lower_transmit_power_threshold", 0x81), {AA.R, AA.W}),
         ECA(ByteField("upper_transmit_power_threshold", 0x81), {AA.R, AA.W}),
