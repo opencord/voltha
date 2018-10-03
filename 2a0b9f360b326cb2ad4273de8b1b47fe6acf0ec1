@@ -16,6 +16,24 @@
       "revId": "2a0b9f360b326cb2ad4273de8b1b47fe6acf0ec1",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ac5fa294_9a43f05f",
+        "filename": "voltha/adapters/acme/acme_platform.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-03T05:30:55Z",
+      "side": 1,
+      "message": "Yes it can. I just wanted to give a quick working example. Will make this example better in a subsequent commit.",
+      "parentUuid": "1e5f36a8_9f411888",
+      "revId": "2a0b9f360b326cb2ad4273de8b1b47fe6acf0ec1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
