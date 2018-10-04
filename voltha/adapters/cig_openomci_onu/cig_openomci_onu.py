@@ -77,9 +77,9 @@ class CigOpenomciOnuAdapter(BrcmOpenomciOnuAdapter):
         # Customize OpenOMCI for CIG ONUs
         self.broadcom_omci = deepcopy(OpenOmciAgentDefaults)
 
-        # self.broadcom_omci['mib-synchronizer']['state-machine'] = BrcmMibSynchronizer
-        # self.broadcom_omci['mib-synchronizer']['database'] = MibDbVolatileDict
-        # self.broadcom_omci['omci-capabilities']['tasks']['get-capabilities'] = BrcmCapabilitiesTask
+        self.broadcom_omci['mib-synchronizer']['state-machine'] = BrcmMibSynchronizer
+        self.broadcom_omci['mib-synchronizer']['database'] = MibDbVolatileDict
+        self.broadcom_omci['omci-capabilities']['tasks']['get-capabilities'] = BrcmCapabilitiesTask
 
         self._omci_agent = OpenOMCIAgent(self.adapter_agent.core,
                                          support_classes=self.broadcom_omci)
