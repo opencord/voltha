@@ -496,6 +496,30 @@
     },
     {
       "key": {
+        "uuid": "a09adfa4_308b140f",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 682,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-04T03:38:05Z",
+      "side": 1,
+      "message": "I dont think the goal was ever to keep the adapter \"completely\" stateless. The adapter can maintain state info as long as this info can be re-created on a vcore restart.\n\nWe do not have to do performance tests to know that looking up KV store for every packet-in is not good. I think passing the onuid back in the pkt indication is a good idea.",
+      "parentUuid": "800d7205_3cbc4473",
+      "range": {
+        "startLine": 682,
+        "startChar": 0,
+        "endLine": 682,
+        "endChar": 74
+      },
+      "revId": "1b9444382eafdbce23b8bc046877fced6b03266e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "316912b4_5c487484",
         "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
         "patchSetId": 3
