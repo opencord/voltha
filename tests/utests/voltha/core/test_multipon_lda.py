@@ -443,7 +443,7 @@ class test_multipon_logical_device_agent(FlowHelpers):
                 match_fields=[
                     in_port(0),
                     vlan_vid(4096 + 1000),
-                    metadata(c_vid)
+                    metadata((c_vid << 32) | port)
                 ],
                 actions=[pop_vlan()],
                 next_table_id=1
@@ -581,7 +581,7 @@ class test_multipon_logical_device_agent(FlowHelpers):
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[14], mk_flow_stat(
             priority=500,
-            match_fields=[in_port(0), vlan_vid(4096 + 1000), metadata(101)],
+            match_fields=[in_port(0), metadata(101), vlan_vid(4096 + 1000)],
             actions=[pop_vlan(), output(1)]
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[15], mk_flow_stat(
@@ -592,7 +592,7 @@ class test_multipon_logical_device_agent(FlowHelpers):
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[16], mk_flow_stat(
             priority=500,
-            match_fields=[in_port(0), vlan_vid(4096 + 1000), metadata(201)],
+            match_fields=[in_port(0), metadata(201), vlan_vid(4096 + 1000)],
             actions=[pop_vlan(), output(2)]
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[17], mk_flow_stat(
