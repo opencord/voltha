@@ -316,13 +316,62 @@ def get_goto_table_id(flow):
     return None
 
 def get_metadata(flow):
+    ''' legacy get method (only want lower 32 bits '''
+    for field in get_ofb_fields(flow):
+        if field.type == METADATA:
+            return field.table_metadata & 0xffffffff
+    return None
+
+def get_metadata_64_bit(flow):
     for field in get_ofb_fields(flow):
         if field.type == METADATA:
             return field.table_metadata
     return None
 
-# test and extract next table and group information
 
+def get_port_number_from_metadata(flow):
+    """
+    The port number (UNI on ONU) is in the lower 32-bits of metadata and
+    the inner_tag is in the upper 32-bits
+
+    This is set in the ONOS OltPipeline as a metadata field
+    """
+    md = get_metadata_64_bit(flow)
+
+    if md is None:
+        return None
+
+    if md <= 0xffffffff:
+        log.warn('onos-upgrade-suggested',
+                 netadata=md,
+                 message='Legacy MetaData detected form OltPipeline')
+        return md
+
+    return md & 0xffffffff
+
+
+def get_inner_tag_from_metadata(flow):
+    """
+    The port number (UNI on ONU) is in the lower 32-bits of metadata and
+    the inner_tag is in the upper 32-bits
+
+    This is set in the ONOS OltPipeline as a metadata field
+    """
+    md = get_metadata_64_bit(flow)
+
+    if md is None:
+        return None
+
+    if md <= 0xffffffff:
+        log.warn('onos-upgrade-suggested',
+                 netadata=md,
+                 message='Legacy MetaData detected form OltPipeline')
+        return md
+
+    return (md >> 32) & 0xffffffff
+
+
+# test and extract next table and group information
 def has_next_table(flow):
     return get_goto_table_id(flow) is not None
 
@@ -670,19 +719,28 @@ class FlowDecomposer(object):
                 if has_next_table(flow):
                     assert out_port_no is None
 
-                    # For downstream flows with dual-tags, recalculate route with
-                    # inner-tag as logical output port. Otherwise PON-0 is always
-                    # selected.
-                    inner_tag = get_metadata(flow)
-                    if inner_tag is not None:
-                        route = self.get_route(in_port_no, inner_tag)
+                    # For downstream flows with dual-tags, recalculate route.
+                    port_number = get_port_number_from_metadata(flow)
+
+                    if port_number is not None:
+                        route = self.get_route(in_port_no, port_number)
                         if route is None:
                             log.error('no-route-double-tag', in_port_no=in_port_no,
-                                      out_port_no=inner_tag, comment='deleting flow')
+                                      out_port_no=port_number, comment='deleting flow',
+                                      metadata=get_metadata_64_bit(flow))
                             self.flow_delete(flow)
                             return device_rules
                         assert len(route) == 2
                         ingress_hop, egress_hop = route
+
+                    inner_tag = get_inner_tag_from_metadata(flow)
+
+                    if inner_tag is None:
+                        log.error('no-inner-tag-double-tag', in_port_no=in_port_no,
+                                  out_port_no=port_number, comment='deleting flow',
+                                  metadata=get_metadata_64_bit(flow))
+                        self.flow_delete(flow)
+                        return device_rules
 
                     fl_lst, _ = device_rules.setdefault(
                         ingress_hop.device.id, ([], []))
@@ -690,10 +748,11 @@ class FlowDecomposer(object):
                         priority=flow.priority,
                         cookie=flow.cookie,
                         match_fields=[
-                            in_port(ingress_hop.ingress_port.port_no)
+                            in_port(ingress_hop.ingress_port.port_no),
+                            metadata(inner_tag)
                         ] + [
                             field for field in get_ofb_fields(flow)
-                            if field.type not in (IN_PORT,)
+                            if field.type not in (IN_PORT, METADATA)
                         ],
                         actions=[
                             action for action in get_actions(flow)

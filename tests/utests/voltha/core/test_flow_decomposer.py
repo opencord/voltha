@@ -650,7 +650,7 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
         flow1 = mk_flow_stat(
             match_fields=[
                 in_port(0),
-                vlan_vid(ofp.OFPVID_PRESENT | 1000),
+                metadata((1000 << 32) | 1),
                 vlan_pcp(0)
             ],
             actions=[
@@ -682,7 +682,7 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
             priority=500,
             match_fields=[
                 in_port(2),
-                vlan_vid(ofp.OFPVID_PRESENT | 1000),
+                metadata(1000),
                 vlan_pcp(0)
             ],
             actions=[
