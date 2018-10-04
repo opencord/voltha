@@ -505,7 +505,7 @@ class EVCMap(object):
         assert flow.flow_direction == FlowEntry.FlowDirection.UPSTREAM, \
             'Only Upstream flows additions are supported at this time'
 
-        log('add-flow-to-evc', flow=flow, evc=evc)
+        log.debug('add-flow-to-evc', flow=flow, evc=evc)
 
         tmp_map = EVCMap.create_ingress_map(flow, evc, dry_run=True) \
             if flow.flow_direction == FlowEntry.FlowDirection.UPSTREAM \
