@@ -115,6 +115,8 @@ class OpenOltPlatform(object):
     def mk_alloc_id(self, intf_id, onu_id, idx=0):
         # FIXME - driver should do prefixing 1 << 10 as it is Maple specific
         # return 1<<10 | onu_id<<6 | idx
+        if(self.device_info.technology == "gpon"): # Will be replaced with resource manager
+            return 511 + intf_id * MAX_ONUS_PER_PON + onu_id
         return 1023 + intf_id * MAX_ONUS_PER_PON + onu_id  # FIXME
 
 
