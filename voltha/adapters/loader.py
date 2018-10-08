@@ -90,6 +90,9 @@ class AdapterLoader(object):
                                 cls is not OnuAdapter and \
                                 IAdapterInterface.implementedBy(cls):
                             verifyClass(IAdapterInterface, cls)
+                            if cls.__module__.rsplit('.', 1)[0] != package_name:
+                                continue
+
                             yield adapter_name, cls
             except Exception, e:
                 log.exception('failed', e=e)
