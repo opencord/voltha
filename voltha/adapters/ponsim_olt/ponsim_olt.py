@@ -132,7 +132,7 @@ class AdapterPmMetrics:
     def collect_port_metrics(self, channel):
         rtrn_port_metrics = dict()
         stub = ponsim_pb2.PonSimStub(channel)
-        stats = stub.GetStats(Empty())
+        stats = stub.GetStats(ponsim_pb2.PonSimMetricsRequest(port=0))
         rtrn_port_metrics['pon'] = self.extract_pon_metrics(stats)
         rtrn_port_metrics['nni'] = self.extract_nni_metrics(stats)
         return rtrn_port_metrics
