@@ -50,7 +50,7 @@ from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
     OFPC_GROUP_STATS, OFPC_PORT_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS, \
     ofp_switch_features, ofp_desc
 from voltha.protos.openflow_13_pb2 import ofp_port
-from voltha.protos.ponsim_pb2 import FlowTable, PonSimFrame
+from voltha.protos.ponsim_pb2 import FlowTable, PonSimFrame, PonSimMetricsRequest
 from voltha.registry import registry
 
 from voltha.protos.bbf_fiber_base_pb2 import \
@@ -132,7 +132,7 @@ class AdapterPmMetrics:
     def collect_port_metrics(self, channel):
         rtrn_port_metrics = dict()
         stub = ponsim_pb2.PonSimStub(channel)
-        stats = stub.GetStats(Empty())
+        stats = stub.GetStats(ponsim_pb2.PonSimMetricsRequest(port=0))
         rtrn_port_metrics['pon'] = self.extract_pon_metrics(stats)
         rtrn_port_metrics['nni'] = self.extract_nni_metrics(stats)
         return rtrn_port_metrics
@@ -705,6 +705,11 @@ class PonSimOltHandler(object):
             stub = ponsim_pb2.PonSimStub(self.get_channel())
             self.log.info('pushing-onu-flow-table', port=msg.port)
             res = stub.UpdateFlowTable(msg)
+            self.adapter_agent.receive_proxied_message(proxy_address, res)
+        elif isinstance(msg, PonSimMetricsRequest):
+            stub = ponsim_pb2.PonSimStub(self.get_channel())
+            self.log.info('proxying onu stats request', port=msg.port)
+            res = stub.GetStats(msg)
             self.adapter_agent.receive_proxied_message(proxy_address, res)
 
     def packet_out(self, egress_port, msg):
