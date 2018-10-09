@@ -532,7 +532,7 @@ class PONResourceManager(object):
         if self.extra_args and len(self.extra_args) > 0:
             parser = OltVendorArgumentParser(add_help=False)
             parser.add_argument('--olt_vendor', '-o', action='store',
-                                choices=['default', 'asfvolt16'],
+                                choices=['default', 'asfvolt16', 'cigolt24'],
                                 default='default')
             try:
                 args = parser.parse_args(shlex.split(self.extra_args))
