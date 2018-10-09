@@ -27,7 +27,7 @@ from voltha.adapters.iadapter import OnuAdapter
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos import third_party
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus, AdminState
-from voltha.protos.device_pb2 import Port
+from voltha.protos.device_pb2 import Port, PmConfig, PmConfigs
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
     OFPPF_1GB_FD
@@ -81,6 +81,98 @@ xpon_ponsim_onu_itfs = {
         'log': 'remove-multicast-distribution-set-data'},
 }
 
+# NOTE(smbaker): This probably wasn't the right way to go, as it relies on contacting the ONU directly.
+#    Looks like ponsim_olt was designed to collect from ponsim_onu and return onu statistics as part of
+#    olt statistics...
+
+class AdapterPmMetrics:
+    def __init__(self, device):
+        self.pm_names = {'tx_64_pkts', 'tx_65_127_pkts', 'tx_128_255_pkts',
+                         'tx_256_511_pkts', 'tx_512_1023_pkts',
+                         'tx_1024_1518_pkts', 'tx_1519_9k_pkts',
+                         'rx_64_pkts', 'rx_65_127_pkts',
+                         'rx_128_255_pkts', 'rx_256_511_pkts',
+                         'rx_512_1023_pkts', 'rx_1024_1518_pkts',
+                         'rx_1519_9k_pkts'}
+        self.device = device
+        self.id = device.id
+        self.name = 'ponsim_onu'
+        # self.id = "abc"
+        self.default_freq = 150
+        self.grouped = False
+        self.freq_override = False
+        self.pon_metrics_config = dict()
+        self.uni_metrics_config = dict()
+        self.lc = None
+        for m in self.pm_names:
+            self.pon_metrics_config[m] = PmConfig(name=m,
+                                                  type=PmConfig.COUNTER,
+                                                  enabled=True)
+            self.uni_metrics_config[m] = PmConfig(name=m,
+                                                  type=PmConfig.COUNTER,
+                                                  enabled=True)
+
+    def update(self, pm_config):
+        if self.default_freq != pm_config.default_freq:
+            # Update the callback to the new frequency.
+            self.default_freq = pm_config.default_freq
+            self.lc.stop()
+            self.lc.start(interval=self.default_freq / 10)
+        for m in pm_config.metrics:
+            self.pon_metrics_config[m.name].enabled = m.enabled
+            self.uni_metrics_config[m.name].enabled = m.enabled
+
+    def make_proto(self):
+        pm_config = PmConfigs(
+            id=self.id,
+            default_freq=self.default_freq,
+            grouped=False,
+            freq_override=False)
+        for m in sorted(self.pon_metrics_config):
+            pm = self.pon_metrics_config[m]  # Either will do they're the same
+            pm_config.metrics.extend([PmConfig(name=pm.name,
+                                               type=pm.type,
+                                               enabled=pm.enabled)])
+        return pm_config
+
+    def collect_port_metrics(self, channel):
+        rtrn_port_metrics = dict()
+        stub = ponsim_pb2.PonSimStub(channel)
+        stats = stub.GetStats(Empty())
+        rtrn_port_metrics['pon'] = self.extract_pon_metrics(stats)
+        rtrn_port_metrics['uni'] = self.extract_uni_metrics(stats)
+        return rtrn_port_metrics
+
+    def extract_pon_metrics(self, stats):
+        rtrn_pon_metrics = dict()
+        for m in stats.metrics:
+            if m.port_name == "pon":
+                for p in m.packets:
+                    if self.pon_metrics_config[p.name].enabled:
+                        rtrn_pon_metrics[p.name] = p.value
+                return rtrn_pon_metrics
+
+    def extract_uni_metrics(self, stats):
+        rtrn_pon_metrics = dict()
+        for m in stats.metrics:
+            if m.port_name == "nni":  # FIXME(smbaker): This is still called nni in ponsim_onu's statistics
+                for p in m.packets:
+                    if self.pon_metrics_config[p.name].enabled:
+                        rtrn_pon_metrics[p.name] = p.value
+                return rtrn_pon_metrics
+
+    def start_collector(self, callback):
+        log.info("starting-pm-collection", device_name=self.name,
+                 device_id=self.device.id)
+        prefix = 'voltha.{}.{}'.format(self.name, self.device.id)
+        self.lc = LoopingCall(callback, self.device.id, prefix)
+        self.lc.start(interval=self.default_freq / 10)
+
+    def stop_collector(self):
+        log.info("stopping-pm-collection", device_name=self.name,
+                 device_id=self.device.id)
+        self.lc.stop()
+
 
 class PonSimOnuAdapter(OnuAdapter):
     def __init__(self, adapter_agent, config):
@@ -109,6 +201,12 @@ class PonSimOnuAdapter(OnuAdapter):
                     _method(data, data2)
                 else:
                     _method(data)
+
+    def update_pm_config(self, device, pm_config):
+        log.info("adapter-update-pm-config", device=device,
+                 pm_config=pm_config)
+        handler = self.devices_handlers[device.id]
+        handler.update_pm_config(device, pm_config)
 
     def create_interface(self, device, data):
         _method_name = sys._getframe().f_code.co_name
@@ -212,6 +310,12 @@ class PonSimOnuHandler(object):
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
+        # Now set the initial PM configuration for this device
+        self.pm_metrics = AdapterPmMetrics(device)
+        pm_config = self.pm_metrics.make_proto()
+        log.info("initial-pm-config", pm_config=pm_config)
+        self.adapter_agent.update_device_pm_config(pm_config, init=True)
+
         # register physical ports
         self.uni_port = Port(
             port_no=2,
@@ -292,6 +396,12 @@ class PonSimOnuHandler(object):
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
+        # Now set the initial PM configuration for this device
+        self.pm_metrics = AdapterPmMetrics(device)
+        pm_config = self.pm_metrics.make_proto()
+        log.info("initial-pm-config", pm_config=pm_config)
+        self.adapter_agent.update_device_pm_config(pm_config, init=True)
+
         # TODO: Verify that the uni, pon and logical ports exists
 
         # Mark the device as REACHABLE and ACTIVE
@@ -330,6 +440,11 @@ class PonSimOnuHandler(object):
         # TODO: Update PONSIM code to accept incremental flow changes
         # Once completed, the accepts_add_remove_flow_updates for this
         # device type can be set to True
+
+    def update_pm_config(self, device, pm_config):
+        log.info("handler-update-pm-config", device=device,
+                 pm_config=pm_config)
+        self.pm_metrics.update(pm_config)
 
     @inlineCallbacks
     def reboot(self):
