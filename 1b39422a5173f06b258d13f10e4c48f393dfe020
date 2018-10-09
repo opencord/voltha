@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "39049810_a14dc713",
+        "filename": "voltha/extensions/omci/omci_messages.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-10-09T14:23:51Z",
+      "side": 1,
+      "message": "As a suggestion, have you looked at the BitField scapy type?  I think you may be able to change this to be something like the following:\n\n    BitField(\"alarm_bit_map\", None, 224)\n\nMight make extraction of individual bits a little simpler and easier to understand",
+      "revId": "1b39422a5173f06b258d13f10e4c48f393dfe020",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
