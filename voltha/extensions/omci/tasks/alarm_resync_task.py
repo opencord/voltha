@@ -20,6 +20,7 @@ from common.utils.asleep import asleep
 from voltha.extensions.omci.database.mib_db_dict import *
 from voltha.extensions.omci.omci_entities import OntData
 from voltha.extensions.omci.omci_defs import AttributeAccess
+from voltha.extensions.omci.tasks.mib_resync_task import MibResyncTask
 AA = AttributeAccess
 
 
@@ -45,7 +46,7 @@ class AlarmResyncTask(Task):
     The ONU can still source AVC's and the the OLT can still send config
     commands to the actual.
     """
-    task_priority = 240
+    task_priority = Task.DEFAULT_PRIORITY
     name = "ALARM Resynchronization Task"
 
     max_retries = 3
@@ -53,7 +54,6 @@ class AlarmResyncTask(Task):
 
     max_alarm_upload_next_retries = 3
     alarm_upload_next_delay = 10          # Max * delay < 60 seconds
-    watchdog_timeout = 15                 # Should be > any retry delay
 
     def __init__(self, omci_agent, device_id):
         """
@@ -63,15 +63,15 @@ class AlarmResyncTask(Task):
         :param device_id: (str) ONU Device ID
         """
         super(AlarmResyncTask, self).__init__(AlarmResyncTask.name,
-                                              omci_agent,
-                                              device_id,
-                                              priority=AlarmResyncTask.task_priority,
-                                              exclusive=False,
-                                              watchdog_timeout=AlarmResyncTask.watchdog_timeout)
+                                            omci_agent,
+                                            device_id,
+                                            priority=AlarmResyncTask.task_priority,
+                                            exclusive=False)
         self._local_deferred = None
         self._device = omci_agent.get_device(device_id)
         self._db_active = MibDbVolatileDict(omci_agent)
         self._db_active.start()
+        self.mib_resync_task = MibResyncTask
 
     def cancel_deferred(self):
         super(AlarmResyncTask, self).cancel_deferred()
@@ -104,6 +104,10 @@ class AlarmResyncTask(Task):
         self._db_active = None
         super(AlarmResyncTask, self).stop()
 
+    def stop_if_not_running(self):
+        if not self.running:
+            raise AlarmResyncException('Resync Task was cancelled')
+
     @inlineCallbacks
     def perform_alarm_resync(self):
         """
@@ -120,24 +124,39 @@ class AlarmResyncTask(Task):
         self.log.info('perform-alarm-resync')
 
         try:
-            self.strobe_watchdog()
-            command_sequence_number = yield self.snapshot_alarm()
+            results = yield self.snapshot_alarm()
+            db_copy = results[0]
 
-            # Start the ALARM upload sequence, save alarms to the table
-            self.strobe_watchdog()
-            commands_retrieved, alarm_table = yield self.upload_alarm(command_sequence_number)
-
-            if commands_retrieved < command_sequence_number:
-                e = AlarmDownloadException('Only retrieved {} of {} instances'.
-                                             format(commands_retrieved, command_sequence_number))
+            if db_copy is None:
+                e = AlarmCopyException('Failed to get local database copy')
                 self.deferred.errback(failure.Failure(e))
+            else:
+                command_sequence_number = results[1]
 
-            self.deferred.callback(
-                    {
-                        'commands_retrieved': commands_retrieved,
-                        'alarm_table': alarm_table
-                    })
+                # Start the ALARM upload sequence, save alarms to the table
+                commands_retrieved = yield self.upload_alarm(command_sequence_number)
 
+                if commands_retrieved < command_sequence_number:
+                    e = AlarmDownloadException('Only retrieved {} of {} instances'.
+                                             format(commands_retrieved, command_sequence_number))
+                    self.deferred.errback(failure.Failure(e))
+                else:
+                    # Compare the databases
+                    on_olt_only, on_onu_only, attr_diffs = \
+                        self.mib_resync_task.compare_mibs(db_copy, self._db_active.query(self.device_id))
+
+                    on_olt_only = on_olt_only if len(on_olt_only) else None
+                    on_onu_only = on_onu_only if len(on_onu_only) else None
+                    attr_diffs = attr_diffs if len(attr_diffs) else None
+
+                    on_olt_only_diffs = on_olt_only if on_olt_only and len(on_olt_only) else None
+                    on_onu_only_diffs = on_onu_only if on_onu_only and len(on_onu_only) else None
+                    attr_diffs = attr_diffs if attr_diffs and len(attr_diffs) else None
+
+                    if all(diff is None for diff in [on_olt_only_diffs, on_onu_only_diffs, attr_diffs]):
+                        self.deferred.callback(True)
+                    else:
+                        self.deferred.callback(False)
         except Exception as e:
             self.log.exception('resync', e=e)
             self.deferred.errback(failure.Failure(e))
@@ -149,6 +168,7 @@ class AlarmResyncTask(Task):
 
         :return: (pair) (command_sequence_number)
         """
+        db_copy = None
         command_sequence_number = None
 
         try:
@@ -158,10 +178,11 @@ class AlarmResyncTask(Task):
                 # Send ALARM Upload so ONU snapshots its ALARM
                 try:
                     command_sequence_number = yield self.send_alarm_upload()
-                    self.strobe_watchdog()
+                    self.stop_if_not_running()
 
                     if command_sequence_number is None:
                         if retries >= max_tries:
+                            db_copy = None
                             break
 
                 except TimeoutError as e:
@@ -169,9 +190,14 @@ class AlarmResyncTask(Task):
                     if retries >= max_tries:
                         raise
 
-                    self.strobe_watchdog()
                     yield asleep(AlarmResyncTask.retry_delay)
+                    self.stop_if_not_running()
                     continue
+
+                # Get a snapshot of the local MIB database
+                db_copy = self._device.query_mib()
+                # if we made it this far, no need to keep trying
+                break
 
         except Exception as e:
             self.log.exception('alarm-resync', e=e)
@@ -179,11 +205,11 @@ class AlarmResyncTask(Task):
 
         # Handle initial failures
 
-        if command_sequence_number is None:
+        if db_copy is None or command_sequence_number is None:
             raise AlarmCopyException('Failed to snapshot ALARM copy after {} retries'.
-                                     format(AlarmResyncTask.max_retries))
+                                   format(AlarmResyncTask.max_retries))
 
-        returnValue(command_sequence_number)
+        returnValue(db_copy, command_sequence_number)
 
     @inlineCallbacks
     def send_alarm_upload(self):
@@ -195,9 +221,8 @@ class AlarmResyncTask(Task):
         ########################################
         # Begin ALARM Upload
         try:
-            self.strobe_watchdog()
             results = yield self._device.omci_cc.send_get_all_alarm()
-
+            self.stop_if_not_running()
             command_sequence_number = results.fields['omci_message'].fields['number_of_commands']
 
             if command_sequence_number is None or command_sequence_number <= 0:
@@ -219,29 +244,38 @@ class AlarmResyncTask(Task):
             max_tries = AlarmResyncTask.max_alarm_upload_next_retries
             alarm_class_id = {}
             alarm_entity_id = {}
+            alarm_bit_map = {}
             attributes = {}
 
             for retries in xrange(0, max_tries):
                 try:
-                    self.strobe_watchdog()
-                    response = yield self._device.omci_cc.get_all_alarm_next(seq_no)
+                    response = yield self._device.omci_cc.send_get_all_alarm_next(seq_no)
+                    self.stop_if_not_running()
 
                     omci_msg = response.fields['omci_message'].fields
-                    alarm_class_id[seq_no] = omci_msg['alarmed_entity_class']
-                    alarm_entity_id[seq_no] = omci_msg['alarmed_entity_id']
+                    alarm_class_id = omci_msg['alarmed_entity_class']
+                    alarm_entity_id = omci_msg['alarmed_entity_id']
 
                     # Filter out the 'alarm_data_sync' from the database. We save that at
                     # the device level and do not want it showing up during a re-sync
                     # during data comparison
 
-                    if alarm_class_id[seq_no] == OntData.class_id:
+                    if alarm_class_id == OntData.class_id:
                         break
 
-                    attributes[seq_no] = omci_msg['alarm_bit_map']
+                    bit_map = omci_msg['alarm_bit_map'].encode('hex')
+                    bit_map_hex = "{0:b}".format(int(bit_map, 16))
+                    alarm_bit_map=eval(bit_map_hex)
+
+                    # alarm bit map space is 28 bytes * 8 = 224 bits
+                    if len(bit_map_hex) != 224:
+                        continue
+
+                    attributes = alarm_bit_map
 
                     # Save to the database
-                    self._db_active.set(self.device_id, alarm_class_id[seq_no],
-                                        alarm_entity_id[seq_no], attributes[seq_no])
+                    self._db_active.set(self.device_id, alarm_class_id,
+                                        alarm_entity_id, attributes)
                     break
 
                 except TimeoutError:
@@ -249,7 +283,6 @@ class AlarmResyncTask(Task):
                                   command_sequence_number=command_sequence_number)
 
                     if retries < max_tries - 1:
-                        self.strobe_watchdog()
                         yield asleep(AlarmResyncTask.alarm_upload_next_delay)
                     else:
                         raise
@@ -258,6 +291,5 @@ class AlarmResyncTask(Task):
                     self.log.exception('resync', e=e, seq_no=seq_no,
                                        command_sequence_number=command_sequence_number)
 
-        self.strobe_watchdog()
-        returnValue((seq_no + 1, alarm_class_id, alarm_entity_id, attributes))     # seq_no is zero based and alarm table.
+        returnValue(seq_no + 1)     # seq_no is zero based and alarm table.
 
