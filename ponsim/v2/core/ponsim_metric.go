@@ -114,6 +114,7 @@ func (t rxMetricCounterType) String() string {
  */
 type PonSimMetricCounter struct {
 	Name       string
+	Device_Type string
 	TxCounters map[txMetricCounterType]*metricCounter
 	RxCounters map[rxMetricCounterType]*metricCounter
 }
@@ -121,8 +122,8 @@ type PonSimMetricCounter struct {
 /*
 NewPonSimMetricCounter instantiates new metric counters for a PON device
 */
-func NewPonSimMetricCounter(name string) *PonSimMetricCounter {
-	counter := &PonSimMetricCounter{Name: name}
+func NewPonSimMetricCounter(name string, device_type string) *PonSimMetricCounter {
+	counter := &PonSimMetricCounter{Name: name, Device_Type: device_type}
 
 	counter.TxCounters = map[txMetricCounterType]*metricCounter{
 		tx_64_pkts:        newTxMetricCounter(tx_64_pkts, 1, 64),
@@ -186,7 +187,18 @@ MakeProto collects all RX/TX metrics with which it constructs a GRPC proto metri
 func (mc *PonSimMetricCounter) MakeProto() *voltha.PonSimMetrics {
 	simMetrics := &voltha.PonSimMetrics{Device: mc.Name}
 	ponMetrics := &voltha.PonSimPortMetrics{PortName: "pon"}
-	nniMetrics := &voltha.PonSimPortMetrics{PortName: "nni"}
+	portMetrics := &voltha.PonSimPortMetrics{}
+
+	if (mc.Device_Type == "ONU") {
+	    portMetrics.PortName = "uni"
+	} else if (mc.Device_Type == "OLT") {
+	    portMetrics.PortName = "nni"
+	} else {
+	    common.Logger().WithFields(logrus.Fields{
+		"counters": mc.RxCounters,
+	    }).Error("Unknown Device_Type in PonSimMetricCounter")
+	    portMetrics.PortName = "unknown"
+	}
 
 	// Collect RX metrics
 	for _, c := range mc.RxCounters {
@@ -198,9 +210,9 @@ func (mc *PonSimMetricCounter) MakeProto() *voltha.PonSimMetrics {
 				Value: int64(c.Value[0]),
 			},
 		)
-		// NNI values
-		nniMetrics.Packets = append(
-			nniMetrics.Packets,
+		// NNI/UNI values
+		portMetrics.Packets = append(
+			portMetrics.Packets,
 			&voltha.PonSimPacketCounter{
 				Name:  c.Name,
 				Value: int64(c.Value[1]),
@@ -217,9 +229,9 @@ func (mc *PonSimMetricCounter) MakeProto() *voltha.PonSimMetrics {
 				Value: int64(c.Value[0]),
 			},
 		)
-		// NNI values
-		nniMetrics.Packets = append(
-			nniMetrics.Packets,
+		// NNI/UNI values
+		portMetrics.Packets = append(
+			portMetrics.Packets,
 			&voltha.PonSimPacketCounter{
 				Name:  c.Name,
 				Value: int64(c.Value[1]),
@@ -229,7 +241,7 @@ func (mc *PonSimMetricCounter) MakeProto() *voltha.PonSimMetrics {
 
 	// Populate GRPC proto structure
 	simMetrics.Metrics = append(simMetrics.Metrics, ponMetrics)
-	simMetrics.Metrics = append(simMetrics.Metrics, nniMetrics)
+	simMetrics.Metrics = append(simMetrics.Metrics, portMetrics)
 
 	return simMetrics
 }
