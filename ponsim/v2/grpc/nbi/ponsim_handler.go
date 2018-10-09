@@ -266,7 +266,7 @@ GetStats retrieves statistics for a PonSim device
 */
 func (handler *PonSimHandler) GetStats(
 	ctx context.Context,
-	empty *empty.Empty,
+	req *voltha.PonSimMetricsRequest,
 ) (*voltha.PonSimMetrics, error) {
 	common.Logger().WithFields(logrus.Fields{
 		"handler": handler,
@@ -280,35 +280,47 @@ func (handler *PonSimHandler) GetStats(
 			"olt":     olt,
 		}).Debug("Retrieving stats for OLT")
 
-		// Get stats for current device
+		if req.Port == 0 {
+			// port == 0, return the OLT statistics
+			metrics = (handler.device).(*core.PonSimOltDevice).Counter.MakeProto()
+		} else {
+			common.Logger().WithFields(logrus.Fields{
+			    "handler": handler,
+			    "port":   req.Port,
+			}).Debug("Request is for ONU")
 
-		// Loop through each onus to get stats from those as well?
-		// send grpc request to each onu
-		for _, child := range (handler.device).(*core.PonSimOltDevice).GetOnus() {
+			// port != 0, contact the ONU, retrieve onu statistics, and return to the caller
+			if child, ok := (handler.device).(*core.PonSimOltDevice).GetOnus()[req.Port]; ok {
+				host := strings.Join([]string{child.Device.Address, strconv.Itoa(int(child.Device.Port))}, ":")
+				conn, err := grpc.Dial(
+					host,
+					grpc.WithInsecure(),
+				)
+				if err != nil {
+					common.Logger().WithFields(logrus.Fields{
+					    "handler": handler,
+					    "error":   err.Error(),
+					}).Error("GRPC Connection problem")
+				}
+				defer conn.Close()
+				client := voltha.NewPonSimClient(conn)
 
-			host := strings.Join([]string{child.Device.Address, strconv.Itoa(int(child.Device.Port))}, ":")
-			conn, err := grpc.Dial(
-				host,
-				grpc.WithInsecure(),
-			)
-			if err != nil {
+				if onu_stats, err := client.GetStats(ctx, req); err != nil {
+					common.Logger().WithFields(logrus.Fields{
+					    "handler": handler,
+					    "host":    host,
+					    "error":   err.Error(),
+					}).Error("Problem forwarding stats request to ONU")
+				} else {
+					metrics = onu_stats
+				}
+			} else {
 				common.Logger().WithFields(logrus.Fields{
 					"handler": handler,
-					"error":   err.Error(),
-				}).Error("GRPC Connection problem")
-			}
-			defer conn.Close()
-			client := voltha.NewPonSimClient(conn)
-
-			if _, err = client.GetStats(ctx, empty); err != nil {
-				common.Logger().WithFields(logrus.Fields{
-					"handler": handler,
-					"host":    host,
-					"error":   err.Error(),
-				}).Error("Problem forwarding stats request to ONU")
+					"port":    req.Port,
+				}).Warn("Unable to find ONU")
 			}
 		}
-		metrics = (handler.device).(*core.PonSimOltDevice).Counter.MakeProto()
 
 		common.Logger().WithFields(logrus.Fields{
 			"handler": handler,
@@ -320,6 +332,11 @@ func (handler *PonSimHandler) GetStats(
 			"handler": handler,
 			"onu":     onu,
 		}).Debug("Retrieving stats for ONU")
+		metrics = (handler.device).(*core.PonSimOnuDevice).Counter.MakeProto()
+		common.Logger().WithFields(logrus.Fields{
+			"handler": handler,
+			"metrics": metrics,
+		}).Debug("ONU Metrics")
 	} else {
 		common.Logger().WithFields(logrus.Fields{
 			"handler": handler,

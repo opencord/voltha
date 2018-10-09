@@ -18,21 +18,24 @@
 Fully simulated OLT/ONU adapter.
 """
 
+import arrow
 import sys
 import structlog
 from twisted.internet.defer import DeferredQueue, inlineCallbacks
 from common.utils.asleep import asleep
 
+from twisted.internet.task import LoopingCall
 from voltha.adapters.iadapter import OnuAdapter
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos import third_party
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus, AdminState
-from voltha.protos.device_pb2 import Port
+from voltha.protos.device_pb2 import Port, PmConfig, PmConfigs
+from voltha.protos.events_pb2 import KpiEvent, KpiEventType, MetricValuePairs
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
     OFPPF_1GB_FD
 from voltha.protos.openflow_13_pb2 import ofp_port
-from voltha.protos.ponsim_pb2 import FlowTable
+from voltha.protos.ponsim_pb2 import FlowTable, PonSimMetricsRequest, PonSimMetrics
 from voltha.protos.ponsim_pb2 import InterfaceConfig
 from voltha.protos.bbf_fiber_base_pb2 import OntaniConfig, VOntaniConfig, \
     VEnetConfig
@@ -81,6 +84,92 @@ xpon_ponsim_onu_itfs = {
         'log': 'remove-multicast-distribution-set-data'},
 }
 
+class AdapterPmMetrics:
+    def __init__(self, device):
+        self.pm_names = {'tx_64_pkts', 'tx_65_127_pkts', 'tx_128_255_pkts',
+                         'tx_256_511_pkts', 'tx_512_1023_pkts',
+                         'tx_1024_1518_pkts', 'tx_1519_9k_pkts',
+                         'rx_64_pkts', 'rx_65_127_pkts',
+                         'rx_128_255_pkts', 'rx_256_511_pkts',
+                         'rx_512_1023_pkts', 'rx_1024_1518_pkts',
+                         'rx_1519_9k_pkts'}
+        self.device = device
+        self.id = device.id
+        self.name = 'ponsim_onu'
+        # self.id = "abc"
+        self.default_freq = 150
+        self.grouped = False
+        self.freq_override = False
+        self.pon_metrics_config = dict()
+        self.uni_metrics_config = dict()
+        self.lc = None
+        for m in self.pm_names:
+            self.pon_metrics_config[m] = PmConfig(name=m,
+                                                  type=PmConfig.COUNTER,
+                                                  enabled=True)
+            self.uni_metrics_config[m] = PmConfig(name=m,
+                                                  type=PmConfig.COUNTER,
+                                                  enabled=True)
+
+    def update(self, pm_config):
+        if self.default_freq != pm_config.default_freq:
+            # Update the callback to the new frequency.
+            self.default_freq = pm_config.default_freq
+            self.lc.stop()
+            self.lc.start(interval=self.default_freq / 10)
+        for m in pm_config.metrics:
+            self.pon_metrics_config[m.name].enabled = m.enabled
+            self.uni_metrics_config[m.name].enabled = m.enabled
+
+    def make_proto(self):
+        pm_config = PmConfigs(
+            id=self.id,
+            default_freq=self.default_freq,
+            grouped=False,
+            freq_override=False)
+        for m in sorted(self.pon_metrics_config):
+            pm = self.pon_metrics_config[m]  # Either will do they're the same
+            pm_config.metrics.extend([PmConfig(name=pm.name,
+                                               type=pm.type,
+                                               enabled=pm.enabled)])
+        return pm_config
+
+    def extract_metrics(self, stats):
+        rtrn_port_metrics = dict()
+        rtrn_port_metrics['pon'] = self.extract_pon_metrics(stats)
+        rtrn_port_metrics['uni'] = self.extract_uni_metrics(stats)
+        return rtrn_port_metrics
+
+    def extract_pon_metrics(self, stats):
+        rtrn_pon_metrics = dict()
+        for m in stats.metrics:
+            if m.port_name == "pon":
+                for p in m.packets:
+                    if self.pon_metrics_config[p.name].enabled:
+                        rtrn_pon_metrics[p.name] = p.value
+                return rtrn_pon_metrics
+
+    def extract_uni_metrics(self, stats):
+        rtrn_pon_metrics = dict()
+        for m in stats.metrics:
+            if m.port_name == "uni":
+                for p in m.packets:
+                    if self.pon_metrics_config[p.name].enabled:
+                        rtrn_pon_metrics[p.name] = p.value
+                return rtrn_pon_metrics
+
+    def start_collector(self, callback):
+        log.info("starting-pm-collection", device_name=self.name,
+                 device_id=self.device.id)
+        prefix = 'voltha.{}.{}'.format(self.name, self.device.id)
+        self.lc = LoopingCall(callback, self.device.id, prefix)
+        self.lc.start(interval=self.default_freq / 10)
+
+    def stop_collector(self):
+        log.info("stopping-pm-collection", device_name=self.name,
+                 device_id=self.device.id)
+        self.lc.stop()
+
 
 class PonSimOnuAdapter(OnuAdapter):
     def __init__(self, adapter_agent, config):
@@ -109,6 +198,12 @@ class PonSimOnuAdapter(OnuAdapter):
                     _method(data, data2)
                 else:
                     _method(data)
+
+    def update_pm_config(self, device, pm_config):
+        log.info("adapter-update-pm-config", device=device,
+                 pm_config=pm_config)
+        handler = self.devices_handlers[device.id]
+        handler.update_pm_config(device, pm_config)
 
     def create_interface(self, device, data):
         _method_name = sys._getframe().f_code.co_name
@@ -191,7 +286,40 @@ class PonSimOnuHandler(object):
         self.pon_port = None
 
     def receive_message(self, msg):
-        self.incoming_messages.put(msg)
+        if isinstance(msg, PonSimMetrics):
+            # Message is a reply to an ONU statistics request. Push it out to Kafka via adapter.submit_kpis().
+            if self.pm_metrics:
+                self.log.info('Handling incoming ONU metrics')
+                prefix = 'voltha.{}.{}'.format("ponsim_onu", self.device_id)
+                port_metrics = self.pm_metrics.extract_metrics(msg)
+                try:
+                    ts = arrow.utcnow().timestamp
+                    kpi_event = KpiEvent(
+                        type=KpiEventType.slice,
+                        ts=ts,
+                        prefixes={
+                            # OLT NNI port
+                            prefix + '.uni': MetricValuePairs(
+                                metrics=port_metrics['uni']),
+                            # OLT PON port
+                            prefix + '.pon': MetricValuePairs(
+                                metrics=port_metrics['pon'])
+                        }
+                    )
+
+                    self.log.info('Submitting KPI for incoming ONU mnetrics')
+
+                    # Step 3: submit
+                    self.adapter_agent.submit_kpis(kpi_event)
+                except Exception as e:
+                   log.exception('failed-to-submit-kpis', e=e)
+            else:
+                # We received a statistics message, but we don't have pm_metrics set up. This shouldn't happen.
+                self.log.warning('received unexpected PonSimMetrics')
+        else:
+            # The message is probably a reply to a FlowTable update. self.update_flow_table() will pop it off this
+            # queue and return it to its caller.
+            self.incoming_messages.put(msg)
 
     def activate(self, device):
         self.log.info('activating')
@@ -211,6 +339,12 @@ class PonSimOnuHandler(object):
         device.model = 'n/a'
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
+
+        # Now set the initial PM configuration for this device
+        self.pm_metrics = AdapterPmMetrics(device)
+        pm_config = self.pm_metrics.make_proto()
+        log.info("initial-pm-config", pm_config=pm_config)
+        self.adapter_agent.update_device_pm_config(pm_config, init=True)
 
         # register physical ports
         self.uni_port = Port(
@@ -264,6 +398,9 @@ class PonSimOnuHandler(object):
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
 
+        # Start collecting stats from the device after a brief pause
+        self.start_kpi_collection(device.id)
+
     def _get_uni_port(self):
         ports = self.adapter_agent.get_ports(self.device_id, Port.ETHERNET_UNI)
         if ports:
@@ -292,6 +429,12 @@ class PonSimOnuHandler(object):
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
+        # Now set the initial PM configuration for this device
+        self.pm_metrics = AdapterPmMetrics(device)
+        pm_config = self.pm_metrics.make_proto()
+        log.info("initial-pm-config", pm_config=pm_config)
+        self.adapter_agent.update_device_pm_config(pm_config, init=True)
+
         # TODO: Verify that the uni, pon and logical ports exists
 
         # Mark the device as REACHABLE and ACTIVE
@@ -299,6 +442,9 @@ class PonSimOnuHandler(object):
         device.connect_status = ConnectStatus.REACHABLE
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
+
+        # Start collecting stats from the device after a brief pause
+        self.start_kpi_collection(device.id)
 
         self.log.info('reconciling-ONU-device-ends')
 
@@ -330,6 +476,11 @@ class PonSimOnuHandler(object):
         # TODO: Update PONSIM code to accept incremental flow changes
         # Once completed, the accepts_add_remove_flow_updates for this
         # device type can be set to True
+
+    def update_pm_config(self, device, pm_config):
+        log.info("handler-update-pm-config", device=device,
+                 pm_config=pm_config)
+        self.pm_metrics.update(pm_config)
 
     @inlineCallbacks
     def reboot(self):
@@ -369,6 +520,8 @@ class PonSimOnuHandler(object):
 
     def disable(self):
         self.log.info('disabling', device_id=self.device_id)
+
+        self.stop_kpi_collection()
 
         # Get the latest device reference
         device = self.adapter_agent.get_device(self.device_id)
@@ -474,6 +627,8 @@ class PonSimOnuHandler(object):
             device.oper_status = OperStatus.ACTIVE
             self.adapter_agent.update_device(device)
 
+            self.start_kpi_collection(device.id)
+
             self.log.info('re-enabled', device_id=device.id)
         except Exception, e:
             self.log.exception('error-reenabling', e=e)
@@ -488,6 +643,19 @@ class PonSimOnuHandler(object):
         # 2) Remove the device from ponsim
 
         self.log.info('deleted', device_id=self.device_id)
+
+    def start_kpi_collection(self, device_id):
+        def _collect(device_id, prefix):
+            # Proxy a message to ponsim_olt. The OLT will then query the ONU for statistics. The reply will
+            # arrive proxied back to us in self.receive_message().
+            msg = PonSimMetricsRequest(port=self.proxy_address.channel_id)
+            self.adapter_agent.send_proxied_message(self.proxy_address, msg)
+
+        self.pm_metrics.start_collector(_collect)
+
+    def stop_kpi_collection(self):
+        self.pm_metrics.stop_collector()
+
 
     def get_interface_config(self, data):
         interfaceConfig = InterfaceConfig()

@@ -49,6 +49,10 @@ message PonSimMetrics {
     repeated PonSimPortMetrics metrics = 2;
 }
 
+message PonSimMetricsRequest {
+    int32 port = 1;
+}
+
 message TcontInterfaceConfig {
     bbf_fiber.TrafficDescriptorProfileData
         traffic_descriptor_profile_config_data = 1;
@@ -88,7 +92,7 @@ service PonSim {
     rpc UpdateFlowTable(FlowTable)
         returns(google.protobuf.Empty) {}
 
-    rpc GetStats(google.protobuf.Empty)
+    rpc GetStats(PonSimMetricsRequest)
         returns(PonSimMetrics) {}
 
 }

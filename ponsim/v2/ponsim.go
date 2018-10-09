@@ -263,7 +263,7 @@ func main() {
 		Port:        int32(grpc_port),
 		AlarmsOn:    alarm_sim,
 		AlarmsFreq:  alarm_freq,
-		Counter:     core.NewPonSimMetricCounter(name),
+		Counter:     core.NewPonSimMetricCounter(name, device_type),
 
 		// TODO: pass certificates
 		//GrpcSecurity: certs,
