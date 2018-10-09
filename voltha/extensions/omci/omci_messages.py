@@ -233,7 +233,7 @@ class OmciGetAllAlarmsNextResponse(OmciMessage):
         ShortField("entity_id", 0),
         ShortField("alarmed_entity_class", None),
         ShortField("alarmed_entity_id", 0),
-        StrFixedLenField("alarm_bit_map", None, 27)  # TODO better type?
+        BitField("alarm_bit_map", None, 224)
     ]
 
 
