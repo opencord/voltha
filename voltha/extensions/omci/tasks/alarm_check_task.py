@@ -16,7 +16,6 @@
 from task import Task
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, TimeoutError, failure
-from voltha.extensions.omci.omci_defs import ReasonCodes
 
 
 class AlarmDataTaskFailure(Exception):
@@ -29,7 +28,6 @@ class AlarmDataTask(Task):
     """
     task_priority = Task.DEFAULT_PRIORITY
     name = "Alarm Data Task"
-    max_payload = 29
 
     def __init__(self, omci_agent, device_id):
         """
@@ -79,20 +77,14 @@ class AlarmDataTask(Task):
         """
         Sync the current alarm sequence number
         """
-        self.log.info('perform-get-interval')
+        self.log.info('perform-get-alarm-data')
 
         try:
             device = self.omci_agent.get_device(self.device_id)
 
             results = yield device.omci_cc.send_get_all_alarm()
-            omci_msg = results.fields['omci_message'].fields
-            status = omci_msg['success_code']
-            alarm_sequence_number = omci_msg['number_of_commands']
+            alarm_sequence_number = results.fields['omci_message'].fields['number_of_commands']
             self.log.debug('alarm-data', alarm_sequence_number=alarm_sequence_number)
-
-            if status != ReasonCodes.Success:
-                raise AlarmDataTaskFailure('Unexpected Response Status: {}'.
-                                           format(status))
 
             if self._last_number_of_commands is None:
                 self._last_number_of_commands = alarm_sequence_number
@@ -100,14 +92,14 @@ class AlarmDataTask(Task):
             elif alarm_sequence_number != self._last_number_of_commands:
                 msg = 'The last number of sequence does not match {} to {}' \
                     .format(self._last_number_of_commands, alarm_sequence_number)
-                self.log.info('interval-roll-over', msg=msg)
+                self.log.info('interval-alarm-check', msg=msg)
                 raise AlarmDataTaskFailure(msg)
 
             # Successful if here
             self.deferred.callback(alarm_sequence_number)
 
         except TimeoutError as e:
-            self.log.warn('alarm_retrieval_mode', e=e)
+            self.log.warn('alarm_retrieval_number', e=e)
             self.deferred.errback(failure.Failure(e))
 
         except Exception as e:
