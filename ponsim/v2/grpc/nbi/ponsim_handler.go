@@ -320,6 +320,11 @@ func (handler *PonSimHandler) GetStats(
 			"handler": handler,
 			"onu":     onu,
 		}).Debug("Retrieving stats for ONU")
+		metrics = (handler.device).(*core.PonSimOnuDevice).Counter.MakeProto()
+		common.Logger().WithFields(logrus.Fields{
+			"handler": handler,
+			"metrics": metrics,
+		}).Debug("OLT Metrics")
 	} else {
 		common.Logger().WithFields(logrus.Fields{
 			"handler": handler,
