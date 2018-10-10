@@ -681,7 +681,11 @@ class OntDataFrame(MEFrame):
             raise TypeError('ignore_arc should be a boolean')
 
         if mib_data_sync is not None:
-            data = {'mib_data_sync': mib_data_sync}
+            # Note: Currently the Scapy decode/encode is 16-bits since we need
+            #       the data field that large in order to support MIB and Alarm Upload Next
+            #       commands.  Push our 8-bit MDS value into the upper 8-bits so that
+            #       it is encoded properly into the ONT_Data 'set' frame
+            data = {'mib_data_sync': mib_data_sync << 8}
 
         elif sequence_number is not None:
             data = {'mib_data_sync': sequence_number}

@@ -15,7 +15,7 @@
 #
 from task import Task
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, failure, returnValue
+from twisted.internet.defer import failure, inlineCallbacks, TimeoutError, returnValue
 from voltha.extensions.omci.omci_defs import ReasonCodes, EntityOperations
 from voltha.extensions.omci.omci_me import MEFrame
 from voltha.extensions.omci.omci_frame import OmciFrame
@@ -195,6 +195,9 @@ class OmciGetRequest(Task):
             self.log.info('get-completed')
             self.deferred.callback(self)
 
+        except TimeoutError as e:
+            self.deferred.errback(failure.Failure(e))
+
         except Exception as e:
             self.log.exception('perform-get', e=e, class_id=self._entity_class,
                                entity_id=self._entity_id, attributes=self._attributes)
@@ -246,6 +249,9 @@ class OmciGetRequest(Task):
 
                     results_omci['data'].update(get_omci['data'])
 
+                except TimeoutError:
+                    self.log.debug('missing-timeout')
+
                 except Exception as e:
                     self.log.exception('missing-failure', e=e)
 
@@ -290,6 +296,9 @@ class OmciGetRequest(Task):
 
                     tmp_results.fields['omci_message'].fields['data'][attr] = \
                         results.fields['omci_message'].fields['data'][attr]
+
+            except TimeoutError as e:
+                self.log.debug('attr-timeout')
 
             except Exception as e:
                 self.log.exception('attr-failure', e=e)

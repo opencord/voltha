@@ -20,6 +20,7 @@ from voltha.extensions.omci.state_machines.mib_sync import MibSynchronizer
 from voltha.extensions.omci.tasks.mib_upload import MibUploadTask
 from voltha.extensions.omci.tasks.get_mds_task import GetMdsTask
 from voltha.extensions.omci.tasks.mib_resync_task import MibResyncTask
+from voltha.extensions.omci.tasks.mib_reconcile_task import MibReconcileTask
 from voltha.extensions.omci.tasks.sync_time_task import SyncTimeTask
 from voltha.extensions.omci.state_machines.Alarm_sync import AlarmSynchronizer
 from voltha.extensions.omci.tasks.alarm_sync_data import  AlarmSyncDataTask
@@ -47,7 +48,7 @@ OpenOmciAgentDefaults = {
             'get-mds': GetMdsTask,
             'mib-audit': GetMdsTask,
             'mib-resync': MibResyncTask,
-            'mib-reconcile': None        # TODO: post-v1.3.0 (Reconcile out-of-sync MIB DB)
+            'mib-reconcile': MibReconcileTask
         }
     },
     'omci-capabilities': {

@@ -24,6 +24,7 @@ from voltha.extensions.omci.state_machines.mib_sync import MibSynchronizer
 from voltha.extensions.omci.tasks.mib_upload import MibUploadTask
 from voltha.extensions.omci.tasks.get_mds_task import GetMdsTask
 from voltha.extensions.omci.tasks.mib_resync_task import MibResyncTask
+from voltha.extensions.omci.tasks.mib_reconcile_task import MibReconcileTask
 
 
 class TestOpenOmciAgent(TestCase):
@@ -53,7 +54,7 @@ class TestOpenOmciAgent(TestCase):
         self.assertTrue(isinstance(mib_sync_tasks['get-mds'], type(GetMdsTask)))
         self.assertTrue(isinstance(mib_sync_tasks['mib-audit'], type(GetMdsTask)))
         self.assertTrue(isinstance(mib_sync_tasks['mib-resync'], type(MibResyncTask)))
-        # self.assertTrue(isinstance(mib_sync_tasks['mib-reconcile'], type('TODO: not yet coded')))
+        self.assertTrue(isinstance(mib_sync_tasks['mib-reconcile'], type(MibReconcileTask)))
 
         # caps = OpenOmciAgentDefaults.get('onu-capabilities')
         #
