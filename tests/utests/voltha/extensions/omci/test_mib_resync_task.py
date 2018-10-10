@@ -214,10 +214,10 @@ class TestOmciMibResyncTask(TestCase):
         self.assertEqual(len(attr_diffs), 0)
 
     def test_on_olt_only(self):
-        class_id = PriorityQueueG.class_id
+        class_id = GemInterworkingTp.class_id
         inst_id = 0
         attributes = {
-            'related_port': int(1234567)    # IntField
+            'gal_loopback_configuration': int(1)
         }
         self.olt_db.set(_DEVICE_ID, class_id, inst_id, attributes)
 

@@ -123,8 +123,8 @@ class OnuDeviceEntry(object):
             #                                                       downloader_info['tasks'],
             #                                                       advertise_events=advertise)
             self._image_agent = ImageAgent(self._omci_agent, device_id, downloader_info['state-machine'],
-                                                                   downloader_info['tasks'],
-                                                                   advertise_events=advertise)
+                                           downloader_info['tasks'],
+                                           advertise_events=advertise)
         except Exception as e:
             self.log.exception('state-machine-create-failed', e=e)
             raise
