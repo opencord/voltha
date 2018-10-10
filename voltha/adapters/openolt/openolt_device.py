@@ -114,7 +114,12 @@ class OpenoltDevice(object):
         # If logical device does not exist create it
         if not device.parent_id:
 
-            dpid = '00:00:' + self.ip_hex(self.host_and_port.split(":")[0])
+            if "dp_id" in kwargs:
+                # HACK for BBSIM
+                # use this one and not generate it
+                dpid = 'AA:BB:CC:DD:EE:' + hex(kwargs["dp_id"])[-2:]
+            else:
+                dpid = '00:00:' + self.ip_hex(self.host_and_port.split(":")[0])
 
             # Create logical OF device
             ld = LogicalDevice(
