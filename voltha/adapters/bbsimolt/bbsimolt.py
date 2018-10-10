@@ -57,8 +57,10 @@ class BBSimOltAdapter(OpenoltAdapter):
             version='0.1',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
+        self.bbsim_id = 17  #TODO: This should be modified later
 
     def adopt_device(self, device):
+        self.bbsim_id += 1
         log.info('adopt-device', device=device)
 
         support_classes = deepcopy(OpenOltDefaults)['support_classes']
@@ -69,7 +71,8 @@ class BBSimOltAdapter(OpenoltAdapter):
             'support_classes': support_classes,
             'adapter_agent': self.adapter_agent,
             'device': device,
-            'device_num': self.num_devices + 1
+            'device_num': self.num_devices + 1,
+            'dp_id': self.bbsim_id
         }
         try:
             self.devices[device.id] = BBSimOltDevice(**kwargs)
@@ -79,3 +82,7 @@ class BBSimOltAdapter(OpenoltAdapter):
             raise
         else:
             self.num_devices += 1
+
+    def delete_device(self, device):
+        self.bbsim_id -= 1
+        super(BBSimOltAdapter, self).delete_device(device)
