@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "d7108afb_3638315c",
+        "filename": "voltha/adapters/bbsim/bbsim.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000431
+      },
+      "writtenOn": "2018-10-10T19:28:05Z",
+      "side": 1,
+      "message": "OK. I updated",
+      "parentUuid": "eab8e3f8_fc3b6fb5",
+      "range": {
+        "startLine": 56,
+        "startChar": 12,
+        "endLine": 56,
+        "endChar": 18
+      },
+      "revId": "3535e422d1f7bc6790069afc13ac1ce7864dc218",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "686fed06_e82407bf",
         "filename": "voltha/adapters/bbsim/bbsim.py",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2018-10-10T14:24:32Z",
       "side": 1,
       "message": "since bbsim will hopefully be used in scalability testing and as reference to other adapters, I might suggest moving the initialization of support_classes to the adapter rather than initializing redundant copies for every device that is adopted. Technically, nothing wrong here....just a thought for minor improvement.",
+      "range": {
+        "startLine": 64,
+        "startChar": 8,
+        "endLine": 64,
+        "endChar": 23
+      },
+      "revId": "3535e422d1f7bc6790069afc13ac1ce7864dc218",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "62f93e7f_6cf7a686",
+        "filename": "voltha/adapters/bbsim/bbsim.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000431
+      },
+      "writtenOn": "2018-10-10T19:28:05Z",
+      "side": 1,
+      "message": "Certainly, but the initialization of support_class is needed here because the OpenOLT adopter creates the device at adapt_device ().",
+      "parentUuid": "686fed06_e82407bf",
       "range": {
         "startLine": 64,
         "startChar": 8,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "ec8105d7_c7343685",
+        "filename": "voltha/adapters/bbsim/bbsim.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000431
+      },
+      "writtenOn": "2018-10-10T19:28:05Z",
+      "side": 1,
+      "message": "OK, I updated.",
+      "parentUuid": "13c386a3_0442ff48",
+      "range": {
+        "startLine": 68,
+        "startChar": 7,
+        "endLine": 68,
+        "endChar": 8
+      },
+      "revId": "3535e422d1f7bc6790069afc13ac1ce7864dc218",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "206da5d7_ae5995e5",
         "filename": "voltha/adapters/bbsim/bbsim.py",
         "patchSetId": 1
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "8b472b0c_a02158bc",
+        "filename": "voltha/adapters/bbsim/bbsim.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1000431
+      },
+      "writtenOn": "2018-10-10T19:28:05Z",
+      "side": 1,
+      "message": "OK, I updated",
+      "parentUuid": "206da5d7_ae5995e5",
+      "range": {
+        "startLine": 83,
+        "startChar": 39,
+        "endLine": 83,
+        "endChar": 46
+      },
+      "revId": "3535e422d1f7bc6790069afc13ac1ce7864dc218",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "50fc864b_89ab772d",
         "filename": "voltha/adapters/bbsim/bbsim_device.py",
         "patchSetId": 1
@@ -105,6 +201,30 @@
       "writtenOn": "2018-10-10T14:24:32Z",
       "side": 1,
       "message": "What about ONU Adapters that subclass from brcm_openomci_onu adapter?",
+      "range": {
+        "startLine": 277,
+        "startChar": 17,
+        "endLine": 277,
+        "endChar": 27
+      },
+      "revId": "3535e422d1f7bc6790069afc13ac1ce7864dc218",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "aa045ea2_979806b3",
+        "filename": "voltha/adapters/bbsim/bbsim_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 277,
+      "author": {
+        "id": 1000431
+      },
+      "writtenOn": "2018-10-10T19:28:05Z",
+      "side": 1,
+      "message": "The bbsim currently supports only broadcom_onu adapter because it is necessary to implement open OMCI stack from scratch inside bbsim for supporting brcm_open_omci adapter.\nThen, I will delete this portion in order to avoid confusion.",
+      "parentUuid": "50fc864b_89ab772d",
       "range": {
         "startLine": 277,
         "startChar": 17,
