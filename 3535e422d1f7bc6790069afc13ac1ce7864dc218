@@ -1,0 +1,119 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "eab8e3f8_fc3b6fb5",
+        "filename": "voltha/adapters/bbsim/bbsim.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-10-10T14:24:32Z",
+      "side": 1,
+      "message": "CORD",
+      "range": {
+        "startLine": 56,
+        "startChar": 12,
+        "endLine": 56,
+        "endChar": 18
+      },
+      "revId": "3535e422d1f7bc6790069afc13ac1ce7864dc218",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "686fed06_e82407bf",
+        "filename": "voltha/adapters/bbsim/bbsim.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-10-10T14:24:32Z",
+      "side": 1,
+      "message": "since bbsim will hopefully be used in scalability testing and as reference to other adapters, I might suggest moving the initialization of support_classes to the adapter rather than initializing redundant copies for every device that is adopted. Technically, nothing wrong here....just a thought for minor improvement.",
+      "range": {
+        "startLine": 64,
+        "startChar": 8,
+        "endLine": 64,
+        "endChar": 23
+      },
+      "revId": "3535e422d1f7bc6790069afc13ac1ce7864dc218",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "13c386a3_0442ff48",
+        "filename": "voltha/adapters/bbsim/bbsim.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-10-10T14:24:32Z",
+      "side": 1,
+      "message": "If not overriding, I don\u0027t think these need to be initialized with OpenOlt variants. Only need to initialize the classes that are being overridden.",
+      "range": {
+        "startLine": 68,
+        "startChar": 7,
+        "endLine": 68,
+        "endChar": 8
+      },
+      "revId": "3535e422d1f7bc6790069afc13ac1ce7864dc218",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "206da5d7_ae5995e5",
+        "filename": "voltha/adapters/bbsim/bbsim.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-10-10T14:24:32Z",
+      "side": 1,
+      "message": "BBSim",
+      "range": {
+        "startLine": 83,
+        "startChar": 39,
+        "endLine": 83,
+        "endChar": 46
+      },
+      "revId": "3535e422d1f7bc6790069afc13ac1ce7864dc218",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "50fc864b_89ab772d",
+        "filename": "voltha/adapters/bbsim/bbsim_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 277,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-10-10T14:24:32Z",
+      "side": 1,
+      "message": "What about ONU Adapters that subclass from brcm_openomci_onu adapter?",
+      "range": {
+        "startLine": 277,
+        "startChar": 17,
+        "endLine": 277,
+        "endChar": 27
+      },
+      "revId": "3535e422d1f7bc6790069afc13ac1ce7864dc218",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
