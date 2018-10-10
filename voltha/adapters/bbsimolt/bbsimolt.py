@@ -25,11 +25,10 @@ from voltha.protos.adapter_pb2 import AdapterConfig
 from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.common_pb2 import LogLevel
 from voltha.adapters.openolt.openolt import OpenoltAdapter, OpenOltDefaults
-from voltha.adapters.openolt.openolt_resource_manager import OpenOltResourceMgr
-from voltha.adapters.openolt.openolt_flow_mgr import OpenOltFlowMgr
-from voltha.adapters.openolt.openolt_statistics import OpenOltStatisticsMgr
-from voltha.adapters.openolt.openolt_alarms import OpenOltAlarmMgr
-from voltha.adapters.openolt.openolt_bw import OpenOltBW
+from voltha.adapters.bbsimolt.bbsimolt_flow_mgr import BBSimOltFlowMgr
+from voltha.adapters.bbsimolt.bbsimolt_statistics import BBSimOltStatisticsMgr
+from voltha.adapters.bbsimolt.bbsimolt_bw import BBSimOltBW
+from voltha.adapters.bbsimolt.bbsimolt_alarms import BBSimOltAlarmMgr
 from voltha.adapters.bbsimolt.bbsimolt_platform import BBSimOltPlatform
 from voltha.adapters.bbsimolt.bbsimolt_device import BBSimOltDevice
 
@@ -57,25 +56,37 @@ class BBSimOltAdapter(OpenoltAdapter):
             version='0.1',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
+        self.bbsim_id = 17  #TODO: This should be modified later
 
     def adopt_device(self, device):
+        self.bbsim_id += 1
         log.info('adopt-device', device=device)
 
         support_classes = deepcopy(OpenOltDefaults)['support_classes']
 
         # Customize platform
         support_classes['platform'] = BBSimOltPlatform
+        support_classes['flow_mgr'] = BBSimOltFlowMgr
+        support_classes['alarm_mgr'] = BBSimOltAlarmMgr
+        support_classes['stats_mgr'] = BBSimOltStatisticsMgr
+        support_classes['bw_mgr'] = BBSimOltBW
         kwargs = {
             'support_classes': support_classes,
             'adapter_agent': self.adapter_agent,
             'device': device,
-            'device_num': self.num_devices + 1
+            'device_num': self.num_devices + 1,
+            'dp_id': '00:00:00:00:00:' + hex(self.bbsim_id)[-2:]
         }
         try:
             self.devices[device.id] = BBSimOltDevice(**kwargs)
         except Exception as e:
-            log.error('Failed to adopt OpenOLT device', error=e)
+            log.error('Failed to adopt BBSimOLT device', error=e)
             del self.devices[device.id]
             raise
         else:
             self.num_devices += 1
+
+    def delete_device(self, device):
+        self.bbsim_id -= 1
+        super(BBSimOltAdapter, self).delete_device(device)
+        self.num_devices -= 1

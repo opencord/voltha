@@ -85,6 +85,7 @@ class OpenoltDevice(object):
         self.adapter_agent = kwargs['adapter_agent']
         self.device_num = kwargs['device_num']
         device = kwargs['device']
+        dpid = kwargs.get('dp_id')
 
         self.platform_class = kwargs['support_classes']['platform']
         self.resource_mgr_class = kwargs['support_classes']['resource_mgr']
@@ -113,8 +114,8 @@ class OpenoltDevice(object):
 
         # If logical device does not exist create it
         if not device.parent_id:
-
-            dpid = '00:00:' + self.ip_hex(self.host_and_port.split(":")[0])
+            if dpid == None:
+                dpid = '00:00:' + self.ip_hex(self.host_and_port.split(":")[0])
 
             # Create logical OF device
             ld = LogicalDevice(
@@ -500,10 +501,9 @@ class OpenoltDevice(object):
 
         if self.platform.intf_id_from_pon_port_no(onu_device.parent_port_no) \
                 != onu_indication.intf_id:
-            previous_intf_id = self.platform.intf_id_from_pon_port_no(
-                onu_device.parent_port_no),
             self.log.warn('ONU-is-on-a-different-intf-id-now',
-                          previous_intf_id=previous_intf_id,
+                          previous_intf_id=self.platform.intf_id_from_pon_port_no(
+                              onu_device.parent_port_no),
                           current_intf_id=onu_indication.intf_id)
             # FIXME - handle intf_id mismatch (ONU move?)
 
@@ -515,7 +515,7 @@ class OpenoltDevice(object):
                           received_onu_id=onu_indication.onu_id)
 
         uni_no = self.platform.mk_uni_port_num(onu_indication.intf_id,
-                                               onu_indication.onu_id)
+                                          onu_indication.onu_id)
         uni_name = self.port_name(uni_no, Port.ETHERNET_UNI,
                                   serial_number=onu_device.serial_number)
 
@@ -667,8 +667,7 @@ class OpenoltDevice(object):
                        flow_id=pkt_indication.flow_id)
 
         if pkt_indication.intf_type == "pon":
-            pon_intf_gemport = (pkt_indication.intf_id,
-                                pkt_indication.gemport_id)
+            pon_intf_gemport = (pkt_indication.intf_id, pkt_indication.gemport_id)
             try:
                 onu_id = int(self.resource_mgr.kv_store[pon_intf_gemport])
                 if onu_id is None:
@@ -678,8 +677,8 @@ class OpenoltDevice(object):
                                gemport_id=pkt_indication.gemport_id, e=e)
                 return
 
-            logical_port_num = self.platform.mk_uni_port_num(
-                pkt_indication.intf_id, onu_id)
+            logical_port_num = self.platform.mk_uni_port_num(pkt_indication.intf_id,
+                                                        onu_id)
         elif pkt_indication.intf_type == "nni":
             logical_port_num = self.platform.intf_id_to_port_no(
                 pkt_indication.intf_id,

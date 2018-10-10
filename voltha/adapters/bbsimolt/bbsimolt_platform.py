@@ -17,25 +17,23 @@
 from voltha.protos.device_pb2 import Port
 import voltha.protos.device_pb2 as dev_pb2
 
-MAX_ONUS_PER_PON = 64
-
 class BBSimOltPlatform(object):
 
-    def __init__(self, log, device_info):
+    def __init__(self, log):
         self.log = log
-        self.device_info = device_info
+        self.MAX_ONUS_PER_PON = 64
 
     def mk_alloc_id(self, intf_id, onu_id, idx=0):
         # FIXME - driver should do prefixing 1 << 10 as it is Maple specific
         # return 1<<10 | onu_id<<6 | idx
-        return 1023 + intf_id * MAX_ONUS_PER_PON + onu_id  # FIXME
+        return 1023 + intf_id * self.MAX_ONUS_PER_PON + onu_id  # FIXME
 
 
     def mk_gemport_id(self, intf_id, onu_id, idx=0):
-        return 1024 + (((MAX_ONUS_PER_PON * intf_id + onu_id - 1) * 7) + idx)
+        return 1024 + (((self.MAX_ONUS_PER_PON * intf_id + onu_id - 1) * 7) + idx)
 
     def onu_id_from_gemport_id(self, gemport_id):
-        return (((gemport_id - 1024) // 7) % MAX_ONUS_PER_PON) + 1
+        return (((gemport_id - 1024) // 7) % self.MAX_ONUS_PER_PON) + 1
 
     def mk_uni_port_num(self, intf_id, onu_id):
         return intf_id << 11 | onu_id << 4
@@ -103,4 +101,4 @@ class BBSimOltPlatform(object):
         return False
 
     def max_onus_per_pon(self):
-        return MAX_ONUS_PER_PON
+        return self.MAX_ONUS_PER_PON
