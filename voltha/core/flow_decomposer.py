@@ -726,47 +726,69 @@ class FlowDecomposer(object):
                 if has_next_table(flow):
                     assert out_port_no is None
 
-                    # For downstream flows with dual-tags, recalculate route.
-                    port_number = get_port_number_from_metadata(flow)
+                    if get_metadata(flow) is not None:
+                        log.debug('creating-metadata-flow', flow=flow)
+                        # For downstream flows with dual-tags, recalculate route.
+                        port_number = get_port_number_from_metadata(flow)
 
-                    if port_number is not None:
-                        route = self.get_route(in_port_no, port_number)
-                        if route is None:
-                            log.error('no-route-double-tag', in_port_no=in_port_no,
+                        if port_number is not None:
+                            route = self.get_route(in_port_no, port_number)
+                            if route is None:
+                                log.error('no-route-double-tag', in_port_no=in_port_no,
+                                          out_port_no=port_number, comment='deleting flow',
+                                          metadata=get_metadata_64_bit(flow))
+                                self.flow_delete(flow)
+                                return device_rules
+                            assert len(route) == 2
+                            ingress_hop, egress_hop = route
+
+                        inner_tag = get_inner_tag_from_metadata(flow)
+
+                        if inner_tag is None:
+                            log.error('no-inner-tag-double-tag', in_port_no=in_port_no,
                                       out_port_no=port_number, comment='deleting flow',
                                       metadata=get_metadata_64_bit(flow))
                             self.flow_delete(flow)
                             return device_rules
-                        assert len(route) == 2
-                        ingress_hop, egress_hop = route
 
-                    inner_tag = get_inner_tag_from_metadata(flow)
+                        fl_lst, _ = device_rules.setdefault(
+                            ingress_hop.device.id, ([], []))
+                        fl_lst.append(mk_flow_stat(
+                            priority=flow.priority,
+                            cookie=flow.cookie,
+                            match_fields=[
+                                in_port(ingress_hop.ingress_port.port_no),
+                                metadata(inner_tag)
+                            ] + [
+                                field for field in get_ofb_fields(flow)
+                                if field.type not in (IN_PORT, METADATA)
+                            ],
+                            actions=[
+                                action for action in get_actions(flow)
+                            ] + [
+                                output(ingress_hop.egress_port.port_no)
+                            ]
+                        ))
+                    else:
+                        log.debug('creating-standard-flow', flow=flow)
+                        fl_lst, _ = device_rules.setdefault(
+                            ingress_hop.device.id, ([], []))
+                        fl_lst.append(mk_flow_stat(
+                            priority=flow.priority,
+                            cookie=flow.cookie,
+                            match_fields=[
+                                in_port(ingress_hop.ingress_port.port_no)
+                            ] + [
+                                field for field in get_ofb_fields(flow)
+                                if field.type not in (IN_PORT,)
+                            ],
+                            actions=[
+                                action for action in get_actions(flow)
+                            ] + [
+                                output(ingress_hop.egress_port.port_no)
+                            ]
+                        ))
 
-                    if inner_tag is None:
-                        log.error('no-inner-tag-double-tag', in_port_no=in_port_no,
-                                  out_port_no=port_number, comment='deleting flow',
-                                  metadata=get_metadata_64_bit(flow))
-                        self.flow_delete(flow)
-                        return device_rules
-
-                    fl_lst, _ = device_rules.setdefault(
-                        ingress_hop.device.id, ([], []))
-                    fl_lst.append(mk_flow_stat(
-                        priority=flow.priority,
-                        cookie=flow.cookie,
-                        match_fields=[
-                            in_port(ingress_hop.ingress_port.port_no),
-                            metadata(inner_tag)
-                        ] + [
-                            field for field in get_ofb_fields(flow)
-                            if field.type not in (IN_PORT, METADATA)
-                        ],
-                        actions=[
-                            action for action in get_actions(flow)
-                        ] + [
-                            output(ingress_hop.egress_port.port_no)
-                        ]
-                    ))
                 elif out_port_no is not None:  # unicast case
                     fl_lst, _ = device_rules.setdefault(
                         egress_hop.device.id, ([], []))
