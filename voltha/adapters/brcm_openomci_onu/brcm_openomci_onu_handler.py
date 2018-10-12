@@ -22,6 +22,10 @@ import structlog
 from twisted.internet import reactor, task
 from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue, TimeoutError
 
+from heartbeat import HeartBeat
+from voltha.extensions.kpi.onu.onu_pm_metrics import OnuPmMetrics
+from voltha.extensions.kpi.onu.onu_omci_pm import OnuOmciPmMetrics
+
 from common.utils.indexpool import IndexPool
 import voltha.core.flow_decomposer as fd
 from voltha.registry import registry
@@ -78,6 +82,7 @@ class BrcmOpenomciOnuHandler(object):
         self.proxy_address = None
         self.tx_id = 0
         self._enabled = False
+        self.pm_metrics = None
         self._omcc_version = OMCCVersion.Unknown
         self._total_tcont_count = 0  # From ANI-G ME
         self._qos_flexibility = 0  # From ONT2_G ME
@@ -90,6 +95,10 @@ class BrcmOpenomciOnuHandler(object):
         #TODO: probably shouldnt be hardcoded, determine from olt maybe?
         self._pon_port_number = 100
         self.logical_device_id = None
+
+        self._heartbeat = HeartBeat.create(self, device_id)
+
+        self._heartbeat = HeartBeat.create(self, device_id)
 
         # Set up OpenOMCI environment
         self._onu_omci_device = None
@@ -170,6 +179,22 @@ class BrcmOpenomciOnuHandler(object):
             device.oper_status = OperStatus.DISCOVERED
             device.reason = 'activating-onu'
             self.adapter_agent.update_device(device)
+
+            ############################################################################
+            # Setup PM configuration for this device
+            # Pass in ONU specific options
+            kwargs = {
+                OnuPmMetrics.DEFAULT_FREQUENCY_KEY: OnuPmMetrics.DEFAULT_ONU_COLLECTION_FREQUENCY,
+                'heartbeat': self.heartbeat,
+                OnuOmciPmMetrics.OMCI_DEV_KEY: self.onu_omci_device
+            }
+            self.pm_metrics = OnuPmMetrics(self.adapter_agent, self.device_id,
+                                           self.logical_device_id, grouped=True,
+                                           freq_override=False, **kwargs)
+            pm_config = self.pm_metrics.make_proto()
+            self.onu_omci_device.set_pm_config(self.pm_metrics.omci_pm.openomci_interval_pm)
+            self.log.info("initial-pm-config", pm_config=pm_config)
+            self.adapter_agent.update_device_pm_config(pm_config, init=True)
 
             self.log.debug('set-device-discovered')
 
@@ -439,6 +464,7 @@ class BrcmOpenomciOnuHandler(object):
         reactor.callLater(1, self._onu_omci_device.start)
         onu_device.reason = "starting-openomci"
         self.adapter_agent.update_device(onu_device)
+        self._heartbeat.enabled = True
 
     # Currently called each time there is an onu "down" indication from the olt handler
     # TODO: possibly other reasons to "update" from the olt?
@@ -592,6 +618,7 @@ class BrcmOpenomciOnuHandler(object):
             device.reason = "restarting-openomci"
             self.adapter_agent.update_device(device)
             reactor.callLater(1, self._onu_omci_device.start)
+            self._heartbeat.enabled = True
         except Exception as e:
             log.exception('exception-in-onu-reenable', exception=e)
 
