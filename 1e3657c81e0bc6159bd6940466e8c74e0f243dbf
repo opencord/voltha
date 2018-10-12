@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d06ad3aa_7c43b286",
+        "filename": "ponsim/v2/grpc/nbi/ponsim_handler.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 316,
+      "author": {
+        "id": 1000010
+      },
+      "writtenOn": "2018-10-12T16:24:21Z",
+      "side": 1,
+      "message": "Indentation looks wrong here, probably because rest of the file uses  tabs.",
+      "range": {
+        "startLine": 294,
+        "startChar": 0,
+        "endLine": 316,
+        "endChar": 17
+      },
+      "revId": "1e3657c81e0bc6159bd6940466e8c74e0f243dbf",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
