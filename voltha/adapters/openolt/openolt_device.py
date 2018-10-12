@@ -187,9 +187,9 @@ class OpenoltDevice(object):
 
         self.platform = self.platform_class(self.log, device_info)
         self.resource_mgr = self.resource_mgr_class(self.device_id,
-                                                        self.host_and_port,
-                                                        self.extra_args,
-                                                        device_info)
+                                                    self.host_and_port,
+                                                    self.extra_args,
+                                                    device_info)
 
         self.flow_mgr = self.flow_mgr_class(self.log, self.stub,
                                             self.device_id,
@@ -207,7 +207,6 @@ class OpenoltDevice(object):
         device.model = device_info.model
         device.hardware_version = device_info.hardware_version
         device.firmware_version = device_info.firmware_version
-
 
         # TODO: check for uptime and reboot if too long (VOL-1192)
 
@@ -403,8 +402,6 @@ class OpenoltDevice(object):
             serial_number=serial_number_str)
 
         if onu_device is None:
-            onu_id = self.new_onu_id(intf_id)
-
             try:
                 onu_id = self.resource_mgr.get_onu_id(intf_id)
                 if onu_id is None:
@@ -496,16 +493,17 @@ class OpenoltDevice(object):
                            onu_id=onu_indication.onu_id)
             return
 
-        # We will use this alloc_id and gemport_id to pass on to the onu adapter
+        # We will use this alloc_id, gemport_id to pass on to the onu adapter
         pon_intf_onu_id = (onu_indication.intf_id, onu_indication.onu_id)
         alloc_id = self.resource_mgr.get_alloc_id(pon_intf_onu_id)
         gemport_id = self.resource_mgr.get_gemport_id(pon_intf_onu_id)
 
         if self.platform.intf_id_from_pon_port_no(onu_device.parent_port_no) \
                 != onu_indication.intf_id:
+            previous_intf_id = self.platform.intf_id_from_pon_port_no(
+                onu_device.parent_port_no),
             self.log.warn('ONU-is-on-a-different-intf-id-now',
-                          previous_intf_id=self.platform.intf_id_from_pon_port_no(
-                              onu_device.parent_port_no),
+                          previous_intf_id=previous_intf_id,
                           current_intf_id=onu_indication.intf_id)
             # FIXME - handle intf_id mismatch (ONU move?)
 
@@ -517,7 +515,7 @@ class OpenoltDevice(object):
                           received_onu_id=onu_indication.onu_id)
 
         uni_no = self.platform.mk_uni_port_num(onu_indication.intf_id,
-                                          onu_indication.onu_id)
+                                               onu_indication.onu_id)
         uni_name = self.port_name(uni_no, Port.ETHERNET_UNI,
                                   serial_number=onu_device.serial_number)
 
@@ -669,7 +667,8 @@ class OpenoltDevice(object):
                        flow_id=pkt_indication.flow_id)
 
         if pkt_indication.intf_type == "pon":
-            pon_intf_gemport = (pkt_indication.intf_id, pkt_indication.gemport_id)
+            pon_intf_gemport = (pkt_indication.intf_id,
+                                pkt_indication.gemport_id)
             try:
                 onu_id = int(self.resource_mgr.kv_store[pon_intf_gemport])
                 if onu_id is None:
@@ -679,8 +678,8 @@ class OpenoltDevice(object):
                                gemport_id=pkt_indication.gemport_id, e=e)
                 return
 
-            logical_port_num = self.platform.mk_uni_port_num(pkt_indication.intf_id,
-                                                        onu_id)
+            logical_port_num = self.platform.mk_uni_port_num(
+                pkt_indication.intf_id, onu_id)
         elif pkt_indication.intf_type == "nni":
             logical_port_num = self.platform.intf_id_to_port_no(
                 pkt_indication.intf_id,
@@ -880,19 +879,6 @@ class OpenoltDevice(object):
                                port=port)
                 self.adapter_agent.delete_port(self.device_id, port)
                 return
-
-    def new_onu_id(self, intf_id):
-        onu_devices = self.adapter_agent.get_child_devices(self.device_id)
-        pon_onu_ids = [onu_device.proxy_address.onu_id
-                       for onu_device in onu_devices
-                       if onu_device.proxy_address.channel_id == intf_id]
-        for i in range(1, self.platform.max_onus_per_pon()):
-            if i not in pon_onu_ids:
-                return i
-
-        self.log.error('All available onu_ids taken on this pon',
-                       intf_id=intf_id, ids_taken=self.platform.max_onus_per_pon())
-        return None
 
     def update_flow_table(self, flows):
         self.log.debug('No updates here now, all is done in logical flows '
