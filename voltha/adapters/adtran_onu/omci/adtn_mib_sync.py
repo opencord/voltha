@@ -20,10 +20,10 @@ class AdtnMibSynchronizer(MibSynchronizer):
     """
     OpenOMCI MIB Synchronizer state machine for Adtran ONUs
     """
-    ADTN_RESYNC_DELAY = 60     # Periodically force a resync
+    ADTN_RESYNC_DELAY = 120     # Periodically force a resync (lower for debugging)
+    ADTN_AUDIT_DELAY = 0        # Disabled until after BBWF
 
-    def __init__(self, agent, device_id, mib_sync_tasks, db,
-                 advertise_events=False):
+    def __init__(self, agent, device_id, mib_sync_tasks, db, advertise_events=False):
         """
         Class initialization
 
@@ -35,11 +35,7 @@ class AdtnMibSynchronizer(MibSynchronizer):
         """
         super(AdtnMibSynchronizer, self).__init__(agent, device_id, mib_sync_tasks, db,
                                                   advertise_events=advertise_events,
-                                                  # states=MibSynchronizer.DEFAULT_STATES,
-                                                  # transitions=MibSynchronizer.DEFAULT_TRANSITIONS,
-                                                  # initial_state='disabled',
-                                                  # timeout_delay=MibSynchronizer.DEFAULT_TIMEOUT_RETRY,
-                                                  # audit_delay=MibSynchronizer.DEFAULT_AUDIT_DELAY,
+                                                  audit_delay=AdtnMibSynchronizer.ADTN_AUDIT_DELAY,
                                                   resync_delay=AdtnMibSynchronizer.ADTN_RESYNC_DELAY)
         self._omci_managed = False      # TODO: Look up model number/check handler
 

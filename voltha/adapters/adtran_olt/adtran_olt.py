@@ -52,7 +52,7 @@ class AdtranOltAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Adtran Inc.',
-            version='1.23',
+            version='1.24',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         log.debug('adtran_olt.__init__', adapter_agent=adapter_agent)

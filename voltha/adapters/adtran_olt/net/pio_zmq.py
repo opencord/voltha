@@ -17,7 +17,7 @@ import random
 from adtran_zmq import AdtranZmqClient
 from enum import IntEnum
 
-DEFAULT_PIO_TCP_PORT = 5657
+DEFAULT_PIO_TCP_PORT = 5555
 
 
 class PioClient(AdtranZmqClient):

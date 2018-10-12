@@ -39,8 +39,8 @@ from common.utils.asleep import asleep
 _ = third_party
 
 DEFAULT_MULTICAST_VLAN = 4000
-DEFAULT_UTILITY_VLAN = 4094
 BROADCOM_UNTAGGED_VLAN = 4091                     # SEBA - For BBWF demo (BroadCom Default VLAN)
+DEFAULT_UTILITY_VLAN = BROADCOM_UNTAGGED_VLAN
 DEFAULT_UNTAGGED_VLAN = BROADCOM_UNTAGGED_VLAN    # if RG does not send priority tagged frames
 
 _DEFAULT_RESTCONF_USERNAME = ""
