@@ -15,7 +15,7 @@
 #
 from task import Task
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, failure
+from twisted.internet.defer import inlineCallbacks, failure, TimeoutError
 from voltha.extensions.omci.omci_defs import ReasonCodes, EntityOperations
 from voltha.extensions.omci.omci_frame import OmciFrame
 from voltha.extensions.omci.omci_messages import OmciCreate
@@ -118,7 +118,12 @@ class OmciCreatePMRequest(Task):
                         )
                     )
                 self.strobe_watchdog()
-                results = yield self._device.omci_cc.send(frame)
+                try:
+                    results = yield self._device.omci_cc.send(frame)
+                except TimeoutError:
+                    self.log.warning('perform-create-timeout', me_class_id=me_class_id, me_entity_id=me_entity_id,
+                                     pm_class_id=pm_class_id, pm_entity_id=pm_entity_id)
+                    raise
 
                 status = results.fields['omci_message'].fields['success_code']
                 self.log.debug('perform-create-status', status=status)
@@ -132,6 +137,7 @@ class OmciCreatePMRequest(Task):
 
                 self.log.debug('create-pm-success', class_id=pm_class_id,
                                entity_id=pm_entity_id)
+
             self.deferred.callback(self)
 
         except Exception as e:
