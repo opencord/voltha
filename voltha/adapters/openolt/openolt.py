@@ -51,6 +51,7 @@ OpenOltDefaults = {
     }
 }
 
+
 @implementer(IAdapterInterface)
 class OpenoltAdapter(object):
     name = 'openolt'
@@ -210,7 +211,7 @@ class OpenoltAdapter(object):
     def update_flows_bulk(self, device, flows, groups):
         log.info('bulk-flow-update', device_id=device.id,
                  number_of_flows=len(flows.items), number_of_groups=len(
-                groups.items))
+                     groups.items))
         log.debug('flows and grousp details', flows=flows, groups=groups)
         assert len(groups.items) == 0, "Cannot yet deal with groups"
         handler = self.devices[device.id]
@@ -227,7 +228,7 @@ class OpenoltAdapter(object):
                              groups, device_rules_map):
 
         log.info('logical-flows-update', flows_to_add=len(flows_to_add),
-                 flows_to_remove = len(flows_to_remove))
+                 flows_to_remove=len(flows_to_remove))
         log.debug('logical-flows-details', flows_to_add=flows_to_add,
                   flows_to_remove=flows_to_remove)
         assert len(groups) == 0, "Cannot yet deal with groups"
@@ -237,7 +238,7 @@ class OpenoltAdapter(object):
 
     def update_pm_config(self, device, pm_configs):
         log.info('update_pm_config - Not implemented yet', device=device,
-                  pm_configs=pm_configs)
+                 pm_configs=pm_configs)
         raise NotImplementedError()
 
     def send_proxied_message(self, proxy_address, msg):
@@ -375,13 +376,13 @@ class OpenoltAdapter(object):
             handler.delete_child_device(child_device)
         else:
             log.error('Could not find matching handler',
-                      looking_for_device_id =parent_device_id,
+                      looking_for_device_id=parent_device_id,
                       available_handlers=self.devices.keys())
 
     # This is currently not part of the Iadapter interface
     def collect_stats(self, device_id):
         log.info('collect_stats', device_id=device_id)
-        handler= self.devices[device_id]
+        handler = self.devices[device_id]
         if handler is not None:
             handler.trigger_statistics_collection()
         else:
@@ -395,7 +396,8 @@ class OpenoltAdapter(object):
         if device.id not in self.devices:
             log.error("Device does not exist", device_id=device.id)
             return OperationResp(code=OperationResp.OPERATION_FAILURE,
-                                      additional_info="Device %s does not exist" % device.id)
+                                 additional_info="Device %s does not exist"
+                                 % device.id)
 
         handler = self.devices[device.id]
 
