@@ -10,7 +10,7 @@ RUN apt-get update && apt-cache policy docker-ce && apt-get install -y upx-ucl d
 
 RUN go get github.com/pwaller/goupx \
 	&& go get golang.org/x/tools/cmd/cover \
-    && go get -u github.com/golang/lint/golint \
+    && go get -u golang.org/x/lint/golint \
     && go get github.com/kisielk/errcheck \
     && go get github.com/cespare/prettybench \
     && go get github.com/uber/go-torch
