@@ -84,7 +84,7 @@ class PerformanceIntervals(object):
     DEFAULT_TICK_DELAY = 15          # Seconds between checks for collection tick
     DEFAULT_INTERVAL_SKEW = 10 * 60  # Seconds to skew past interval boundary
     DEFAULT_COLLECT_ATTEMPTS = 3     # Maximum number of collection fetch attempts
-    DEFAULT_CREATE_ATTEMPTS = 5      # Maximum number of attempts to create a PM Managed Entities
+    DEFAULT_CREATE_ATTEMPTS = 15     # Maximum number of attempts to create a PM Managed Entities
 
     def __init__(self, agent, device_id, tasks,
                  advertise_events=False,
@@ -508,7 +508,7 @@ class PerformanceIntervals(object):
             self._deferred = reactor.callLater(0, self.success)
 
         def failure(reason):
-            self.log.info('create-me-failure', reason=reason)
+            self.log.info('create-me-failure', reason=reason, retries=self._add_pm_me_retry)
             self._current_task = None
             if self._add_pm_me_retry <= self._create_attempts:
               for pm, me in mes.items():
@@ -517,7 +517,7 @@ class PerformanceIntervals(object):
               self._deferred = reactor.callLater(self._timeout_delay, self.failure)
             else:
               # we cant seem to create any collection me, no point in doing anything
-              self.log.warn('unable-to-create-pm-me-disabling-collection', reason=reason)
+              self.log.warn('unable-to-create-pm-me-disabling-collection', reason=reason, device_id=self._device_id)
               self._deferred = reactor.callLater(self._timeout_delay, self.stop)
 
         self._current_task = self._create_pm_task(self._agent, self._device_id, mes)
@@ -558,7 +558,9 @@ class PerformanceIntervals(object):
         """
         State machine has just transitioned to the collect_data state
         """
+
         if self._next_interval is not None and self._next_interval > datetime.utcnow():
+            self.log.info('wait-next-interval')
             # Not ready for next interval, transition back to idle and we should get
             # called again after a short delay
             reactor.callLater(0, self.success)
@@ -573,6 +575,8 @@ class PerformanceIntervals(object):
         for key in keys:
             class_id = key[0]
             entity_id = key[1]
+
+            self.log.info("in-enter-collect-data", key=key, retries=self._pm_me_collect_retries[key])
 
             # Collect the data ?
             if self._pm_me_collect_retries[key] > 0:

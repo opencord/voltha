@@ -22,6 +22,10 @@ import structlog
 from twisted.internet import reactor, task
 from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue, TimeoutError
 
+from heartbeat import HeartBeat
+from voltha.extensions.kpi.onu.onu_pm_metrics import OnuPmMetrics
+from voltha.extensions.kpi.onu.onu_omci_pm import OnuOmciPmMetrics
+
 from common.utils.indexpool import IndexPool
 import voltha.core.flow_decomposer as fd
 from voltha.registry import registry
@@ -78,6 +82,7 @@ class BrcmOpenomciOnuHandler(object):
         self.proxy_address = None
         self.tx_id = 0
         self._enabled = False
+        self.pm_metrics = None
         self._omcc_version = OMCCVersion.Unknown
         self._total_tcont_count = 0  # From ANI-G ME
         self._qos_flexibility = 0  # From ONT2_G ME
@@ -90,6 +95,8 @@ class BrcmOpenomciOnuHandler(object):
         #TODO: probably shouldnt be hardcoded, determine from olt maybe?
         self._pon_port_number = 100
         self.logical_device_id = None
+
+        self._heartbeat = HeartBeat.create(self, device_id)
 
         # Set up OpenOMCI environment
         self._onu_omci_device = None
@@ -116,6 +123,10 @@ class BrcmOpenomciOnuHandler(object):
     @property
     def omci_cc(self):
         return self._onu_omci_device.omci_cc if self._onu_omci_device is not None else None
+
+    @property
+    def heartbeat(self):
+        return self._heartbeat
 
     @property
     def uni_ports(self):
@@ -169,11 +180,33 @@ class BrcmOpenomciOnuHandler(object):
             device.connect_status = ConnectStatus.REACHABLE
             device.oper_status = OperStatus.DISCOVERED
             device.reason = 'activating-onu'
+
+            # pm_metrics requires a logical device id
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+            self.logical_device_id = parent_device.parent_id
+            assert self.logical_device_id, 'Invalid logical device ID'
+
             self.adapter_agent.update_device(device)
 
             self.log.debug('set-device-discovered')
 
             self._init_pon_state(device)
+
+            ############################################################################
+            # Setup PM configuration for this device
+            # Pass in ONU specific options
+            kwargs = {
+                OnuPmMetrics.DEFAULT_FREQUENCY_KEY: OnuPmMetrics.DEFAULT_ONU_COLLECTION_FREQUENCY,
+                'heartbeat': self.heartbeat,
+                OnuOmciPmMetrics.OMCI_DEV_KEY: self._onu_omci_device
+            }
+            self.pm_metrics = OnuPmMetrics(self.adapter_agent, self.device_id,
+                                           self.logical_device_id, grouped=True,
+                                           freq_override=False, **kwargs)
+            pm_config = self.pm_metrics.make_proto()
+            self._onu_omci_device.set_pm_config(self.pm_metrics.omci_pm.openomci_interval_pm)
+            self.log.info("initial-pm-config", pm_config=pm_config)
+            self.adapter_agent.update_device_pm_config(pm_config, init=True)
 
             self.enabled = True
         else:
@@ -257,6 +290,10 @@ class BrcmOpenomciOnuHandler(object):
         else:
             self.log.debug("parent-adapter-not-available")
 
+    def update_pm_config(self, device, pm_config):
+        # TODO: This has not been tested
+        self.log.info('update_pm_config', pm_config=pm_config)
+        self.pm_metrics.update(pm_config)
 
     # Calling this assumes the onu is active/ready and had at least an initial mib downloaded.   This gets called from
     # flow decomposition that ultimately comes from onos
@@ -440,6 +477,7 @@ class BrcmOpenomciOnuHandler(object):
         reactor.callLater(1, self._onu_omci_device.start)
         onu_device.reason = "starting-openomci"
         self.adapter_agent.update_device(onu_device)
+        self._heartbeat.enabled = True
 
     # Currently called each time there is an onu "down" indication from the olt handler
     # TODO: possibly other reasons to "update" from the olt?
@@ -593,6 +631,7 @@ class BrcmOpenomciOnuHandler(object):
             device.reason = "restarting-openomci"
             self.adapter_agent.update_device(device)
             reactor.callLater(1, self._onu_omci_device.start)
+            self._heartbeat.enabled = True
         except Exception as e:
             log.exception('exception-in-onu-reenable', exception=e)
 
@@ -668,13 +707,6 @@ class BrcmOpenomciOnuHandler(object):
         topic = OnuDeviceEntry.event_bus_topic(self.device_id,
                                                OnuDeviceEvents.OmciCapabilitiesEvent)
         self._capabilities_subscription = bus.subscribe(topic, self.capabilties_handler)
-
-    def _unsubscribe_to_events(self):
-        self.log.debug('function-entry')
-        if self._in_sync_subscription is not None:
-            bus = self._onu_omci_device.event_bus
-            bus.unsubscribe(self._in_sync_subscription)
-            self._in_sync_subscription = None
 
     # Called when the mib is in sync
     def in_sync_handler(self, _topic, msg):
