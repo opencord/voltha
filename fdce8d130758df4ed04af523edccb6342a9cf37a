@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a0c20f2f_da3dc841",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 704,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-10-15T14:17:04Z",
+      "side": 1,
+      "message": "No its not.  Copied over from Chip\u0027s example setup.  Im somewhat sure its automatically unsubscribed when the in_sync_handler event fires.",
+      "range": {
+        "startLine": 704,
+        "startChar": 4,
+        "endLine": 704,
+        "endChar": 42
+      },
+      "revId": "fdce8d130758df4ed04af523edccb6342a9cf37a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
