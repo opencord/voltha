@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c6025951_b37eee9f",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-15T23:45:40Z",
+      "side": 1,
+      "message": "Suggest pass in dpid to constructor:\n\n         self.adapter_agent \u003d kwargs[\u0027adapter_agent\u0027]\n         self.device_num \u003d kwargs[\u0027device_num\u0027]\n         device \u003d kwargs[\u0027device\u0027]\n+        dpid \u003d kwargs.get(\u0027dpid\u0027, None)\n \n         self.platform_class \u003d kwargs[\u0027support_classes\u0027][\u0027platform\u0027]\n         self.resource_mgr_class \u003d kwargs[\u0027support_classes\u0027][\u0027resource_mgr\u0027]\n@@ -114,7 +115,8 @@ class OpenoltDevice(object):\n         # If logical device does not exist create it\n         if not device.parent_id:\n \n-            dpid \u003d \u002700:00:\u0027 + self.ip_hex(self.host_and_port.split(\":\")[0])\n+            if dpid is not None:\n+                dpid \u003d \u002700:00:\u0027 + self.ip_hex(self.host_and_port.split(\":\")[0])",
+      "revId": "4b418e5b5d7a868530173ef603336cbdb6f7cba4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
