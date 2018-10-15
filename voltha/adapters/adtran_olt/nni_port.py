@@ -42,7 +42,9 @@ class NniPort(AdtnPort):
         self.log = structlog.get_logger(port_no=kwargs.get('port_no'))
         self.log.info('creating')
 
-        self._name = kwargs.get('name', 'nni-{}'.format(self._port_no))
+        # self._name = kwargs.get('name', 'nni-{}'.format(self._port_no))
+        # SEBA wants 'nni-#', not 'hundred-gigabit-ethernet 0/1
+        self._name = 'nni-{}'.format(self._port_no)
 
         self._logical_port = None
 
@@ -62,7 +64,8 @@ class NniPort(AdtnPort):
         self._admin_state = AdminState.ENABLED
         self._oper_status = OperStatus.ACTIVE
 
-        self._label = kwargs.pop('label', 'NNI port {}'.format(self._port_no))
+        # self._label = kwargs.pop('label', 'NNI port {}'.format(self._port_no))
+        self._label = 'nni-{}'.format(self._port_no)
         self._mac_address = kwargs.pop('mac_address', '00:00:00:00:00:00')
         # TODO: Get with JOT and find out how to pull out MAC Address via NETCONF
         # TODO: May need to refine capabilities into current, advertised, and peer

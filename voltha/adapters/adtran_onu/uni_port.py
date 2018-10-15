@@ -264,7 +264,7 @@ class UniPort(object):
                                           device.parent_port_no & 0xff,
                                           (port_no >> 8) & 0xff,
                                           port_no & 0xff)),
-                name=self.port_id_name(),
+                name=device.serial_number,
                 config=0,
                 state=OFPPS_LIVE,
                 curr=capabilities,
