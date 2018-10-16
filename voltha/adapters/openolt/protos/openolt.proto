@@ -244,6 +244,11 @@ message DeviceInfo {
     string model = 2;
     string hardware_version = 3;
     string firmware_version = 4;
+
+    // Total number of pon intf ports on the device
+    fixed32 pon_ports = 12;
+
+    // If using global per-device technology profile. To be deprecated
     string technology = 5;
     fixed32 onu_id_start = 6;
     fixed32 onu_id_end = 7;
@@ -251,7 +256,39 @@ message DeviceInfo {
     fixed32 alloc_id_end = 9;
     fixed32 gemport_id_start = 10;
     fixed32 gemport_id_end = 11;
-    fixed32 pon_ports = 12;
+    fixed32 flow_id_start = 13;
+    fixed32 flow_id_end = 14;
+
+    message DeviceResourceRanges {
+
+        // List of 0 or more intf_ids that use the same technology and pools.
+        // If 0 intf_ids supplied, it implies ALL interfaces
+        repeated fixed32 intf_ids = 1;
+
+        // Technology profile for this pool
+        string technology = 2;
+
+        message Pool {
+            enum PoolType {
+                ONU_ID = 0;
+                ALLOC_ID = 1;
+                GEMPORT_ID = 2;
+                FLOW_ID = 3;
+            }
+
+            enum SharingType {
+                DEDICATED_PER_INTF = 0;
+                SHARED_BY_ALL_INTF = 1;
+            }
+
+            PoolType type = 1;
+	    SharingType sharing = 2;
+	    fixed32 start = 3; // lower bound on IDs allocated from this pool
+	    fixed32 end = 4; // upper bound on IDs allocated from this pool
+	}
+        repeated Pool ranges = 3;
+    }
+    repeated DeviceResourceRanges ranges = 15;
 }
 
 message Classifier {
