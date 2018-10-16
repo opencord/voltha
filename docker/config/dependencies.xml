@@ -29,7 +29,7 @@
         <dhcpl2relay.version>1.5.0-SNAPSHOT</dhcpl2relay.version>
         <igmpproxy.version>1.2.0</igmpproxy.version>
         <mcast.version>1.4.0</mcast.version>
-        <olt.version>2.0.0-SNAPSHOT</olt.version>
+        <olt.version>2.1.0-SNAPSHOT</olt.version>
         <sadis.version>2.2.0-SNAPSHOT</sadis.version>
     </properties>
 
