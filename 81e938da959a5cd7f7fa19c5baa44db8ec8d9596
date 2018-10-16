@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "58546ce5_50173195",
+        "filename": "voltha/extensions/omci/state_machines/alarm_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 372,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-10-16T11:41:23Z",
+      "side": 1,
+      "message": "The testing found the error message on this function has no argument.\n\n20181016T061621.525 ERROR    MainThread event_bus.publish {topic: omci-rx:0001ae18ea77e6b9:Alarm_Notification, e: TypeError(\u0027increment_alarm_sequence() takes exactly 2 arguments (1 given)\u0027,), event: callback-failed, exception: Traceback (most recent call last):\n  File \"/voltha/common/event_bus.py\", line 114, in publish\n    candidate.callback(topic, msg)\n  File \"/voltha/voltha/extensions/omci/state_machines/alarm_sync.py\", line 372, in on_alarm_notification\n    self.increment_alarm_sequence()\nTypeError: increment_alarm_sequence() takes exactly 2 arguments (1 given), instance_id: compose_voltha_1_1539669263, vcore_id: 0001}",
+      "range": {
+        "startLine": 372,
+        "startChar": 41,
+        "endLine": 372,
+        "endChar": 43
+      },
+      "revId": "81e938da959a5cd7f7fa19c5baa44db8ec8d9596",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
