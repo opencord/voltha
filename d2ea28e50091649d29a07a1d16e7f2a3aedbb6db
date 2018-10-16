@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8114b819_e15e81b1",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-16T02:21:17Z",
+      "side": 1,
+      "message": "fix indent",
+      "revId": "d2ea28e50091649d29a07a1d16e7f2a3aedbb6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5efa55cc_f36efe42",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-16T02:21:17Z",
+      "side": 1,
+      "message": "fix extra line",
+      "revId": "d2ea28e50091649d29a07a1d16e7f2a3aedbb6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d3ea0b2a_8e323174",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 407,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-16T02:21:17Z",
+      "side": 1,
+      "message": "This line was removed in a previous commit. Rebase this commit.",
+      "revId": "d2ea28e50091649d29a07a1d16e7f2a3aedbb6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d59d8cdd_790ececa",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 885,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-16T02:21:17Z",
+      "side": 1,
+      "message": "Rebase.",
+      "revId": "d2ea28e50091649d29a07a1d16e7f2a3aedbb6db",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
