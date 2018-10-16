@@ -695,7 +695,7 @@ class AdtranDeviceHandler(object):
 
         ld = LogicalDevice(
             # NOTE: not setting id and datapath_id will let the adapter agent pick id
-            desc=ofp_desc(mfr_desc=device.vendor,
+            desc=ofp_desc(mfr_desc='VOLTHA Project',
                           hw_desc=device.hardware_version,
                           sw_desc=version,
                           serial_num=device.serial_number,
