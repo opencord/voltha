@@ -210,6 +210,7 @@ class OpenoltDevice(object):
 
         # TODO: check for uptime and reboot if too long (VOL-1192)
 
+        device.parent_id = self.logical_device_id
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
@@ -219,63 +220,23 @@ class OpenoltDevice(object):
         device = self.adapter_agent.get_device(self.device_id)
 
         # Update phys OF device
-        device.parent_id = self.logical_device_id
         device.oper_status = OperStatus.ACTIVE
+        device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
     def do_state_down(self, event):
         self.log.debug("do_state_down")
-        oper_state = OperStatus.UNKNOWN
-        connect_state = ConnectStatus.UNREACHABLE
 
-        # Propagating to the children
-
-        # Children ports
-        child_devices = self.adapter_agent.get_child_devices(self.device_id)
-        for onu_device in child_devices:
-            uni_no = self.platform.mk_uni_port_num(
-                onu_device.proxy_address.channel_id,
-                onu_device.proxy_address.onu_id)
-            uni_name = self.port_name(uni_no, Port.ETHERNET_UNI,
-                                      serial_number=onu_device.serial_number)
-            onu_adapter_agent = \
-                registry('adapter_loader').get_agent(onu_device.adapter)
-            onu_adapter_agent.update_interface(onu_device,
-                                               {'oper_state': 'down'})
-            self.onu_ports_down(onu_device, uni_no, uni_name, oper_state)
-        # Children devices
-        self.adapter_agent.update_child_devices_state(
-            self.device_id, oper_status=oper_state,
-            connect_status=connect_state)
-        # Device Ports
-        device_ports = self.adapter_agent.get_ports(self.device_id,
-                                                    Port.ETHERNET_NNI)
-        logical_ports_ids = [port.label for port in device_ports]
-        device_ports += self.adapter_agent.get_ports(self.device_id,
-                                                     Port.PON_OLT)
-
-        for port in device_ports:
-            port.oper_status = oper_state
-            self.adapter_agent.add_port(self.device_id, port)
-
-        # Device logical port
-        for logical_port_id in logical_ports_ids:
-            logical_port = self.adapter_agent.get_logical_port(
-                self.logical_device_id, logical_port_id)
-            logical_port.ofp_port.state = OFPPS_LINK_DOWN
-            self.adapter_agent.update_logical_port(self.logical_device_id,
-                                                   logical_port)
-
-        # Device
         device = self.adapter_agent.get_device(self.device_id)
-        device.oper_status = oper_state
-        device.connect_status = connect_state
 
-        reactor.callLater(2, self.adapter_agent.update_device, device)
+        self.adapter_agent.update_child_devices_state(
+            self.device_id,
+            oper_status=OperStatus.FAILED,
+            connect_status=ConnectStatus.UNREACHABLE)
 
-    # def post_up(self, event):
-    #     self.log.debug('post-up')
-    #     self.flow_mgr.reseed_flows()
+        device.oper_status = OperStatus.FAILED
+        device.connect_status = ConnectStatus.UNREACHABLE
+        self.adapter_agent.update_device(device)
 
     def post_down(self, event):
         self.log.debug('post_down')
