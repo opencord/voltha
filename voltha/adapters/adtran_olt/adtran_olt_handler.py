@@ -1065,26 +1065,31 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
     def get_northbound_port(self, port):
         return self.northbound_ports.get(port, None)
 
-    def get_port_name(self, port):
+    def get_port_name(self, port, logical_name=False):
+        """
+        Get the name for a port
+
+        Port names are used in various ways within and outside of VOLTHA.
+        Typically, the physical port name will be used during device handler conversations
+        with the hardware (REST, NETCONF, ...) while the logical port name is what the
+        outside world (ONOS, SEBA, ...) uses.
+
+        All ports have a physical port name, but only ports exposed through VOLTHA
+        as a logical port will have a logical port name
+        """
         if self.is_nni_port(port):
-            return self.northbound_ports[port].name
+            port = self.get_northbound_port(port)
+            return port.logical_port_name if logical_name else port.physical_port_name
 
         if self.is_pon_port(port):
-            return self.get_southbound_port(port).name
+            port = self.get_southbound_port(port)
+            return port.logical_port_name if logical_name else port.physical_port_name
 
         if self.is_uni_port(port):
-            if self.xpon_support:
-                return self.northbound_ports[port].name
-            else:
-                # try:   TODO: Remove this crap
-                #     import voltha.protos.device_pb2 as dev_pb2
-                #     return dev_pb2._PORT_PORTTYPE.values_by_number[port].name
-                # except Exception as err:
-                #     pass
-                return 'uni-{}'.format(port)
+            return 'uni-{}'.format(port)
 
         if self.is_logical_port(port):
-            raise NotImplemented('TODO: Logical ports not yet supported')
+            raise NotImplemented('Logical OpenFlow ports are not supported')
 
     def _update_download_status(self, request, download):
         if download is not None:

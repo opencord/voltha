@@ -39,8 +39,15 @@ class AdtnPort(object):
         self._parent = parent
         self._port_no = kwargs.get('port_no')
 
-        # Set the following in your derived class
-        self._name = None
+        # Set the following in your derived class.  These names are used in
+        # various ways.  Typically, the physical port name will be used during
+        # device handler conversations with the hardware (REST, NETCONF, ...)
+        # while the logical port name is what the outside world (ONOS, SEBA, ...)
+        # uses.  All ports have a physical port name, but only ports exposed through
+        # VOLTHA as a logical port will have a logical port name
+
+        self._physical_port_name = None
+        self._logical_port_name = None
         self._label = None
         self._port = None
 
@@ -87,8 +94,16 @@ class AdtnPort(object):
         return self.port_no
 
     @property
+    def physical_port_name(self):
+        return self._physical_port_name
+
+    @property
+    def logical_port_name(self):
+        return self._logical_port_name
+
+    @property                           # For backwards compatibility
     def name(self):
-        return self._name
+        return self._logical_port_name
 
     @property
     def state(self):

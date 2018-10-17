@@ -42,9 +42,11 @@ class NniPort(AdtnPort):
         self.log = structlog.get_logger(port_no=kwargs.get('port_no'))
         self.log.info('creating')
 
-        # self._name = kwargs.get('name', 'nni-{}'.format(self._port_no))
-        # SEBA wants 'nni-#', not 'hundred-gigabit-ethernet 0/1
-        self._name = 'nni-{}'.format(self._port_no)
+        # ONOS/SEBA wants 'nni-<port>' for port names, OLT NETCONF wants their
+        # name (something like  hundred-gigabit-ethernet 0/1) which is reported
+        # when we enumerated the ports
+        self._physical_port_name = kwargs.get('name', 'nni-{}'.format(self._port_no))
+        self._logical_port_name = 'nni-{}'.format(self._port_no)
 
         self._logical_port = None
 
@@ -64,8 +66,7 @@ class NniPort(AdtnPort):
         self._admin_state = AdminState.ENABLED
         self._oper_status = OperStatus.ACTIVE
 
-        # self._label = kwargs.pop('label', 'NNI port {}'.format(self._port_no))
-        self._label = 'nni-{}'.format(self._port_no)
+        self._label = self._physical_port_name
         self._mac_address = kwargs.pop('mac_address', '00:00:00:00:00:00')
         # TODO: Get with JOT and find out how to pull out MAC Address via NETCONF
         # TODO: May need to refine capabilities into current, advertised, and peer
@@ -145,7 +146,7 @@ class NniPort(AdtnPort):
         if self._logical_port is None:
             openflow_port = ofp_port(port_no=self._port_no,
                                      hw_addr=mac_str_to_tuple(self._mac_address),
-                                     name=self._name,
+                                     name=self._logical_port_name,
                                      config=0,
                                      state=self._ofp_state,
                                      curr=self._ofp_capabilities,
@@ -154,7 +155,7 @@ class NniPort(AdtnPort):
                                      curr_speed=self._current_speed,
                                      max_speed=self._max_speed)
 
-            self._logical_port = LogicalPort(id='nni{}'.format(self._port_no),
+            self._logical_port = LogicalPort(id=self._logical_port_name,
                                              ofp_port=openflow_port,
                                              device_id=self._parent.device_id,
                                              device_port_no=self._device_port_no,
@@ -225,7 +226,7 @@ class NniPort(AdtnPort):
 
         config = '<interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">' + \
                  ' <interface>' + \
-                 '  <name>{}</name>'.format(self._name) + \
+                 '  <name>{}</name>'.format(self._physical_port_name) + \
                  '  {}'.format(self._ianatype) + \
                  '  <{}>{}</{}>'.format(leaf, value, leaf) + \
                  ' </interface>' + \
@@ -242,7 +243,7 @@ class NniPort(AdtnPort):
         config = '<filter xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
                  ' <interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">' + \
                  '  <interface>' + \
-                 '   <name>{}</name>'.format(self._name) + \
+                 '   <name>{}</name>'.format(self._physical_port_name) + \
                  '   <enabled/>' + \
                  '  </interface>' + \
                  ' </interfaces>' + \
@@ -253,7 +254,7 @@ class NniPort(AdtnPort):
         state = '<filter xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
                  ' <interfaces-state xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">' + \
                  '  <interface>' + \
-                 '   <name>{}</name>'.format(self._name) + \
+                 '   <name>{}</name>'.format(self._physical_port_name) + \
                  '   <admin-status/>' + \
                  '   <oper-status/>' + \
                  '   <statistics/>' + \

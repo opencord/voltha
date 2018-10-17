@@ -59,7 +59,7 @@ class PonPort(AdtnPort):
         self._pon_id = kwargs['pon-id']
         self.log = structlog.get_logger(device_id=parent.device_id, pon_id=self._pon_id)
         self._port_no = kwargs['port_no']
-        self._name = 'xpon 0/{}'.format(self._pon_id+1)
+        self._physical_port_name = 'xpon 0/{}'.format(self._pon_id+1)
         self._label = 'pon-{}'.format(self._pon_id)
 
         self._in_sync = False
