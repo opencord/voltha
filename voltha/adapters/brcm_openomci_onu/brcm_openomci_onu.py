@@ -81,20 +81,25 @@ class BrcmOpenomciOnuAdapter(object):
         #self.broadcom_omci['mib-synchronizer']['tasks']['mib-audit'] = BrcmGetMdsTask
         self.broadcom_omci['omci-capabilities']['tasks']['get-capabilities'] = BrcmCapabilitiesTask
 
-        self._omci_agent = OpenOMCIAgent(self.adapter_agent.core,
-                                         support_classes=self.broadcom_omci)
-
+	# Defer creation of omci agent to a lazy init that allows subclasses to override support classes
 
         # register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
 
+    def custom_me_entities(self):
+        return None
+
     @property
     def omci_agent(self):
+        if not hasattr(self, '_omci_agent') or self._omci_agent is None:
+            log.debug('creating-omci-agent')
+            self._omci_agent = OpenOMCIAgent(self.adapter_agent.core,
+                                             support_classes=self.broadcom_omci)
         return self._omci_agent
 
     def start(self):
         log.debug('starting')
-        self._omci_agent.start()
+        self.omci_agent.start()
         log.info('started')
 
     def stop(self):
