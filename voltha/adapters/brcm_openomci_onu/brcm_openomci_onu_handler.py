@@ -228,7 +228,8 @@ class BrcmOpenomciOnuHandler(object):
         # Create and start the OpenOMCI ONU Device Entry for this ONU
         self._onu_omci_device = self.omci_agent.add_device(self.device_id,
                                                            self.adapter_agent,
-                                                           support_classes=self.adapter.broadcom_omci)
+                                                           support_classes=self.adapter.broadcom_omci,
+                                                           custom_me_map=self.adapter.custom_me_entities())
         # Port startup
         if self._pon is not None:
             self._pon.enabled = True
