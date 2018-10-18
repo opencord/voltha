@@ -56,7 +56,7 @@ class AcmeAdapter(OpenoltAdapter):
     def adopt_device(self, device):
         log.info('adopt-device', device=device)
 
-        support_classes = deepcopy(OpenOltDefaults)
+        support_classes = deepcopy(OpenOltDefaults)['support_classes']
 
         # Customize platform
         support_classes['platform'] = AcmePlatform
