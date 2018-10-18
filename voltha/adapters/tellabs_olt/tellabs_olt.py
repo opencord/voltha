@@ -1,5 +1,4 @@
-#
-# Copyright 2018 the original author or authors.
+# Copyright 2018-present Tellabs, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +14,7 @@
 #
 
 """
-Acme - A dummy olt adapter that customizes Openolt adapter.
+Tellabs OLT Adapter for tlabvolt4, tlabvolt8, tlabvolt16, & tlabvolt32
 """
 import structlog
 from copy import deepcopy
@@ -26,12 +25,11 @@ from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.common_pb2 import LogLevel
 from voltha.adapters.openolt.openolt import OpenoltAdapter, OpenOltDefaults
 from voltha.adapters.openolt.openolt_device import OpenoltDevice
-from voltha.adapters.acme.acme_platform import AcmePlatform
 
 log = structlog.get_logger()
 
-class AcmeAdapter(OpenoltAdapter):
-    name = 'acme'
+class TellabsAdapter(OpenoltAdapter):
+    name = 'tellabs_olt'
 
     supported_device_types = [
         DeviceType(
@@ -43,23 +41,22 @@ class AcmeAdapter(OpenoltAdapter):
     ]
 
     def __init__(self, adapter_agent, config):
-        super(AcmeAdapter, self).__init__(adapter_agent, config)
+        super(TellabsAdapter, self).__init__(adapter_agent, config)
 
         # overwrite the descriptor
         self.descriptor = Adapter(
             id=self.name,
-            vendor='Acme Inc.',
+            vendor='Tellabs Inc.',
             version='0.1',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
+
+        log.info('tellabs_olt.__init__', adapter=self.descriptor)
 
     def adopt_device(self, device):
         log.info('adopt-device', device=device)
 
         support_classes = deepcopy(OpenOltDefaults)['support_classes']
-
-        # Customize platform
-        support_classes['platform'] = AcmePlatform
 
         kwargs = {
             'support_classes': support_classes,
