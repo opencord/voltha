@@ -27,7 +27,7 @@ from voltha.adapters.bbsimolt.bbsimolt_bw import BBSimOltBW
 from voltha.adapters.bbsimolt.bbsimolt_platform import BBSimOltPlatform
 from voltha.adapters.bbsimolt.bbsimolt_flow_mgr import BBSimOltFlowMgr
 from voltha.protos.device_pb2 import Port, Device
-from voltha.adapters.bbsimolt.protos import openolt_pb2, openolt_pb2_grpc
+from voltha.adapters.openolt.protos import openolt_pb2, openolt_pb2_grpc
 from voltha.adapters.openolt.openolt_device import OpenoltDevice
 from voltha.protos.common_pb2 import ConnectStatus, OperStatus, AdminState
 from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
