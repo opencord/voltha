@@ -23,7 +23,7 @@ from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
 from voltha.protos.device_pb2 import Port
 import voltha.core.flow_decomposer as fd
 import bbsimolt_platform as platform
-from voltha.adapters.bbsimolt.protos import openolt_pb2
+from voltha.adapters.openolt.protos import openolt_pb2
 from voltha.registry import registry
 
 HSIA_FLOW_INDEX = 0  # FIXME
