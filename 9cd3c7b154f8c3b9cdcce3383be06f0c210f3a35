@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "24b54f49_ea05bd32",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 295,
+      "author": {
+        "id": 1000453
+      },
+      "writtenOn": "2018-10-19T17:55:29Z",
+      "side": 1,
+      "message": "Do we need to cherry pick this to be sure before approving?",
+      "range": {
+        "startLine": 295,
+        "startChar": 40,
+        "endLine": 295,
+        "endChar": 41
+      },
+      "revId": "9cd3c7b154f8c3b9cdcce3383be06f0c210f3a35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
