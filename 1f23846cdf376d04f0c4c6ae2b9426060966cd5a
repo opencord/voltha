@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5d3c1e8f_c327edc9",
+        "filename": "voltha/extensions/omci/database/mib_db_api.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-10-22T21:05:52Z",
+      "side": 1,
+      "message": "I think we can deprecate saving both the last alarm sequence number and the last alarm sync to the database.  They have no purpose anymore.\n\nOn all startups of the alarm synchronizer, the Alarm state machine initiates an audit.  Even true on an HA failover and that should satisfy catching any missed alarms",
+      "revId": "1f23846cdf376d04f0c4c6ae2b9426060966cd5a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "83466192_da7261eb",
+        "filename": "voltha/extensions/omci/database/mib_db_dict.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 174,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-10-22T21:05:52Z",
+      "side": 1,
+      "message": "No need for this since it does not make sense in the simplified state machine or in a volatile database for that matter",
+      "revId": "1f23846cdf376d04f0c4c6ae2b9426060966cd5a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "81d8268e_a2362df5",
+        "filename": "voltha/extensions/omci/database/mib_db_dict.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 203,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-10-22T21:05:52Z",
+      "side": 1,
+      "message": "can drop this",
+      "revId": "1f23846cdf376d04f0c4c6ae2b9426060966cd5a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4e56641f_d0489c30",
+        "filename": "voltha/extensions/omci/database/mib_db_dict.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 237,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-10-22T21:05:52Z",
+      "side": 1,
+      "message": "and this",
+      "revId": "1f23846cdf376d04f0c4c6ae2b9426060966cd5a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "93907f67_87f64cbf",
+        "filename": "voltha/extensions/omci/database/mib_db_dict.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 267,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-10-22T21:05:52Z",
+      "side": 1,
+      "message": "and this...",
+      "revId": "1f23846cdf376d04f0c4c6ae2b9426060966cd5a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d67a6796_89cb95d4",
+        "filename": "voltha/extensions/omci/onu_device_entry.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 491,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-10-22T21:05:52Z",
+      "side": 1,
+      "message": "There is no need to allow a caller to specify a specific attribute in the alarm table.  There is only a single attribute which is the alarm bitmap.",
+      "revId": "1f23846cdf376d04f0c4c6ae2b9426060966cd5a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "29d75efd_9a48e356",
+        "filename": "voltha/extensions/omci/tasks/alarm_resync_task.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-10-22T21:05:52Z",
+      "side": 1,
+      "message": "What is the purpose of these three dictionaries?   It looks like you are decoding the upload-next responses and are saving them here.\n\nThis is not needed.  Just a few lines up, we create a _db_active volatile database to handle the  alarm-upload-next responses and save them to the db_active.   Search for the _db_active.set around line 282-283\n\nI think what we want do is that at the end of the difference check, if there is any discrepancies, return both the DB uploaded from the ONU and the snapshot DB.   This will allow the task completion routine to generate/clear any needed alarms.",
+      "revId": "1f23846cdf376d04f0c4c6ae2b9426060966cd5a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
