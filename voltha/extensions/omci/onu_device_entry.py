@@ -123,8 +123,8 @@ class OnuDeviceEntry(object):
             #                                                       downloader_info['tasks'],
             #                                                       advertise_events=advertise)
             self._image_agent = ImageAgent(self._omci_agent, device_id, downloader_info['state-machine'],
-                                                                   downloader_info['tasks'],
-                                                                   advertise_events=advertise)
+                                           downloader_info['tasks'],
+                                           advertise_events=advertise)
         except Exception as e:
             self.log.exception('state-machine-create-failed', e=e)
             raise
@@ -135,9 +135,9 @@ class OnuDeviceEntry(object):
         self._on_start_state_machines = [       # Run when 'start()' called
             self._mib_sync_sm,
             self._capabilities_sm,
-            self._alarm_sync_sm,
         ]
         self._on_sync_state_machines = [        # Run after first in_sync event
+            self._alarm_sync_sm,
         ]
         self._on_capabilities_state_machines = [  # Run after first capabilities events
             self._pm_intervals_sm
@@ -487,6 +487,27 @@ class OnuDeviceEntry(object):
                                                 attributes=attribute)
 
         return entry[attribute] if attribute in entry else None
+
+    def query_alarm_table(self, class_id=None, instance_id=None, attributes=None):
+        """
+        Get Alarm information
+
+        This method can be used to request information from the alarm database to
+        the detailed level requested
+
+        :param class_id:  (int) Managed Entity class ID
+        :param instance_id: (int) Managed Entity instance
+
+        :return: (dict) The value(s) requested. If class/inst/attribute is
+                        not found, an empty dictionary is returned
+        :raises DatabaseStateError: If the database is not enabled
+        """
+        self.log.debug('query', class_id=class_id, instance_id=instance_id,
+                       attributes=attributes)
+
+        return self.alarm_synchronizer.query_mib(class_id=class_id,
+                                                 instance_id=instance_id,
+                                                 attributes=attributes)
 
     def reboot(self,
                flags=RebootFlags.Reboot_Unconditionally,

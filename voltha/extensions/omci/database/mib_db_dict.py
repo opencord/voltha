@@ -152,6 +152,26 @@ class MibDbVolatileDict(MibDbApi):
         self._data[device_id][MDS_KEY] = value
         self._modified = datetime.utcnow()
 
+    def save_alarm_sequence(self, device_id, value):
+        """
+        Save the ALARM Sequence to the database in an easy location to access
+
+        :param device_id: (str) ONU Device ID
+        :param value: (int) Value to save
+        """
+        if not isinstance(device_id, basestring):
+            raise TypeError('Device ID should be an string')
+
+        if not isinstance(value, int):
+            raise TypeError('ALARM Sequence is an integer')
+
+        if not 0 <= value <= 255:
+            raise ValueError('Invalid ALARM-Sequence value {}.  Must be 0..255'.
+                             format(value))
+
+        self._data[device_id][LAST_ALARM_SEQ] = value
+        self._modified = datetime.utcnow()
+
     def get_mib_data_sync(self, device_id):
         """
         Get the MIB Data Sync value last saved to the database for a device
@@ -166,6 +186,21 @@ class MibDbVolatileDict(MibDbApi):
             return None
 
         return self._data[device_id].get(MDS_KEY)
+
+    def get_alarm_sequence(self, device_id):
+        """
+        Get the MIB Data Sync value last saved to the database for a device
+
+        :param device_id: (str) ONU Device ID
+        :return: (int) The Value or None if not found
+        """
+        if not isinstance(device_id, basestring):
+            raise TypeError('Device ID should be an string')
+
+        if device_id not in self._data:
+            return None
+
+        return self._data[device_id].get(LAST_ALARM_SEQ)
 
     def save_last_sync(self, device_id, value):
         """
@@ -184,6 +219,23 @@ class MibDbVolatileDict(MibDbApi):
         self._data[device_id][LAST_SYNC_KEY] = value
         self._modified = datetime.utcnow()
 
+    def save_last_alarm_sync(self, device_id, value):
+        """
+        Save the Last Alarm Sync time to the database in an easy location to access
+
+        :param device_id: (str) ONU Device ID
+        :param value: (DateTime) Value to save
+        """
+        if not isinstance(device_id, basestring):
+            raise TypeError('Device ID should be an string')
+
+        if not isinstance(value, datetime):
+            raise TypeError('Expected a datetime object, got {}'.
+                            format(type(datetime)))
+
+        self._data[device_id][LAST_ALARM_SYNC] = value
+        self._modified = datetime.utcnow()
+
     def get_last_sync(self, device_id):
         """
         Get the Last SYnc Time saved to the database for a device
@@ -198,6 +250,21 @@ class MibDbVolatileDict(MibDbApi):
             return None
 
         return self._data[device_id].get(LAST_SYNC_KEY)
+
+    def get_last_alarm_sync(self, device_id):
+        """
+        Get the Last Alarm SYnc Time saved to the database for a device
+
+        :param device_id: (str) ONU Device ID
+        :return: (int) The Value or None if not found
+        """
+        if not isinstance(device_id, basestring):
+            raise TypeError('Device ID should be an string')
+
+        if device_id not in self._data:
+            return None
+
+        return self._data[device_id].get(LAST_ALARM_SYNC)
 
     def set(self, device_id, class_id, instance_id, attributes):
         """

@@ -32,6 +32,8 @@ INSTANCE_ID_KEY = 'instance_id'
 ATTRIBUTES_KEY = 'attributes'
 ME_KEY = 'managed_entities'
 MSG_TYPE_KEY = 'message_types'
+LAST_ALARM_SEQ = 'last_alarm_sequence'
+LAST_ALARM_SYNC = 'last_alarm_sync'
 
 
 class DatabaseStateError(Exception):

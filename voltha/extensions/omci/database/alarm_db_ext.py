@@ -234,8 +234,10 @@ class AlarmDbExternal(MibDbApi):
 
         data = AlarmDeviceData(device_id=device_id,
                                created=self._time_to_string(now),
+                               last_alarm_sequence=0,
+                               last_sync_time='',
                                version=AlarmDbExternal.CURRENT_VERSION,
-                               last_alarm_sequence=0)
+                               )
         try:
             dev_proxy = self._device_proxy(device_id)
             found = True

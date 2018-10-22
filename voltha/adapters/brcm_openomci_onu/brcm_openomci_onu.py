@@ -77,6 +77,8 @@ class BrcmOpenomciOnuAdapter(object):
 
         self.broadcom_omci['mib-synchronizer']['state-machine'] = BrcmMibSynchronizer
         self.broadcom_omci['mib-synchronizer']['database'] = MibDbVolatileDict
+        # Pre-setting Volatile memory
+        self.broadcom_omci['alarm-synchronizer']['database'] = MibDbVolatileDict
         #self.broadcom_omci['mib-synchronizer']['tasks']['get-mds'] = BrcmGetMdsTask
         #self.broadcom_omci['mib-synchronizer']['tasks']['mib-audit'] = BrcmGetMdsTask
         self.broadcom_omci['omci-capabilities']['tasks']['get-capabilities'] = BrcmCapabilitiesTask
