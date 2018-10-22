@@ -22,6 +22,29 @@
       "revId": "9cd3c7b154f8c3b9cdcce3383be06f0c210f3a35",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "614275e2_eca22ed9",
+        "filename": "voltha/extensions/omci/state_machines/performance_intervals.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2018-10-22T17:18:56Z",
+      "side": 1,
+      "message": "Raised this as we were seeing TimeoutError, often 4 of them, sometimes even more, that would eventually succeed after several attempts.",
+      "range": {
+        "startLine": 87,
+        "startChar": 30,
+        "endLine": 87,
+        "endChar": 32
+      },
+      "revId": "9cd3c7b154f8c3b9cdcce3383be06f0c210f3a35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
