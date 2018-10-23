@@ -72,10 +72,7 @@ OpenOmciAgentDefaults = {
         'database': AlarmDbExternal,           # For any State storage needs
         'advertise-events': True,              # Advertise events on OpenOMCI event bus
         'tasks': {
-            'alarm-sync': AlarmSyncDataTask,
-            'alarm-check': AlarmDataTask,
-            'alarm-resync': AlarmResyncTask,
-            'alarm-audit': AlarmDataTask
+            'alarm-resync': AlarmResyncTask
         }
      },
     'image_downloader': {
