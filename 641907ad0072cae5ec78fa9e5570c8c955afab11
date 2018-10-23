@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4e4399cf_b7e8bdb6",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1380,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-10-23T15:56:09Z",
+      "side": 1,
+      "message": "It\u0027s preferable to send an error back in the context to indicate the unimplemented API.  That error (or equivalent) could be propagated back to the originator of the request.   This comment applies to all unimplemented API.s",
+      "revId": "641907ad0072cae5ec78fa9e5570c8c955afab11",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "979267e9_628f9a54",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 5
+      },
+      "lineNbr": 1096,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2018-10-23T15:56:09Z",
+      "side": 1,
+      "message": "Incorrect comment?",
+      "revId": "641907ad0072cae5ec78fa9e5570c8c955afab11",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
