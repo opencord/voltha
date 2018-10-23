@@ -20,33 +20,6 @@ import voltha.protos.device_pb2 as dev_pb2
 """
 Encoding of identifiers
 =======================
-GEM port ID
-
-    GEM port id is unique per PON port
-
-     10              3      0
-    +--+--------------+------+
-    |1 |     onu id   | GEM  |
-    |  |              | idx  |
-    +--+--------------+------+
-
-    GEM port id range (0, 1023) is reserved
-    onu id = 7 bits = 128 ONUs per PON
-    GEM index = 3 bits = 8 GEM ports per ONU
-
-Alloc ID
-
-    Uniquely identifies a T-CONT
-    Ranges from 0 to 4095
-    Unique per PON interface
-
-     12         6            0
-    +------------+------------+
-    |   onu id   | Alloc idx  |
-    +------------+------------+
-
-    onu id = 7 bits = 128 ONUs per PON
-    Alloc index = 6 bits = 64 GEM ports per ONU
 
 Flow id
 
@@ -111,20 +84,6 @@ class OpenOltPlatform(object):
     def __init__(self, log, device_info):
         self.log = log
         self.device_info = device_info
-
-    def mk_alloc_id(self, intf_id, onu_id, idx=0):
-        # FIXME - driver should do prefixing 1 << 10 as it is Maple specific
-        # return 1<<10 | onu_id<<6 | idx
-        if(self.device_info.technology == "gpon"): # Will be replaced with resource manager
-            return 511 + intf_id * MAX_ONUS_PER_PON + onu_id
-        return 1023 + intf_id * MAX_ONUS_PER_PON + onu_id  # FIXME
-
-
-    def mk_gemport_id(self, intf_id, onu_id, idx=0):
-        return 1024 + (((MAX_ONUS_PER_PON * intf_id + onu_id - 1) * 7) + idx)
-
-    def onu_id_from_gemport_id(self, gemport_id):
-        return (((gemport_id - 1024) // 7) % MAX_ONUS_PER_PON) + 1
 
     def mk_uni_port_num(self, intf_id, onu_id):
         return intf_id << 11 | onu_id << 4

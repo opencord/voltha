@@ -278,7 +278,7 @@ message DeviceInfo {
 
             enum SharingType {
                 DEDICATED_PER_INTF = 0;
-                SHARED_BY_ALL_INTF_ALL_TECH = 1; // Shared across all interfaces in all technologiesi in all ranges
+                SHARED_BY_ALL_INTF_ALL_TECH = 1; // Shared across all interfaces in all technologies in all ranges
                 SHARED_BY_ALL_INTF_SAME_TECH = 2; // Shared across all interfaces of the same technology used in this range
             }
 
