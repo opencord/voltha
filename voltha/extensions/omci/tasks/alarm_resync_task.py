@@ -45,7 +45,7 @@ class AlarmResyncTask(Task):
     The ONU can still source AVC's and the the OLT can still send config
     commands to the actual.
     """
-    task_priority = 240
+    task_priority = Task.DEFAULT_PRIORITY
     name = "ALARM Resynchronization Task"
 
     max_retries = 3
@@ -53,7 +53,6 @@ class AlarmResyncTask(Task):
 
     max_alarm_upload_next_retries = 3
     alarm_upload_next_delay = 10          # Max * delay < 60 seconds
-    watchdog_timeout = 15                 # Should be > any retry delay
 
     def __init__(self, omci_agent, device_id):
         """
@@ -66,8 +65,7 @@ class AlarmResyncTask(Task):
                                               omci_agent,
                                               device_id,
                                               priority=AlarmResyncTask.task_priority,
-                                              exclusive=False,
-                                              watchdog_timeout=AlarmResyncTask.watchdog_timeout)
+                                              exclusive=False)
         self._local_deferred = None
         self._device = omci_agent.get_device(device_id)
         self._db_active = MibDbVolatileDict(omci_agent)
@@ -121,22 +119,52 @@ class AlarmResyncTask(Task):
 
         try:
             self.strobe_watchdog()
-            command_sequence_number = yield self.snapshot_alarm()
+            results = yield self.snapshot_alarm()
+            olt_db_copy = results[0]
+            number_of_commands = results[1]
 
-            # Start the ALARM upload sequence, save alarms to the table
-            self.strobe_watchdog()
-            commands_retrieved, alarm_table = yield self.upload_alarm(command_sequence_number)
-
-            if commands_retrieved < command_sequence_number:
-                e = AlarmDownloadException('Only retrieved {} of {} instances'.
-                                             format(commands_retrieved, command_sequence_number))
+            if olt_db_copy is None:
+                e = AlarmCopyException('Failed to get local database copy')
                 self.deferred.errback(failure.Failure(e))
+            else:
+                # Start the ALARM upload sequence, save alarms to the table
 
-            self.deferred.callback(
-                    {
-                        'commands_retrieved': commands_retrieved,
-                        'alarm_table': alarm_table
-                    })
+                self.strobe_watchdog()
+                if number_of_commands > 0:
+                    commands_retrieved = yield self.upload_alarm(number_of_commands)
+                else:
+                    commands_retrieved = 0
+
+                if commands_retrieved != number_of_commands:
+                    e = AlarmDownloadException('Only retrieved {} of {} instances'.
+                                               format(commands_retrieved, number_of_commands))
+                    self.deferred.errback(failure.Failure(e))
+                else:
+                    # Compare the databases
+                    onu_db_copy = self._db_active.query(self.device_id)
+
+                    on_olt_only, on_onu_only, attr_diffs = \
+                        self.compare_mibs(olt_db_copy, onu_db_copy)
+
+                    on_olt_only = on_olt_only if len(on_olt_only) else None
+                    on_onu_only = on_onu_only if len(on_onu_only) else None
+                    attr_diffs = attr_diffs if len(attr_diffs) else None
+
+                    on_olt_only_diffs = on_olt_only if on_olt_only and len(on_olt_only) else None
+                    on_onu_only_diffs = on_onu_only if on_onu_only and len(on_onu_only) else None
+                    attr_diffs = attr_diffs if attr_diffs and len(attr_diffs) else None
+
+                    if all(diff is None for diff in [on_olt_only_diffs, on_onu_only_diffs, attr_diffs]):
+                        results = None
+                    else:
+                        results = {
+                            'onu-only': on_onu_only_diffs,
+                            'olt-only': on_olt_only_diffs,
+                            'attr-diffs': attr_diffs,
+                            'onu-db': onu_db_copy,
+                            'olt-db': olt_db_copy
+                        }
+                    self.deferred.callback(results)
 
         except Exception as e:
             self.log.exception('resync', e=e)
@@ -149,6 +177,7 @@ class AlarmResyncTask(Task):
 
         :return: (pair) (command_sequence_number)
         """
+        olt_db_copy = None
         command_sequence_number = None
 
         try:
@@ -162,6 +191,7 @@ class AlarmResyncTask(Task):
 
                     if command_sequence_number is None:
                         if retries >= max_tries:
+                            olt_db_copy = None
                             break
 
                 except TimeoutError as e:
@@ -173,17 +203,22 @@ class AlarmResyncTask(Task):
                     yield asleep(AlarmResyncTask.retry_delay)
                     continue
 
+                # Get a snapshot of the local MIB database
+                olt_db_copy = self._device.query_alarm_table()
+                # if we made it this far, no need to keep trying
+                break
+
         except Exception as e:
             self.log.exception('alarm-resync', e=e)
             raise
 
         # Handle initial failures
 
-        if command_sequence_number is None:
+        if olt_db_copy is None or command_sequence_number is None:
             raise AlarmCopyException('Failed to snapshot ALARM copy after {} retries'.
                                      format(AlarmResyncTask.max_retries))
 
-        returnValue(command_sequence_number)
+        returnValue((olt_db_copy, command_sequence_number))
 
     @inlineCallbacks
     def send_alarm_upload(self):
@@ -195,12 +230,11 @@ class AlarmResyncTask(Task):
         ########################################
         # Begin ALARM Upload
         try:
-            self.strobe_watchdog()
             results = yield self._device.omci_cc.send_get_all_alarm()
-
+            self.strobe_watchdog()
             command_sequence_number = results.fields['omci_message'].fields['number_of_commands']
 
-            if command_sequence_number is None or command_sequence_number <= 0:
+            if command_sequence_number < 0:
                 raise ValueError('Number of commands was {}'.format(command_sequence_number))
 
             returnValue(command_sequence_number)
@@ -217,31 +251,36 @@ class AlarmResyncTask(Task):
 
         for seq_no in xrange(command_sequence_number):
             max_tries = AlarmResyncTask.max_alarm_upload_next_retries
-            alarm_class_id = {}
-            alarm_entity_id = {}
-            attributes = {}
 
             for retries in xrange(0, max_tries):
                 try:
+                    response = yield self._device.omci_cc.send_get_all_alarm_next(seq_no)
                     self.strobe_watchdog()
-                    response = yield self._device.omci_cc.get_all_alarm_next(seq_no)
 
                     omci_msg = response.fields['omci_message'].fields
-                    alarm_class_id[seq_no] = omci_msg['alarmed_entity_class']
-                    alarm_entity_id[seq_no] = omci_msg['alarmed_entity_id']
+                    alarm_class_id = omci_msg['alarmed_entity_class']
+                    alarm_entity_id = omci_msg['alarmed_entity_id']
 
                     # Filter out the 'alarm_data_sync' from the database. We save that at
                     # the device level and do not want it showing up during a re-sync
                     # during data comparison
 
-                    if alarm_class_id[seq_no] == OntData.class_id:
+                    if alarm_class_id == OntData.class_id:
                         break
 
-                    attributes[seq_no] = omci_msg['alarm_bit_map']
+                    bit_map = omci_msg['alarm_bit_map'].encode('hex')
+                    bit_map_hex = "{0:b}".format(int(bit_map, 16))
+                    alarm_bit_map = eval(bit_map_hex)
+
+                    # alarm bit map space is 28 bytes * 8 = 224 bits
+                    if len(bit_map_hex) != 224:
+                        continue
+
+                    attributes = alarm_bit_map
 
                     # Save to the database
-                    self._db_active.set(self.device_id, alarm_class_id[seq_no],
-                                        alarm_entity_id[seq_no], attributes[seq_no])
+                    self._db_active.set(self.device_id, alarm_class_id,
+                                        alarm_entity_id, attributes)
                     break
 
                 except TimeoutError:
@@ -249,8 +288,8 @@ class AlarmResyncTask(Task):
                                   command_sequence_number=command_sequence_number)
 
                     if retries < max_tries - 1:
-                        self.strobe_watchdog()
                         yield asleep(AlarmResyncTask.alarm_upload_next_delay)
+                        self.strobe_watchdog()
                     else:
                         raise
 
@@ -258,6 +297,110 @@ class AlarmResyncTask(Task):
                     self.log.exception('resync', e=e, seq_no=seq_no,
                                        command_sequence_number=command_sequence_number)
 
-        self.strobe_watchdog()
-        returnValue((seq_no + 1, alarm_class_id, alarm_entity_id, attributes))     # seq_no is zero based and alarm table.
+        returnValue(seq_no + 1)     # seq_no is zero based and alarm table.
 
+    def compare_mibs(self, db_copy, db_active):
+        """
+        Compare the our db_copy with the ONU's active copy
+
+        :param db_copy: (dict) OpenOMCI's copy of the database
+        :param db_active: (dict) ONU's database snapshot
+        :return: (dict), (dict), dict()  Differences
+        """
+        self.strobe_watchdog()
+
+        # Class & Entities only in local copy (OpenOMCI)
+        on_olt_only = self.get_lsh_only_dict(db_copy, db_active)
+
+        # Class & Entities only on remote (ONU)
+        on_onu_only = self.get_lsh_only_dict(db_active, db_copy)
+
+        # Class & Entities on both local & remote, but one or more attributes
+        # are different on the ONU.  This is the value that the local (OpenOMCI)
+        # thinks should be on the remote (ONU)
+
+        me_map = self.omci_agent.get_device(self.device_id).me_map
+        attr_diffs = self.get_attribute_diffs(db_copy, db_active, me_map)
+
+        return on_olt_only, on_onu_only, attr_diffs
+
+    def get_lsh_only_dict(self, lhs, rhs):
+        """
+        Compare two MIB database dictionaries and return the ME Class ID and
+        instances that are unique to the lhs dictionary. Both parameters
+        should be in the common MIB Database output dictionary format that
+        is returned by the mib 'query' command.
+
+        :param lhs: (dict) Left-hand-side argument.
+        :param rhs: (dict) Right-hand-side argument
+
+        return: (list(int,int)) List of tuples where (class_id, inst_id)
+        """
+        results = list()
+
+        for cls_id, cls_data in lhs.items():
+            # Get unique classes
+            #
+            # Skip keys that are not class IDs
+            if not isinstance(cls_id, int):
+                continue
+
+            if cls_id not in rhs:
+                results.extend([(cls_id, inst_id) for inst_id in cls_data.keys()
+                                if isinstance(inst_id, int)])
+            else:
+                # Get unique instances of a class
+                lhs_cls = cls_data
+                rhs_cls = rhs[cls_id]
+
+                for inst_id, _ in lhs_cls.items():
+                    # Skip keys that are not instance IDs
+                    if isinstance(cls_id, int) and inst_id not in rhs_cls:
+                        results.extend([(cls_id, inst_id)])
+
+        return results
+
+    def get_attribute_diffs(self, omci_copy, onu_copy, me_map):
+        """
+        Compare two OMCI MIBs and return the ME class and instance IDs that exists
+        on both the local copy and the remote ONU that have different attribute
+        values. Both parameters should be in the common MIB Database output
+        dictionary format that is returned by the mib 'query' command.
+
+        :param omci_copy: (dict) OpenOMCI copy (OLT-side) of the MIB Database
+        :param onu_copy: (dict) active ONU latest copy its database
+        :param me_map: (dict) ME Class ID MAP for this ONU
+
+        return: (list(int,int,str)) List of tuples where (class_id, inst_id, attribute)
+                                    points to the specific ME instance where attributes
+                                    are different
+        """
+        results = list()
+
+        # Get class ID's that are in both
+        class_ids = {cls_id for cls_id, _ in omci_copy.items()
+                     if isinstance(cls_id, int) and cls_id in onu_copy}
+
+        for cls_id in class_ids:
+            # Get unique instances of a class
+            olt_cls = omci_copy[cls_id]
+            onu_cls = onu_copy[cls_id]
+
+            # Get set of common instance IDs
+            inst_ids = {inst_id for inst_id, _ in olt_cls.items()
+                        if isinstance(inst_id, int) and inst_id in onu_cls}
+
+            for inst_id in inst_ids:
+                omci_attributes = {k for k in olt_cls[inst_id][ATTRIBUTES_KEY].iterkeys()}
+                onu_attributes = {k for k in onu_cls[inst_id][ATTRIBUTES_KEY].iterkeys()}
+
+                # Get attributes that exist in one database, but not the other
+                sym_diffs = (omci_attributes ^ onu_attributes)
+                results.extend([(cls_id, inst_id, attr) for attr in sym_diffs])
+
+                # Get common attributes with different values
+                common_attributes = (omci_attributes & onu_attributes)
+                results.extend([(cls_id, inst_id, attr) for attr in common_attributes
+                               if olt_cls[inst_id][ATTRIBUTES_KEY][attr] !=
+                                onu_cls[inst_id][ATTRIBUTES_KEY][attr]])
+        return results
