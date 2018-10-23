@@ -20,7 +20,7 @@ from common.pon_resource_manager.resource_manager import PONResourceManager
 from voltha.registry import registry
 from voltha.core.config.config_backend import ConsulStore
 from voltha.core.config.config_backend import EtcdStore
-
+from voltha.adapters.openolt.protos import openolt_pb2
 
 class OpenOltResourceMgr(object):
     GEMPORT_IDS = "gemport_ids"
@@ -50,30 +50,68 @@ class OpenOltResourceMgr(object):
             self.log.error('Invalid-backend')
             raise Exception("Invalid-backend-for-kv-store")
 
-        self.resource_mgr = PONResourceManager(
-            self.device_info.technology,
-            self.extra_args,
-            self.device_id, self.args.backend,
-            host, port
-        )
+        ranges = dict()
+        resource_mgrs_by_tech = dict()
+        self.resource_mgrs = dict()
 
-        # Flag to indicate whether information fetched from device should
-        # be used to intialize PON Resource Ranges
-        self.use_device_info = False
+        # If a legacy driver returns protobuf without any ranges,s synthesize one from
+        # the legacy global per-device informaiton. This, in theory, is temporary until
+        # the legacy drivers are upgrade to support pool ranges.
+        if len(self.device_info.ranges) == 0:
+            arange = self.device_info.ranges.add()
+            arange.technology = self.device_info.technology
+            arange.intf_ids.extend(range(0, device_info.pon_ports))
 
-        self.initialize_device_resource_range_and_pool()
+            pool = arange.pools.add()
+            pool.type = openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.ONU_ID
+            pool.start = self.device_info.onu_id_start
+            pool.end = self.device_info.onu_id_end
+            pool.sharing = openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.DEDICATED_PER_INTF
+
+            pool = arange.pools.add()
+            pool.type = openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.ALLOC_ID
+            pool.start = self.device_info.alloc_id_start
+            pool.end = self.device_info.alloc_id_end
+            pool.sharing = openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.SHARED_BY_ALL_INTF_ALL_TECH
+
+            pool = arange.pools.add()
+            pool.type = openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.GEMPORT_ID
+            pool.start = self.device_info.gemport_id_start
+            pool.end = self.device_info.gemport_id_end
+            pool.sharing = openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.SHARED_BY_ALL_INTF_ALL_TECH
+
+        # Create a separate Resource Manager instance for each range. This assumes that
+        # each technology is represented by only a single range
+        global_resource_mgr = None
+        for arange in self.device_info.ranges:
+            technology = arange.technology
+            self.log.info("device-info", technology=technology)
+            ranges[technology] = arange
+            resource_mgr = PONResourceManager(technology,
+                self.extra_args, self.device_id, self.args.backend, host, port)
+            resource_mgrs_by_tech[technology] = resource_mgr
+            if global_resource_mgr is None: global_resource_mgr = resource_mgr
+            for intf_id in arange.intf_ids:
+                self.resource_mgrs[intf_id] = resource_mgrs_by_tech[technology]
+            self.initialize_device_resource_range_and_pool(resource_mgr, global_resource_mgr, arange)
+
+        # After we have initialized resource ranges, initialize the
+        # resource pools accordingly.
+        for technology, resource_mgr in resource_mgrs_by_tech.iteritems():
+            resource_mgr.init_device_resource_pool()
 
     def __del__(self):
         self.log.info("clearing-device-resource-pool")
-        self.resource_mgr.clear_device_resource_pool()
+        for key, resource_mgr in self.resource_mgrs.iteritems(): 
+            resource_mgr.clear_device_resource_pool()
 
     def get_onu_id(self, pon_intf_id):
-        onu_id = self.resource_mgr.get_resource_id(
+        onu_id = self.resource_mgrs[pon_intf_id].get_resource_id(
             pon_intf_id, PONResourceManager.ONU_ID, 1)
 
         if onu_id is not None:
             pon_intf_onu_id = (pon_intf_id, onu_id)
-            self.resource_mgr.init_resource_map(
+            self.resource_mgrs[pon_intf_id].init_resource_map(
                 pon_intf_onu_id)
 
         return onu_id
@@ -81,7 +119,7 @@ class OpenOltResourceMgr(object):
     def get_alloc_id(self, pon_intf_onu_id):
         # Derive the pon_intf from the pon_intf_onu_id tuple
         pon_intf = pon_intf_onu_id[0]
-        alloc_id_list = self.resource_mgr.get_current_alloc_ids_for_onu(
+        alloc_id_list = self.resource_mgrs[pon_intf].get_current_alloc_ids_for_onu(
             pon_intf_onu_id)
 
         if alloc_id_list and len(alloc_id_list) > 0:
@@ -90,7 +128,7 @@ class OpenOltResourceMgr(object):
             # ONU.
             return alloc_id_list[0]
 
-        alloc_id_list = self.resource_mgr.get_resource_id(
+        alloc_id_list = self.resource_mgrs[pon_intf].get_resource_id(
             pon_intf_id=pon_intf,
             resource_type=PONResourceManager.ALLOC_ID,
             num_of_id=1
@@ -101,7 +139,7 @@ class OpenOltResourceMgr(object):
 
         # update the resource map on KV store with the list of alloc_id
         # allocated for the pon_intf_onu_id tuple
-        self.resource_mgr.update_alloc_ids_for_onu(pon_intf_onu_id,
+        self.resource_mgrs[pon_intf].update_alloc_ids_for_onu(pon_intf_onu_id,
                                                    alloc_id_list)
 
         # Since we request only one alloc id, we refer the 0th
@@ -115,7 +153,7 @@ class OpenOltResourceMgr(object):
         pon_intf = pon_intf_onu_id[0]
         onu_id = pon_intf_onu_id[1]
 
-        gemport_id_list = self.resource_mgr.get_current_gemport_ids_for_onu(
+        gemport_id_list = self.resource_mgrs[pon_intf].get_current_gemport_ids_for_onu(
             pon_intf_onu_id)
         if gemport_id_list and len(gemport_id_list) > 0:
             # Since we support only one gemport_id for the ONU at the moment,
@@ -123,7 +161,7 @@ class OpenOltResourceMgr(object):
             # ONU.
             return gemport_id_list[0]
 
-        gemport_id_list = self.resource_mgr.get_resource_id(
+        gemport_id_list = self.resource_mgrs[pon_intf].get_resource_id(
             pon_intf_id=pon_intf,
             resource_type=PONResourceManager.GEMPORT_ID,
             num_of_id=1
@@ -135,7 +173,7 @@ class OpenOltResourceMgr(object):
 
         # update the resource map on KV store with the list of gemport_id
         # allocated for the pon_intf_onu_id tuple
-        self.resource_mgr.update_gemport_ids_for_onu(pon_intf_onu_id,
+        self.resource_mgrs[pon_intf].update_gemport_ids_for_onu(pon_intf_onu_id,
                                                      gemport_id_list)
 
         # We currently use only one gemport
@@ -150,62 +188,123 @@ class OpenOltResourceMgr(object):
         return gemport
 
     def free_onu_id(self, pon_intf_id, onu_id):
-        result = self.resource_mgr.free_resource_id(
+        result = self.resource_mgrs[pon_intf_id].free_resource_id(
             pon_intf_id, PONResourceManager.ONU_ID, onu_id)
 
         pon_intf_onu_id = (pon_intf_id, onu_id)
-        self.resource_mgr.remove_resource_map(
+        self.resource_mgrs[pon_intf_id].remove_resource_map(
             pon_intf_onu_id)
 
     def free_pon_resources_for_onu(self, pon_intf_id_onu_id):
 
-        alloc_ids = \
-            self.resource_mgr.get_current_alloc_ids_for_onu(pon_intf_id_onu_id)
         pon_intf_id = pon_intf_id_onu_id[0]
         onu_id = pon_intf_id_onu_id[1]
-        self.resource_mgr.free_resource_id(pon_intf_id,
+        alloc_ids = \
+            self.resource_mgrs[pon_intf_id].get_current_alloc_ids_for_onu(pon_intf_id_onu_id)
+        self.resource_mgrs[pon_intf_id].free_resource_id(pon_intf_id,
                                            PONResourceManager.ALLOC_ID,
                                            alloc_ids)
 
         gemport_ids = \
-            self.resource_mgr.get_current_gemport_ids_for_onu(pon_intf_id_onu_id)
-        self.resource_mgr.free_resource_id(pon_intf_id,
+            self.resource_mgrs[pon_intf_id].get_current_gemport_ids_for_onu(pon_intf_id_onu_id)
+        self.resource_mgrs[pon_intf_id].free_resource_id(pon_intf_id,
                                            PONResourceManager.GEMPORT_ID,
                                            gemport_ids)
 
-        self.resource_mgr.free_resource_id(pon_intf_id,
+        self.resource_mgrs[pon_intf_id].free_resource_id(pon_intf_id,
                                            PONResourceManager.ONU_ID,
                                            onu_id)
 
         # Clear resource map associated with (pon_intf_id, gemport_id) tuple.
-        self.resource_mgr.remove_resource_map(pon_intf_id_onu_id)
+        self.resource_mgrs[pon_intf_id].remove_resource_map(pon_intf_id_onu_id)
 
         # Clear the ONU Id associated with the (pon_intf_id, gemport_id) tuple.
         for gemport_id in gemport_ids:
             del self.kv_store[str((pon_intf_id, gemport_id))]
 
-    def initialize_device_resource_range_and_pool(self):
-        if not self.use_device_info:
-            status = self.resource_mgr.init_resource_ranges_from_kv_store()
-            if not status:
-                self.log.error("failed-to-load-resource-range-from-kv-store")
-                # When we have failed to read the PON Resource ranges from KV
-                # store, use the information fetched from device.
-                self.use_device_info = True
+    def initialize_device_resource_range_and_pool(self, resource_mgr, global_resource_mgr, arange):
+        self.log.info("resource-range-pool-init", technology=resource_mgr.technology)
 
-        if self.use_device_info:
-            self.log.info("using-device-info-to-init-pon-resource-ranges")
-            self.resource_mgr.init_default_pon_resource_ranges(
-                self.device_info.onu_id_start,
-                self.device_info.onu_id_end,
-                self.device_info.alloc_id_start,
-                self.device_info.alloc_id_end,
-                self.device_info.gemport_id_start,
-                self.device_info.gemport_id_end,
-                self.device_info.pon_ports
+        # first load from KV profiles
+        status = resource_mgr.init_resource_ranges_from_kv_store()
+        if not status:
+            self.log.info("failed-to-load-resource-range-from-kv-store", technology=resource_mgr.technology)
+
+        # Then apply device specific information. If KV doesn't exist
+        # or is broader than the device, the device's informationw ill
+        # dictate the range limits
+        self.log.info("using-device-info-to-init-pon-resource-ranges", technology=resource_mgr.technology)
+
+        onu_id_start = self.device_info.onu_id_start
+        onu_id_end = self.device_info.onu_id_end
+        onu_id_shared = openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.DEDICATED_PER_INTF
+        onu_id_shared_pool_id = None
+        alloc_id_start = self.device_info.alloc_id_start
+        alloc_id_end = self.device_info.alloc_id_end
+        alloc_id_shared = openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.SHARED_BY_ALL_INTF_ALL_TECH # TODO EdgeCore/BAL limitation
+        alloc_id_shared_pool_id = None
+        gemport_id_start = self.device_info.gemport_id_start
+        gemport_id_end = self.device_info.gemport_id_end
+        gemport_id_shared = openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.SHARED_BY_ALL_INTF_ALL_TECH # TODO EdgeCore/BAL limitation
+        gemport_id_shared_pool_id = None
+
+        global_pool_id = 0
+        for first_intf_pool_id in arange.intf_ids: break;
+
+        for pool in arange.pools:
+            shared_pool_id = global_pool_id if pool.sharing == openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.SHARED_BY_ALL_INTF_ALL_TECH else \
+                   first_intf_pool_id if  pool.sharing == openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.SHARED_BY_ALL_INTF_SAME_TECH else \
+                   None
+
+            if pool.type == openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.ONU_ID:
+                onu_id_start = pool.start
+                onu_id_end = pool.end
+                onu_id_shared = pool.sharing
+                onu_id_shared_pool_id = shared_pool_id
+            elif pool.type == openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.ALLOC_ID:
+                alloc_id_start = pool.start
+                alloc_id_end = pool.end
+                alloc_id_shared = pool.sharing
+                alloc_id_shared_pool_id = shared_pool_id
+            elif pool.type == openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.GEMPORT_ID:
+                gemport_id_start = pool.start
+                gemport_id_end = pool.end
+                gemport_id_shared = pool.sharing
+                gemport_id_shared_pool_id = shared_pool_id
+
+        self.log.info("device-info-init", technology=arange.technology,
+                onu_id_start=onu_id_start, onu_id_end=onu_id_end, onu_id_shared_pool_id=onu_id_shared_pool_id,
+                alloc_id_start=alloc_id_start, alloc_id_end=alloc_id_end, alloc_id_shared_pool_id=alloc_id_shared_pool_id,
+                gemport_id_start=gemport_id_start, gemport_id_end=gemport_id_end, gemport_id_shared_pool_id=gemport_id_shared_pool_id,
+                intf_ids=arange.intf_ids)
+
+        resource_mgr.init_default_pon_resource_ranges(
+                onu_id_start_idx=onu_id_start,
+                onu_id_end_idx=onu_id_end,
+                onu_id_shared_pool_id=onu_id_shared_pool_id,
+                alloc_id_start_idx=alloc_id_start,
+                alloc_id_end_idx=alloc_id_end,
+                alloc_id_shared_pool_id=alloc_id_shared_pool_id,
+                gemport_id_start_idx=gemport_id_start,
+                gemport_id_end_idx=gemport_id_end,
+                gemport_id_shared_pool_id=gemport_id_shared_pool_id,
+                num_of_pon_ports=self.device_info.pon_ports,
+                intf_ids=arange.intf_ids
             )
 
-        # After we have initialized resource ranges, initialize the
-        # resource pools accordingly.
-        self.resource_mgr.init_device_resource_pool()
+        # For global sharing, make sure to refresh both local and global resource manager instances' range
+        if global_resource_mgr is not self:
+            if onu_id_shared == openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.SHARED_BY_ALL_INTF_ALL_TECH:
+                global_resource_mgr.update_ranges(onu_id_start_idx=onu_id_start, onu_id_end_idx=onu_id_end)
+                resource_mgr.update_ranges(onu_id_start_idx=onu_id_start, onu_id_end_idx=onu_id_end,
+                    onu_id_shared_resource_mgr=global_resource_mgr)
 
+            if alloc_id_shared == openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.SHARED_BY_ALL_INTF_ALL_TECH:
+                global_resource_mgr.update_ranges(alloc_id_start_idx=alloc_id_start, alloc_id_end_idx=alloc_id_end)
+                resource_mgr.update_ranges(alloc_id_start_idx=alloc_id_start, alloc_id_end_idx=alloc_id_end,
+                    alloc_id_shared_resource_mgr=global_resource_mgr)
+
+            if gemport_id_shared == openolt_pb2.DeviceInfo.DeviceResourceRanges.Pool.SHARED_BY_ALL_INTF_ALL_TECH:
+                global_resource_mgr.update_ranges(gemport_id_start_idx=gemport_id_start, gemport_id_end_idx=gemport_id_end)
+                resource_mgr.update_ranges(gemport_id_start_idx=gemport_id_start, gemport_id_end_idx=gemport_id_end,
+                    gemport_id_shared_resource_mgr=global_resource_mgr)
