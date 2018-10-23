@@ -22,9 +22,7 @@ from voltha.extensions.omci.tasks.get_mds_task import GetMdsTask
 from voltha.extensions.omci.tasks.mib_resync_task import MibResyncTask
 from voltha.extensions.omci.tasks.mib_reconcile_task import MibReconcileTask
 from voltha.extensions.omci.tasks.sync_time_task import SyncTimeTask
-from voltha.extensions.omci.state_machines.Alarm_sync import AlarmSynchronizer
-from voltha.extensions.omci.tasks.alarm_sync_data import  AlarmSyncDataTask
-from voltha.extensions.omci.tasks.alarm_check_task import AlarmDataTask
+from voltha.extensions.omci.state_machines.alarm_sync import AlarmSynchronizer
 from voltha.extensions.omci.tasks.alarm_resync_task import AlarmResyncTask
 from voltha.extensions.omci.database.alarm_db_ext import AlarmDbExternal
 from voltha.extensions.omci.tasks.interval_data_task import IntervalDataTask
@@ -73,10 +71,7 @@ OpenOmciAgentDefaults = {
         'database': AlarmDbExternal,           # For any State storage needs
         'advertise-events': True,              # Advertise events on OpenOMCI event bus
         'tasks': {
-            'alarm-sync': AlarmSyncDataTask,
-            'alarm-check': AlarmDataTask,
-            'alarm-resync': AlarmResyncTask,
-            'alarm-audit': AlarmDataTask
+            'alarm-resync': AlarmResyncTask
         }
      },
     'image_downloader': {
