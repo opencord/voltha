@@ -278,7 +278,8 @@ message DeviceInfo {
 
             enum SharingType {
                 DEDICATED_PER_INTF = 0;
-                SHARED_BY_ALL_INTF = 1;
+                SHARED_BY_ALL_INTF_ALL_TECH = 1; // Shared across all interfaces in all technologiesi in all ranges
+                SHARED_BY_ALL_INTF_SAME_TECH = 2; // Shared across all interfaces of the same technology used in this range
             }
 
             PoolType type = 1;
@@ -286,7 +287,7 @@ message DeviceInfo {
 	    fixed32 start = 3; // lower bound on IDs allocated from this pool
 	    fixed32 end = 4; // upper bound on IDs allocated from this pool
 	}
-        repeated Pool ranges = 3;
+        repeated Pool pools = 3;
     }
     repeated DeviceResourceRanges ranges = 15;
 }
