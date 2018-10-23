@@ -87,3 +87,6 @@ docs/manuals/user/node_modules/
 .coverage
 coverage.xml
 nosetests.xml
+
+# openolt repo
+voltha/adapters/openolt/openolt
