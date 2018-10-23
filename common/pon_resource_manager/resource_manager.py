@@ -66,12 +66,15 @@ class PONResourceManager(object):
     '''
     # constants used as keys to reference the resource range parameters from
     # and external KV store.
-    ONU_START_IDX = "onu_id_start"
-    ONU_END_IDX = "onu_id_end"
+    ONU_ID_START_IDX = "onu_id_start"
+    ONU_ID_END_IDX = "onu_id_end"
+    ONU_ID_SHARED_IDX = "onu_id_shared"
     ALLOC_ID_START_IDX = "alloc_id_start"
     ALLOC_ID_END_IDX = "alloc_id_end"
-    GEM_PORT_ID_START_IDX = "gemport_id_start"
-    GEM_PORT_ID_END_IDX = "gemport_id_end"
+    ALLOC_ID_SHARED_IDX = "alloc_id_shared"
+    GEMPORT_ID_START_IDX = "gemport_id_start"
+    GEMPORT_ID_END_IDX = "gemport_id_end"
+    GEMPORT_ID_SHARED_IDX = "gemport_id_shared"
     NUM_OF_PON_PORT = "pon_ports"
 
     # PON Resource range configuration on the KV store.
@@ -124,11 +127,29 @@ class PONResourceManager(object):
             self.host = host
             self.port = port
             self.olt_vendor = None
+
             self._kv_store = ResourceKvStore(technology, device_id, backend,
                                              host, port)
+
             # Below attribute, pon_resource_ranges, should be initialized
             # by reading from KV store.
             self.pon_resource_ranges = dict()
+            self.pon_resource_ranges[PONResourceManager.ONU_ID_SHARED_IDX] = None
+            self.pon_resource_ranges[PONResourceManager.ALLOC_ID_SHARED_IDX] = None
+            self.pon_resource_ranges[PONResourceManager.GEMPORT_ID_SHARED_IDX] = None
+
+            self.shared_resource_mgrs = dict()
+            self.shared_resource_mgrs[PONResourceManager.ONU_ID_SHARED_IDX] = None
+            self.shared_resource_mgrs[PONResourceManager.ALLOC_ID_SHARED_IDX] = None
+            self.shared_resource_mgrs[PONResourceManager.GEMPORT_ID_SHARED_IDX] = None
+
+            self.shared_idx_by_type = dict()
+            self.shared_idx_by_type[PONResourceManager.ONU_ID] = PONResourceManager.ONU_ID_SHARED_IDX
+            self.shared_idx_by_type[PONResourceManager.ALLOC_ID] = PONResourceManager.ALLOC_ID_SHARED_IDX
+            self.shared_idx_by_type[PONResourceManager.GEMPORT_ID] = PONResourceManager.GEMPORT_ID_SHARED_IDX
+
+	    self.intf_ids = None
+
         except Exception as e:
             self._log.exception("exception-in-init")
             raise Exception(e)
@@ -169,95 +190,162 @@ class PONResourceManager(object):
                                 e=e)
         return False
 
-    def init_default_pon_resource_ranges(self, onu_start_idx=1,
-                                         onu_end_idx=127,
+
+    def update_range_(self, start_idx, start, end_idx, end, shared_idx, shared_pool_id, shared_resource_mgr):
+        if (start is not None) and \
+           (start_idx not in self.pon_resource_ranges or self.pon_resource_ranges[start_idx] < start):
+              self.pon_resource_ranges[start_idx] = start
+        if (end is not None) and \
+           (end_idx not in self.pon_resource_ranges or self.pon_resource_ranges[end_idx] > end):
+              self.pon_resource_ranges[end_idx] = end
+        if (shared_pool_id is not None) and \
+           (shared_idx not in self.pon_resource_ranges or self.pon_resource_ranges[shared_idx] is None):
+            self.pon_resource_ranges[shared_idx] = shared_pool_id
+        if (shared_resource_mgr is not None) and \
+           (shared_idx not in self.shared_resource_mgrs or self.shared_resource_mgrs[shared_idx] is None):
+            self.shared_resource_mgrs[shared_idx] = shared_resource_mgr
+
+    def update_ranges(self,
+                      onu_id_start_idx=None,
+                      onu_id_end_idx=None,
+                      onu_id_shared_pool_id=None,
+                      onu_id_shared_resource_mgr=None,
+                      alloc_id_start_idx=None,
+                      alloc_id_end_idx=None,
+                      alloc_id_shared_pool_id=None,
+                      alloc_id_shared_resource_mgr=None,
+                      gemport_id_start_idx=None,
+                      gemport_id_end_idx=None,
+                      gemport_id_shared_pool_id=None,
+                      gemport_id_shared_resource_mgr=None):
+
+        self.update_range_(PONResourceManager.ONU_ID_START_IDX, onu_id_start_idx,
+                          PONResourceManager.ONU_ID_END_IDX, onu_id_end_idx,
+                          PONResourceManager.ONU_ID_SHARED_IDX, onu_id_shared_pool_id,
+                          onu_id_shared_resource_mgr)
+
+        self.update_range_(PONResourceManager.ALLOC_ID_START_IDX, alloc_id_start_idx,
+                          PONResourceManager.ALLOC_ID_END_IDX, alloc_id_end_idx,
+                          PONResourceManager.ALLOC_ID_SHARED_IDX, alloc_id_shared_pool_id,
+                          alloc_id_shared_resource_mgr)
+
+        self.update_range_(PONResourceManager.GEMPORT_ID_START_IDX, gemport_id_start_idx,
+                          PONResourceManager.GEMPORT_ID_END_IDX, gemport_id_end_idx,
+                          PONResourceManager.GEMPORT_ID_SHARED_IDX, gemport_id_shared_pool_id,
+                          gemport_id_shared_resource_mgr)
+
+    def init_default_pon_resource_ranges(self,
+                                         onu_id_start_idx=1,
+                                         onu_id_end_idx=127,
+                                         onu_id_shared_pool_id=None,
                                          alloc_id_start_idx=1024,
                                          alloc_id_end_idx=2816,
-                                         gem_port_id_start_idx=1024,
-                                         gem_port_id_end_idx=8960,
-                                         num_of_pon_ports=16):
+                                         alloc_id_shared_pool_id=None,
+                                         gemport_id_start_idx=1024,
+                                         gemport_id_end_idx=8960,
+                                         gemport_id_shared_pool_id=None,
+                                         num_of_pon_ports=16,
+                                         intf_ids=None):
         """
         Initialize default PON resource ranges
 
-        :param onu_start_idx: onu id start index
-        :param onu_end_idx: onu id end index
+        :param onu_id_start_idx: onu id start index
+        :param onu_id_end_idx: onu id end index
+        :param onu_id_shared_pool_id: pool idx for id shared by all intfs or None for no sharing
         :param alloc_id_start_idx: alloc id start index
         :param alloc_id_end_idx: alloc id end index
-        :param gem_port_id_start_idx: gemport id start index
-        :param gem_port_id_end_idx: gemport id end index
+        :param alloc_id_shared_pool_id: pool idx for alloc id shared by all intfs or None for no sharing
+        :param gemport_id_start_idx: gemport id start index
+        :param gemport_id_end_idx: gemport id end index
+        :param gemport_id_shared_pool_id: pool idx for gemport id shared by all intfs or None for no sharing
         :param num_of_pon_ports: number of PON ports
+        :param intf_ids: interfaces serviced by this manager
         """
         self._log.info("initialize-default-resource-range-values")
-        self.pon_resource_ranges[
-            PONResourceManager.ONU_START_IDX] = onu_start_idx
-        self.pon_resource_ranges[PONResourceManager.ONU_END_IDX] = onu_end_idx
-        self.pon_resource_ranges[
-            PONResourceManager.ALLOC_ID_START_IDX] = alloc_id_start_idx
-        self.pon_resource_ranges[
-            PONResourceManager.ALLOC_ID_END_IDX] = alloc_id_end_idx
-        self.pon_resource_ranges[
-            PONResourceManager.GEM_PORT_ID_START_IDX] = gem_port_id_start_idx
-        self.pon_resource_ranges[
-            PONResourceManager.GEM_PORT_ID_END_IDX] = gem_port_id_end_idx
-        self.pon_resource_ranges[
-            PONResourceManager.NUM_OF_PON_PORT] = num_of_pon_ports
+
+        self.update_ranges(onu_id_start_idx, onu_id_end_idx, onu_id_shared_pool_id, None,
+                           alloc_id_start_idx, alloc_id_end_idx, alloc_id_shared_pool_id, None,
+                           gemport_id_start_idx, gemport_id_end_idx, gemport_id_shared_pool_id, None)
+
+        if intf_ids is None:
+            intf_ids = range(0, num_of_pon_ports)
+
+        self.intf_ids = intf_ids
 
     def init_device_resource_pool(self):
         """
         Initialize resource pool for all PON ports.
         """
-        i = 0
-        while i < self.pon_resource_ranges[PONResourceManager.NUM_OF_PON_PORT]:
+
+        self._log.info("init-device-resource-pool", technology=self.technology,
+            pon_resource_ranges=self.pon_resource_ranges)
+
+        for i in self.intf_ids:
+            shared_pool_id = self.pon_resource_ranges[PONResourceManager.ONU_ID_SHARED_IDX]
+            if shared_pool_id is not None: i = shared_pool_id
             self.init_resource_id_pool(
                 pon_intf_id=i,
                 resource_type=PONResourceManager.ONU_ID,
                 start_idx=self.pon_resource_ranges[
-                    PONResourceManager.ONU_START_IDX],
+                    PONResourceManager.ONU_ID_START_IDX],
                 end_idx=self.pon_resource_ranges[
-                    PONResourceManager.ONU_END_IDX])
+                    PONResourceManager.ONU_ID_END_IDX])
+            if shared_pool_id is not None: break
 
-            i += 1
+        for i in self.intf_ids:
+            shared_pool_id = self.pon_resource_ranges[PONResourceManager.ALLOC_ID_SHARED_IDX]
+            if shared_pool_id is not None: i = shared_pool_id
+            self.init_resource_id_pool(
+                pon_intf_id=i,
+                resource_type=PONResourceManager.ALLOC_ID,
+                start_idx=self.pon_resource_ranges[
+                    PONResourceManager.ALLOC_ID_START_IDX],
+                end_idx=self.pon_resource_ranges[
+                    PONResourceManager.ALLOC_ID_END_IDX])
+            if shared_pool_id is not None: break
 
-        # TODO: ASFvOLT16 platform requires alloc and gemport ID to be unique
-        # across OLT. To keep it simple, a single pool (POOL 0) is maintained
-        # for both the resource types. This may need to change later.
-        self.init_resource_id_pool(
-            pon_intf_id=0,
-            resource_type=PONResourceManager.ALLOC_ID,
-            start_idx=self.pon_resource_ranges[
-                PONResourceManager.ALLOC_ID_START_IDX],
-            end_idx=self.pon_resource_ranges[
-                PONResourceManager.ALLOC_ID_END_IDX])
-
-        self.init_resource_id_pool(
-            pon_intf_id=0,
-            resource_type=PONResourceManager.GEMPORT_ID,
-            start_idx=self.pon_resource_ranges[
-                PONResourceManager.GEM_PORT_ID_START_IDX],
-            end_idx=self.pon_resource_ranges[
-                PONResourceManager.GEM_PORT_ID_END_IDX])
+        for i in self.intf_ids:
+            shared_pool_id = self.pon_resource_ranges[PONResourceManager.GEMPORT_ID_SHARED_IDX]
+            if shared_pool_id is not None: i = shared_pool_id
+            self.init_resource_id_pool(
+                pon_intf_id=i,
+                resource_type=PONResourceManager.GEMPORT_ID,
+                start_idx=self.pon_resource_ranges[
+                    PONResourceManager.GEMPORT_ID_START_IDX],
+                end_idx=self.pon_resource_ranges[
+                    PONResourceManager.GEMPORT_ID_END_IDX])
+            if shared_pool_id is not None: break
 
     def clear_device_resource_pool(self):
         """
         Clear resource pool of all PON ports.
         """
-        i = 0
-        while i < self.pon_resource_ranges[PONResourceManager.NUM_OF_PON_PORT]:
+        for i in self.intf_ids:
+            shared_pool_id = self.pon_resource_ranges[PONResourceManager.ONU_ID_SHARED_IDX]
+            if shared_pool_id is not None: i = shared_pool_id
             self.clear_resource_id_pool(
                 pon_intf_id=i,
                 resource_type=PONResourceManager.ONU_ID,
             )
-            i += 1
+            if shared_pool_id is not None: break
 
-        self.clear_resource_id_pool(
-            pon_intf_id=0,
-            resource_type=PONResourceManager.ALLOC_ID,
-        )
+        for i in self.intf_ids:
+            shared_pool_id = self.pon_resource_ranges[PONResourceManager.ALLOC_ID_SHARED_IDX]
+            if shared_pool_id is not None: i = shared_pool_id
+            self.clear_resource_id_pool(
+                pon_intf_id=i,
+                resource_type=PONResourceManager.ALLOC_ID,
+            )
+            if shared_pool_id is not None: break
 
-        self.clear_resource_id_pool(
-            pon_intf_id=0,
-            resource_type=PONResourceManager.GEMPORT_ID,
-        )
+        for i in self.intf_ids:
+            shared_pool_id = self.pon_resource_ranges[PONResourceManager.GEMPORT_ID_SHARED_IDX]
+            if shared_pool_id is not None: i = shared_pool_id
+            self.clear_resource_id_pool(
+                pon_intf_id=i,
+                resource_type=PONResourceManager.GEMPORT_ID,
+            )
+            if shared_pool_id is not None: break
 
     def init_resource_id_pool(self, pon_intf_id, resource_type, start_idx,
                               end_idx):
@@ -271,6 +359,13 @@ class PONResourceManager(object):
         :return boolean: True if resource id pool initialized else false
         """
         status = False
+
+        # delegate to the master instance if sharing enabled across instances
+        shared_resource_mgr = self.shared_resource_mgrs[self.shared_idx_by_type[resource_type]]
+        if shared_resource_mgr is not None and shared_resource_mgr is not self:
+            return shared_resource_mgr.init_resource_id_pool(pon_intf_id, resource_type,
+                start_idx, end_idx)
+
         path = self._get_path(pon_intf_id, resource_type)
         if path is None:
             return status
@@ -311,13 +406,10 @@ class PONResourceManager(object):
         """
         result = None
 
-        # TODO: ASFvOLT16 platform requires alloc and gemport ID to be unique
-        # across OLT. To keep it simple, a single pool (POOL 0) is maintained
-        # for both the resource types. This may need to change later.
-        # Override the incoming pon_intf_id to PON0
-        if resource_type == PONResourceManager.GEMPORT_ID or \
-                resource_type == PONResourceManager.ALLOC_ID:
-            pon_intf_id = 0
+        # delegate to the master instance if sharing enabled across instances
+        shared_resource_mgr = self.shared_resource_mgrs[self.shared_idx_by_type[resource_type]]
+        if shared_resource_mgr is not None and shared_resource_mgr is not self:
+            return shared_resource_mgr.get_resource_id(pon_intf_id, resource_type)
 
         path = self._get_path(pon_intf_id, resource_type)
         if path is None:
@@ -360,13 +452,10 @@ class PONResourceManager(object):
         """
         status = False
 
-        # TODO: ASFvOLT16 platform requires alloc and gemport ID to be unique
-        # across OLT. To keep it simple, a single pool (POOL 0) is maintained
-        # for both the resource types. This may need to change later.
-        # Override the incoming pon_intf_id to PON0
-        if resource_type == PONResourceManager.GEMPORT_ID or \
-                resource_type == PONResourceManager.ALLOC_ID:
-            pon_intf_id = 0
+        # delegate to the master instance if sharing enabled across instances
+        shared_resource_mgr = self.shared_resource_mgrs[self.shared_idx_by_type[resource_type]]
+        if shared_resource_mgr is not None and shared_resource_mgr is not self:
+            return shared_resource_mgr.free_resource_id(pon_intf_id, resource_type)
 
         path = self._get_path(pon_intf_id, resource_type)
         if path is None:
@@ -401,6 +490,12 @@ class PONResourceManager(object):
 
         :return boolean: True if removed else False
         """
+
+        # delegate to the master instance if sharing enabled across instances
+        shared_resource_mgr = self.shared_resource_mgrs[self.shared_idx_by_type[resource_type]]
+        if shared_resource_mgr is not None and shared_resource_mgr is not self:
+            return shared_resource_mgr.clear_resource_id_pool(pon_intf_id, resource_type)
+
         path = self._get_path(pon_intf_id, resource_type)
         if path is None:
             return False
@@ -532,7 +627,8 @@ class PONResourceManager(object):
         if self.extra_args and len(self.extra_args) > 0:
             parser = OltVendorArgumentParser(add_help=False)
             parser.add_argument('--olt_vendor', '-o', action='store',
-                                choices=['default', 'asfvolt16', 'cigolt24'],
+                                choices=['default', 'asfvolt16', 'cigolt24',
+                                'tlabvolt4', 'tlabvolt8', 'tlabvolt16', 'tlabvolt24'],
                                 default='default')
             try:
                 args = parser.parse_args(shlex.split(self.extra_args))
@@ -574,6 +670,10 @@ class PONResourceManager(object):
         :param resource_type: String to identify type of resource
         :return: path for given resource type
         """
+
+        shared_pool_id = self.pon_resource_ranges[self.shared_idx_by_type[resource_type]]
+        if shared_pool_id is not None: pon_intf_id = shared_pool_id
+
         path = None
         if resource_type == PONResourceManager.ONU_ID:
             path = self._get_onu_id_resource_path(pon_intf_id)
