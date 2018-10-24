@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1c0110d6_d46330d1",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 281,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-24T02:34:34Z",
+      "side": 1,
+      "message": "in call technologies ?",
+      "range": {
+        "startLine": 281,
+        "startChar": 81,
+        "endLine": 281,
+        "endChar": 94
+      },
+      "revId": "cab13c0b298781614884ee7d31b4ef4a6f99066b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "867318f7_2f04fd3a",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-24T02:34:34Z",
+      "side": 1,
+      "message": "in same Technology?",
+      "range": {
+        "startLine": 282,
+        "startChar": 82,
+        "endLine": 282,
+        "endChar": 95
+      },
+      "revId": "cab13c0b298781614884ee7d31b4ef4a6f99066b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
