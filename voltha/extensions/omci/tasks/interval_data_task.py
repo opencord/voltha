@@ -34,7 +34,10 @@ class IntervalDataTask(Task):
     max_payload = 29
 
     def __init__(self, omci_agent, device_id, class_id, entity_id,
-                 max_get_response_payload=max_payload):
+                 max_get_response_payload=max_payload,
+                 parent_class_id=None,
+                 parent_entity_id=None,
+                 upstream=None):
         """
         Class initialization
 
@@ -53,6 +56,10 @@ class IntervalDataTask(Task):
         self._local_deferred = None
         self._class_id = class_id
         self._entity_id = entity_id
+
+        self._parent_class_id = parent_class_id
+        self._parent_entity_id = parent_entity_id
+        self._upstream = upstream
 
         me_map = self.omci_agent.get_device(self.device_id).me_map
         if self._class_id not in me_map:
@@ -116,6 +123,9 @@ class IntervalDataTask(Task):
             'entity_id': self._entity_id,
             'me_name': self._entity.__name__,   # Mostly for debugging...
             'interval_utc_time': None,
+            'parent_class_id': self._parent_class_id,
+            'parent_entity_id': self._parent_entity_id,
+            'upstream': self._upstream
             # Counters added here as they are retrieved
         }
         last_end_time = None
@@ -136,6 +146,11 @@ class IntervalDataTask(Task):
             attr_names = attr_names[len(attributes):]
             attributes.append('interval_end_time')
 
+            #if (self._class_id == 334):
+            #    attributes.append('control_block')
+
+            self.log.debug('XXX attributes_mask', attributes=attributes, mask=self._entity.mask_for(*attributes))
+
             frame = OmciFrame(
                 transaction_id=None,
                 message_type=OmciGet.message_id,
@@ -145,17 +160,18 @@ class IntervalDataTask(Task):
                     attributes_mask=self._entity.mask_for(*attributes)
                 )
             )
-            self.log.debug('interval-get-request', class_id=self._class_id,
+            self.log.debug('XXX interval-get-request', class_id=self._class_id,
                            entity_id=self._entity_id)
             try:
                 self.strobe_watchdog()
                 results = yield device.omci_cc.send(frame)
 
                 omci_msg = results.fields['omci_message'].fields
+                self.log.debug('XXX interval-get-request-result', omci_msg=omci_msg)
                 status = omci_msg['success_code']
                 end_time = omci_msg['data'].get('interval_end_time')
 
-                self.log.debug('interval-get-results', class_id=self._class_id,
+                self.log.debug('XXX interval-get-results', class_id=self._class_id,
                                entity_id=self._entity_id, status=status,
                                end_time=end_time)
 

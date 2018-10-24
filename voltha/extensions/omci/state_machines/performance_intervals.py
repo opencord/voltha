@@ -158,6 +158,7 @@ class PerformanceIntervals(object):
 
         # (Class ID, Instance ID) -> Collect attempts remaining
         self._pm_me_collect_retries = dict()
+        self._pm_me_extended_info = dict()
         self._add_pm_me = dict()        # (pm cid, pm eid) -> (me cid, me eid, upstream)
         self._del_pm_me = set()
 
@@ -503,6 +504,7 @@ class PerformanceIntervals(object):
             # an already-exists status code which we consider successful
             for pm, me in mes.items():
                 self._pm_me_collect_retries[pm] = self.pm_collected(pm)
+                self._pm_me_extended_info[pm] = me
 
             self._current_task = None
             self._deferred = reactor.callLater(0, self.success)
@@ -598,8 +600,23 @@ class PerformanceIntervals(object):
 
                 # start the task
                 self.log.info('collect-task-start')
+
+                if key in self._pm_me_extended_info:
+                    self.log.debug('collect-extended-info-found', key=key, extended_info=self._pm_me_extended_info[key])
+                    parent_class_id = self._pm_me_extended_info[key][0]
+                    parent_entity_id = self._pm_me_extended_info[key][1]
+                    upstream = self._pm_me_extended_info[key][2]
+                else:
+                    self.log.debug('collect-extended-info-not-found', key=key)
+                    parent_class_id = None
+                    parent_entity_id = None
+                    upstream = None
+
                 self._current_task = self._get_interval_task(self._agent, self._device_id,
-                                                             class_id, entity_id)
+                                                             class_id, entity_id,
+                                                             parent_class_id=parent_class_id,
+                                                             parent_entity_id=parent_entity_id,
+                                                             upstream=upstream)
                 self._task_deferred = self._device.task_runner.queue_task(self._current_task)
                 self._task_deferred.addCallbacks(success, failure)
                 self._task_deferred.addCallback(self.publish_data)

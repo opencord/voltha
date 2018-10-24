@@ -67,6 +67,7 @@ class OmciMaskedData(Field):
 
     def __init__(self, name, entity_class="entity_class",
                  attributes_mask="attributes_mask"):
+        log.info("XXX OmciMaskedData", name=name, entity_class=entity_class, attributes_mask=attributes_mask)
         Field.__init__(self, name=name, default=None, fmt='s')
         self._entity_class = entity_class
         self._attributes_mask = attributes_mask
@@ -100,6 +101,7 @@ class OmciMaskedData(Field):
             except Exception, e:
                 raise
             data[fld.name] = value
+            log.info("XXX get-field-index", index=index, fld_name=fld.name, value=value)
         return s, data
 
 
