@@ -449,7 +449,7 @@ class test_logical_device_agent(FlowHelpers):
         ))
         self.lda._flow_table_updated(self.flows)
         self.assertEqual(len(self.device_flows['olt'].items), 2)
-        self.assertEqual(len(self.device_flows['onu1'].items), 3)
+        self.assertEqual(len(self.device_flows['onu1'].items), 4)
         self.assertEqual(len(self.device_flows['onu2'].items), 3)
         self.assertEqual(len(self.device_groups['olt'].items), 0)
         self.assertEqual(len(self.device_groups['onu1'].items), 0)
@@ -770,7 +770,7 @@ class test_logical_device_agent(FlowHelpers):
 
         # now check device level flows
         self.assertEqual(len(self.device_flows['olt'].items), 15)
-        self.assertEqual(len(self.device_flows['onu1'].items), 5)
+        self.assertEqual(len(self.device_flows['onu1'].items), 8)
         self.assertEqual(len(self.device_flows['onu2'].items), 5)
         self.assertEqual(len(self.device_groups['olt'].items), 0)
         self.assertEqual(len(self.device_groups['onu1'].items), 0)

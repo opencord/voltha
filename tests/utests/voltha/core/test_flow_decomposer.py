@@ -305,7 +305,7 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
         device_rules = self.decompose_rules([flow], [])
         onu1_flows, onu1_groups = device_rules['onu1']
         olt_flows, olt_groups = device_rules['olt']
-        self.assertEqual(len(onu1_flows), 1)
+        self.assertEqual(len(onu1_flows), 2)
         self.assertEqual(len(onu1_groups), 0)
         self.assertEqual(len(olt_flows), 2)
         self.assertEqual(len(olt_groups), 0)
@@ -363,7 +363,7 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
         device_rules = self.decompose_rules([flow], [])
         onu1_flows, onu1_groups = device_rules['onu1']
         olt_flows, olt_groups = device_rules['olt']
-        self.assertEqual(len(onu1_flows), 1)
+        self.assertEqual(len(onu1_flows), 2)
         self.assertEqual(len(onu1_groups), 0)
         self.assertEqual(len(olt_flows), 2)
         self.assertEqual(len(olt_groups), 0)
