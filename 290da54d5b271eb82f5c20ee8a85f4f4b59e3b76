@@ -1,0 +1,113 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0911ad77_504a0eca",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-24T04:43:10Z",
+      "side": 1,
+      "message": "can you please remove this unnecessary spaces. This seems to be present at a few places.",
+      "revId": "290da54d5b271eb82f5c20ee8a85f4f4b59e3b76",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "887cd67a_90e64214",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-24T04:43:10Z",
+      "side": 1,
+      "message": "can you please remove the unnecessary spaces in this file",
+      "range": {
+        "startLine": 57,
+        "startChar": 86,
+        "endLine": 57,
+        "endChar": 87
+      },
+      "revId": "290da54d5b271eb82f5c20ee8a85f4f4b59e3b76",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e87de95d_97867335",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-24T04:43:10Z",
+      "side": 1,
+      "message": "\u0027;\u0027 not necessary",
+      "range": {
+        "startLine": 89,
+        "startChar": 39,
+        "endLine": 89,
+        "endChar": 40
+      },
+      "revId": "290da54d5b271eb82f5c20ee8a85f4f4b59e3b76",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a2e9409a_66592b52",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 252,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-24T04:43:10Z",
+      "side": 1,
+      "message": "What is the use of this line?",
+      "range": {
+        "startLine": 252,
+        "startChar": 9,
+        "endLine": 252,
+        "endChar": 57
+      },
+      "revId": "290da54d5b271eb82f5c20ee8a85f4f4b59e3b76",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "928b3bc1_75adc3b2",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-24T04:43:10Z",
+      "side": 1,
+      "message": "Sorry for my ignorance. I don\u0027t understand this check? What is this supposed to do?",
+      "range": {
+        "startLine": 296,
+        "startChar": 8,
+        "endLine": 296,
+        "endChar": 57
+      },
+      "revId": "290da54d5b271eb82f5c20ee8a85f4f4b59e3b76",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
