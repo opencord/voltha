@@ -644,6 +644,9 @@ class FlowDecomposer(object):
                 else:
                     in_ports = [in_port_no]
 
+                child_fl_lst, _ = device_rules.setdefault(
+                    ingress_hop.device.id, ([], []))
+
                 for input_port in in_ports:
                     fl_lst.append(mk_flow_stat(        # Upstream flow
                         priority=flow.priority,
@@ -659,6 +662,20 @@ class FlowDecomposer(object):
                             push_vlan(0x8100),
                             set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
                             output(egress_hop.egress_port.port_no)]
+                    ))
+                    child_fl_lst.append(mk_flow_stat(        # Upstream flow
+                        priority=flow.priority,
+                        cookie=flow.cookie,
+                        match_fields=[
+                            in_port(ingress_hop.ingress_port.port_no)
+                        ] + [
+                            field for field in get_ofb_fields(flow)
+                            if field.type not in (IN_PORT,)
+                        ],
+                        actions=[
+                            push_vlan(0x8100),
+                            set_field(vlan_vid(ofp.OFPVID_PRESENT | input_port)),
+                            output(ingress_hop.egress_port.port_no)]
                     ))
                     fl_lst.append(mk_flow_stat(            # Downstream flow
                         priority=flow.priority,
