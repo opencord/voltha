@@ -717,13 +717,23 @@ class PonSimOltHandler(object):
                       msg=hexify(msg))
         pkt = Ether(msg)
         out_pkt = pkt
+        self.log.debug("packet_out: incoming: %s" % pkt.summary())
         if egress_port != self.nni_port.port_no:
             # don't do the vlan manipulation for the NNI port, vlans are already correct
+            payload = pkt.payload
+            if pkt.haslayer(Dot1Q):
+                # For QinQ-tagged packets from ONOS:
+                # Outer header is 802.1AD
+                # Inner header is 802.1Q
+                inner_shim = pkt.getlayer(Dot1Q)
+                payload = inner_shim.payload
+
             out_pkt = (
-                    Ether(src=pkt.src, dst=pkt.dst) /
-                    Dot1Q(vlan=egress_port, type=pkt.type) /
-                    pkt.payload
+                Ether(src=pkt.src, dst=pkt.dst) /
+                Dot1Q(vlan=egress_port) /
+                payload
             )
+        self.log.debug("packet_out: outgoing: %s" % out_pkt.summary())
 
         # TODO need better way of mapping logical ports to PON ports
         out_port = self.nni_port.port_no if egress_port == self.nni_port.port_no else 1
