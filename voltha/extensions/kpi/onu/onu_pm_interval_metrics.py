@@ -63,6 +63,9 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
             ('class_id', PmConfig.CONTEXT),
             ('entity_id', PmConfig.CONTEXT),
             ("interval_end_time", PmConfig.CONTEXT),
+            ('parent_class_id', PmConfig.CONTEXT),
+            ('parent_entity_id', PmConfig.CONTEXT),
+            ('upstream', PmConfig.CONTEXT),
 
             ("drop_events", PmConfig.COUNTER),
             ("octets", PmConfig.COUNTER),

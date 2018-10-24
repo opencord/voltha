@@ -34,7 +34,10 @@ class IntervalDataTask(Task):
     max_payload = 29
 
     def __init__(self, omci_agent, device_id, class_id, entity_id,
-                 max_get_response_payload=max_payload):
+                 max_get_response_payload=max_payload,
+                 parent_class_id=None,
+                 parent_entity_id=None,
+                 upstream=None):
         """
         Class initialization
 
@@ -53,6 +56,10 @@ class IntervalDataTask(Task):
         self._local_deferred = None
         self._class_id = class_id
         self._entity_id = entity_id
+
+        self._parent_class_id = parent_class_id
+        self._parent_entity_id = parent_entity_id
+        self._upstream = upstream
 
         me_map = self.omci_agent.get_device(self.device_id).me_map
         if self._class_id not in me_map:
@@ -116,6 +123,9 @@ class IntervalDataTask(Task):
             'entity_id': self._entity_id,
             'me_name': self._entity.__name__,   # Mostly for debugging...
             'interval_utc_time': None,
+            'parent_class_id': self._parent_class_id,
+            'parent_entity_id': self._parent_entity_id,
+            'upstream': self._upstream
             # Counters added here as they are retrieved
         }
         last_end_time = None
