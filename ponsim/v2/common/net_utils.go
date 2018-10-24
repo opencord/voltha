@@ -105,7 +105,18 @@ func GetDot1QLayer(frame gopacket.Packet) *layers.Dot1Q {
 	}
 	return dot1q
 }
-
+func GetLastDot1QLayer(frame gopacket.Packet) *layers.Dot1Q {
+	var dot1q *layers.Dot1Q
+	for _, layer := range frame.Layers() {
+		if layer.LayerType() == layers.LayerTypeDot1Q {
+			if adot1q, _ := layer.(*layers.Dot1Q); adot1q.NextLayerType() != layers.LayerTypeDot1Q {
+				dot1q = adot1q
+				break
+			}
+		}
+	}
+	return dot1q
+}
 func GetIpLayer(frame gopacket.Packet) *layers.IPv4 {
 	ip := &layers.IPv4{}
 	if ipLayer := frame.Layer(layers.LayerTypeIPv4); ipLayer != nil {
