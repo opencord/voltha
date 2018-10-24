@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "33e41c14_614b84b0",
+        "filename": "voltha/core/local_handler.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1380,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-10-24T11:00:37Z",
+      "side": 1,
+      "message": "Thanks Khen for your suggestion. I\u0027ve updated the contex status in a way that, it\u0027ll cause an exception in the local handler side and it will be handled at ofagent instance. (There was already a try-except structure over there).",
+      "parentUuid": "4e4399cf_b7e8bdb6",
+      "revId": "641907ad0072cae5ec78fa9e5570c8c955afab11",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "979267e9_628f9a54",
         "filename": "voltha/protos/voltha.proto",
         "patchSetId": 5
