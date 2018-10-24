@@ -95,8 +95,13 @@ class OmciCreatePMRequest(Task):
                         )
                     )
                 else:
-                    # Extended PM interval format
-                    bitmap = 0 if upstream else 1 << 2
+                    # Extended PM interval format. See ITU-T G.988 Section 9.3.32.
+                    #    Bit 1 - continuous accumulation if set, 15-minute interval if unset
+                    #    Bit 2 - directionality (0=upstream, 1=downstream)
+                    #    Bit 3..14 - Reserved
+                    #    Bit 15 - Use P bits of TCI field to filter
+                    #    Bit 16 - Use VID bits of TCI field to filter
+                    bitmap = 0 if upstream else 1 << 1
 
                     data = {'control_block': [
                         0,             # Threshold data 1/2 ID
