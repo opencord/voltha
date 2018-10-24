@@ -51,6 +51,24 @@
       "revId": "641907ad0072cae5ec78fa9e5570c8c955afab11",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "549c468a_c2424fa2",
+        "filename": "voltha/protos/voltha.proto",
+        "patchSetId": 5
+      },
+      "lineNbr": 1096,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-10-24T12:09:35Z",
+      "side": 1,
+      "message": "Absolutely. I am gonna be fixing it.",
+      "parentUuid": "979267e9_628f9a54",
+      "revId": "641907ad0072cae5ec78fa9e5570c8c955afab11",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
