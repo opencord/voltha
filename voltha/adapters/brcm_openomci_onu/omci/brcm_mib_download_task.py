@@ -88,8 +88,8 @@ class BrcmMibDownloadTask(Task):
         self._ethernet_uni_entity_id = self._uni_port.entity_id
 
         # Port numbers
-        self._pon_port_num = 3  # TODO why 3.  maybe this is the ani port number.  look at anis list
-
+        self._ul_pon_port_num = 3  # TODO why 3.  maybe this is the ani port number.  look at anis list
+        self._dl_pon_port_num = 4
         self._input_tpid = BrcmMibDownloadTask.default_tpid
         self._output_tpid = BrcmMibDownloadTask.default_tpid
 
@@ -102,9 +102,14 @@ class BrcmMibDownloadTask(Task):
 
         # TODO: lots of magic numbers
         self._mac_bridge_service_profile_entity_id = 0x201
-        self._ieee_mapper_service_profile_entity_id = 0x8001
-        self._mac_bridge_port_ani_entity_id = 0x2102   # TODO: can we just use the entity id from the anis list?
+        self._ul_ieee_mapper_service_profile_entity_id = 0x8001
+        self._dl_ieee_mapper_service_profile_entity_id = 0x8002
+        self._ul_mac_bridge_port_ani_entity_id = 0x2102   # TODO: can we just use the entity id from the anis list?
+        self._dl_mac_bridge_port_ani_entity_id = 0x2103
         self._gal_enet_profile_entity_id = 0x1
+
+        self._free_ul_prior_q_entity_ids = set()
+        self._free_dl_prior_q_entity_ids = set()
 
     def cancel_deferred(self):
         self.log.debug('function-entry')
@@ -172,46 +177,40 @@ class BrcmMibDownloadTask(Task):
         UNI ports for this device. The application of any service flows
         and other characteristics are done as needed.
         """
-        self.log.debug('function-entry')
-        self.log.info('perform-download')
+        try:
+            self.log.debug('function-entry')
+            self.log.info('perform-download')
 
-        device = self._handler.adapter_agent.get_device(self.device_id)
+            device = self._handler.adapter_agent.get_device(self.device_id)
 
-        def resources_available():
-            return (len(self._handler.uni_ports) > 0 and
-                    len(self._handler.pon_port.tconts) and
-                    len(self._handler.pon_port.gem_ports))
+            if self._handler.enabled and len(self._handler.uni_ports) > 0:
+                device.reason = 'performing-initial-mib-download'
+                self._handler.adapter_agent.update_device(device)
 
-        if self._handler.enabled and resources_available():
-            device.reason = 'performing-initial-mib-download'
-            self._handler.adapter_agent.update_device(device)
+                try:
+                    # Lock the UNI ports to prevent any alarms during initial configuration
+                    # of the ONU
+                    self.strobe_watchdog()
+                    yield self.enable_uni(self._uni_port, True)
 
-            try:
-                # Lock the UNI ports to prevent any alarms during initial configuration
-                # of the ONU
-                self.strobe_watchdog()
-                yield self.enable_uni(self._uni_port, True)
+                    # Provision the initial bridge configuration
+                    yield self.perform_initial_bridge_setup()
 
-                # Provision the initial bridge configuration
-                yield self.perform_initial_bridge_setup()
+                    # And re-enable the UNIs if needed
+                    yield self.enable_uni(self._uni_port, False)
 
-                # And not all the service specific work
-                yield self.perform_service_specific_steps()
+                    self.deferred.callback('initial-download-success')
 
-                # And re-enable the UNIs if needed
-                yield self.enable_uni(self._uni_port, False)
+                except TimeoutError as e:
+                    self.deferred.errback(failure.Failure(e))
 
-                self.deferred.callback('initial-download-success')
-
-            except TimeoutError as e:
+            else:
+                e = MibResourcesFailure('Required resources are not available',
+                                        len(self._handler.uni_ports))
                 self.deferred.errback(failure.Failure(e))
-
-        else:
-            e = MibResourcesFailure('Required resources are not available',
-                                    tconts=len(self._handler.pon_port.tconts),
-                                    gems=len(self._handler.pon_port.gem_ports),
-                                    unis=len(self._handler.uni_ports))
-            self.deferred.errback(failure.Failure(e))
+        except BaseException as e:
+            self.log.debug('@thyy_mib_check:', exception=e)
+        
 
     @inlineCallbacks
     def perform_initial_bridge_setup(self):
@@ -279,7 +278,13 @@ class BrcmMibDownloadTask(Task):
             #            - Nothing at this point. When a GEM port is created, this entity will
             #              be updated to reference the GEM Interworking TP
 
-            msg = Ieee8021pMapperServiceProfileFrame(self._ieee_mapper_service_profile_entity_id)
+            msg = Ieee8021pMapperServiceProfileFrame(self._ul_ieee_mapper_service_profile_entity_id)
+            frame = msg.create()
+            self.log.debug('openomci-msg', msg=msg)
+            results = yield omci_cc.send(frame)
+            self.check_status_and_state(results, 'create-8021p-mapper-service-profile')
+
+            msg = Ieee8021pMapperServiceProfileFrame(self._dl_ieee_mapper_service_profile_entity_id)
             frame = msg.create()
             self.log.debug('openomci-msg', msg=msg)
             results = yield omci_cc.send(frame)
@@ -302,11 +307,23 @@ class BrcmMibDownloadTask(Task):
 
             # TODO: magic. make a static variable for tp_type
             msg = MacBridgePortConfigurationDataFrame(
-                self._mac_bridge_port_ani_entity_id,
+                self._ul_mac_bridge_port_ani_entity_id,
                 bridge_id_pointer=self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                port_num=self._pon_port_num,                            # Port ID  ##TODO associated with what?
+                port_num=self._ul_pon_port_num,                            # Port ID  ##TODO associated with what?
                 tp_type=3,                                              # TP Type (IEEE 802.1p mapper service)
-                tp_pointer=self._ieee_mapper_service_profile_entity_id  # TP ID, 8021p mapper ID
+                tp_pointer=self._ul_ieee_mapper_service_profile_entity_id  # TP ID, 8021p mapper ID
+            )
+            frame = msg.create()
+            self.log.debug('openomci-msg', msg=msg)
+            results = yield omci_cc.send(frame)
+            self.check_status_and_state(results, 'create-mac-bridge-port-configuration-data-part-1')
+
+            msg = MacBridgePortConfigurationDataFrame(
+                self._dl_mac_bridge_port_ani_entity_id,
+                bridge_id_pointer=self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                port_num=self._dl_pon_port_num,                            # Port ID  ##TODO associated with what?
+                tp_type=3,                                              # TP Type (IEEE 802.1p mapper service)
+                tp_pointer=self._dl_ieee_mapper_service_profile_entity_id  # TP ID, 8021p mapper ID
             )
             frame = msg.create()
             self.log.debug('openomci-msg', msg=msg)
@@ -325,14 +342,24 @@ class BrcmMibDownloadTask(Task):
 
             # TODO: magic. make a static variable for forward_op
             msg = VlanTaggingFilterDataFrame(
-                self._mac_bridge_port_ani_entity_id,  # Entity ID
+                self._ul_mac_bridge_port_ani_entity_id,  # Entity ID
                 vlan_tcis=[self._vlan_tcis_1],        # VLAN IDs
                 forward_operation=0x10
             )
             frame = msg.create()
             self.log.debug('openomci-msg', msg=msg)
             results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'create-vlan-tagging-filter-data')
+            self.check_status_and_state(results, 'create-ul-vlan-tagging-filter-data')
+
+            msg = VlanTaggingFilterDataFrame(
+                self._dl_mac_bridge_port_ani_entity_id,  # Entity ID
+                vlan_tcis=[self._vlan_tcis_1],        # VLAN IDs
+                forward_operation=0x10
+            )
+            frame = msg.create()
+            self.log.debug('openomci-msg', msg=msg)
+            results = yield omci_cc.send(frame)
+            self.check_status_and_state(results, 'create-dl-vlan-tagging-filter-data')
 
            ################################################################################
             # UNI Specific                                                                 #
@@ -366,204 +393,6 @@ class BrcmMibDownloadTask(Task):
 
         except Exception as e:
             self.log.exception('omci-setup-1', e=e)
-            raise
-
-        returnValue(None)
-
-    @inlineCallbacks
-    def perform_service_specific_steps(self):
-        self.log.debug('function-entry')
-
-        omci_cc = self._onu_device.omci_cc
-        frame = None
-
-        try:
-            ################################################################################
-            # TCONTS
-            #
-            #  EntityID will be referenced by:
-            #            - GemPortNetworkCtp
-            #  References:
-            #            - ONU created TCONT (created on ONU startup)
-
-            tcont_idents = self._onu_device.query_mib(Tcont.class_id)
-            self.log.debug('tcont-idents', tcont_idents=tcont_idents)
-
-            for tcont in self._handler.pon_port.tconts.itervalues():
-                free_entity_id = None
-                for k, v in tcont_idents.items():
-                    alloc_check = v.get('attributes', {}).get('alloc_id', 0)
-                    # Some onu report both to indicate an available tcont
-                    if alloc_check == 0xFF or alloc_check == 0xFFFF:
-                        free_entity_id = k
-                        break
-                    else:
-                        free_entity_id = None
-
-                self.log.debug('tcont-loop', free_entity_id=free_entity_id)
-
-                if free_entity_id is None:
-                    self.log.error('no-available-tconts')
-                    break
-
-                # TODO: Need to restore on failure.  Need to check status/results
-                yield tcont.add_to_hardware(omci_cc, free_entity_id)
-
-
-            ################################################################################
-            # GEMS  (GemPortNetworkCtp and GemInterworkingTp)
-            #
-            #  For both of these MEs, the entity_id is the GEM Port ID. The entity id of the
-            #  GemInterworkingTp ME could be different since it has an attribute to specify
-            #  the GemPortNetworkCtp entity id.
-            #
-            #        for the GemPortNetworkCtp ME
-            #
-            #  GemPortNetworkCtp
-            #    EntityID will be referenced by:
-            #              - GemInterworkingTp
-            #    References:
-            #              - TCONT
-            #              - Hardcoded upstream TM Entity ID
-            #              - (Possibly in Future) Upstream Traffic descriptor profile pointer
-            #
-            #  GemInterworkingTp
-            #    EntityID will be referenced by:
-            #              - Ieee8021pMapperServiceProfile
-            #    References:
-            #              - GemPortNetworkCtp
-            #              - Ieee8021pMapperServiceProfile
-            #              - GalEthernetProfile
-            #
-
-            for gem_port in self._handler.pon_port.gem_ports.itervalues():
-                tcont = gem_port.tcont
-                if tcont is None:
-                    self.log.error('unknown-tcont-reference', gem_id=gem_port.gem_id)
-                    continue
-
-                # TODO: Need to restore on failure.  Need to check status/results
-                yield gem_port.add_to_hardware(omci_cc,
-                                               tcont.entity_id,
-                                               self._ieee_mapper_service_profile_entity_id,
-                                               self._gal_enet_profile_entity_id)
-
-            ################################################################################
-            # Update the IEEE 802.1p Mapper Service Profile config
-            #
-            #  EntityID was created prior to this call. This is a set
-            #
-            #  References:
-            #            - Gem Interwork TPs are set here
-            #
-            # TODO: All p-bits currently go to the one and only GEMPORT ID for now
-            gem_ports = self._handler.pon_port.gem_ports
-            gem_entity_ids = [gem_port.entity_id for _, gem_port in gem_ports.items()] \
-                if len(gem_ports) else [OmciNullPointer]
-
-            msg = Ieee8021pMapperServiceProfileFrame(
-                self._ieee_mapper_service_profile_entity_id,  # 802.1p mapper Service Mapper Profile ID
-                interwork_tp_pointers=gem_entity_ids          # Interworking TP IDs
-            )
-            frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
-            results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'set-8021p-mapper-service-profile')
-
-            ################################################################################
-            # Create Extended VLAN Tagging Operation config (PON-side)
-            #
-            #  EntityID relates to the VLAN TCIS
-            #  References:
-            #            - VLAN TCIS from previously created VLAN Tagging filter data
-            #            - PPTP Ethernet UNI
-            #
-
-            # TODO: do this for all uni/ports...
-            # TODO: magic.  static variable for assoc_type
-            attributes = dict(
-                association_type=2,                                 # Assoc Type, PPTP Ethernet UNI
-                associated_me_pointer=self._ethernet_uni_entity_id  # Assoc ME, PPTP Entity Id
-            )
-
-            msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                attributes=attributes
-            )
-            frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
-            results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'create-extended-vlan-tagging-operation-configuration-data')
-
-            ################################################################################
-            # Update Extended VLAN Tagging Operation Config Data
-            #
-            # Specifies the TPIDs in use and that operations in the downstream direction are
-            # inverse to the operations in the upstream direction
-
-            # TODO: magic.  static variable for downstream_mode
-            attributes = dict(
-                input_tpid=self._input_tpid,    # input TPID
-                output_tpid=self._output_tpid,  # output TPID
-                downstream_mode=0,              # inverse of upstream
-            )
-            msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                attributes=attributes
-            )
-            frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
-            results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data')
-
-            ################################################################################
-            # Update Extended VLAN Tagging Operation Config Data
-            #
-            # parameters: Entity Id ( 0x900), Filter Inner Vlan Id(0x1000-4096,do not filter on Inner vid,
-            #             Treatment Inner Vlan Id : 2
-
-            # Update uni side extended vlan filter
-            # filter for untagged
-            # probably for eapol
-            # TODO: lots of magic
-            # TODO: magic 0x1000 / 4096?
-            attributes = dict(
-                received_frame_vlan_tagging_operation_table=
-                VlanTaggingOperation(
-                    filter_outer_priority=15,  # This entry is not a double-tag rule
-                    filter_outer_vid=4096,     # Do not filter on the outer VID value
-                    filter_outer_tpid_de=0,    # Do not filter on the outer TPID field
-
-                    filter_inner_priority=15,
-                    filter_inner_vid=4096,
-                    filter_inner_tpid_de=0,
-                    filter_ether_type=0,
-
-                    treatment_tags_to_remove=0,
-                    treatment_outer_priority=15,
-                    treatment_outer_vid=0,
-                    treatment_outer_tpid_de=0,
-
-                    treatment_inner_priority=0,
-                    treatment_inner_vid=self._cvid,
-                    treatment_inner_tpid_de=4,
-                )
-            )
-            msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                attributes=attributes         # See above
-            )
-            frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
-            results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data-untagged')
-
-        except TimeoutError as e:
-            self.log.warn('rx-timeout-2', e=e)
-            raise
-
-        except Exception as e:
-            self.log.exception('omci-setup-2', e=e)
             raise
 
         returnValue(None)
