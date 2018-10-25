@@ -87,8 +87,8 @@ class BrcmMibDownloadTask(Task):
         self._uni_port = self._handler.uni_ports[0]
 
         # Port numbers
-        self._pon_port_num = 3  # TODO why 3.  maybe this is the ani port number.  look at anis list
-
+        self._ul_pon_port_num = 3  # TODO why 3.  maybe this is the ani port number.  look at anis list
+        self._dl_pon_port_num = 4
         self._input_tpid = BrcmMibDownloadTask.default_tpid
         self._output_tpid = BrcmMibDownloadTask.default_tpid
 
@@ -101,9 +101,14 @@ class BrcmMibDownloadTask(Task):
 
         # TODO: lots of magic numbers
         self._mac_bridge_service_profile_entity_id = 0x201
-        self._ieee_mapper_service_profile_entity_id = 0x8001
-        self._mac_bridge_port_ani_entity_id = 0x2102   # TODO: can we just use the entity id from the anis list?
+        self._ul_ieee_mapper_service_profile_entity_id = 0x8001
+        self._dl_ieee_mapper_service_profile_entity_id = 0x8002
+        self._ul_mac_bridge_port_ani_entity_id = 0x2102   # TODO: can we just use the entity id from the anis list?
+        self._dl_mac_bridge_port_ani_entity_id = 0x2103
         self._gal_enet_profile_entity_id = 0x1
+
+        self._free_ul_prior_q_entity_ids = set()
+        self._free_dl_prior_q_entity_ids = set()
 
     def cancel_deferred(self):
         self.log.debug('function-entry')
@@ -171,46 +176,40 @@ class BrcmMibDownloadTask(Task):
         UNI ports for this device. The application of any service flows
         and other characteristics are done as needed.
         """
-        self.log.debug('function-entry')
-        self.log.info('perform-download')
+        try:
+            self.log.debug('function-entry')
+            self.log.info('perform-download')
 
-        device = self._handler.adapter_agent.get_device(self.device_id)
+            device = self._handler.adapter_agent.get_device(self.device_id)
 
-        def resources_available():
-            return (len(self._handler.uni_ports) > 0 and
-                    len(self._handler.pon_port.tconts) and
-                    len(self._handler.pon_port.gem_ports))
+            if self._handler.enabled and len(self._handler.uni_ports) > 0:
+                device.reason = 'performing-initial-mib-download'
+                self._handler.adapter_agent.update_device(device)
 
-        if self._handler.enabled and resources_available():
-            device.reason = 'performing-initial-mib-download'
-            self._handler.adapter_agent.update_device(device)
+                try:
+                    # Lock the UNI ports to prevent any alarms during initial configuration
+                    # of the ONU
+                    self.strobe_watchdog()
+                    yield self.enable_uni(self._uni_port, True)
 
-            try:
-                # Lock the UNI ports to prevent any alarms during initial configuration
-                # of the ONU
-                self.strobe_watchdog()
-                yield self.enable_uni(self._uni_port, True)
+                    # Provision the initial bridge configuration
+                    yield self.perform_initial_bridge_setup()
 
-                # Provision the initial bridge configuration
-                yield self.perform_initial_bridge_setup()
+                    # And re-enable the UNIs if needed
+                    yield self.enable_uni(self._uni_port, False)
 
-                # And not all the service specific work
-                yield self.perform_service_specific_steps()
+                    self.deferred.callback('initial-download-success')
 
-                # And re-enable the UNIs if needed
-                yield self.enable_uni(self._uni_port, False)
+                except TimeoutError as e:
+                    self.deferred.errback(failure.Failure(e))
 
-                self.deferred.callback('initial-download-success')
-
-            except TimeoutError as e:
+            else:
+                e = MibResourcesFailure('Required resources are not available',
+                                        len(self._handler.uni_ports))
                 self.deferred.errback(failure.Failure(e))
-
-        else:
-            e = MibResourcesFailure('Required resources are not available',
-                                    tconts=len(self._handler.pon_port.tconts),
-                                    gems=len(self._handler.pon_port.gem_ports),
-                                    unis=len(self._handler.uni_ports))
-            self.deferred.errback(failure.Failure(e))
+        except BaseException as e:
+            self.log.debug('@thyy_mib_check:', exception=e)
+        
 
     @inlineCallbacks
     def perform_initial_bridge_setup(self):
@@ -278,7 +277,13 @@ class BrcmMibDownloadTask(Task):
             #            - Nothing at this point. When a GEM port is created, this entity will
             #              be updated to reference the GEM Interworking TP
 
-            msg = Ieee8021pMapperServiceProfileFrame(self._ieee_mapper_service_profile_entity_id)
+            msg = Ieee8021pMapperServiceProfileFrame(self._ul_ieee_mapper_service_profile_entity_id)
+            frame = msg.create()
+            self.log.debug('openomci-msg', msg=msg)
+            results = yield omci_cc.send(frame)
+            self.check_status_and_state(results, 'create-8021p-mapper-service-profile')
+
+            msg = Ieee8021pMapperServiceProfileFrame(self._dl_ieee_mapper_service_profile_entity_id)
             frame = msg.create()
             self.log.debug('openomci-msg', msg=msg)
             results = yield omci_cc.send(frame)
@@ -301,11 +306,23 @@ class BrcmMibDownloadTask(Task):
 
             # TODO: magic. make a static variable for tp_type
             msg = MacBridgePortConfigurationDataFrame(
-                self._mac_bridge_port_ani_entity_id,
+                self._ul_mac_bridge_port_ani_entity_id,
                 bridge_id_pointer=self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                port_num=self._pon_port_num,                            # Port ID  ##TODO associated with what?
+                port_num=self._ul_pon_port_num,                            # Port ID  ##TODO associated with what?
                 tp_type=3,                                              # TP Type (IEEE 802.1p mapper service)
-                tp_pointer=self._ieee_mapper_service_profile_entity_id  # TP ID, 8021p mapper ID
+                tp_pointer=self._ul_ieee_mapper_service_profile_entity_id  # TP ID, 8021p mapper ID
+            )
+            frame = msg.create()
+            self.log.debug('openomci-msg', msg=msg)
+            results = yield omci_cc.send(frame)
+            self.check_status_and_state(results, 'create-mac-bridge-port-configuration-data-part-1')
+
+            msg = MacBridgePortConfigurationDataFrame(
+                self._dl_mac_bridge_port_ani_entity_id,
+                bridge_id_pointer=self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                port_num=self._dl_pon_port_num,                            # Port ID  ##TODO associated with what?
+                tp_type=3,                                              # TP Type (IEEE 802.1p mapper service)
+                tp_pointer=self._dl_ieee_mapper_service_profile_entity_id  # TP ID, 8021p mapper ID
             )
             frame = msg.create()
             self.log.debug('openomci-msg', msg=msg)
@@ -324,14 +341,24 @@ class BrcmMibDownloadTask(Task):
 
             # TODO: magic. make a static variable for forward_op
             msg = VlanTaggingFilterDataFrame(
-                self._mac_bridge_port_ani_entity_id,  # Entity ID
+                self._ul_mac_bridge_port_ani_entity_id,  # Entity ID
                 vlan_tcis=[self._vlan_tcis_1],        # VLAN IDs
                 forward_operation=0x10
             )
             frame = msg.create()
             self.log.debug('openomci-msg', msg=msg)
             results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'create-vlan-tagging-filter-data')
+            self.check_status_and_state(results, 'create-ul-vlan-tagging-filter-data')
+
+            msg = VlanTaggingFilterDataFrame(
+                self._dl_mac_bridge_port_ani_entity_id,  # Entity ID
+                vlan_tcis=[self._vlan_tcis_1],        # VLAN IDs
+                forward_operation=0x10
+            )
+            frame = msg.create()
+            self.log.debug('openomci-msg', msg=msg)
+            results = yield omci_cc.send(frame)
+            self.check_status_and_state(results, 'create-dl-vlan-tagging-filter-data')
 
            ################################################################################
             # UNI Specific                                                                 #
