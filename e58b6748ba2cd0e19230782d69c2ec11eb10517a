@@ -22,6 +22,23 @@
       "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "aefbc3ad_2d1dd977",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-10-25T15:48:04Z",
+      "side": 1,
+      "message": "For several of the magic OMCI entity IDs, you may want to move them to one central location instead of replicating them across classes.\n\nIn the Adtran ONU, I\u0027ve moved many of these to more appropriate places.  Bridge and single instance related items into the Adtran device handler object, UNI related entity IDs into the UNIPort object, and ANI/PON related entity IDs into the PONPort object.   I have not checked these in yet since I am waiting for an OpenOMCI MIB sync review to complete, but should have them up in gerritt fairly soon.",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
