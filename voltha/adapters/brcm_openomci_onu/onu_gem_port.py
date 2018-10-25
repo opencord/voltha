@@ -14,19 +14,28 @@
 # limitations under the License.
 
 import structlog
-from common.frameio.frameio import hexify
 from twisted.internet.defer import inlineCallbacks, returnValue
 from voltha.extensions.omci.omci_me import *
 from voltha.extensions.omci.omci_defs import *
 
 RC = ReasonCodes
 
+
 class OnuGemPort(object):
     """
     Broadcom ONU specific implementation
     """
+
     def __init__(self, gem_id, alloc_id, entity_id,
+                 direction="BIDIRECTIONAL",
                  encryption=False,
+                 discard_config=None,
+                 discard_policy=None,
+                 max_q_size="auto",
+                 pbit_map="0b00000011",
+                 priority_q=3,
+                 scheduling_policy="WRR",
+                 weight=8,
                  omci_transport=False,
                  multicast=False,
                  tcont_ref=None,
@@ -45,11 +54,27 @@ class OnuGemPort(object):
         self.tcont_ref = tcont_ref
         self.intf_ref = intf_ref
         self.traffic_class = traffic_class
+        self._direction = None
         self._encryption = encryption
+        self._discard_config = None
+        self._discard_policy = None
+        self._max_q_size = None
+        self._pbit_map = None
+        self._scheduling_policy = None
         self._omci_transport = omci_transport
         self.multicast = multicast
         self.untagged = untagged
         self._handler = handler
+
+        self.direction = direction
+        self.encryption = encryption
+        self.discard_config = discard_config
+        self.discard_policy = discard_policy
+        self.max_q_size = max_q_size
+        self.pbit_map = pbit_map
+        self.priority_q = priority_q
+        self.scheduling_policy = scheduling_policy
+        self.weight = weight
 
         self._pon_id = None
         self._onu_id = None
@@ -61,11 +86,9 @@ class OnuGemPort(object):
         self.tx_packets = 0
         self.tx_bytes = 0
 
-
     def __str__(self):
-        return "GemPort: {}, alloc-id: {}, gem-id: {}".format(self.name,
-                                                              self.alloc_id,
-                                                              self.gem_id)
+        return "alloc-id: {}, gem-id: {}".format(self.alloc_id, self.gem_id)
+
     @property
     def pon_id(self):
         self.log.debug('function-entry')
@@ -91,19 +114,33 @@ class OnuGemPort(object):
     @property
     def alloc_id(self):
         self.log.debug('function-entry')
-        if self._alloc_id is None and self._handler is not None:
-            try:
-                self._alloc_id = self._handler.pon_port.tconts.get(self.tcont_ref).get('alloc-id')
-
-            except Exception:
-                pass
-
         return self._alloc_id
+
+    @property
+    def direction(self):
+        self.log.debug('function-entry')
+        return self._direction
+
+    @direction.setter
+    def direction(self, direction):
+        self.log.debug('function-entry')
+        # GEM Port CTP are configured separately in UPSTREAM and DOWNSTREAM.
+        # BIDIRECTIONAL is not supported.
+        assert direction == "UPSTREAM" or direction == "DOWNSTREAM" or \
+               direction == "BIDIRECTIONAL", "invalid-direction"
+
+        # OMCI framework expects string in lower-case. Tech-Profile sends in upper-case.
+        if direction == "UPSTREAM":
+            self._direction = "upstream"
+        elif direction == "DOWNSTREAM":
+            self._direction = "downstream"
+        elif direction == "BIDIRECTIONAL":
+            self._direction = "bi-directional"
 
     @property
     def tcont(self):
         self.log.debug('function-entry')
-        tcont_item = self._handler.pon_port.tconts.get(self.tcont_ref)
+        tcont_item = self._handler.pon_port.tconts.get(self.alloc_id)
         return tcont_item
 
     @property
@@ -133,23 +170,102 @@ class OnuGemPort(object):
     @encryption.setter
     def encryption(self, value):
         self.log.debug('function-entry')
+        # FIXME The encryption should come as boolean by default
+        value = eval(value)
         assert isinstance(value, bool), 'encryption is a boolean'
 
         if self._encryption != value:
             self._encryption = value
 
+    @property
+    def discard_config(self):
+        self.log.debug('function-entry')
+        return self._discard_config
+
+    @discard_config.setter
+    def discard_config(self, discard_config):
+        self.log.debug('function-entry')
+        assert isinstance(discard_config, dict), "discard_config not dict"
+        assert 'max_probability' in discard_config, "max_probability missing"
+        assert 'max_threshold' in discard_config, "max_threshold missing"
+        assert 'min_threshold' in discard_config, "min_threshold missing"
+        self._discard_config = discard_config
+
+    @property
+    def discard_policy(self):
+        self.log.debug('function-entry')
+        return self._discard_policy
+
+    @discard_policy.setter
+    def discard_policy(self, discard_policy):
+        self.log.debug('function-entry')
+        dp = ("TailDrop", "WTailDrop", "RED", "WRED")
+        assert (isinstance(discard_policy, str))
+        assert (discard_policy in dp)
+        self._discard_policy = discard_policy
+
+    @property
+    def max_q_size(self):
+        self.log.debug('function-entry')
+        return self._max_q_size
+
+    @max_q_size.setter
+    def max_q_size(self, max_q_size):
+        self.log.debug('function-entry')
+        if isinstance(max_q_size, str):
+            assert (max_q_size == "auto")
+        else:
+            assert (isinstance(max_q_size, int))
+
+        self._max_q_size = max_q_size
+
+    @property
+    def pbit_map(self):
+        self.log.debug('function-entry')
+        return self._pbit_map
+
+    @pbit_map.setter
+    def pbit_map(self, pbit_map):
+        self.log.debug('function-entry')
+        assert (isinstance(pbit_map, str))
+        assert (len(pbit_map[2:]) == 8)  # Example format of pbit_map: "0b00000101"
+        try:
+            _ = int(pbit_map[2], 2)
+        except ValueError:
+            raise Exception("pbit_map-not-binary-string-{}".format(pbit_map))
+
+        # remove '0b'
+        self._pbit_map = pbit_map[2:]
+
+    @property
+    def scheduling_policy(self):
+        self.log.debug('function-entry')
+        return self._scheduling_policy
+
+    @scheduling_policy.setter
+    def scheduling_policy(self, scheduling_policy):
+        self.log.debug('function-entry')
+        sp = ("WRR", "StrictPriority")
+        assert (isinstance(scheduling_policy, str))
+        assert (scheduling_policy in sp)
+        self._scheduling_policy = scheduling_policy
+
     @staticmethod
     def create(handler, gem_port, entity_id):
-        log = structlog.get_logger(device_id=handler.device_id, gem_port=gem_port, entity_id=entity_id)
         log.debug('function-entry', gem_port=gem_port, entity_id=entity_id)
 
-        return OnuGemPort(gem_port['gemport-id'],
-                          None,
-                          entity_id,
+        return OnuGemPort(gem_id=gem_port['gemport_id'],
+                          alloc_id=gem_port['alloc_id_ref'],
+                          entity_id=entity_id,
+                          direction=gem_port['direction'],
                           encryption=gem_port['encryption'],  # aes_indicator,
-                          tcont_ref=gem_port['tcont-ref'],
-                          name=gem_port['name'],
-                          traffic_class=gem_port['traffic-class'],
+                          discard_config=gem_port['discard_config'],
+                          discard_policy=gem_port['discard_policy'],
+                          max_q_size=gem_port['max_q_size'],
+                          pbit_map=gem_port['pbit_map'],
+                          priority_q=gem_port['priority_q'],
+                          scheduling_policy=gem_port['scheduling_policy'],
+                          weight=gem_port['weight'],
                           handler=handler,
                           untagged=False)
 
@@ -157,27 +273,32 @@ class OnuGemPort(object):
     def add_to_hardware(self, omci,
                         tcont_entity_id,
                         ieee_mapper_service_profile_entity_id,
-                        gal_enet_profile_entity_id):
+                        gal_enet_profile_entity_id,
+                        ul_prior_q_entity_id,
+                        dl_prior_q_entity_id):
         self.log.debug('function-entry')
 
         self.log.debug('add-to-hardware', gem_id=self.gem_id,
                        tcont_entity_id=tcont_entity_id,
                        ieee_mapper_service_profile_entity_id=ieee_mapper_service_profile_entity_id,
-                       gal_enet_profile_entity_id=gal_enet_profile_entity_id)
+                       gal_enet_profile_entity_id=gal_enet_profile_entity_id,
+                       ul_prior_q_entity_id=ul_prior_q_entity_id,
+                       dl_prior_q_entity_id=dl_prior_q_entity_id)
 
         try:
             direction = "downstream" if self.multicast else "bi-directional"
             assert not self.multicast, 'MCAST is not supported yet'
 
             # TODO: magic numbers here
+            attributes = dict()
+            attributes['priority_queue_pointer_downstream'] = dl_prior_q_entity_id
             msg = GemPortNetworkCtpFrame(
-                    self.entity_id,          # same entity id as GEM port
-                    port_id=self.gem_id,
-                    tcont_id=tcont_entity_id,
-                    direction=direction,
-                    # TODO: This points to the Priority Queue ME. Class #277.  Use whats discovered in relation to tcont
-                    upstream_tm=0x8001
-                    #upstream_tm=0x100
+                self.entity_id,  # same entity id as GEM port
+                port_id=self.gem_id,
+                tcont_id=tcont_entity_id,
+                direction=direction,
+                upstream_tm=ul_prior_q_entity_id,
+                attributes=attributes
             )
             frame = msg.create()
             self.log.debug('openomci-msg', msg=msg)
@@ -191,9 +312,9 @@ class OnuGemPort(object):
         try:
             # TODO: magic numbers here
             msg = GemInterworkingTpFrame(
-                self.entity_id,          # same entity id as GEM port
+                self.entity_id,  # same entity id as GEM port
                 gem_port_network_ctp_pointer=self.entity_id,
-                interworking_option=5,                             # IEEE 802.1
+                interworking_option=5,  # IEEE 802.1
                 service_profile_pointer=ieee_mapper_service_profile_entity_id,
                 interworking_tp_pointer=0x0,
                 pptp_counter=1,
@@ -213,7 +334,7 @@ class OnuGemPort(object):
     @inlineCallbacks
     def remove_from_hardware(self, omci):
         self.log.debug('function-entry', omci=omci)
-        self.log.debug('remove-from-hardware',  gem_id=self.gem_id)
+        self.log.debug('remove-from-hardware', gem_id=self.gem_id)
 
         try:
             msg = GemInterworkingTpFrame(self.entity_id)
@@ -237,7 +358,6 @@ class OnuGemPort(object):
 
         returnValue(results)
 
-
     def check_status_and_state(self, results, operation=''):
         self.log.debug('function-entry')
         omci_msg = results.fields['omci_message'].fields
@@ -254,4 +374,3 @@ class OnuGemPort(object):
 
         elif status == RC.InstanceExists:
             return False
-
