@@ -192,11 +192,11 @@ class OpenoltDevice(object):
                                                     self.extra_args,
                                                     device_info)
 
-        self.flow_mgr = self.flow_mgr_class(self.log, self.stub,
-                                            self.device_id,
+        self.flow_mgr = self.flow_mgr_class(self.adapter_agent, self.log,
+                                            self.stub, self.device_id,
                                             self.logical_device_id,
-                                            self.platform,
-                                            self.resource_mgr)
+                                            self.platform, self.resource_mgr)
+
         self.alarm_mgr = self.alarm_mgr_class(self.log, self.adapter_agent,
                                               self.device_id,
                                               self.logical_device_id,
@@ -408,21 +408,12 @@ class OpenoltDevice(object):
                 if onu_id is None:
                     raise Exception("onu-id-unavailable")
 
-                pon_intf_onu_id = (intf_id, onu_id)
-                alloc_id = self.resource_mgr.get_alloc_id(
-                    pon_intf_onu_id)
-                if alloc_id is None:
-                    # Free up other PON resources if are unable to
-                    # proceed ahead
-                    self.resource_mgr.free_onu_id(intf_id, onu_id)
-                    raise Exception("alloc-id-unavailable")
-
                 self.add_onu_device(
                     intf_id,
                     self.platform.intf_id_to_port_no(intf_id, Port.PON_OLT),
                     onu_id, serial_number)
                 self.activate_onu(intf_id, onu_id, serial_number,
-                                  serial_number_str, alloc_id)
+                                  serial_number_str)
             except Exception as e:
                 self.log.exception('onu-activation-failed', e=e)
 
@@ -451,14 +442,8 @@ class OpenoltDevice(object):
                 onu_device.oper_status = OperStatus.DISCOVERED
                 self.adapter_agent.update_device(onu_device)
                 try:
-                    pon_intf_onu_id = (intf_id, onu_id)
-                    # The ONU is already in the VOLTHA DB and resources were
-                    # already allocated for this ONU. So we fetch the resource
-                    # from local cache and not KV store.
-                    alloc_id = self.resource_mgr.get_alloc_id(
-                        pon_intf_onu_id)
                     self.activate_onu(intf_id, onu_id, serial_number,
-                                      serial_number_str, alloc_id)
+                                      serial_number_str)
                 except Exception as e:
                     self.log.error('onu-activation-error',
                                    serial_number=serial_number_str, error=e)
@@ -493,11 +478,6 @@ class OpenoltDevice(object):
             self.log.error('onu not found', intf_id=onu_indication.intf_id,
                            onu_id=onu_indication.onu_id)
             return
-
-        # We will use this alloc_id, gemport_id to pass on to the onu adapter
-        pon_intf_onu_id = (onu_indication.intf_id, onu_indication.onu_id)
-        alloc_id = self.resource_mgr.get_alloc_id(pon_intf_onu_id)
-        gemport_id = self.resource_mgr.get_gemport_id(pon_intf_onu_id)
 
         if self.platform.intf_id_from_pon_port_no(onu_device.parent_port_no) \
                 != onu_indication.intf_id:
@@ -585,23 +565,6 @@ class OpenoltDevice(object):
 
             # Prepare onu configuration
 
-            # tcont creation (onu)
-            tcont = TcontsConfigData()
-            tcont.alloc_id = alloc_id
-
-            # gem port creation
-            gem_port = GemportsConfigData()
-            gem_port.gemport_id = gemport_id
-
-            gem_port.tcont_ref = str(tcont.alloc_id)
-
-            self.log.info('inject-tcont-gem-data-onu-handler',
-                          onu_indication=onu_indication, tcont=tcont,
-                          gem_port=gem_port)
-
-            onu_adapter_agent.create_tcont(onu_device, tcont,
-                                           traffic_descriptor_data=None)
-            onu_adapter_agent.create_gemport(onu_device, gem_port)
             onu_adapter_agent.create_interface(onu_device, onu_indication)
 
         else:
@@ -856,14 +819,16 @@ class OpenoltDevice(object):
 
         return port_no, label
 
-    def delete_logical_port(self, child_device_id):
+    def delete_logical_port(self, child_device):
         logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
             self.logical_device_id))
         for logical_port in logical_ports:
-            if logical_port.device_id == child_device_id:
+            if logical_port.device_id == child_device.id:
                 self.log.debug('delete-logical-port',
-                               onu_device_id=child_device_id,
+                               onu_device_id=child_device.id,
                                logical_port=logical_port)
+                self.flow_mgr.clear_flows_and_scheduler_for_logical_port(
+                    child_device, logical_port)
                 self.adapter_agent.delete_logical_port(
                     self.logical_device_id, logical_port)
                 return
@@ -995,15 +960,13 @@ class OpenoltDevice(object):
             self.log.info('openolt device reenabled')
 
     def activate_onu(self, intf_id, onu_id, serial_number,
-                     serial_number_str, alloc_id):
+                     serial_number_str):
         pir = self.bw_mgr.pir(serial_number_str)
         self.log.debug("activating-onu", intf_id=intf_id, onu_id=onu_id,
                        serial_number_str=serial_number_str,
-                       serial_number=serial_number, pir=pir,
-                       alloc_id=alloc_id)
+                       serial_number=serial_number, pir=pir)
         onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
-                              serial_number=serial_number, pir=pir,
-                              alloc_id=alloc_id)
+                              serial_number=serial_number, pir=pir)
         self.stub.ActivateOnu(onu)
         self.log.info('onu-activated', serial_number=serial_number_str)
 
@@ -1019,7 +982,7 @@ class OpenoltDevice(object):
         except Exception as e:
             self.log.error('adapter_agent error', error=e)
         try:
-            self.delete_logical_port(child_device.id)
+            self.delete_logical_port(child_device)
         except Exception as e:
             self.log.error('logical_port delete error', error=e)
         try:

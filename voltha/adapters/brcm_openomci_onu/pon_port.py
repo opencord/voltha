@@ -17,6 +17,12 @@ import structlog
 from twisted.internet.defer import inlineCallbacks, returnValue
 from voltha.protos.common_pb2 import AdminState, OperStatus
 from voltha.protos.device_pb2 import Port
+from voltha.extensions.omci.tasks.task import Task
+
+BRDCM_DEFAULT_VLAN = 4091
+TASK_PRIORITY = Task.DEFAULT_PRIORITY + 10
+DEFAULT_TPID = 0x8100
+DEFAULT_GEM_PAYLOAD = 48
 
 
 class PonPort(object):
@@ -42,6 +48,11 @@ class PonPort(object):
 
         self._gem_ports = {}                           # gem-id -> GemPort
         self._tconts = {}                              # alloc-id -> TCont
+
+        self.pon_port_num = 3  # TODO why 3.  maybe this is the ani port number.  look at anis list
+
+        self.ieee_mapper_service_profile_entity_id = 0x8001
+        self.mac_bridge_port_ani_entity_id = 0x2102  # TODO: can we just use the entity id from the anis list?
 
     def __str__(self):
         return "PonPort"      # TODO: Encode current state
@@ -221,15 +232,15 @@ class PonPort(object):
             self.log.exception('delete', e=e)
             raise
 
-    def gem_port(self, gem_id):
+    def gem_port(self, gem_id, direction):
         self.log.debug('function-entry')
-        return self._gem_ports.get(gem_id)
+        return self._gem_ports.get((gem_id, direction))
 
     @property
     def gem_ids(self):
         """Get all GEM Port IDs used by this ONU"""
         self.log.debug('function-entry')
-        return sorted([gem_id for gem_id, gem in self._gem_ports.items()])
+        return sorted([gem_id_and_direction[0] for gem_id_and_direction, gem in self._gem_ports.items()])
 
     def add_gem_port(self, gem_port, reflow=False):
         """
@@ -248,25 +259,26 @@ class PonPort(object):
             return  # nop
 
         self.log.info('add', gem_port=gem_port, reflow=reflow)
-        self._gem_ports[gem_port.gem_id] = gem_port
+        self._gem_ports[(gem_port.gem_id, gem_port.direction)] = gem_port
 
     @inlineCallbacks
-    def remove_gem_id(self, gem_id):
+    def remove_gem_id(self, gem_id, direction):
         """
         Remove a GEM Port from this ONU
 
-        :param gem_port: (GemPort) GEM Port to remove
+        :param gem_id: (GemPort) GEM Port to remove
+        :param direction: Direction of the gem port
         :return: deferred
         """
         self.log.debug('function-entry', gem_id=gem_id)
 
-        gem_port = self._gem_ports.get(gem_id)
+        gem_port = self._gem_ports.get((gem_id, direction))
 
         if gem_port is None:
             returnValue('nop')
 
         try:
-            del self._gem_ports[gem_id]
+            del self._gem_ports[(gem_id, direction)]
             results = yield gem_port.remove_from_hardware(self._handler.openomci.omci_cc)
             returnValue(results)
 
