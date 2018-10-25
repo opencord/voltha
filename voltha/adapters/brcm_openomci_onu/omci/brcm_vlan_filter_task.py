@@ -44,10 +44,10 @@ class BrcmVlanFilterTask(Task):
         :param priority: (int) OpenOMCI Task priority (0..255) 255 is the highest
         """
         super(BrcmVlanFilterTask, self).__init__(BrcmVlanFilterTask.name,
-                                                omci_agent,
-                                                device_id,
-                                                priority=priority,
-                                                exclusive=False)
+                                                 omci_agent,
+                                                 device_id,
+                                                 priority=priority,
+                                                 exclusive=False)
         self._device = omci_agent.get_device(device_id)
         self._set_vlan_id = set_vlan_id
         self._results = None
@@ -82,8 +82,7 @@ class BrcmVlanFilterTask(Task):
             # TODO: parameterize these from the handler, or objects in the handler
             # TODO: make this a member of the onu gem port or the uni port
             _mac_bridge_service_profile_entity_id = 0x201
-            _mac_bridge_port_ani_entity_id = 0x2102   # TODO: can we just use the entity id from the anis list?
-
+            _mac_bridge_port_ani_entity_id = 0x2102  # TODO: can we just use the entity id from the anis list?
             # Delete bridge ani side vlan filter
             msg = VlanTaggingFilterDataFrame(_mac_bridge_port_ani_entity_id)
             frame = msg.delete()
@@ -95,7 +94,7 @@ class BrcmVlanFilterTask(Task):
             # Re-Create bridge ani side vlan filter
             msg = VlanTaggingFilterDataFrame(
                 _mac_bridge_port_ani_entity_id,  # Entity ID
-                vlan_tcis=[self._set_vlan_id],        # VLAN IDs
+                vlan_tcis=[self._set_vlan_id],  # VLAN IDs
                 forward_operation=0x10
             )
             frame = msg.create()
@@ -103,6 +102,8 @@ class BrcmVlanFilterTask(Task):
             self.strobe_watchdog()
             results = yield self._device.omci_cc.send(frame)
             self.check_status_and_state(results, 'flow-create-vlan-tagging-filter-data')
+
+            # Re-Create bridge ani side vlan filter
 
             # Update uni side extended vlan filter
             # filter for untagged
@@ -130,7 +131,6 @@ class BrcmVlanFilterTask(Task):
                     treatment_inner_tpid_de=4
                 )
             )
-
             msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
                 _mac_bridge_service_profile_entity_id,  # Bridge Entity ID
                 attributes=attributes  # See above
