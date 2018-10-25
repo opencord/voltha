@@ -33,6 +33,8 @@ class TestResourceManager(TestCase):
             "alloc_id_end": 2816,
             "gemport_id_start": 1024,
             "gemport_id_end": 8960,
+            "flow_id_start": 1,
+            "flow_id_end": 16383,
             "pon_ports": 16
         }
 

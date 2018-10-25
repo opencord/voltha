@@ -23,8 +23,6 @@ from voltha.core.config.config_backend import EtcdStore
 
 
 class OpenOltResourceMgr(object):
-    GEMPORT_IDS = "gemport_ids"
-    ALLOC_IDS = "alloc_ids"
     BASE_PATH_KV_STORE = "openolt/{}" # openolt/<device_id>
 
     def __init__(self, device_id, host_and_port, extra_args, device_info):
@@ -78,6 +76,12 @@ class OpenOltResourceMgr(object):
 
         return onu_id
 
+    def get_flow_id(self, pon_intf_id):
+        flow_id = self.resource_mgr.get_resource_id(
+            pon_intf_id, PONResourceManager.FLOW_ID)
+
+        return flow_id
+
     def get_alloc_id(self, pon_intf_onu_id):
         # Derive the pon_intf from the pon_intf_onu_id tuple
         pon_intf = pon_intf_onu_id[0]
@@ -110,7 +114,7 @@ class OpenOltResourceMgr(object):
 
         return alloc_id
 
-    def get_gemport_id(self, pon_intf_onu_id):
+    def get_gemport_id(self, pon_intf_onu_id, num_of_id=1):
         # Derive the pon_intf and onu_id from the pon_intf_onu_id tuple
         pon_intf = pon_intf_onu_id[0]
         onu_id = pon_intf_onu_id[1]
@@ -121,12 +125,13 @@ class OpenOltResourceMgr(object):
             # Since we support only one gemport_id for the ONU at the moment,
             # return the first gemport_id in the list, if available, for that
             # ONU.
-            return gemport_id_list[0]
+            #return gemport_id_list[0]
+            gemport_id_list
 
         gemport_id_list = self.resource_mgr.get_resource_id(
             pon_intf_id=pon_intf,
             resource_type=PONResourceManager.GEMPORT_ID,
-            num_of_id=1
+            num_of_id=num_of_id
         )
 
         if gemport_id_list and len(gemport_id_list) == 0:
@@ -139,15 +144,16 @@ class OpenOltResourceMgr(object):
                                                      gemport_id_list)
 
         # We currently use only one gemport
-        gemport = gemport_id_list[0]
+        # gemport = gemport_id_list[0]
 
-        pon_intf_gemport = (pon_intf, gemport)
-        # This information is used when packet_indication is received and
-        # we need to derive the ONU Id for which the packet arrived based
-        # on the pon_intf and gemport available in the packet_indication
-        self.kv_store[str(pon_intf_gemport)] = str(onu_id)
+        for gemport in gemport_id_list:
+            pon_intf_gemport = (pon_intf, gemport)
+            # This information is used when packet_indication is received and
+            # we need to derive the ONU Id for which the packet arrived based
+            # on the pon_intf and gemport available in the packet_indication
+            self.kv_store[str(pon_intf_gemport)] = str(onu_id)
 
-        return gemport
+        return gemport_id_list
 
     def free_onu_id(self, pon_intf_id, onu_id):
         result = self.resource_mgr.free_resource_id(
@@ -202,6 +208,8 @@ class OpenOltResourceMgr(object):
                 self.device_info.alloc_id_end,
                 self.device_info.gemport_id_start,
                 self.device_info.gemport_id_end,
+                self.device_info.flow_id_start,
+                self.device_info.flow_id_end,
                 self.device_info.pon_ports
             )
 
