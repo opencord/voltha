@@ -39,6 +39,24 @@
       "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "46725529_1224d3df",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1000471
+      },
+      "writtenOn": "2018-10-25T18:22:07Z",
+      "side": 1,
+      "message": "Agreed.  Much of these comments/todo about magic are mine.  At some point i want to reconcile all the hardcoded ID into constants or some id pool and use id values that make more sense.",
+      "parentUuid": "aefbc3ad_2d1dd977",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
