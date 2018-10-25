@@ -1049,3 +1049,4 @@ class AdapterAgent(object):
     def forward_onu_detect_state(self, device_id, state):
         topic = self._gen_onu_detect_proxy_address_topic(device_id)
         self.event_bus.publish(topic, state)
+
