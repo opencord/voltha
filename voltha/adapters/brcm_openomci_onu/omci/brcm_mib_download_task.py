@@ -21,6 +21,8 @@ from voltha.extensions.omci.omci_me import *
 from voltha.extensions.omci.tasks.task import Task
 from voltha.extensions.omci.omci_defs import *
 from voltha.adapters.brcm_openomci_onu.uni_port import *
+from voltha.adapters.brcm_openomci_onu.pon_port \
+    import BRDCM_DEFAULT_VLAN, TASK_PRIORITY, DEFAULT_TPID, DEFAULT_GEM_PAYLOAD
 
 OP = EntityOperations
 RC = ReasonCodes
@@ -54,10 +56,6 @@ class BrcmMibDownloadTask(Task):
     Currently, the only service tech profiles expected by v2.0 will be for AT&T
     residential data service and DT residential data service.
     """
-    task_priority = Task.DEFAULT_PRIORITY + 10
-    default_tpid = 0x8100
-    default_gem_payload = 48
-    BRDCM_DEFAULT_VLAN = 4091
 
     name = "Broadcom MIB Download Example Task"
 
@@ -75,35 +73,42 @@ class BrcmMibDownloadTask(Task):
         super(BrcmMibDownloadTask, self).__init__(BrcmMibDownloadTask.name,
                                                   omci_agent,
                                                   handler.device_id,
-                                                  priority=BrcmMibDownloadTask.task_priority)
+                                                  priority=TASK_PRIORITY)
         self._handler = handler
         self._onu_device = omci_agent.get_device(handler.device_id)
         self._local_deferred = None
 
         # Frame size
-        self._max_gem_payload = BrcmMibDownloadTask.default_gem_payload
+        self._max_gem_payload = DEFAULT_GEM_PAYLOAD
 
         # TODO: only using a single UNI/ethernet port
         self._uni_port = self._handler.uni_ports[0]
 
+        self._pon = handler.pon_port
+
         # Port numbers
-        self._pon_port_num = 3  # TODO why 3.  maybe this is the ani port number.  look at anis list
+        self._pon_port_num = self._pon.pon_port_num
+        self._input_tpid = DEFAULT_TPID
+        self._output_tpid = DEFAULT_TPID
 
-        self._input_tpid = BrcmMibDownloadTask.default_tpid
-        self._output_tpid = BrcmMibDownloadTask.default_tpid
-
-        self._vlan_tcis_1 = self.BRDCM_DEFAULT_VLAN
-        self._cvid = self.BRDCM_DEFAULT_VLAN
+        self._vlan_tcis_1 = BRDCM_DEFAULT_VLAN
+        self._cvid = BRDCM_DEFAULT_VLAN
         self._vlan_config_entity_id = self._vlan_tcis_1
 
         # Entity IDs. IDs with values can probably be most anything for most ONUs,
         #             IDs set to None are discovered/set
 
-        # TODO: lots of magic numbers
-        self._mac_bridge_service_profile_entity_id = 0x201
-        self._ieee_mapper_service_profile_entity_id = 0x8001
-        self._mac_bridge_port_ani_entity_id = 0x2102   # TODO: can we just use the entity id from the anis list?
-        self._gal_enet_profile_entity_id = 0x1
+        self._mac_bridge_service_profile_entity_id = \
+            self._handler.mac_bridge_service_profile_entity_id
+        self._ieee_mapper_service_profile_entity_id = \
+            self._pon.ieee_mapper_service_profile_entity_id
+        self._mac_bridge_port_ani_entity_id = \
+            self._pon.mac_bridge_port_ani_entity_id
+        self._gal_enet_profile_entity_id = \
+            self._handler.gal_enet_profile_entity_id
+
+        self._free_ul_prior_q_entity_ids = set()
+        self._free_dl_prior_q_entity_ids = set()
 
     def cancel_deferred(self):
         self.log.debug('function-entry')
@@ -171,53 +176,45 @@ class BrcmMibDownloadTask(Task):
         UNI ports for this device. The application of any service flows
         and other characteristics are done as needed.
         """
-        self.log.debug('function-entry')
-        self.log.info('perform-download')
+        try:
+            self.log.debug('function-entry')
+            self.log.info('perform-download')
 
-        device = self._handler.adapter_agent.get_device(self.device_id)
+            device = self._handler.adapter_agent.get_device(self.device_id)
 
-        def resources_available():
-            return (len(self._handler.uni_ports) > 0 and
-                    len(self._handler.pon_port.tconts) and
-                    len(self._handler.pon_port.gem_ports))
+            if self._handler.enabled and len(self._handler.uni_ports) > 0:
+                device.reason = 'performing-initial-mib-download'
+                self._handler.adapter_agent.update_device(device)
 
-        if self._handler.enabled and resources_available():
-            device.reason = 'performing-initial-mib-download'
-            self._handler.adapter_agent.update_device(device)
+                try:
+                    # Lock the UNI ports to prevent any alarms during initial configuration
+                    # of the ONU
+                    self.strobe_watchdog()
+                    yield self.enable_uni(self._uni_port, True)
 
-            try:
-                # Lock the UNI ports to prevent any alarms during initial configuration
-                # of the ONU
-                self.strobe_watchdog()
-                yield self.enable_uni(self._uni_port, True)
+                    # Provision the initial bridge configuration
+                    yield self.perform_initial_bridge_setup()
 
-                # Provision the initial bridge configuration
-                yield self.perform_initial_bridge_setup()
+                    # And re-enable the UNIs if needed
+                    yield self.enable_uni(self._uni_port, False)
 
-                # And not all the service specific work
-                yield self.perform_service_specific_steps()
+                    self.deferred.callback('initial-download-success')
 
-                # And re-enable the UNIs if needed
-                yield self.enable_uni(self._uni_port, False)
+                except TimeoutError as e:
+                    self.deferred.errback(failure.Failure(e))
 
-                self.deferred.callback('initial-download-success')
-
-            except TimeoutError as e:
+            else:
+                e = MibResourcesFailure('Required resources are not available',
+                                        len(self._handler.uni_ports))
                 self.deferred.errback(failure.Failure(e))
-
-        else:
-            e = MibResourcesFailure('Required resources are not available',
-                                    tconts=len(self._handler.pon_port.tconts),
-                                    gems=len(self._handler.pon_port.gem_ports),
-                                    unis=len(self._handler.uni_ports))
-            self.deferred.errback(failure.Failure(e))
+        except BaseException as e:
+            self.log.debug('@thyy_mib_check:', exception=e)
 
     @inlineCallbacks
     def perform_initial_bridge_setup(self):
         self.log.debug('function-entry')
 
         omci_cc = self._onu_device.omci_cc
-        frame = None
         # TODO: too many magic numbers
 
         try:
@@ -251,12 +248,12 @@ class BrcmMibDownloadTask(Task):
             # TODO: magic. event if static, assign to a meaningful variable name
             attributes = {
                 'spanning_tree_ind': False,
-                'learning_ind' : True,
-                'priority' : 0x8000,
-                'max_age' : 20 * 256,
-                'hello_time' : 2 * 256,
-                'forward_delay' : 15 * 256,
-                'unknown_mac_address_discard' : True
+                'learning_ind': True,
+                'priority': 0x8000,
+                'max_age': 20 * 256,
+                'hello_time': 2 * 256,
+                'forward_delay': 15 * 256,
+                'unknown_mac_address_discard': True
             }
             msg = MacBridgeServiceProfileFrame(
                 self._mac_bridge_service_profile_entity_id,
@@ -303,8 +300,8 @@ class BrcmMibDownloadTask(Task):
             msg = MacBridgePortConfigurationDataFrame(
                 self._mac_bridge_port_ani_entity_id,
                 bridge_id_pointer=self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                port_num=self._pon_port_num,                            # Port ID  ##TODO associated with what?
-                tp_type=3,                                              # TP Type (IEEE 802.1p mapper service)
+                port_num=self._pon_port_num,  # Port ID  ##TODO associated with what?
+                tp_type=3,  # TP Type (IEEE 802.1p mapper service)
                 tp_pointer=self._ieee_mapper_service_profile_entity_id  # TP ID, 8021p mapper ID
             )
             frame = msg.create()
@@ -325,7 +322,7 @@ class BrcmMibDownloadTask(Task):
             # TODO: magic. make a static variable for forward_op
             msg = VlanTaggingFilterDataFrame(
                 self._mac_bridge_port_ani_entity_id,  # Entity ID
-                vlan_tcis=[self._vlan_tcis_1],        # VLAN IDs
+                vlan_tcis=[self._vlan_tcis_1],  # VLAN IDs
                 forward_operation=0x10
             )
             frame = msg.create()
@@ -333,7 +330,7 @@ class BrcmMibDownloadTask(Task):
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-vlan-tagging-filter-data')
 
-           ################################################################################
+            ################################################################################
             # UNI Specific                                                                 #
             ################################################################################
             # MAC Bridge Port config
@@ -349,7 +346,6 @@ class BrcmMibDownloadTask(Task):
             # TODO: magic. make a static variable for tp_type
 
             # default to PPTP
-            tp_type = None
             if self._uni_port.type is UniType.VEIP:
                 tp_type = 11
             elif self._uni_port.type is UniType.PPTP:
@@ -358,11 +354,11 @@ class BrcmMibDownloadTask(Task):
                 tp_type = 1
 
             msg = MacBridgePortConfigurationDataFrame(
-                self._uni_port.entity_id,            # Entity ID - This is read-only/set-by-create !!!
+                self._uni_port.entity_id,  # Entity ID - This is read-only/set-by-create !!!
                 bridge_id_pointer=self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                port_num=self._uni_port.mac_bridge_port_num,   # Port ID
-                tp_type=tp_type,                               # PPTP Ethernet or VEIP UNI
-                tp_pointer=self._uni_port.entity_id            # Ethernet UNI ID
+                port_num=self._uni_port.mac_bridge_port_num,  # Port ID
+                tp_type=tp_type,  # PPTP Ethernet or VEIP UNI
+                tp_pointer=self._uni_port.entity_id  # Ethernet UNI ID
             )
             frame = msg.create()
             self.log.debug('openomci-msg', msg=msg)
@@ -418,7 +414,6 @@ class BrcmMibDownloadTask(Task):
                 # TODO: Need to restore on failure.  Need to check status/results
                 yield tcont.add_to_hardware(omci_cc, free_entity_id)
 
-
             ################################################################################
             # GEMS  (GemPortNetworkCtp and GemInterworkingTp)
             #
@@ -472,7 +467,7 @@ class BrcmMibDownloadTask(Task):
 
             msg = Ieee8021pMapperServiceProfileFrame(
                 self._ieee_mapper_service_profile_entity_id,  # 802.1p mapper Service Mapper Profile ID
-                interwork_tp_pointers=gem_entity_ids          # Interworking TP IDs
+                interwork_tp_pointers=gem_entity_ids  # Interworking TP IDs
             )
             frame = msg.set()
             self.log.debug('openomci-msg', msg=msg)
@@ -492,7 +487,6 @@ class BrcmMibDownloadTask(Task):
             # TODO: magic.  static variable for assoc_type
 
             # default to PPTP
-            association_type = None
             if self._uni_port.type is UniType.VEIP:
                 association_type = 10
             elif self._uni_port.type is UniType.PPTP:
@@ -501,8 +495,8 @@ class BrcmMibDownloadTask(Task):
                 association_type = 2
 
             attributes = dict(
-                association_type=association_type,                  # Assoc Type, PPTP/VEIP Ethernet UNI
-                associated_me_pointer=self._uni_port.entity_id,      # Assoc ME, PPTP/VEIP Entity Id
+                association_type=association_type,  # Assoc Type, PPTP/VEIP Ethernet UNI
+                associated_me_pointer=self._uni_port.entity_id,  # Assoc ME, PPTP/VEIP Entity Id
 
                 # See VOL-1311 - Need to set table during create to avoid exception
                 # trying to read back table during post-create-read-missing-attributes
@@ -525,7 +519,7 @@ class BrcmMibDownloadTask(Task):
             attributes = dict(
                 # Specifies the TPIDs in use and that operations in the downstream direction are
                 # inverse to the operations in the upstream direction
-                input_tpid=self._input_tpid,    # input TPID
+                input_tpid=self._input_tpid,  # input TPID
                 output_tpid=self._output_tpid,  # output TPID
                 downstream_mode=0,              # inverse of upstream
             )
@@ -552,8 +546,8 @@ class BrcmMibDownloadTask(Task):
                 received_frame_vlan_tagging_operation_table=
                 VlanTaggingOperation(
                     filter_outer_priority=15,  # This entry is not a double-tag rule
-                    filter_outer_vid=4096,     # Do not filter on the outer VID value
-                    filter_outer_tpid_de=0,    # Do not filter on the outer TPID field
+                    filter_outer_vid=4096,  # Do not filter on the outer VID value
+                    filter_outer_tpid_de=0,  # Do not filter on the outer TPID field
 
                     filter_inner_priority=15,
                     filter_inner_vid=4096,
@@ -614,20 +608,20 @@ class BrcmMibDownloadTask(Task):
         try:
             state = 1 if force_lock or not uni_port.enabled else 0
             msg = None
-            if (uni_port.type is UniType.PPTP):
+            if uni_port.type is UniType.PPTP:
                 msg = PptpEthernetUniFrame(uni_port.entity_id,
                                            attributes=dict(administrative_state=state))
-            elif (uni_port.type is UniType.VEIP):
+            elif uni_port.type is UniType.VEIP:
                 msg = VeipUniFrame(uni_port.entity_id,
                                    attributes=dict(administrative_state=state))
             else:
                 self.log.warn('unknown-uni-type', uni_port=uni_port)
 
             if msg:
-               frame = msg.set()
-               self.log.debug('openomci-msg', msg=msg)
-               results = yield omci_cc.send(frame)
-               self.check_status_and_state(results, 'set-pptp-ethernet-uni-lock-restore')
+                frame = msg.set()
+                self.log.debug('openomci-msg', msg=msg)
+                results = yield omci_cc.send(frame)
+                self.check_status_and_state(results, 'set-pptp-ethernet-uni-lock-restore')
 
         except TimeoutError as e:
             self.log.warn('rx-timeout', e=e)
@@ -638,6 +632,3 @@ class BrcmMibDownloadTask(Task):
             raise
 
         returnValue(None)
-
-
-
