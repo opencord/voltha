@@ -130,6 +130,20 @@ service Openolt {
         };
     }
 
+    rpc CreateTconts(Tconts) returns (Empty) {
+        option (google.api.http) = {
+            post: "/v1/CreateTconts"
+            body: "*"
+        };
+    }
+
+    rpc RemoveTconts(Tconts) returns (Empty) {
+        option (google.api.http) = {
+            post: "/v1/RemoveTconts"
+            body: "*"
+        };
+    }
+
     rpc EnableIndication(Empty) returns (stream Indication) {}
 }
 
@@ -219,7 +233,6 @@ message Onu {
     fixed32 onu_id = 2;
     SerialNumber serial_number = 3;
     fixed32 pir = 4;   // peak information rate assigned to onu
-    fixed32 alloc_id = 5;
 }
 
 message OmciMsg {
@@ -443,5 +456,91 @@ message OnuProcessingErrorIndication {
     fixed32 onu_id = 2;
 }
 
+enum Direction {
+    UPSTREAM = 0;
+    DOWNSTREAM = 1;
+    BIDIRECTIONAL = 2;
+}
+
+enum SchedulingPolicy {
+    WRR = 0;
+    StrictPriority = 1;
+    Hybrid = 2;
+}
+
+enum AdditionalBW {
+    AdditionalBW_None = 0;
+    AdditionalBW_NA = 1;
+    AdditionalBW_BestEffort = 2;
+    AdditionalBW_Auto = 3;
+}
+
+enum DiscardPolicy {
+    TailDrop = 0;
+    WTailDrop = 1;
+    Red = 2;
+    WRed = 3;
+}
+
+enum InferredAdditionBWIndication {
+    InferredAdditionBWIndication_None = 0;
+    InferredAdditionBWIndication_Assured = 1;
+    InferredAdditionBWIndication_BestEffort = 2;
+}
+
+message Scheduler {
+    Direction direction = 1;
+    AdditionalBW additional_bw = 2; // Valid on for “direction == Upstream”.
+    fixed32 priority = 3;
+    fixed32 weight = 4;
+    SchedulingPolicy sched_policy = 5;
+}
+
+message TrafficShapingInfo {
+    fixed32 cir = 1;
+    fixed32 cbs = 2;
+    fixed32 pir = 3;
+    fixed32 pbs = 4;
+    fixed32 gir = 5; // only if “direction == Upstream ”
+    InferredAdditionBWIndication add_bw_ind = 6; // only if “direction == Upstream”
+}
+
+message Tcont {
+    Direction direction = 1;
+    fixed32 alloc_id = 2; // valid only if “direction == Upstream ”
+    Scheduler scheduler = 3;
+    TrafficShapingInfo traffic_shaping_info = 4;
+}
+
+message Tconts {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    repeated Tcont tconts = 3;
+}
+
+message TailDropDiscardConfig {
+    fixed32 queue_size = 1;
+}
+
+message RedDiscardConfig {
+    fixed32 min_threshold = 1;
+    fixed32 max_threshold = 2;
+    fixed32 max_probability = 3;
+}
+
+message WRedDiscardConfig {
+    RedDiscardConfig green = 1;
+    RedDiscardConfig yellow = 2;
+    RedDiscardConfig red = 3;
+}
+
+message DiscardConfig {
+    DiscardPolicy discard_policy = 1;
+    oneof discard_config {
+        TailDropDiscardConfig tail_drop_discard_config = 2;
+        RedDiscardConfig red_discard_config = 3;
+        WRedDiscardConfig wred_discard_config = 4;
+    }
+}
 
 message Empty {}
