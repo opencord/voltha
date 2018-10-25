@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "18ac7af1_14af54b4",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 3
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-25T02:50:34Z",
+      "side": 1,
+      "message": "Same Comments from review https://gerrit.opencord.org/#/c/11562/ needs to be taken care here.",
+      "range": {
+        "startLine": 281,
+        "startChar": 1,
+        "endLine": 282,
+        "endChar": 95
+      },
+      "revId": "d70ec501ccf9518837e394df9657a8547f97e3e8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
