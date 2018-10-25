@@ -221,15 +221,15 @@ class PonPort(object):
             self.log.exception('delete', e=e)
             raise
 
-    def gem_port(self, gem_id):
+    def gem_port(self, gem_id, direction):
         self.log.debug('function-entry')
-        return self._gem_ports.get(gem_id)
+        return self._gem_ports.get((gem_id, direction))
 
     @property
     def gem_ids(self):
         """Get all GEM Port IDs used by this ONU"""
         self.log.debug('function-entry')
-        return sorted([gem_id for gem_id, gem in self._gem_ports.items()])
+        return sorted([gem_id_and_direction[0] for gem_id_and_direction, gem in self._gem_ports.items()])
 
     def add_gem_port(self, gem_port, reflow=False):
         """
@@ -248,25 +248,26 @@ class PonPort(object):
             return  # nop
 
         self.log.info('add', gem_port=gem_port, reflow=reflow)
-        self._gem_ports[gem_port.gem_id] = gem_port
+        self._gem_ports[(gem_port.gem_id, gem_port.direction)] = gem_port
 
     @inlineCallbacks
-    def remove_gem_id(self, gem_id):
+    def remove_gem_id(self, gem_id, direction):
         """
         Remove a GEM Port from this ONU
 
-        :param gem_port: (GemPort) GEM Port to remove
+        :param gem_id: (GemPort) GEM Port to remove
+        :param direction: Direction of the gem port
         :return: deferred
         """
         self.log.debug('function-entry', gem_id=gem_id)
 
-        gem_port = self._gem_ports.get(gem_id)
+        gem_port = self._gem_ports.get((gem_id, direction))
 
         if gem_port is None:
             returnValue('nop')
 
         try:
-            del self._gem_ports[gem_id]
+            del self._gem_ports[(gem_id, direction)]
             results = yield gem_port.remove_from_hardware(self._handler.openomci.omci_cc)
             returnValue(results)
 

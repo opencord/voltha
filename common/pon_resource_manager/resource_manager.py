@@ -45,6 +45,7 @@ class PONResourceManager(object):
     ONU_ID = 'ONU_ID'
     ALLOC_ID = 'ALLOC_ID'
     GEMPORT_ID = 'GEMPORT_ID'
+    FLOW_ID = 'FLOW_ID'
 
     # The resource ranges for a given device vendor_type should be placed
     # at 'resource_manager/<technology>/resource_ranges/<olt_vendor_type>'
@@ -60,6 +61,8 @@ class PONResourceManager(object):
         "alloc_id_end": 2816,
         "gemport_id_start": 1024,
         "gemport_id_end": 8960,
+        "flow_id_start": 1,
+        "flow_id_end": 16383,
         "pon_ports": 16
     }
 
@@ -72,6 +75,8 @@ class PONResourceManager(object):
     ALLOC_ID_END_IDX = "alloc_id_end"
     GEM_PORT_ID_START_IDX = "gemport_id_start"
     GEM_PORT_ID_END_IDX = "gemport_id_end"
+    FLOW_ID_START_IDX = "flow_id_start"
+    FLOW_ID_END_IDX = "flow_id_end"
     NUM_OF_PON_PORT = "pon_ports"
 
     # PON Resource range configuration on the KV store.
@@ -84,6 +89,7 @@ class PONResourceManager(object):
     ALLOC_ID_POOL_PATH = '{}/alloc_id_pool/{}'
     GEMPORT_ID_POOL_PATH = '{}/gemport_id_pool/{}'
     ONU_ID_POOL_PATH = '{}/onu_id_pool/{}'
+    FLOW_ID_POOL_PATH = '{}/flow_id_pool/{}'
 
     # Path on the KV store for storing list of alloc IDs for a given ONU
     # Format: <device_id>/<(pon_intf_id, onu_id)>/alloc_ids
@@ -175,6 +181,8 @@ class PONResourceManager(object):
                                          alloc_id_end_idx=2816,
                                          gem_port_id_start_idx=1024,
                                          gem_port_id_end_idx=8960,
+                                         flow_id_start_idx=1,
+                                         flow_id_end_idx=16383,
                                          num_of_pon_ports=16):
         """
         Initialize default PON resource ranges
@@ -185,6 +193,8 @@ class PONResourceManager(object):
         :param alloc_id_end_idx: alloc id end index
         :param gem_port_id_start_idx: gemport id start index
         :param gem_port_id_end_idx: gemport id end index
+        :param flow_start_idx: flow id start index
+        :param flow_id_end_idx: flow id end index
         :param num_of_pon_ports: number of PON ports
         """
         self._log.info("initialize-default-resource-range-values")
@@ -199,6 +209,10 @@ class PONResourceManager(object):
             PONResourceManager.GEM_PORT_ID_START_IDX] = gem_port_id_start_idx
         self.pon_resource_ranges[
             PONResourceManager.GEM_PORT_ID_END_IDX] = gem_port_id_end_idx
+        self.pon_resource_ranges[
+            PONResourceManager.FLOW_ID_START_IDX] = flow_id_start_idx
+        self.pon_resource_ranges[
+            PONResourceManager.FLOW_ID_END_IDX] = flow_id_end_idx
         self.pon_resource_ranges[
             PONResourceManager.NUM_OF_PON_PORT] = num_of_pon_ports
 
@@ -237,6 +251,14 @@ class PONResourceManager(object):
             end_idx=self.pon_resource_ranges[
                 PONResourceManager.GEM_PORT_ID_END_IDX])
 
+        self.init_resource_id_pool(
+            pon_intf_id=0,
+            resource_type=PONResourceManager.FLOW_ID,
+            start_idx=self.pon_resource_ranges[
+                PONResourceManager.FLOW_ID_START_IDX],
+            end_idx=self.pon_resource_ranges[
+                PONResourceManager.FLOW_ID_END_IDX])
+
     def clear_device_resource_pool(self):
         """
         Clear resource pool of all PON ports.
@@ -257,6 +279,11 @@ class PONResourceManager(object):
         self.clear_resource_id_pool(
             pon_intf_id=0,
             resource_type=PONResourceManager.GEMPORT_ID,
+        )
+
+        self.clear_resource_id_pool(
+            pon_intf_id=0,
+            resource_type=PONResourceManager.FLOW_ID,
         )
 
     def init_resource_id_pool(self, pon_intf_id, resource_type, start_idx,
@@ -300,7 +327,7 @@ class PONResourceManager(object):
 
     def get_resource_id(self, pon_intf_id, resource_type, num_of_id=1):
         """
-        Create alloc/gemport/onu id for given OLT PON interface.
+        Create alloc/gemport/onu/flow id for given OLT PON interface.
 
         :param pon_intf_id: OLT PON interface id
         :param resource_type: String to identify type of resource
@@ -316,7 +343,8 @@ class PONResourceManager(object):
         # for both the resource types. This may need to change later.
         # Override the incoming pon_intf_id to PON0
         if resource_type == PONResourceManager.GEMPORT_ID or \
-                resource_type == PONResourceManager.ALLOC_ID:
+                resource_type == PONResourceManager.ALLOC_ID or \
+                resource_type == PONResourceManager.FLOW_ID:
             pon_intf_id = 0
 
         path = self._get_path(pon_intf_id, resource_type)
@@ -325,8 +353,9 @@ class PONResourceManager(object):
 
         try:
             resource = self._get_resource(path)
-            if resource is not None and resource_type == \
-                    PONResourceManager.ONU_ID:
+            if resource is not None and \
+                    (resource_type == PONResourceManager.ONU_ID or \
+                     resource_type == PONResourceManager.FLOW_ID):
                 result = self._generate_next_id(resource)
             elif resource is not None and (
                     resource_type == PONResourceManager.GEMPORT_ID or
@@ -350,7 +379,7 @@ class PONResourceManager(object):
 
     def free_resource_id(self, pon_intf_id, resource_type, release_content):
         """
-        Release alloc/gemport/onu id for given OLT PON interface.
+        Release alloc/gemport/onu/flow id for given OLT PON interface.
 
         :param pon_intf_id: OLT PON interface id
         :param resource_type: String to identify type of resource
@@ -365,7 +394,8 @@ class PONResourceManager(object):
         # for both the resource types. This may need to change later.
         # Override the incoming pon_intf_id to PON0
         if resource_type == PONResourceManager.GEMPORT_ID or \
-                resource_type == PONResourceManager.ALLOC_ID:
+                resource_type == PONResourceManager.ALLOC_ID or \
+                resource_type == PONResourceManager.FLOW_ID:
             pon_intf_id = 0
 
         path = self._get_path(pon_intf_id, resource_type)
@@ -374,8 +404,9 @@ class PONResourceManager(object):
 
         try:
             resource = self._get_resource(path)
-            if resource is not None and resource_type == \
-                    PONResourceManager.ONU_ID:
+            if resource is not None and (
+                    resource_type == PONResourceManager.ONU_ID or \
+                    resource_type == PONResourceManager.FLOW_ID):
                 self._release_id(resource, release_content)
             elif resource is not None and (
                     resource_type == PONResourceManager.ALLOC_ID or
@@ -581,9 +612,21 @@ class PONResourceManager(object):
             path = self._get_alloc_id_resource_path(pon_intf_id)
         elif resource_type == PONResourceManager.GEMPORT_ID:
             path = self._get_gemport_id_resource_path(pon_intf_id)
+        elif resource_type == PONResourceManager.FLOW_ID:
+            path = self._get_flow_id_resource_path(pon_intf_id)
         else:
             self._log.error("invalid-resource-pool-identifier")
         return path
+
+    def _get_flow_id_resource_path(self, pon_intf_id):
+        """
+        Get flow id resource path.
+
+        :param pon_intf_id: OLT PON interface id
+        :return: flow id resource path
+        """
+        return PONResourceManager.FLOW_ID_POOL_PATH.format(
+            self.device_id, pon_intf_id)
 
     def _get_alloc_id_resource_path(self, pon_intf_id):
         """
