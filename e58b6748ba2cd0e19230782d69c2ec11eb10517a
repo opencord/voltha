@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6780f524_b10af5e5",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 275,
+      "author": {
+        "id": 1000471
+      },
+      "writtenOn": "2018-10-25T14:16:24Z",
+      "side": 1,
+      "message": "I not so sure about the timing of this.  It seems it will keep trying this task before the onu is even fully or started mib sync.  During the constructor (where this function is called) none of the openomci state machines nor onu is ready.    \n\nThese omci pushes used to happen during the download task, which ran when we knew the mib was in sync.  This may need to move to be called in _mib_in_sync",
+      "range": {
+        "startLine": 275,
+        "startChar": 21,
+        "endLine": 275,
+        "endChar": 52
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
