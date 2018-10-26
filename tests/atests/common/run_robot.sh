@@ -18,5 +18,7 @@ VOLTHA_DIR="$SRC_DIR/../../.."
 
 echo "Run Robot Framework TEST. Log: $1"
 cd $VOLTHA_DIR
+chmod +x env.sh
+./env.sh
 source env.sh
-robot -d $1 -v LOG_DIR:$1/voltha ./tests/atests/robot/auto_testing.robot
+robot -d $1 -v LOG_DIR:$1/voltha_tests_results ./tests/atests/robot/voltha_automated_test_suite.robot
