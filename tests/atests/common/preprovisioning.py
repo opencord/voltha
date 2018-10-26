@@ -21,80 +21,64 @@ vOLT-HA Pre-provisioning Test module
 import time
 import os
 import commands
+import testCaseUtils
 
-
-class preprovisioningTest(object):
+class Preprovisioning(object):
 
     """
     This class implements voltha pre-provisioning test
     """
     
     def __init__(self):
-        self.__oltIpAddress = None        
+        self.dirs = {}
+        self.dirs ['log'] = None
+        self.dirs ['root'] = None
+        self.dirs ['voltha'] = None
+        
+        self.__oltIpAddress = None
         self.__oltPort = None
-        self.__logDir = None
-        self.__oltDeviceId = None
         self.__statusLine = ""
         self.__fields = []
         
-    def configure(self, oltIpAddress, oltPort, logDir):
-        self.__oltIpAddress = oltIpAddress        
-        self.__oltPort = oltPort
-        self.__logDir = logDir    
+    def pSetLogDirs(self, logDir):
+        testCaseUtils.configDirs(self, logDir)
 
+    def configure(self, oltIpAddress, oltPort):
+        self.__oltIpAddress = oltIpAddress       
+        self.__oltPort = oltPort
 
     def preprovisionOlt(self):
         print('Do PROVISIONING')
-        self.send_command_to_voltha_cli(
+        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'),
             'preprovision_olt -t ponsim_olt -H %s:%s' %
             (self.__oltIpAddress, self.__oltPort),
             'voltha_preprovision_olt.log')
         time.sleep(5)
    
     def query_devices_before_enable(self):
-        self.send_command_to_voltha_cli('devices',
+        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'), 'devices',
                                         'voltha_devices_before_enable.log')
         time.sleep(5)
         grepCommand =\
-            "grep PREPROVISIONED %s/voltha_devices_before_enable.log " % self.__logDir
+            "grep PREPROVISIONED %s/voltha_devices_before_enable.log " % testCaseUtils.getDir(self, 'log')
         self.__statusLine = commands.getstatusoutput(grepCommand)[1]
-        self.__fields = self.parseFields(self.__statusLine)
+        self.__fields = testCaseUtils.parseFields(self.__statusLine)
         self.__oltDeviceId = self.__fields[1].strip()
         print ("OLT device id = %s" % self.__oltDeviceId)
         
     def enable(self):
         print('Enable %s OLT device' % self.__oltDeviceId)
-        self.send_command_to_voltha_cli('enable ' + self.__oltDeviceId,
+        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'), 'enable ' + self.__oltDeviceId,
                                         'voltha_enable.log')
+
     def query_devices_after_enable(self):
-        self.send_command_to_voltha_cli('devices',
+        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'), 'devices',
                                         'voltha_devices_after_enable.log')
 
-    def send_command_to_voltha_cli(self, cmd, logFile):
-        # os.system("docker exec -i -t compose_cli_1 sh -c 'echo \"" + cmd +
-        #           "\" > /voltha_tmp_command.txt'")
-        os.system("docker exec compose_cli_1 sh -c 'echo \"" + cmd +
-                  "\" > /voltha_tmp_command.txt'")
-        os.system("docker exec compose_cli_1 sh -c '/cli/cli/main.py -C "
-                  "vconsul:8500 -L < /voltha_tmp_command.txt' > " +
-                  self.__logDir + '/' + logFile)
-
-    def send_command_to_onos_cli(self, cmd, logFile):
-        os.system(
-            "sshpass -p karaf ssh -o StrictHostKeyChecking=no -p 8101 "
-            "karaf@localhost " + cmd + " 2>/dev/null > " +
-            self.__logDir + '/' + logFile)
-            
-    def parseFields(self, statusLine):
-        statusList = statusLine.split("|")
-        return statusList
-
-            
- 
 def runTest(oltIpAddress, oltPort, logDir):
-    preprovisioning = preprovisioningTest()
-    preprovisioning.configure(str(oltIpAddress), int(oltPort),
-                                          str(logDir))
+    preprovisioning = Preprovisioning()
+    preprovisioning.pSetLogDirs(logDir)
+    preprovisioning.configure(str(oltIpAddress), int(oltPort))
     preprovisioning.preprovisionOlt()
     preprovisioning.query_devices_before_enable()
     preprovisioning.enable()
