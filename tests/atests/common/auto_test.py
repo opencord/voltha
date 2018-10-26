@@ -27,11 +27,6 @@ import preprovisioningTest
 
 DEFAULT_LOG_DIR = '/tmp/voltha_test_results'
 
-def runOnos():
-    os.system('docker-compose -f compose/docker-compose-auth-test.yml'
-              ' up -d onos freeradius' + ' > /dev/null 2>&1')
-
-
 def dirInit(logDir=DEFAULT_LOG_DIR,
          volthaDir=os.environ['VOLTHA_BASE']):
     print(__file__)
@@ -47,9 +42,9 @@ def dirInit(logDir=DEFAULT_LOG_DIR,
     # In future in order to keep the history of jobs, the run time should be
     # added to the log directory name
     # logDir += '_' + currentTime
-
+    
     os.system('mkdir -p ' + logDir + ' > /dev/null 2>&1')
-    os.system('rm -rf %s/*' + logDir)
+    os.system('rm -rf %s/*' % logDir)
     print('Start Provisioning Test at: %s\nRoot Directory: %s\n'
           'VOLTHA Directory: %s\nLog Directory: %s' %
           (currentTime, rootDir, volthaDir, logDir))
@@ -74,8 +69,6 @@ if __name__ == "__main__":
 
     volthaMngr.voltha_Initialize(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
-    runOnos()
-
-    preprovisioningTest.runTest('172.17.0.1', 50060, LOG_DIR)
+    preprovisioningTest.runTest('olt.voltha.svc', 50060, LOG_DIR)
 
     time.sleep(5)
