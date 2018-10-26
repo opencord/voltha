@@ -145,6 +145,30 @@
     },
     {
       "key": {
+        "uuid": "ad42c199_09edc6ea",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 275,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-10-26T14:53:07Z",
+      "side": 1,
+      "message": "I agree that inter-adapter communication is not desired. But, I also do not think pushing this responsibility up the food chain to ONOS makes sense. The guiding architecture of VOLTHA is to abstract the PON system from ONOS to make the PON (OLT/ONT) look like a regular OF switch. For which, there is no concept of the internal VLAN 4091. I would like to see us strive to avoid such coupling to the OF controller. In other words, I disagree with Chip that pushing VLAN 4091 to the OF controller is a good idea. It is a flow that is only needed between ONU and OLT and has absolutely no relevance in the abstraction of a virtual OF switch.\n\nAlong that same vein, depending on EAPOL is also a concern. Depending on EAPOL again makes VOLTHA very limited in its abstraction.\n\nIs there something we can do to trigger using the same trigger that the OLT used. By which I mean that the core decomposer sent a flow to both OLT and ONU adapters with a Table ID. OLT adapter used that Table ID to load the TP. Can  the ONU adapter also use the same mechanism of loading TP based upon receiving a flow with Table ID from the core flow decomposition?",
+      "parentUuid": "0e03aeca_9058bf03",
+      "range": {
+        "startLine": 275,
+        "startChar": 21,
+        "endLine": 275,
+        "endChar": 52
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "aefbc3ad_2d1dd977",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 2
