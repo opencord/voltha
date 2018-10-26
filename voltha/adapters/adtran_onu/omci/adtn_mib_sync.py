@@ -37,7 +37,30 @@ class AdtnMibSynchronizer(MibSynchronizer):
                                                   advertise_events=advertise_events,
                                                   audit_delay=AdtnMibSynchronizer.ADTN_AUDIT_DELAY,
                                                   resync_delay=AdtnMibSynchronizer.ADTN_RESYNC_DELAY)
+        self._first_in_sync = True
         self._omci_managed = False      # TODO: Look up model number/check handler
+
+    def increment_mib_data_sync(self):
+        if self._omci_managed:
+            super(AdtnMibSynchronizer, self).increment_mib_data_sync()
+
+        # IBONT 602 does not support MDS
+        self._mib_data_sync = 0
+
+    def on_enter_in_sync(self):
+        """ Early first sync """
+        if not self._omci_managed:
+            # IBONT 602 does not support MDS, accelerate first forced resync
+            # after a MIB reset occurs or on first startup
+            if self._first_in_sync:
+                self._first_in_sync = False
+                # self._audit_delay = 10            # Re-enable after BBWF
+                # self._resync_delay = 10
+            else:
+                self._audit_delay = MibSynchronizer.DEFAULT_AUDIT_DELAY
+                self._resync_delay = AdtnMibSynchronizer.ADTN_RESYNC_DELAY
+
+        super(AdtnMibSynchronizer, self).on_enter_in_sync()
 
     def on_enter_auditing(self):
         """
@@ -56,3 +79,7 @@ class AdtnMibSynchronizer(MibSynchronizer):
 
     def _check_if_mib_data_sync_supported(self):
         return False    # TODO: Look up to see if we are/check handler
+
+    def on_mib_reset_response(self, topic, msg):
+        self._first_in_sync = True
+        super(AdtnMibSynchronizer, self).on_mib_reset_response(topic, msg)

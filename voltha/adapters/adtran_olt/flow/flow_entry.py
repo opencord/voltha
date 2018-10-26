@@ -19,7 +19,7 @@ from untagged_evc import UntaggedEVC
 from utility_evc import UtilityEVC
 import voltha.core.flow_decomposer as fd
 from voltha.core.flow_decomposer import *
-from voltha.protos.openflow_13_pb2 import OFPP_MAX
+from voltha.protos.openflow_13_pb2 import OFPP_MAX, OFPP_CONTROLLER
 from twisted.internet.defer import returnValue, inlineCallbacks, gatherResults
 
 log = structlog.get_logger()
@@ -55,19 +55,30 @@ class FlowEntry(object):
 
     Note: Since only E-LINE is supported, modification of an existing EVC is not performed.
     """
+    class PortType(IntEnum):
+        NNI = 0         # NNI Port
+        UNI = 1         # UNI Port
+        PON = 2         # PON Port (all UNIs on PON)
+        CONTROLLER = 3  # Controller port (packet in/out)
+
     class FlowDirection(IntEnum):
         UPSTREAM = 0          # UNI port to NNI Port
         DOWNSTREAM = 1        # NNI port to UNI Port
-        NNI = 2               # NNI port to NNI Port
-        UNI = 3               # UNI port to UNI Port
-        OTHER = 4             # Unable to determine
+        CONTROLLER_UNI = 2    # Trap packet on UNI and send to controller
+        NNI_PON = 3           # NNI port to PON Port (all UNIs) - perhaps multicast?
 
-    _flow_dir_map = {
-        (FlowDirection.UNI, FlowDirection.NNI): FlowDirection.UPSTREAM,
-        (FlowDirection.NNI, FlowDirection.UNI): FlowDirection.DOWNSTREAM,
-        (FlowDirection.UNI, FlowDirection.UNI): FlowDirection.UNI,
-        (FlowDirection.NNI, FlowDirection.NNI): FlowDirection.NNI,
-    }
+        # The following are not yet supported
+        CONTROLLER_NNI = 4    # Trap packet on NNI and send to controller
+        CONTROLLER_PON = 5    # Trap packet on all UNIs of a PON and send to controller
+        NNI_NNI = 6           # NNI port to NNI Port
+        UNI_UNI = 7           # UNI port to UNI Port
+        OTHER = 9             # Unable to determine
+        NNI = 10              # Deprecate in v2.0
+        UNI = 11              # Deprecate in v2.0
+        
+    upstream_flow_types = {FlowDirection.UPSTREAM, FlowDirection.CONTROLLER_UNI}
+    downstream_flow_types = {FlowDirection.DOWNSTREAM, FlowDirection.NNI_PON}
+
     LEGACY_CONTROL_VLAN = 4000
 
     # Well known EtherTypes
@@ -76,6 +87,7 @@ class FlowEntry(object):
         IPv4 = 0x0800
         IPv6 = 0x86DD
         ARP = 0x0806
+        LLDP = 0x88CC
 
     # Well known IP Protocols
     class IpProtocol(IntEnum):

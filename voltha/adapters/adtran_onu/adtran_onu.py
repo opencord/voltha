@@ -27,6 +27,8 @@ from twisted.internet import reactor
 from omci.adtn_capabilities_task import AdtnCapabilitiesTask
 from omci.adtn_get_mds_task import AdtnGetMdsTask
 from omci.adtn_mib_sync import AdtnMibSynchronizer
+from omci.adtn_mib_resync_task import AdtnMibResyncTask
+from omci.adtn_mib_reconcile_task import AdtnMibReconcileTask
 from copy import deepcopy
 
 _ = third_party
@@ -40,7 +42,7 @@ class AdtranOnuAdapter(OnuAdapter):
                                                device_handler_class=AdtranOnuHandler,
                                                name='adtran_onu',
                                                vendor='Adtran Inc.',
-                                               version='1.18',
+                                               version='1.19',
                                                device_type='adtran_onu',
                                                vendor_id='ADTN',
                                                accepts_add_remove_flow_updates=False),  # TODO: Support flow-mods
@@ -50,8 +52,9 @@ class AdtranOnuAdapter(OnuAdapter):
         self.adtran_omci['mib-synchronizer']['state-machine'] = AdtnMibSynchronizer
         self.adtran_omci['mib-synchronizer']['tasks']['get-mds'] = AdtnGetMdsTask
         self.adtran_omci['mib-synchronizer']['tasks']['mib-audit'] = AdtnGetMdsTask
+        self.adtran_omci['mib-synchronizer']['tasks']['mib-resync'] = AdtnMibResyncTask
+        self.adtran_omci['mib-synchronizer']['tasks']['mib-reconcile'] = AdtnMibReconcileTask
         self.adtran_omci['omci-capabilities']['tasks']['get-capabilities'] = AdtnCapabilitiesTask
-
         # TODO: Continue to customize adtran_omci here as needed
 
         self._omci_agent = OpenOMCIAgent(self.adapter_agent.core,
@@ -133,7 +136,7 @@ class AdtranOnuAdapter(OnuAdapter):
 
     def receive_proxied_message(self, proxy_address, msg):
         self.log.debug('receive-proxied-message', proxy_address=proxy_address,
-                  device_id=proxy_address.device_id, msg=binascii.hexlify(msg))
+                       device_id=proxy_address.device_id, msg=binascii.hexlify(msg))
         # Device_id from the proxy_address is the olt device id. We need to
         # get the onu device id using the port number in the proxy_address
         device = self.adapter_agent.get_child_device_with_proxy_address(proxy_address)

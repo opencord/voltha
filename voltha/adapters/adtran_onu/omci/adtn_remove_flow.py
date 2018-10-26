@@ -47,7 +47,7 @@ class AdtnRemoveFlowTask(Task):
         """
         Class initialization
 
-        :param omci_agent: (OmciAdapterAgent) OMCI Adapter agent
+        :param omci_agent: (OpenOMCIAgent) OMCI Adapter agent
         :param handler: (AdtranOnuHandler) ONU Handler
         :param flow_entry: (FlowEntry) Flow to install
         """
@@ -66,7 +66,7 @@ class AdtnRemoveFlowTask(Task):
         # self._input_tpid = AdtnRemoveFlowTask.default_tpid
         # self._output_tpid = AdtnRemoveFlowTask.default_tpid
 
-        is_upstream = flow_entry.flow_direction == FlowEntry.FlowDirection.UPSTREAM
+        is_upstream = flow_entry.flow_direction in FlowEntry.upstream_flow_types
         # uni_port = flow_entry.in_port if is_upstream else flow_entry.out_port
         pon_port = flow_entry.out_port if is_upstream else flow_entry.in_port
 

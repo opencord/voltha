@@ -61,8 +61,8 @@ class AdtnMibDownloadTask(Task):
         """
         Class initialization
 
-        :param omci_agent: (OmciAdapterAgent) OMCI Adapter agent
-        :param device_id: (str) ONU Device ID
+        :param omci_agent: (OpenOMCIAgent) OMCI Adapter agent
+        :param handler: (OnuHandler) ONU Device Handler
         """
         super(AdtnMibDownloadTask, self).__init__(AdtnMibDownloadTask.name,
                                                   omci_agent,
@@ -90,7 +90,7 @@ class AdtnMibDownloadTask(Task):
         #
         self._ieee_mapper_service_profile_entity_id = self._pon.hsi_8021p_mapper_entity_id
         self._mac_bridge_port_ani_entity_id = self._pon.hsi_mac_bridge_port_ani_entity_id
-        self._gal_enet_profile_entity_id = 0x100
+        self._gal_enet_profile_entity_id = self._handler.gal_enet_profile_entity_id
 
         # Next to are specific     TODO: UNI lookups here or uni specific install !!!
         self._ethernet_uni_entity_id = self._handler.uni_ports[0].entity_id

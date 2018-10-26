@@ -35,14 +35,18 @@ class AdtnCapabilitiesTask(OnuCapabilitiesTask):
                 'supported-message-types': {set of supported message types}
               }
     """
+    name = "Adtran ONU Capabilities Task"
+
     def __init__(self, omci_agent, device_id):
         """
         Class initialization
 
-        :param omci_agent: (OmciAdapterAgent) OMCI Adapter agent
+        :param omci_agent: (OpenOMCIAgent) OMCI Adapter agent
         :param device_id: (str) ONU Device ID
         """
         super(AdtnCapabilitiesTask, self).__init__(omci_agent, device_id)
+
+        self.name = AdtnCapabilitiesTask.name
         self._omci_managed = False      # TODO: Look up capabilities/model number
 
     @property

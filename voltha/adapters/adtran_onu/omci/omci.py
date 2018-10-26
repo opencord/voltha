@@ -262,21 +262,18 @@ class OMCI(object):
         from voltha.extensions.omci.omci_cc import OMCI_CC, OmciCCRxEvents
 
         # OMCI MIB Database sync status
-
         bus = self._onu_omci_device.event_bus
         topic = OnuDeviceEntry.event_bus_topic(self._handler.device_id,
                                                OnuDeviceEvents.MibDatabaseSyncEvent)
         self._in_sync_subscription = bus.subscribe(topic, self.in_sync_handler)
 
         # OMCI Capabilities (MEs and Message Types
-
         bus = self._onu_omci_device.event_bus
         topic = OnuDeviceEntry.event_bus_topic(self._handler.device_id,
                                                OnuDeviceEvents.OmciCapabilitiesEvent)
         self._capabilities_subscription = bus.subscribe(topic, self.capabilities_handler)
 
         # OMCI-CC Connectivity Events (for reachability/heartbeat)
-
         bus = self._onu_omci_device.omci_cc.event_bus
         topic = OMCI_CC.event_bus_topic(self._handler.device_id,
                                         OmciCCRxEvents.Connectivity)
@@ -329,6 +326,7 @@ class OMCI(object):
         if self._capabilities_subscription is not None:
             from adtn_mib_download_task import AdtnMibDownloadTask
             from adtn_service_download_task import AdtnServiceDownloadTask
+            self._mib_download_task = None
 
             def success(_results):
                 if self._mib_downloaded:
@@ -349,12 +347,13 @@ class OMCI(object):
             if not self._mib_downloaded:
                 self._mib_download_task = AdtnMibDownloadTask(self.omci_agent,
                                                               self._handler)
-            else:
+            elif not self._service_downloaded:
                 self._mib_download_task = AdtnServiceDownloadTask(self.omci_agent,
                                                                   self._handler)
-            self._mib_download_deferred = \
-                self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
-            self._mib_download_deferred.addCallbacks(success, failure)
+            if self._mib_download_task is not None:
+                self._mib_download_deferred = \
+                    self._onu_omci_device.task_runner.queue_task(self._mib_download_task)
+                self._mib_download_deferred.addCallbacks(success, failure)
 
     def onu_is_reachable(self, _topic, msg):
         """

@@ -55,12 +55,13 @@ class AdtnServiceDownloadTask(Task):
     task_priority = Task.DEFAULT_PRIORITY + 10
     default_tpid = 0x8100                       # TODO: Move to a better location
     name = "ADTRAN Service Download Task"
+    free_tcont_alloc_id = 0xFFFF
 
     def __init__(self, omci_agent, handler):
         """
         Class initialization
 
-        :param omci_agent: (OmciAdapterAgent) OMCI Adapter agent
+        :param omci_agent: (OpenOMCIAgent) OMCI Adapter agent
         :param device_id: (str) ONU Device ID
         """
         super(AdtnServiceDownloadTask, self).__init__(AdtnServiceDownloadTask.name,
@@ -72,8 +73,8 @@ class AdtnServiceDownloadTask(Task):
         self._onu_device = omci_agent.get_device(handler.device_id)
         self._local_deferred = None
         self._pon = handler.pon_port()
+        self._extended_vlan_me_created = False
 
-        # self._vlan_tcis_1 = self._handler.vlan_tcis_1
         self._input_tpid = AdtnServiceDownloadTask.default_tpid
         self._output_tpid = AdtnServiceDownloadTask.default_tpid
 
@@ -91,7 +92,7 @@ class AdtnServiceDownloadTask(Task):
         # TODO: Probably need to store many of these in the appropriate object (UNI, PON,...)
         #
         self._ieee_mapper_service_profile_entity_id = self._pon.hsi_8021p_mapper_entity_id
-        self._gal_enet_profile_entity_id = 0x100
+        self._gal_enet_profile_entity_id = self._handler.gal_enet_profile_entity_id
 
         # Next to are specific
         self._ethernet_uni_entity_id = self._handler.uni_ports[0].entity_id
@@ -196,6 +197,9 @@ class AdtnServiceDownloadTask(Task):
 
             except TimeoutError as e:
                 self.deferred.errback(failure.Failure(e))
+
+            except Exception as e:
+                self.deferred.errback(failure.Failure(e))
         else:
             # TODO: Provide better error reason, what was missing...
             e = ServiceResourcesFailure('Required resources are not available')
@@ -216,17 +220,25 @@ class AdtnServiceDownloadTask(Task):
             #            - ONU created TCONT (created on ONU startup)
 
             tcont_idents = self._onu_device.query_mib(Tcont.class_id)
-            self.log.debug('tcont-idents', tcont_idents=tcont_idents)
+            self.log.info('tcont-idents', tcont_idents=tcont_idents)
 
             for tcont in self._pon.tconts.itervalues():
-                free_entity_id = next((k for k, v in tcont_idents.items()
-                                       if isinstance(k, int) and
-                                       v.get('attributes', {}).get('alloc_id', 0) == 0xFFFF), None)
-                if free_entity_id is None:
-                    self.log.error('no-available-tconts')
-                    break
-                # TODO: Need to restore on failure.  Need to check status/results
-                yield tcont.add_to_hardware(omci_cc, free_entity_id)
+                if tcont.entity_id is None:
+                    free_entity_id = next((k for k, v in tcont_idents.items()
+                                           if isinstance(k, int) and
+                                           v.get('attributes', {}).get('alloc_id', 0) ==
+                                           AdtnServiceDownloadTask.free_tcont_alloc_id), None)
+
+                    if free_entity_id is None:
+                        self.log.error('no-available-tconts')
+                        raise ServiceResourcesFailure('No Available TConts')
+
+                    try:
+                        yield tcont.add_to_hardware(omci_cc, free_entity_id)
+
+                    except Exception as e:
+                        self.log.exception('tcont-set', e=e, eid=free_entity_id)
+                        raise
 
             ################################################################################
             # GEMS  (GemPortNetworkCtp and GemInterworkingTp)
@@ -254,17 +266,20 @@ class AdtnServiceDownloadTask(Task):
             #              - Ieee8021pMapperServiceProfile
             #              - GalEthernetProfile
             #
-
             for gem_port in self._pon.gem_ports.itervalues():
-                tcont = gem_port.tcont
-                if tcont is None:
-                    self.log.error('unknown-tcont-reference', gem_id=gem_port.gem_id)
-                    continue
-                # TODO: Need to restore on failure.  Need to check status/results
-                yield gem_port.add_to_hardware(omci_cc,
-                                               tcont.entity_id,
-                                               self._ieee_mapper_service_profile_entity_id,
-                                               self._gal_enet_profile_entity_id)
+                if not gem_port.in_hardware:
+                    tcont = gem_port.tcont
+                    if tcont is None:
+                        raise Exception('unknown-tcont-reference', gem_id=gem_port.gem_id)
+
+                    try:
+                        yield gem_port.add_to_hardware(omci_cc,
+                                                       tcont.entity_id,
+                                                       self._ieee_mapper_service_profile_entity_id,
+                                                       self._gal_enet_profile_entity_id)
+                    except Exception as e:
+                        self.log.exception('gem-add-failed', e=e, gem=gem_port)
+                        raise
 
             ################################################################################
             # Update the IEEE 802.1p Mapper Service Profile config
@@ -276,8 +291,11 @@ class AdtnServiceDownloadTask(Task):
             #
             # TODO: All p-bits currently go to the one and only GEMPORT ID for now
             gem_ports = self._pon.gem_ports
-            gem_entity_ids = [gem_port.entity_id for _, gem_port in gem_ports.items()] \
-                if len(gem_ports) else [OmciNullPointer]
+
+            if len(gem_ports):
+                gem_entity_ids = [gem_port.entity_id for _, gem_port in gem_ports.items()]
+            else:
+                gem_entity_ids = [OmciNullPointer]
 
             frame = Ieee8021pMapperServiceProfileFrame(
                 self._ieee_mapper_service_profile_entity_id,  # 802.1p mapper Service Mapper Profile ID
@@ -307,6 +325,7 @@ class AdtnServiceDownloadTask(Task):
             ).create()
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-extended-vlan-tagging-operation-configuration-data')
+            self._extended_vlan_me_created = True
 
             ################################################################################
             # Update Extended VLAN Tagging Operation Config Data
@@ -367,10 +386,12 @@ class AdtnServiceDownloadTask(Task):
 
         except TimeoutError as e:
             self.log.warn('rx-timeout-download', frame=hexlify(frame))
+            self.cleanup_on_error()
             raise
 
         except Exception as e:
             self.log.exception('omci-setup-2', e=e)
+            self.cleanup_on_error()
             raise
 
         returnValue(None)
@@ -411,11 +432,39 @@ class AdtnServiceDownloadTask(Task):
 
         returnValue(None)
 
+    @inlineCallbacks
+    def cleanup_on_error(self):
 
+        omci_cc = self._onu_device.omci_cc
 
+        if self._extended_vlan_me_created:
+            try:
+                eid = self._mac_bridge_service_profile_entity_id
+                frame = ExtendedVlanTaggingOperationConfigurationDataFrame(eid).delete()
+                results = yield omci_cc.send(frame)
+                status = results.fields['omci_message'].fields['success_code']
+                self.log.debug('delete-extended-vlan-me', status=status)
 
+            except Exception as e:
+                self.log.exception('extended-vlan-cleanup', e=e)
+                # Continue processing
 
+        for gem_port in self._pon.gem_ports.itervalues():
+            if gem_port.in_hardware:
+                try:
+                    yield gem_port.remove_from_hardware(omci_cc)
 
+                except Exception as e:
+                    self.log.exception('gem-port-cleanup', e=e)
+                    # Continue processing
 
+        for tcont in self._pon.tconts.itervalues():
+            if tcont.entity_id != AdtnServiceDownloadTask.free_tcont_alloc_id:
+                try:
+                    yield tcont.remove_from_hardware(omci_cc)
 
+                except Exception as e:
+                    self.log.exception('tcont-cleanup', e=e)
+                    # Continue processing
 
+        returnValue('Cleanup Complete')

@@ -82,6 +82,7 @@ class AdtranOnuHandler(AdtranXPON):
         # TODO: Some of these could be dynamically chosen
         self.vlan_tcis_1 = 0x900
         self.mac_bridge_service_profile_entity_id = self.vlan_tcis_1
+        self.gal_enet_profile_entity_id = 0     # Was 0x100, but ONU seems to overwrite and use zero
 
         # Assume no XPON support unless we get an vont-ani/ont-ani/venet create
         self.xpon_support = False    # xPON no longer available
@@ -354,11 +355,11 @@ class AdtranOnuHandler(AdtranXPON):
             if flow_entry.flow_id in self._flows:
                 valid_flows.add(flow_entry.flow_id)
 
-            if flow_entry is None or flow_entry.flow_direction not in {FlowEntry.FlowDirection.UPSTREAM,
-                                                                       FlowEntry.FlowDirection.DOWNSTREAM}:
+            if flow_entry is None or flow_entry.flow_direction not in {FlowEntry.upstream_flow_types,
+                                                                       FlowEntry.downstream_flow_types}:
                 continue
 
-            is_upstream = flow_entry.flow_direction == FlowEntry.FlowDirection.UPSTREAM
+            is_upstream = flow_entry.flow_direction in FlowEntry.upstream_flow_types
 
             # Ignore untagged upstream etherType flows. These are trapped at the
             # OLT and the default flows during initial OMCI service download will
@@ -772,7 +773,6 @@ class AdtranOnuHandler(AdtranXPON):
 
         # If the PON has already synchronized, add the logical port now
         # since we know we have been activated
-
         if self._pon is not None and self.openomci.connected:
             uni_port.add_logical_port(ofp_port_no, subscriber_vlan=subscriber_vlan)
 

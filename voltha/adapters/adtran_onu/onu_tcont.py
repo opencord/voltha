@@ -18,12 +18,14 @@ from twisted.internet.defer import  inlineCallbacks, returnValue, succeed
 from voltha.adapters.adtran_olt.xpon.tcont import TCont
 from voltha.adapters.adtran_olt.xpon.traffic_descriptor import TrafficDescriptor
 from voltha.extensions.omci.omci_me import TcontFrame
-
+from voltha.extensions.omci.omci_defs import ReasonCodes
 
 class OnuTCont(TCont):
     """
     Adtran ONU specific implementation
     """
+    free_tcont_alloc_id = 0xFFFF
+
     def __init__(self, handler, alloc_id, traffic_descriptor, name=None, vont_ani=None):
         super(OnuTCont, self).__init__(alloc_id, traffic_descriptor,
                                        name=name, vont_ani=vont_ani)
@@ -50,15 +52,23 @@ class OnuTCont(TCont):
     def add_to_hardware(self, omci, tcont_entity_id):
         self.log.debug('add-to-hardware', tcont_entity_id=tcont_entity_id)
 
-        self._entity_id = tcont_entity_id
+        if self._entity_id == tcont_entity_id:
+            returnValue('Already set')
+
+        elif self.entity_id is not None:
+            raise KeyError('TCONT already assigned: {}'.format(self.entity_id))
 
         try:
-            frame = TcontFrame(self.entity_id, self.alloc_id).set()
+            frame = TcontFrame(tcont_entity_id, self.alloc_id).set()
             results = yield omci.send(frame)
 
             status = results.fields['omci_message'].fields['success_code']
+            if status == ReasonCodes.Success:
+                self._entity_id = tcont_entity_id
+
             failed_attributes_mask = results.fields['omci_message'].fields['failed_attributes_mask']
             unsupported_attributes_mask = results.fields['omci_message'].fields['unsupported_attributes_mask']
+
             self.log.debug('set-tcont', status=status,
                            failed_attributes_mask=failed_attributes_mask,
                            unsupported_attributes_mask=unsupported_attributes_mask)
@@ -72,14 +82,15 @@ class OnuTCont(TCont):
     @inlineCallbacks
     def remove_from_hardware(self, omci):
         self.log.debug('remove-from-hardware', tcont_entity_id=self.entity_id)
-
-        # Release tcont by setting alloc_id=0xFFFF
         try:
-            frame = TcontFrame(self.entity_id, 0xFFFF).set()
+            frame = TcontFrame(self.entity_id, OnuTCont.free_tcont_alloc_id).set()
             results = yield omci.send(frame)
 
             status = results.fields['omci_message'].fields['success_code']
             self.log.debug('delete-tcont', status=status)
+
+            if status == ReasonCodes.Success:
+                self._entity_id = None
 
         except Exception as e:
             self.log.exception('tcont-delete', e=e)
