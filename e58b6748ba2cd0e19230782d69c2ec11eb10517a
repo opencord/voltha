@@ -73,6 +73,30 @@
     },
     {
       "key": {
+        "uuid": "272a4392_81481fc2",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 275,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-26T13:11:54Z",
+      "side": 1,
+      "message": "You are right. The inter-adapter message was deprecated. But, I had to bring it back due to some design problems I was facing.\nThe EAPOL flow is received only by the OpenOlt adapter and not by the BRCM_OpenOmci adapter. I think this is due to the way the Flow Decomposer decomposes controller-bound flow. Since, EAPOL is the first flow received for the subscriber and the ONU adapter is not receiving it, I had to rely on other mechanisms like inter-adapter message to indicate a tech-profile download.\nDo you have any suggestions ?",
+      "parentUuid": "333bf442_9906b2ba",
+      "range": {
+        "startLine": 275,
+        "startChar": 21,
+        "endLine": 275,
+        "endChar": 52
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "aefbc3ad_2d1dd977",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 2
