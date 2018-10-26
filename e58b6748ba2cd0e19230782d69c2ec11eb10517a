@@ -121,6 +121,30 @@
     },
     {
       "key": {
+        "uuid": "86c9b481_384a7da5",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 275,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-10-26T14:46:45Z",
+      "side": 1,
+      "message": "I would be in favor of all flows being created by the controller instead of a default rule that is pushed by the decomposer.  Makes VOLTHA more of a generic OpenFlow switch which is what the main idea is.",
+      "parentUuid": "0e03aeca_9058bf03",
+      "range": {
+        "startLine": 275,
+        "startChar": 21,
+        "endLine": 275,
+        "endChar": 52
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "aefbc3ad_2d1dd977",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 2
