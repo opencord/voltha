@@ -22,111 +22,103 @@ vOLT-HA Start/Stop module
 import os
 import time
 import subprocess
-import paramiko
-import spur
+import testCaseUtils
+import urlparse
 
-class volthaMngr(object):
+class VolthaMngr(object):
 
     """
     This class implements voltha startup/shutdown callable helper functions
     """
     def __init__(self):
-        self.__rootDir = None
-        self.__volthaDir = None
-        self.__logDir = None
-        self.__rootSsh = None
-
-    def configDir(self, rootDir, volthaDir, logDir):
-        self.__rootDir = rootDir
-        self.__volthaDir = volthaDir
-        self.__logDir = logDir
+        self.dirs = {}
+        self.dirs ['root'] = None
+        self.dirs ['voltha'] = None
+        self.dirs ['log'] = None
         
-        os.chdir(volthaDir)
-
-    def openRootSsh(self):
-        shell = spur.SshShell(hostname='localhost', username='root',
-                              password='root',
-                              missing_host_key=spur.ssh.MissingHostKey.accept)
-        return shell
-
-    def getAllRunningContainers(self):
-        allContainers = []
-        proc1 = subprocess.Popen(['docker', 'ps', '-a'],
+    def vSetLogDirs(self, rootDir, volthaDir, logDir):
+        testCaseUtils.configDirs(self, logDir, rootDir, volthaDir)
+        
+    def startAllPods(self):
+        proc1 = subprocess.Popen([testCaseUtils.getDir(self, 'root') + '/build.sh', 'start'],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
-        proc2 = subprocess.Popen(['grep', '-v', 'CONT'], stdin=proc1.stdout,
+        output = proc1.communicate()[0]
+        print(output)
+        proc1.stdout.close
+
+    def stopAllPods(self):
+        proc1 = subprocess.Popen([testCaseUtils.getDir(self, 'root') + '/build.sh', 'stop'],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        output = proc1.communicate()[0]
+        print(output)
+        proc1.stdout.close
+        
+    def resetKubeAdm(self):
+        proc1 = subprocess.Popen([testCaseUtils.getDir(self, 'root') + '/build.sh', 'clear'],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        output = proc1.communicate()[0]
+        print(output)
+        proc1.stdout.close
+
+    """
+    Because we are not deploying SEBA with XOS and NEM, and that a standalone Voltha
+    deployment is not common, in order to get flows to work, we need to alter Onos 
+    NetCfg in two fashion.
+    One is to add to device list and the other is to add the missing Sadis section
+    """        
+    def alterOnosNetCfg(self):
+        print ('Altering the Onos NetCfg to suit Voltha\'s needs')
+        time.sleep(30)
+        onosIp = testCaseUtils.extractIpAddr("onos-ui")
+        netloc = onosIp.rstrip() + ":8181"
+        devUrl = urlparse.urlunparse(('http', netloc, '/onos/v1/network/configuration/devices/', '', '', ''))
+        sadisUrl = urlparse.urlunparse(('http', netloc, '/onos/v1/network/configuration/apps/', '', '', ''))
+        os.system('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
+            '%s -d @%s/tests/atests/build/devices_json' % (devUrl, testCaseUtils.getDir(self, 'voltha')))
+        os.system('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
+            '%s -d @%s/tests/atests/build/sadis_json' % (sadisUrl, testCaseUtils.getDir(self, 'voltha')))
+            
+    def getAllRunningPods(self):
+        allRunningPods = []
+        proc1 = subprocess.Popen(['/usr/bin/kubectl', 'get', 'pods', '--all-namespaces'],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        proc2 = subprocess.Popen(['grep', '-v', 'NAMESPACE'], stdin=proc1.stdout,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         proc1.stdout.close
         out, err = proc2.communicate()
+        print (out)
         if out:
             for line in out.split('\n'):
                 items = line.split()
-                if len(items):
-                    allContainers.append(items)
-        return allContainers
+                nsName = {}
+                if len(items) > 2:
+                    nsName = {}
+                    nsName['NS'] = items[0]
+                    nsName['Name'] = items[1]
+                    allRunningPods.append(nsName)
+        return allRunningPods
+ 
+    def collectPodLogs(self):
+        print('Collect logs from all Pods')
+        allRunningPods = self.getAllRunningPods()
+        for nsName in allRunningPods:
+            Namespace = nsName.get('NS')
+            podName   = nsName.get('Name')
+            os.system('/usr/bin/kubectl logs -n %s -f %s > %s/%s.log 2>&1 &' %
+                      (Namespace, podName, testCaseUtils.getDir(self, 'log'), podName))
 
-    def stopPonsim(self):
-        command = "for pid in $(ps -ef | grep ponsim | grep -v grep | " \
-                  "awk '{print $2}'); do echo $pid; done"
-        client = paramiko.SSHClient()
-        client.load_system_host_keys()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect('localhost', username='root', password='root')
-        transport = client.get_transport()
-        channel = transport.open_session()
-
-        channel.exec_command(command)
-        procIds = channel.recv(4096).replace('\n', ' ')
-        channel = transport.open_session()
-        channel.exec_command('sudo kill -9 %s' % procIds)
-
-    def removeExistingContainers(self):
-        allContainers = self.getAllRunningContainers()
-        for container in allContainers:
-            procID = container[0]
-            os.system('docker rm -f %s > /dev/null 2>&1' % procID)
-
-    def startVolthaContainers(self):
-        print('Start VOLTHA containers')
-        # Bring up all the containers required for VOLTHA (total 15)
-        os.system(
-            'docker-compose -f compose/docker-compose-system-test.yml '
-            'up -d > %s/start_voltha_containers.log 2>&1' %
-            self.__logDir)
-
-    def collectAllLogs(self):
-        print('Collect all VOLTHA container logs')
-        allContainers = self.getAllRunningContainers()
-        for container in allContainers:
-            containerName = container[-1]
-            os.system('docker logs --since 0m -f %s > %s/%s.log 2>&1 &' %
-                      (containerName, self.__logDir, containerName))
-
-    def enableBridge(self):
-        self.__rootSsh = self.openRootSsh()
-        result = self.__rootSsh.run([self.__rootDir + '/enable_bridge.sh'])
-        print(result.output)
-
-    def startPonsim(self, onusAmount=1):
-        command = 'source env.sh ; ./ponsim/main.py -v'
-        if onusAmount > 1:
-            command += ' -o %s' % onusAmount
-        ponsimLog = open('%s/ponsim.log' % self.__logDir, 'w')
-        process = self.__rootSsh.spawn(['bash', '-c', command],
-                                       cwd=self.__volthaDir, store_pid=True,
-                                       stdout=ponsimLog)
-        return process.pid
-
-
+        
 def voltha_Initialize(rootDir, volthaDir, logDir):
+    voltha = VolthaMngr()
+    voltha.vSetLogDirs(rootDir, volthaDir, logDir)
+    voltha.stopAllPods()
+    voltha.resetKubeAdm()
+    voltha.startAllPods()
+    voltha.alterOnosNetCfg()
+    voltha.collectPodLogs()
 
-    voltha = volthaMngr()
-    voltha.configDir(rootDir, volthaDir, logDir)
-    voltha.stopPonsim()
-    voltha.removeExistingContainers()
-    voltha.startVolthaContainers()
-    voltha.collectAllLogs()
-    voltha.enableBridge()
-    voltha.startPonsim(3)
-    

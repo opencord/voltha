@@ -1,0 +1,32 @@
+{  
+   "org.opencord.sadis":{  
+      "sadis":{  
+         "integration":{  
+            "cache":{  
+               "enabled":true,
+               "maxsize":50,
+               "ttl":"PT1m"
+            }
+         },
+         "entries":[  
+            {  
+               "id":"00:26:F2:F3:17:B0",
+               "cTag":33,
+               "sTag":44,
+               "nasPortId":"uni-128"
+            },
+            {  
+               "id":"1d1d1d1d1d1d11",
+               "hardwareIdentifier":"00:1b:22:00:b1:78",
+               "ipAddress":"192.168.1.252",
+               "nasId":"B100-NASID"
+            },
+            {  
+               "id":"olt.voltha.svc:50060",
+	       "uplinkPort":2
+            }
+         ]
+      }
+   }
+}
+
