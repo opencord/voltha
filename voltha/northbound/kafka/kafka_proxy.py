@@ -143,7 +143,7 @@ class KafkaProxy(object):
             return
 
     @inlineCallbacks
-    def send_message(self, topic, msg):
+    def send_message(self, topic, msg, key=None):
         assert topic is not None
         assert msg is not None
 
@@ -164,7 +164,7 @@ class KafkaProxy(object):
                 msgs = [msg]
 
                 if self.kproducer is not None and self.event_bus_publisher and self.faulty is False:
-                    d =  deferToThread(self.kproducer.produce, topic, msg)
+                    d =  deferToThread(self.kproducer.produce, topic, msg, key)
                     yield d
                     log.debug('sent-kafka-msg', topic=topic, msg=msg)
                 else:
