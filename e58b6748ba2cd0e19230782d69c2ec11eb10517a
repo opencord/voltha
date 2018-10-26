@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "333bf442_9906b2ba",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 275,
+      "author": {
+        "id": 1000471
+      },
+      "writtenOn": "2018-10-26T12:48:18Z",
+      "side": 1,
+      "message": "I thought we were deprecating inter-adapter messages?  Thats part of the reason handle_onu_events was removed.    Triggering the tech-profile configuration after the uni is enable is the right time.   Im just not sure of the mechanism.    Currently any flows pushed from onos are handled in update_flows_bulk / update_flow_table",
+      "parentUuid": "3da1acf6_999a634a",
+      "range": {
+        "startLine": 275,
+        "startChar": 21,
+        "endLine": 275,
+        "endChar": 52
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "aefbc3ad_2d1dd977",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 2
