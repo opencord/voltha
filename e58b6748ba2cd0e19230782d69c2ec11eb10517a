@@ -97,6 +97,30 @@
     },
     {
       "key": {
+        "uuid": "0e03aeca_9058bf03",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 275,
+      "author": {
+        "id": 1000471
+      },
+      "writtenOn": "2018-10-26T13:23:49Z",
+      "side": 1,
+      "message": "Ill have to think about it.  One way may be to be more explicit about the initial management flow thats deployed to the onu.     \n\nRight now the onu on its own after mib sync runs the Download Task that basically creates the bridge, assigns uni, and tags vlan 4091 tagged traffic needed for eap (or anything really).  onos does not tell the onu to do that, it just does it on its own.   Then the UNI is announced to onos.\n\nWhat if we have onos start this sequence, rather than the onu.  Basically change mib_sync to immediately activate and up the UNI ports and tell onos.  It does not run Download mib task.   Onos sees this UNI made available/enabled and oltapp pushes a management vlan 4091 flow to the uni port alongside the eap flow that gets handled by openolt.   When this 4091 flow makes it to the onu and its _update_flow_table, *that* can be where Download task is now called from.  Additionally at that point tech profile tasks can be  invoked based on what came from onos.\n\nWe may need to discuss over a call.  I could be missing something.",
+      "parentUuid": "272a4392_81481fc2",
+      "range": {
+        "startLine": 275,
+        "startChar": 21,
+        "endLine": 275,
+        "endChar": 52
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "aefbc3ad_2d1dd977",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 2
