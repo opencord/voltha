@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3da1acf6_999a634a",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 275,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-26T06:11:48Z",
+      "side": 1,
+      "message": "The OpenOlt adapter triggers this inter-adapter message to start downloading the the Tech-Profile-Instance at the BRCM_OPENOMCI adapter. The OpenOlt adapter does the trigger only after OpenFlow message is received pertaining to the ONUs UNI port. Isn\u0027t the UNI port in enabled state and ONOS sending the OF message the right state to do the Tech-Profile configuration.",
+      "parentUuid": "6780f524_b10af5e5",
+      "range": {
+        "startLine": 275,
+        "startChar": 21,
+        "endLine": 275,
+        "endChar": 52
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "aefbc3ad_2d1dd977",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 2
