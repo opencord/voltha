@@ -201,6 +201,125 @@
       "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8975e720_aaf6f4f4",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-30T00:44:51Z",
+      "side": 1,
+      "message": "Cleanup/remove the above flow ids.",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3600bf69_ab112b06",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-30T00:44:51Z",
+      "side": 1,
+      "message": "This should come from the flow eventually. Until then, this hardcoded value is better defined in common.tech_profile.",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f8dc6ef7_40d11de9",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 281,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-30T00:44:51Z",
+      "side": 1,
+      "message": "Why replicate flows on all gem ports?",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "62b56f27_278742e0",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-30T00:44:51Z",
+      "side": 1,
+      "message": "I dont think there is a need for this inter-adapter msg. The core calls the ONU adapter to push the decomposed eapol flow. Check the following lines in brcm_openomci_onu_handler.py:\n\n 434                 if _type is not None:\n 435                     self.log.warn(\u0027ignoring-flow-with-ethType\u0027, ethType\u003d_type)",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8d5d5fcd_b531d839",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 349,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-30T00:44:51Z",
+      "side": 1,
+      "message": "Maybe nice to flag this as a # HACK or # FIXME.",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "768aa515_a492e65e",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 468,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-30T00:44:51Z",
+      "side": 1,
+      "message": "raise exception?",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6a37b817_194cd595",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 488,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-10-30T00:44:51Z",
+      "side": 1,
+      "message": "Suggestion - This helper function, and any similar protobuf helper functions, should move into a file openolt_protos_helper.py. Or make the the enums simple Strings. This is just cluttering up the code.",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
