@@ -148,7 +148,7 @@ class PONResourceManager(object):
             self.shared_idx_by_type[PONResourceManager.ALLOC_ID] = PONResourceManager.ALLOC_ID_SHARED_IDX
             self.shared_idx_by_type[PONResourceManager.GEMPORT_ID] = PONResourceManager.GEMPORT_ID_SHARED_IDX
 
-	    self.intf_ids = None
+            self.intf_ids = None
 
         except Exception as e:
             self._log.exception("exception-in-init")
