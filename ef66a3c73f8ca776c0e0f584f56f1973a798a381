@@ -154,6 +154,24 @@
     },
     {
       "key": {
+        "uuid": "d0fe6689_9a392593",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-10-31T17:29:48Z",
+      "side": 1,
+      "message": "The strategy that Oleg implemented was to first collect the result of each individual Voltha CLI command in its own respective log file. Only afterwards were the various fields of each file to be post analyzed for expected results.\n\nThe Pass/Fail criteria consists in verifying many different fields of more than one log file\n\nI think this structure lends itself to that determination quite well",
+      "parentUuid": "7dea5e19_f489b6f7",
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7866d06e_c8254068",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 7
@@ -171,6 +189,24 @@
     },
     {
       "key": {
+        "uuid": "a55c7c53_0e14b363",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-10-31T17:29:48Z",
+      "side": 1,
+      "message": "See above for comment",
+      "parentUuid": "7866d06e_c8254068",
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b73ad693_a6a482b7",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 7
@@ -182,6 +218,30 @@
       "writtenOn": "2018-10-31T14:07:57Z",
       "side": 1,
       "message": "I might have asked this question before. Why not collect the logs in Stop Voltha function? Here it should be Reset Pod Logs before Start All Pods",
+      "range": {
+        "startLine": 56,
+        "startChar": 4,
+        "endLine": 56,
+        "endChar": 20
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7ba88c19_78bc5980",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-10-31T17:29:48Z",
+      "side": 1,
+      "message": "I see what you are thinking\nHowever Collect Pod Logs means initiating a tail on logs from all pods.\nYou do bring up an interesting point however. Upon starting Voltha, the common logs folder is deleted in preparation of holding a new set of logs for the current run\nOleg had suggested as a comment to timestamp the log folder so that it is maintained for each test run.\nBetter yet, as the three Robot artifacts are now being uploaded to Jenkins, maybe we should do the same for all logs as well.\nI prefer that to accumulating multiple timestamped folders of logs that will likely require manual deletion to recover disk space. \nI guess the same can be said of the Jenkins artifacts but they are more in your face and easier to manage I think.",
+      "parentUuid": "b73ad693_a6a482b7",
       "range": {
         "startLine": 56,
         "startChar": 4,
