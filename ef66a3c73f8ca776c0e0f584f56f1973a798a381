@@ -1,0 +1,107 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c6dec2fe_ccfa8b4f",
+        "filename": "tests/atests/build/Makefile",
+        "patchSetId": 7
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T14:07:57Z",
+      "side": 1,
+      "message": "Better to check if the packages exist before install them",
+      "range": {
+        "startLine": 30,
+        "startChar": 56,
+        "endLine": 30,
+        "endChar": 57
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7d7f7558_dcfaa708",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T14:07:57Z",
+      "side": 1,
+      "message": "What is OLT port? And how many ONUs has been started? In previous version, the $(ONUS) has been specified for the number of ONUs",
+      "range": {
+        "startLine": 38,
+        "startChar": 42,
+        "endLine": 38,
+        "endChar": 53
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7dea5e19_f489b6f7",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T14:07:57Z",
+      "side": 1,
+      "message": "What is the plan to check (not to print the status into the log) if everything is ok? If not the test should fail",
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7866d06e_c8254068",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T14:07:57Z",
+      "side": 1,
+      "message": "The same question as above",
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b73ad693_a6a482b7",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T14:07:57Z",
+      "side": 1,
+      "message": "I might have asked this question before. Why not collect the logs in Stop Voltha function? Here it should be Reset Pod Logs before Start All Pods",
+      "range": {
+        "startLine": 56,
+        "startChar": 4,
+        "endLine": 56,
+        "endChar": 20
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
