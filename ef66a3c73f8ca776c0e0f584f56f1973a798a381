@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "61fdc62e_4f351e73",
+        "filename": "tests/atests/build/Makefile",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-10-31T16:18:54Z",
+      "side": 1,
+      "message": "This is the file I inherited from Andy Bouvier which he developed for SEBA. I changed it only in terms of limiting the pod deployment to what is necessary to run Voltha. Otherwise I did not change it in any way",
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c6dec2fe_ccfa8b4f",
         "filename": "tests/atests/build/Makefile",
         "patchSetId": 7
@@ -13,6 +30,30 @@
       "writtenOn": "2018-10-31T14:07:57Z",
       "side": 1,
       "message": "Better to check if the packages exist before install them",
+      "range": {
+        "startLine": 30,
+        "startChar": 56,
+        "endLine": 30,
+        "endChar": 57
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "027016ae_a50db734",
+        "filename": "tests/atests/build/Makefile",
+        "patchSetId": 7
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-10-31T16:18:54Z",
+      "side": 1,
+      "message": "I could check for the above packages and also the ones below before installing. I would however be deviating from the origin of this file which SEBA manage. It would also make it harder to merge any updates they come up with from time to time\n\nIs this really necessary? It is expected on the server that will be running this that package repos are available that include all of these, otherwise we have a serious problem. What action to we take if the packages are really missing?",
+      "parentUuid": "c6dec2fe_ccfa8b4f",
       "range": {
         "startLine": 30,
         "startChar": 56,
