@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "78dc16e0_5324cfb6",
+        "filename": "tests/atests/build/Makefile",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T19:31:40Z",
+      "side": 1,
+      "message": "It\u0027s ok!",
+      "parentUuid": "61fdc62e_4f351e73",
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c6dec2fe_ccfa8b4f",
         "filename": "tests/atests/build/Makefile",
         "patchSetId": 7
@@ -59,6 +77,76 @@
         "startChar": 56,
         "endLine": 30,
         "endChar": 57
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "836c291a_3c70276c",
+        "filename": "tests/atests/build/Makefile",
+        "patchSetId": 7
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T19:31:40Z",
+      "side": 1,
+      "message": "No it is not a serious problem. If there is a merging issue, please ignore the comment!",
+      "parentUuid": "027016ae_a50db734",
+      "range": {
+        "startLine": 30,
+        "startChar": 56,
+        "endLine": 30,
+        "endChar": 57
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "792daa58_0c91d7c3",
+        "filename": "tests/atests/common/preprovisioningTest.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T19:31:40Z",
+      "side": 1,
+      "message": "I remember the purpose of creating this class. But this time let talk about how to structure the code better!",
+      "range": {
+        "startLine": 26,
+        "startChar": 6,
+        "endLine": 26,
+        "endChar": 25
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9bc01e57_3035b19f",
+        "filename": "tests/atests/common/preprovisioningTest.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T19:31:40Z",
+      "side": 1,
+      "message": "Do you need this function for final test or it is just to test the test code?",
+      "range": {
+        "startLine": 74,
+        "startChar": 4,
+        "endLine": 74,
+        "endChar": 11
       },
       "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
@@ -137,6 +225,30 @@
     },
     {
       "key": {
+        "uuid": "2a1b4454_75c8bf98",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T19:31:40Z",
+      "side": 1,
+      "message": "Ideally every parameter should be in this file. If not, then this file and the makefile. So please create a jira ticket for it!",
+      "parentUuid": "e6aac15a_d42223db",
+      "range": {
+        "startLine": 38,
+        "startChar": 42,
+        "endLine": 38,
+        "endChar": 53
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7dea5e19_f489b6f7",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 7
@@ -166,6 +278,24 @@
       "side": 1,
       "message": "The strategy that Oleg implemented was to first collect the result of each individual Voltha CLI command in its own respective log file. Only afterwards were the various fields of each file to be post analyzed for expected results.\n\nThe Pass/Fail criteria consists in verifying many different fields of more than one log file\n\nI think this structure lends itself to that determination quite well",
       "parentUuid": "7dea5e19_f489b6f7",
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "901fa3d6_bb4d5f64",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T19:31:40Z",
+      "side": 1,
+      "message": "Does this mean you have a plan to grep the log and check different status? But that has not been implemented yet?",
+      "parentUuid": "d0fe6689_9a392593",
       "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -242,6 +372,30 @@
       "side": 1,
       "message": "I see what you are thinking\nHowever Collect Pod Logs means initiating a tail on logs from all pods.\nYou do bring up an interesting point however. Upon starting Voltha, the common logs folder is deleted in preparation of holding a new set of logs for the current run\nOleg had suggested as a comment to timestamp the log folder so that it is maintained for each test run.\nBetter yet, as the three Robot artifacts are now being uploaded to Jenkins, maybe we should do the same for all logs as well.\nI prefer that to accumulating multiple timestamped folders of logs that will likely require manual deletion to recover disk space. \nI guess the same can be said of the Jenkins artifacts but they are more in your face and easier to manage I think.",
       "parentUuid": "b73ad693_a6a482b7",
+      "range": {
+        "startLine": 56,
+        "startChar": 4,
+        "endLine": 56,
+        "endChar": 20
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "697e271b_eed878e8",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-10-31T19:31:40Z",
+      "side": 1,
+      "message": "This one need to be dicussed in a meeting",
+      "parentUuid": "7ba88c19_78bc5980",
       "range": {
         "startLine": 56,
         "startChar": 4,
