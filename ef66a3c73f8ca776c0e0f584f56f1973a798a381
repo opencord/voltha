@@ -154,6 +154,30 @@
     },
     {
       "key": {
+        "uuid": "095ccfd6_404a93d5",
+        "filename": "tests/atests/common/preprovisioningTest.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-10-31T20:25:10Z",
+      "side": 1,
+      "message": "This is just here to be able to invoke the auto_test via its main line using python",
+      "parentUuid": "9bc01e57_3035b19f",
+      "range": {
+        "startLine": 74,
+        "startChar": 4,
+        "endLine": 74,
+        "endChar": 11
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7d7f7558_dcfaa708",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 7
