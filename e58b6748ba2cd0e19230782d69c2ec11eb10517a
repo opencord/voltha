@@ -387,6 +387,24 @@
     },
     {
       "key": {
+        "uuid": "65841050_c61d899d",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-10-31T10:01:50Z",
+      "side": 1,
+      "message": "Shad, I have checked this. This does not appear in the Voltha logs. So, as I said earlier, the flow_decomposer is not sending eapol flow to ONU adapter.",
+      "parentUuid": "62b56f27_278742e0",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "63bae7b1_60771c98",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
