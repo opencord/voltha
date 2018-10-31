@@ -405,6 +405,24 @@
     },
     {
       "key": {
+        "uuid": "863ca651_db71e0aa",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-10-31T13:16:56Z",
+      "side": 1,
+      "message": "Shad, Isn\u0027t there also an issue of synchronization. OLT Adapter must fully process the flow update in order to allocate resources from it\u0027s resource manager to store in the TechProfile Instance BEFORE the ONU adapter can process that flow. Can this ordering dependency be guaranteed if the core flow-decomposer is changed to disseminate flows to both adapters? If not, are there other choices?",
+      "parentUuid": "65841050_c61d899d",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "63bae7b1_60771c98",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
