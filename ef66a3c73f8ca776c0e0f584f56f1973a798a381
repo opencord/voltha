@@ -89,6 +89,30 @@
     },
     {
       "key": {
+        "uuid": "4c32bb86_d1609e7f",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-10-31T16:33:00Z",
+      "side": 1,
+      "message": "Would Ponsim OLT and Ponsim ONU be better terms to use?\n\nAs for specifying the number of ONUs deployed, the number is now defined in the Helm chart \"onu.yaml\" as replica \"1\"\nI am inquiring with Andy whether we could override that value dynamically in the makefile. Sounds like this is a feature we wish to retain.",
+      "parentUuid": "7d7f7558_dcfaa708",
+      "range": {
+        "startLine": 38,
+        "startChar": 42,
+        "endLine": 38,
+        "endChar": 53
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7dea5e19_f489b6f7",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 7
