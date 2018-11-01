@@ -518,6 +518,30 @@
       "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "29b150cd_b41ae7b6",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-11-01T21:29:47Z",
+      "side": 1,
+      "message": "Opting to upload all log artifacts to jenkins",
+      "parentUuid": "7ba88c19_78bc5980",
+      "range": {
+        "startLine": 56,
+        "startChar": 4,
+        "endLine": 56,
+        "endChar": 20
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
