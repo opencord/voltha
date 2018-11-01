@@ -18,25 +18,23 @@ import xmltodict
 
 from twisted.internet import reactor
 from twisted.internet.defer import returnValue, inlineCallbacks, succeed
-from voltha.protos.device_pb2 import Port
 
 from adtran_device_handler import AdtranDeviceHandler
-import adtranolt_platform as platform
+from voltha.adapters.adtran_olt.resources import adtranolt_platform as platform
 from download import Download
-from xpon.adtran_olt_xpon import AdtranOltXPON
 from codec.olt_state import OltState
 from flow.flow_entry import FlowEntry
+from resources.adtran_olt_resource_manager import AdtranOltResourceMgr
 from net.pio_zmq import PioClient
 from net.pon_zmq import PonClient
 from voltha.core.flow_decomposer import *
 from voltha.extensions.omci.omci import *
 from voltha.protos.common_pb2 import AdminState, OperStatus
 from voltha.protos.device_pb2 import ImageDownload, Image
+from voltha.protos.openflow_13_pb2 import OFPP_MAX
 
-ATT_NETWORK = True  # Use AT&T cVlan scheme
 
-
-class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
+class AdtranOltHandler(AdtranDeviceHandler):
     """
     The OLT Handler is used to wrap a single instance of a 10G OLT 1-U pizza-box
     """
@@ -82,22 +80,22 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         self._downloads = {}        # name -> Download obj
         self._pio_exception_map = []
 
+        # FIXME:  Remove once we containerize.  Only exists to keep BroadCom OpenOMCI ONU Happy
+        #         when it reaches up our rear and tries to yank out a UNI port number
+        self.platform_class = None
+
+        # To keep broadcom ONU happy
+        from voltha.adapters.adtran_olt.resources.adtranolt_platform import adtran_platform
+        self.platform = adtran_platform()
+
     def __del__(self):
         # OLT Specific things here.
         #
         # If you receive this during 'enable' of the object, you probably threw an
-        # uncaught exception which trigged an errback in the VOLTHA core.
-
+        # uncaught exception which triggered an errback in the VOLTHA core.
         d, self.status_poll = self.status_poll, None
 
-        # TODO Any OLT device specific cleanup here
-        #     def get_channel(self):
-        #         if self.channel is None:
-        #             device = self.adapter_agent.get_device(self.device_id)
-        #         return self.channel
-        #
         # Clean up base class as well
-
         AdtranDeviceHandler.__del__(self)
 
     def _cancel_deferred(self):
@@ -209,9 +207,36 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                                                 device['software-images'].append(image)
 
         except Exception as e:
-            self.log.exception('get-pe-state', e=e)
+            self.log.exception('dev-info-failure', e=e)
+            raise
 
         returnValue(device)
+
+    def initialize_resource_manager(self):
+        # Initialize the resource manager
+        extra_args = '--olt_vendor {}'.format(self.resource_manager_key)
+        self.resource_mgr = AdtranOltResourceMgr(self.device_id,
+                                                 self.host_and_port,
+                                                 extra_args,
+                                                 self.default_resource_mgr_device_info)
+
+    @property
+    def default_resource_mgr_device_info(self):
+        class AdtranOltDevInfo(object):
+            def __init__(self, pon_ports):
+                self.technology = "gpon"
+                self.onu_id_start = 0
+                self.onu_id_end = platform.MAX_ONUS_PER_PON
+                self.alloc_id_start = platform.MIN_TCONT_ALLOC_ID
+                self.alloc_id_end = platform.MAX_TCONT_ALLOC_ID
+                self.gemport_id_start = platform.MIN_GEM_PORT_ID
+                self.gemport_id_end = platform.MAX_GEM_PORT_ID
+                self.pon_ports = len(pon_ports)
+                self.max_tconts = platform.MAX_TCONTS_PER_ONU
+                self.max_gem_ports = platform.MAX_GEM_PORTS_PER_ONU
+                self.intf_ids = pon_ports.keys()    # PON IDs
+
+        return AdtranOltDevInfo(self.southbound_ports)
 
     @inlineCallbacks
     def enumerate_northbound_ports(self, device):
@@ -342,7 +367,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 port = ports[pon_id + 1]
                 port['pon-id'] = pon_id
                 port['admin_state'] = AdminState.ENABLED \
-                    if data.get('enabled', not self.xpon_support)\
+                    if data.get('enabled', True)\
                     else AdminState.DISABLED
 
         except Exception as e:
@@ -593,8 +618,6 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         super(AdtranOltHandler, self).delete()
 
     def rx_pa_packet(self, packets):
-        self.log.debug('rx-pon-agent-packet')
-
         if self._pon_agent is not None:
             for packet in packets:
                 try:
@@ -717,7 +740,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 pkt = Ether(msg)
 
             if self._pio_agent is not None:
-                port, ctag, vlan_id, evcmapname = FlowEntry.get_packetout_info(self.device_id, egress_port)
+                port, ctag, vlan_id, evcmapname = FlowEntry.get_packetout_info(self, egress_port)
                 exceptiontype = None
                 if pkt.type == FlowEntry.EtherType.EAPOL:
                     exceptiontype = 'eapol'
@@ -812,20 +835,6 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
         self.status_poll = reactor.callLater(delay, self.poll_for_status)
 
-    def _create_untagged_flow(self):
-        nni_port = self.northbound_ports.get(1).port_no
-        pon_port = self.southbound_ports.get(0).port_no
-
-        return mk_flow_stat(
-            priority=100,
-            match_fields=[
-                in_port(nni_port),
-                vlan_vid(ofp.OFPVID_PRESENT + self.untagged_vlan),
-                # eth_type(FlowEntry.EtherType.EAPOL)       ?? TODO: is this needed
-            ],
-            actions=[output(pon_port)]
-        )
-
     def _create_utility_flow(self):
         nni_port = self.northbound_ports.get(1).port_no
         pon_port = self.southbound_ports.get(0).port_no
@@ -850,7 +859,6 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         :param device: A voltha.Device object, with possible device-type
                        specific extensions.
         """
-
         self.log.debug('bulk-flow-update', num_flows=len(flows),
                        device_id=device.id, flows=flows)
 
@@ -858,21 +866,20 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
         if flows:
             # Special helper egress Packet In/Out flows
-            for special_flow in (self._create_untagged_flow(),
-                                 self._create_utility_flow()):
-                valid_flow, evc = FlowEntry.create(special_flow, self)
+            special_flow = self._create_utility_flow()
+            valid_flow, evc = FlowEntry.create(special_flow, self)
 
-                if valid_flow is not None:
-                    valid_flows.append(valid_flow.flow_id)
+            if valid_flow is not None:
+                valid_flows.append(valid_flow.flow_id)
 
-                if evc is not None:
-                    try:
-                        evc.schedule_install()
-                        self.add_evc(evc)
+            if evc is not None:
+                try:
+                    evc.schedule_install()
+                    self.add_evc(evc)
 
-                    except Exception as e:
-                        evc.status = 'EVC Install Exception: {}'.format(e.message)
-                        self.log.exception('EVC-install', e=e)
+                except Exception as e:
+                    evc.status = 'EVC Install Exception: {}'.format(e.message)
+                    self.log.exception('EVC-install', e=e)
 
         # verify exception flows were installed by OLT PET process
         reactor.callLater(5, self.send_packet_exceptions_request)
@@ -909,7 +916,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
 
         # Now drop all flows from this device that were not in this bulk update
         try:
-            yield FlowEntry.drop_missing_flows(device.id, valid_flows)
+            yield FlowEntry.drop_missing_flows(self, valid_flows)
 
         except Exception as e:
             self.log.exception('bulk-flow-update-remove', e=e)
@@ -941,17 +948,6 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
             else:
                 self.log.debug('pon-invalid-or-disabled', pon_id=pon_id)
 
-    def get_onu_vid(self, onu_id):  # TODO: Deprecate this when packet-in/out is supportted and UNI ports on the OLT
-        if ATT_NETWORK:
-            return (onu_id * 120) + 2
-
-        return None
-
-    def get_channel_id(self, pon_id, onu_id):   # TODO: Make this more unique. Just don't call the ONU VID method
-        from pon_port import PonPort
-        return self.get_onu_vid(onu_id)
-        # return self._onu_offset(onu_id) + (pon_id * PonPort.MAX_ONUS_SUPPORTED)
-
     def _onu_offset(self, onu_id):
         # Start ONU's just past the southbound PON port numbers. Since ONU ID's start
         # at zero, add one
@@ -982,11 +978,10 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         return pon_id, onu_id
 
     def _pon_id_to_port_number(self, pon_id):
-        # return pon_id + 1 + self.num_northbound_ports
         return pon_id + 1 + 4   # Skip over uninitialized ports
 
     def _port_number_to_pon_id(self, port):
-        if not self.xpon_support and self.is_uni_port(port):
+        if self.is_uni_port(port):
             # Convert to OLT device port
             port = platform.intf_id_from_uni_port_num(port)
 
@@ -996,67 +991,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         return self._port_number_to_pon_id(port) in self.southbound_ports
 
     def is_uni_port(self, port):
-        if self.xpon_support:
-            return port >= self._onu_offset(0)  # TODO: Really need to rework this one...
-        else:
-            return port >= (5 << 11)
-
-    def get_onu_port_and_vlans(self, flow_entry):
-        """
-        Get the logical port (OpenFlow port) for a given southbound port of an ONU
-
-        :param flow_entry: (FlowEntry) Flow to parse
-        :return: None or openflow port number and the actual VLAN IDs we should use
-        """
-        if flow_entry.flow_direction == FlowEntry.FlowDirection.UPSTREAM:
-            # Upstream will have VID=Logical_port until VOL-460 is addressed
-            ingress_port = flow_entry.in_port
-            vid = flow_entry.vlan_id
-        else:
-            ingress_port = flow_entry.output
-            vid = flow_entry.inner_vid
-
-        pon_port = self.get_southbound_port(ingress_port)
-        if pon_port is None:
-            return None, None, None
-
-        if flow_entry.flow_direction == FlowEntry.FlowDirection.UPSTREAM:
-            self.log.debug('upstream-flow-search', acl=flow_entry.is_acl_flow,
-                           vid=vid)
-            # User data flows have the correct VID / C-Tag.
-            if flow_entry.is_acl_flow:
-                if self.xpon_support:
-                    # Upstream ACLs will have VID=Logical_port until VOL-460 is addressed
-                    onu = next((onu for onu in pon_port.onus if
-                                onu.logical_port == vid), None)
-                else:
-                    # Upstream ACLs will be placed on the untagged vlan or ONU VID
-                    # TODO: Do we need an onu_vid set here for DHCP?
-                    # TODO: For non-xPON, we could really just match the UNI PORT number !!!!
-                    onu = next((onu for onu in pon_port.onus if
-                                vid == onu.untagged_vlan), None)
-            elif self.xpon_support:
-                onu = next((onu for onu in pon_port.onus if
-                            onu.onu_vid == vid), None)
-            else:
-                onu = next((onu for onu in pon_port.onus if
-                            flow_entry.in_port in onu.uni_ports), None)
-
-        elif flow_entry.vlan_id in (FlowEntry.LEGACY_CONTROL_VLAN,
-                                    flow_entry.handler.untagged_vlan):
-            # User data flows have inner_vid=correct C-tag. Legacy control VLANs
-            # have inner_vid == logical_port until VOL-460 is addressed
-            onu = next((onu for onu in pon_port.onus if
-                        onu.logical_port == vid), None)
-        else:
-            onu = next((onu for onu in pon_port.onus if
-                        onu.onu_vid == vid), None)
-
-        self.log.debug('search-results', onu=onu)
-        if onu is None:
-            return None, None, None
-
-        return onu.logical_port, onu.onu_vid, onu.untagged_vlan
+            return OFPP_MAX >= port >= (5 << 11)
 
     def get_southbound_port(self, port):
         pon_id = self._port_number_to_pon_id(port)
@@ -1286,9 +1221,7 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         self.adapter_agent.update_device(device)
         return done
 
-    # SEBA -- New way to launch ONU without xPON support
     def add_onu_device(self, intf_id, onu_id, serial_number, tconts, gem_ports):
-        assert not self.xpon_support
         onu_device = self.adapter_agent.get_child_device(self.device_id,
                                                          serial_number=serial_number)
         if onu_device is not None:
@@ -1314,14 +1247,12 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
                 root=True,
                 serial_number=serial_number,
                 admin_state=AdminState.ENABLED,
-                # vlan=self.get_onu_vid(onu_id)         # TODO: a hack, need a decent flow decomposer
             )
             assert serial_number is not None, 'ONU does not have a serial number'
 
             onu_device = self.adapter_agent.get_child_device(self.device_id,
                                                              serial_number=serial_number)
 
-            # self._seba_xpon_create(onu_device, intf_id, onu_id, tconts, gem_ports)
             reactor.callLater(0, self._seba_xpon_create, onu_device, intf_id, onu_id, tconts, gem_ports)
             return onu_device
 
@@ -1350,369 +1281,26 @@ class AdtranOltHandler(AdtranDeviceHandler, AdtranOltXPON):
         try:
             onu_adapter_agent.create_interface(onu_device,
                                                OnuIndication(intf_id, onu_id))
-        except:
+        except Exception as _e:
             pass
-
-        for tcont in tconts.itervalues():
-            td = tcont.traffic_descriptor.data if tcont.traffic_descriptor is not None else None
-            onu_adapter_agent.create_tcont(onu_device, tcont.data, traffic_descriptor_data=td)
-
-        for gem_port in gem_ports.itervalues():
-            onu_adapter_agent.create_gemport(onu_device, gem_port.data)
-
-    def on_channel_group_modify(self, cgroup, update, diffs):
-        valid_keys = ['enable',
-                      'polling-period',
-                      'system-id']  # Modify of these keys supported
-
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("channel-group leaf '{}' is read-only or write-once".format(invalid_key))
-
-        pons = self.get_related_pons(cgroup)
-        keys = [k for k in diffs.keys() if k in valid_keys]
-
-        for k in keys:
-            if k == 'enabled':
-                pass  # TODO: ?
-
-            elif k == 'polling-period':
-                for pon in pons:
-                    pon.discovery_tick = update[k]
-
-            elif k == 'system-id':
-                self.system_id(update[k])
-
-        return update
-
-    def on_channel_partition_modify(self, cpartition, update, diffs):
-        valid_keys = ['enabled', 'fec-downstream', 'mcast-aes', 'differential-fiber-distance']
-
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("channel-partition leaf '{}' is read-only or write-once".format(invalid_key))
-
-        pons = self.get_related_pons(cpartition)
-        keys = [k for k in diffs.keys() if k in valid_keys]
-
-        for k in keys:
-            if k == 'enabled':
-                pass  # TODO: ?
-
-            elif k == 'fec-downstream':
-                for pon in pons:
-                    pon.downstream_fec_enable = update[k]
-
-            elif k == 'mcast-aes':
-                for pon in pons:
-                    pon.mcast_aes = update[k]
-
-            elif k == 'differential-fiber-distance':
-                for pon in pons:
-                    pon.deployment_range = update[k] * 1000  # pon-agent uses meters
-        return update
-
-    def on_channel_pair_modify(self, cpair, update, diffs):
-        valid_keys = ['enabled', 'line-rate']  # Modify of these keys supported
-
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("channel-pair leaf '{}' is read-only or write-once".format(invalid_key))
-
-        pons = self.get_related_pons(cpair)
-        keys = [k for k in diffs.keys() if k in valid_keys]
-
-        for k in keys:
-            if k == 'enabled':
-                pass                        # TODO: ?
-
-            elif k == 'line-rate':
-                for pon in pons:
-                    pon.line_rate = update[k]
-        return update
-
-    def on_channel_termination_create(self, ct, pon_type='xgs-ponid'):
-        pons = self.get_related_pons(ct, pon_type=pon_type)
-        pon_port = pons[0] if len(pons) == 1 else None
-
-        if pon_port is None:
-            raise ValueError('Unknown PON port. PON-ID: {}'.format(ct[pon_type]))
-
-        assert ct['channel-pair'] in self.channel_pairs, \
-            '{} is not a channel-pair'.format(ct['channel-pair'])
-        cpair = self.channel_pairs[ct['channel-pair']]
-
-        assert cpair['channel-group'] in self.channel_groups, \
-            '{} is not a -group'.format(cpair['channel-group'])
-        assert cpair['channel-partition'] in self.channel_partitions, \
-            '{} is not a channel-partition'.format(cpair('channel-partition'))
-        cg = self.channel_groups[cpair['channel-group']]
-        cpart = self.channel_partitions[cpair['channel-partition']]
-
-        polling_period = cg['polling-period']
-        system_id = cg['system-id']
-        authentication_method = cpart['authentication-method']
-        # line_rate = cpair['line-rate']
-        downstream_fec = cpart['fec-downstream']
-        deployment_range = cpart['differential-fiber-distance']
-        mcast_aes = cpart['mcast-aes']
-        # TODO: Support BER calculation period
-
-        pon_port.xpon_name = ct['name']
-        pon_port.discovery_tick = polling_period
-        pon_port.authentication_method = authentication_method
-        pon_port.deployment_range = deployment_range * 1000  # pon-agent uses meters
-        pon_port.downstream_fec_enable = downstream_fec
-        pon_port.mcast_aes = mcast_aes
-        # pon_port.line_rate = line_rate            # TODO: support once 64-bits
-        self.system_id = system_id
-
-        # Enabled 'should' be a logical 'and' of all referenced items but
-        # there is no easy way to detected changes in referenced items.
-        # enabled = ct['enabled'] and cpair['enabled'] and cg['enabled'] and cpart['enabled']
-        enabled = ct['enabled']
-        pon_port.admin_state = AdminState.ENABLED if enabled else AdminState.DISABLED
-        return ct
-
-    def on_channel_termination_modify(self, ct, update, diffs, pon_type='xgs-ponid'):
-        valid_keys = ['enabled']  # Modify of these keys supported
-
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("channel-termination leaf '{}' is read-only or write-once".format(invalid_key))
-
-        pons = self.get_related_pons(ct, pon_type=pon_type)
-        pon_port = pons[0] if len(pons) == 1 else None
-
-        if pon_port is None:
-            raise ValueError('Unknown PON port. PON-ID: {}'.format(ct[pon_type]))
-
-        keys = [k for k in diffs.keys() if k in valid_keys]
-
-        for k in keys:
-            if k == 'enabled':
-                enabled = update[k]
-                pon_port.admin_state = AdminState.ENABLED if enabled else AdminState.DISABLED
-        return update
-
-    def on_channel_termination_delete(self, ct, pon_type='xgs-ponid'):
-        pons = self.get_related_pons(ct, pon_type=pon_type)
-        pon_port = pons[0] if len(pons) == 1 else None
-
-        if pon_port is None:
-            raise ValueError('Unknown PON port. PON-ID: {}'.format(ct[pon_type]))
-
-        pon_port.admin_state = AdminState.DISABLED
-        return None
-
-    def on_ont_ani_modify(self, ont_ani, update, diffs):
-        valid_keys = ['enabled', 'upstream-fec']  # Modify of these keys supported
-
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("ont-ani leaf '{}' is read-only or write-once".format(invalid_key))
-
-        onus = self.get_related_onus(ont_ani)
-        keys = [k for k in diffs.keys() if k in valid_keys]
-
-        for k in keys:
-            if k == 'enabled':
-                pass      # TODO: Have only ONT use this value?
-
-            elif k == 'upstream-fec':
-                for onu in onus:
-                    onu.upstream_fec_enable = update[k]
-        return update
-
-    def on_vont_ani_modify(self, vont_ani, update, diffs):
-        valid_keys = ['enabled',
-                      'expected-serial-number',
-                      'upstream-channel-speed',
-                      'expected-registration-id',
-                      ]  # Modify of these keys supported
-
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("vont-ani leaf '{}' is read-only or write-once".format(invalid_key))
-
-        onus = self.get_related_onus(vont_ani)
-        keys = [k for k in diffs.keys() if k in valid_keys]
-
-        for k in keys:
-            if k == 'enabled':
-                for onu in onus:
-                    onu.enabled = update[k]
-            elif k == 'expected-serial-number':
-                for onu in onus:
-                    if onu.serial_number != update[k]:
-                        onu.pon.delete_onu(onu.onu_id)
-            elif k == 'upstream-channel-speed':
-                for onu in onus:
-                    onu.upstream_channel_speed = update[k]
-            elif k == 'expected-registration-id':
-                for onu in onus:
-                    onu.password = update[k].encode('base64')
-        return update
-
-    def on_vont_ani_delete(self, vont_ani):
-        onus = self.get_related_onus(vont_ani)
-
-        for onu in onus:
-            try:
-                onu.pon.delete_onu(onu.onu_id)
-
-            except Exception as e:
-                self.log.exception('onu', onu=onu, e=e)
-
-        return None
-
-    def _get_tcont_onu(self, vont_ani):
-        onu = None
         try:
-            vont_ani = self.v_ont_anis.get(vont_ani)
-            ch_pair = self.channel_pairs.get(vont_ani['preferred-channel-pair'])
-            ch_term = next((term for term in self.channel_terminations.itervalues()
-                            if term['channel-pair'] == ch_pair['name']), None)
+            # TODO: deprecate the xPON TCONT/TD/GEMPort once we do not have to call into ONU
+            last_alloc_id = None
+            for tcont_dict in tconts:
+                tcont = tcont_dict['object']
+                td = tcont.traffic_descriptor.data if tcont.traffic_descriptor is not None else None
+                onu_adapter_agent.create_tcont(onu_device, tcont.data, traffic_descriptor_data=td)
+                last_alloc_id = tcont.alloc_id
 
-            pon = self.pon(ch_term['xgs-ponid'])
-            onu = pon.onu(vont_ani['onu-id'])
-
-        except Exception:
+            for gem_port_dict in gem_ports:
+                gem_port = gem_port_dict['object']
+                if onu_device.adapter.lower() == 'brcm_openomci_onu':
+                    # BroadCom OpenOMCI ONU adapter uses the tcont alloc_id as the tcont_ref and currently
+                    # they only assign one.
+                    gem_port.data.tcont_ref = str(last_alloc_id)
+                onu_adapter_agent.create_gemport(onu_device, gem_port.data)
+        except Exception as _e:
             pass
-
-        return onu
-
-    def on_tcont_create(self, tcont):
-        from xpon.olt_tcont import OltTCont
-
-        td = self.traffic_descriptors.get(tcont.get('td-ref'))
-        traffic_descriptor = td['object'] if td is not None else None
-
-        tcont['object'] = OltTCont.create(tcont, traffic_descriptor)
-
-        # Look up any ONU associated with this TCONT (should be only one if any)
-        onu = self._get_tcont_onu(tcont['vont-ani'])
-
-        if onu is not None:                 # Has it been discovered yet?
-            onu.add_tcont(tcont['object'])
-
-        return tcont
-
-    def on_tcont_modify(self, tcont, update, diffs):
-        valid_keys = ['td-ref']  # Modify of these keys supported
-
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("TCONT leaf '{}' is read-only or write-once".format(invalid_key))
-
-        tc = tcont.get('object')
-        assert tc is not None, 'TCONT not found'
-
-        update['object'] = tc
-
-        # Look up any ONU associated with this TCONT (should be only one if any)
-        onu = self._get_tcont_onu(tcont['vont-ani'])
-
-        if onu is not None:                 # Has it been discovered yet?
-            keys = [k for k in diffs.keys() if k in valid_keys]
-
-            for k in keys:
-                if k == 'td-ref':
-                    td = self.traffic_descriptors.get(update['td-ref'])
-                    if td is not None:
-                        onu.update_tcont_td(tcont['alloc-id'], td)
-
-        return update
-
-    def on_tcont_delete(self, tcont):
-        onu = self._get_tcont_onu(tcont['vont-ani'])
-
-        if onu is not None:
-            onu.remove_tcont(tcont['alloc-id'])
-
-        return None
-
-    def on_td_create(self, traffic_disc):
-        from xpon.olt_traffic_descriptor import OltTrafficDescriptor
-        traffic_disc['object'] = OltTrafficDescriptor.create(traffic_disc)
-        return traffic_disc
-
-    def on_td_modify(self, traffic_disc, update, diffs):
-        from xpon.olt_traffic_descriptor import OltTrafficDescriptor
-
-        valid_keys = ['fixed-bandwidth',
-                      'assured-bandwidth',
-                      'maximum-bandwidth',
-                      'priority',
-                      'weight',
-                      'additional-bw-eligibility-indicator']
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("traffic-descriptor leaf '{}' is read-only or write-once".format(invalid_key))
-
-        # New traffic descriptor
-        update['object'] = OltTrafficDescriptor.create(update)
-
-        td_name = traffic_disc['name']
-        tconts = {key: val for key, val in self.tconts.iteritems()
-                  if val['td-ref'] == td_name and td_name is not None}
-
-        for tcont in tconts.itervalues():
-            # Look up any ONU associated with this TCONT (should be only one if any)
-            onu = self._get_tcont_onu(tcont['vont-ani'])
-            if onu is not None:
-                onu.update_tcont_td(tcont['alloc-id'], update['object'])
-
-        return update
-
-    def on_td_delete(self, traffic_desc):
-        # TD may be used by more than one TCONT. Only delete if the last one
-        td_name = traffic_desc['name']
-        num_tconts = len([val for val in self.tconts.itervalues()
-                          if val['td-ref'] == td_name and td_name is not None])
-        return None if num_tconts <= 1 else traffic_desc
-
-    def on_gemport_create(self, gem_port):
-        from xpon.olt_gem_port import OltGemPort
-        # Create an GemPort object to wrap the dictionary
-        gem_port['object'] = OltGemPort.create(self, gem_port)
-
-        onus = self.get_related_onus(gem_port)
-        assert len(onus) <= 1, 'Too many ONUs: {}'.format(len(onus))
-
-        if len(onus) == 1:
-            onus[0].add_gem_port(gem_port['object'])
-
-        return gem_port
-
-    def on_gemport_modify(self, gem_port, update, diffs):
-        valid_keys = ['encryption',
-                      'traffic-class']  # Modify of these keys supported
-
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("GEM Port leaf '{}' is read-only or write-once".format(invalid_key))
-
-        port = gem_port.get('object')
-        assert port is not None, 'GemPort not found'
-
-        keys = [k for k in diffs.keys() if k in valid_keys]
-        update['object'] = port
-
-        for k in keys:
-            if k == 'encryption':
-                port.encryption = update[k]
-            elif k == 'traffic-class':
-                pass                    # TODO: Implement
-
-        return update
-
-    def on_gemport_delete(self, gem_port):
-        onus = self.get_related_onus(gem_port)
-        assert len(onus) <= 1, 'Too many ONUs: {}'.format(len(onus))
-        if len(onus) == 1:
-            onus[0].remove_gem_id(gem_port['gemport-id'])
-        return None
 
 
 class OnuIndication(object):
