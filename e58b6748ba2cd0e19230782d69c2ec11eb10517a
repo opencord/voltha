@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "76477353_f03af5a9",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "6b3647fe_187739d6",
+      "range": {
+        "startLine": 132,
+        "startChar": 4,
+        "endLine": 132,
+        "endChar": 21
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "16f05dcf_0245046e",
         "filename": "common/tech_profile/tech_profile.py",
         "patchSetId": 2
@@ -36,6 +60,30 @@
       "writtenOn": "2018-10-30T04:17:59Z",
       "side": 1,
       "message": "ditto",
+      "range": {
+        "startLine": 137,
+        "startChar": 4,
+        "endLine": 137,
+        "endChar": 30
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b28432a3_65f2405d",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "16f05dcf_0245046e",
       "range": {
         "startLine": 137,
         "startChar": 4,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "bc6c3276_cc2538f8",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 232,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "118a2166_eb016ae8",
+      "range": {
+        "startLine": 232,
+        "startChar": 12,
+        "endLine": 232,
+        "endChar": 13
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "94a31089_f23b467d",
         "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
         "patchSetId": 2
@@ -82,6 +154,30 @@
       "writtenOn": "2018-10-30T04:17:59Z",
       "side": 1,
       "message": "Not used. Which is good because using correct tech would be a problem. Use path from interadapter message (assuming we still do that)",
+      "range": {
+        "startLine": 75,
+        "startChar": 4,
+        "endLine": 75,
+        "endChar": 30
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "365bdd7f_224beb1a",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "94a31089_f23b467d",
       "range": {
         "startLine": 75,
         "startChar": 4,
@@ -313,6 +409,24 @@
     },
     {
       "key": {
+        "uuid": "c80891f6_a34b640c",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "OK",
+      "parentUuid": "8975e720_aaf6f4f4",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3600bf69_ab112b06",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
@@ -364,6 +478,24 @@
       "writtenOn": "2018-10-30T00:44:51Z",
       "side": 1,
       "message": "Why replicate flows on all gem ports?",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a161180_1323f733",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 281,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "Unless OF tells us the exact p-bit with which a particular packet type could arrive, we need to install the flow on all gem ports. If OF tells us the p-bit, we can derive the exact gem port and then install only on that gem port.\nFor now OF doesn\u0027t send p-bit match field.",
+      "parentUuid": "f8dc6ef7_40d11de9",
       "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -423,6 +555,24 @@
     },
     {
       "key": {
+        "uuid": "818992d7_7c0d59de",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "Craig, I agree that there could be issues of synchronization. However this could be solved at the ONU adapter through retry mechanism using Twisted \u0027callLater\u0027. The ONU tries to fetch the TP Instance. If it doesn\u0027t find one, it just retries after a configured time interval through callLater. At some point it should succeed in reading it (when OLT adapter has populated the TP instance).",
+      "parentUuid": "863ca651_db71e0aa",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "63bae7b1_60771c98",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
@@ -434,6 +584,30 @@
       "writtenOn": "2018-10-30T04:17:59Z",
       "side": 1,
       "message": "For discussion sake, is logical port name or logical port number better to reference a TP instance? I don\u0027t remember if OF allows name to be changed during the lifespan of a port?",
+      "range": {
+        "startLine": 345,
+        "startChar": 12,
+        "endLine": 345,
+        "endChar": 25
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "47e26c25_15ef8e84",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 345,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "I have not seen anyone changing the name of a port and I am not sure if it is possible",
+      "parentUuid": "63bae7b1_60771c98",
       "range": {
         "startLine": 345,
         "startChar": 12,
@@ -463,6 +637,24 @@
     },
     {
       "key": {
+        "uuid": "b41223a4_17ce28d0",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 349,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "ok",
+      "parentUuid": "8d5d5fcd_b531d839",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "768aa515_a492e65e",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
@@ -474,6 +666,24 @@
       "writtenOn": "2018-10-30T00:44:51Z",
       "side": 1,
       "message": "raise exception?",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1891d5b6_31547cf6",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 468,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "768aa515_a492e65e",
       "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -520,6 +730,30 @@
     },
     {
       "key": {
+        "uuid": "25ace9dd_7b36a338",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 539,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "removed",
+      "parentUuid": "b8845eea_8ad10f8d",
+      "range": {
+        "startLine": 539,
+        "startChar": 4,
+        "endLine": 539,
+        "endChar": 5
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "06b1ca3f_4a75d7c0",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
@@ -531,6 +765,30 @@
       "writtenOn": "2018-10-30T04:17:59Z",
       "side": 1,
       "message": "Does the allocated flow_id need to be persisted for resiliency and for flow deletion?",
+      "range": {
+        "startLine": 547,
+        "startChar": 12,
+        "endLine": 547,
+        "endChar": 19
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "476aaf11_39a9c519",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 547,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "I have removed this now",
+      "parentUuid": "06b1ca3f_4a75d7c0",
       "range": {
         "startLine": 547,
         "startChar": 12,
@@ -566,6 +824,30 @@
     },
     {
       "key": {
+        "uuid": "b6a7549d_c7ad48cb",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 576,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "taken care",
+      "parentUuid": "d9abb9f6_82002b6b",
+      "range": {
+        "startLine": 576,
+        "startChar": 0,
+        "endLine": 576,
+        "endChar": 56
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3ab52cdf_cfec3ac3",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
@@ -577,6 +859,30 @@
       "writtenOn": "2018-10-30T04:17:59Z",
       "side": 1,
       "message": "Does the allocated flow_id need to be persisted for resiliency and for flow deletion?",
+      "range": {
+        "startLine": 627,
+        "startChar": 0,
+        "endLine": 627,
+        "endChar": 8
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a80449c5_cb5cb161",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 627,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "I have provided resiliency now. You will see in the next patch",
+      "parentUuid": "3ab52cdf_cfec3ac3",
       "range": {
         "startLine": 627,
         "startChar": 0,
@@ -612,6 +918,30 @@
     },
     {
       "key": {
+        "uuid": "e3b31cb6_20328e4b",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 657,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "taken care in next patch",
+      "parentUuid": "bc048cd5_9ddcdf6e",
+      "range": {
+        "startLine": 657,
+        "startChar": 12,
+        "endLine": 657,
+        "endChar": 28
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4fc9ed43_dbe3bb22",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
@@ -635,6 +965,30 @@
     },
     {
       "key": {
+        "uuid": "cd62e884_8c017634",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 710,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "OK",
+      "parentUuid": "4fc9ed43_dbe3bb22",
+      "range": {
+        "startLine": 710,
+        "startChar": 18,
+        "endLine": 710,
+        "endChar": 30
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5e739c44_c791b4c9",
         "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
         "patchSetId": 2
@@ -646,6 +1000,30 @@
       "writtenOn": "2018-10-30T04:17:59Z",
       "side": 1,
       "message": "Remove extraneous comment that is no longer applicable",
+      "range": {
+        "startLine": 128,
+        "startChar": 12,
+        "endLine": 128,
+        "endChar": 13
+      },
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2ad9ac94_1e1b10b2",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-01T05:10:45Z",
+      "side": 1,
+      "message": "ok",
+      "parentUuid": "5e739c44_c791b4c9",
       "range": {
         "startLine": 128,
         "startChar": 12,
