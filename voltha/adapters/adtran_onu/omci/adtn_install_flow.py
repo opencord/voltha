@@ -138,9 +138,6 @@ class AdtnInstallFlowTask(Task):
         """
         self.log.info('perform-flow-install', vlan_vid=self._flow_entry.vlan_vid)
 
-        if self._handler.xpon_support:
-            self.deferred.callback('flow-install-nop')  # xPON mode does not need this
-
         def resources_available():
             # TODO: Rework for non-xpon mode
             return (len(self._handler.uni_ports) > 0 and

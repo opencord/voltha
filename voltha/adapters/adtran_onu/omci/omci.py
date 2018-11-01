@@ -191,6 +191,8 @@ class OMCI(object):
             pon_ports = len(ani_g) if ani_g is not None else 0
             uni_ports = len(uni_g) if uni_g is not None else 0
 
+            # For the UNI ports below, they are created after the MIB Sync event occurs
+            # and the onu handler adds the ONU
             assert pon_ports == 1, 'Expected one PON/ANI port, got {}'.format(pon_ports)
             assert uni_ports == len(self._handler.uni_ports), \
                 'Expected {} UNI port(s), got {}'.format(len(self._handler.uni_ports), uni_ports)
@@ -200,16 +202,6 @@ class OMCI(object):
 
             # Save entity_id of PON ports
             self._handler.pon_ports[0].entity_id = ani_g.keys()[0]
-
-            # Save entity_id for UNI ports (this is only for xPON mode code).  For the
-            # non-xPON mode, we save the entity IDs during the mib-in-sync handler when
-            # we create the UNI ports.
-
-            if self._handler.xpon_support:
-                uni_entity_ids = uni_g.keys()
-                uni_entity_ids.sort()
-                for uni in self._handler.uni_ports:
-                    uni.entity_id = uni_entity_ids.pop(0)
 
             self._total_tcont_count = ani_g.get('total-tcont-count')
             self._qos_flexibility = config.qos_configuration_flexibility or 0
@@ -278,6 +270,10 @@ class OMCI(object):
         topic = OMCI_CC.event_bus_topic(self._handler.device_id,
                                         OmciCCRxEvents.Connectivity)
         self._connectivity_subscription = bus.subscribe(topic, self.onu_is_reachable)
+
+        # TODO: Watch for any MIB RESET events or detection of an ONU reboot.
+        #       If it occurs, set _service_downloaded and _mib_download to false
+        #       and make sure that we get 'new' capabilities
 
     def _unsubscribe_to_events(self):
         insync, self._in_sync_subscription = self._in_sync_subscription, None

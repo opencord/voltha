@@ -30,8 +30,6 @@ class OnuGemPort(GemPort):
                  multicast=False,
                  tcont_ref=None,
                  traffic_class=None,
-                 intf_ref=None,
-                 untagged=False,
                  name=None,
                  handler=None):
         super(OnuGemPort, self).__init__(gem_id, alloc_id,
@@ -40,8 +38,6 @@ class OnuGemPort(GemPort):
                                          multicast=multicast,
                                          tcont_ref=tcont_ref,
                                          traffic_class=traffic_class,
-                                         intf_ref=intf_ref,
-                                         untagged=untagged,
                                          name=name,
                                          handler=handler)
         self._entity_id = entity_id
@@ -77,8 +73,7 @@ class OnuGemPort(GemPort):
                           tcont_ref=gem_port['tcont-ref'],
                           name=gem_port['name'],
                           traffic_class=gem_port['traffic-class'],
-                          handler=handler,
-                          untagged='untagged' in gem_port['name'].lower())
+                          handler=handler)
 
     @inlineCallbacks
     def add_to_hardware(self, omci,

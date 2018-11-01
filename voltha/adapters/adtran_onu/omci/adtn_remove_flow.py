@@ -148,11 +148,7 @@ class AdtnRemoveFlowTask(Task):
         """
         self.log.info('perform-flow-removall')
 
-        if self._handler.xpon_support:
-            self.deferred.callback('flow-removal-nop')  # xPON mode does not need this
-
         def resources_available():
-            # TODO: Rework for non-xpon mode
             return (len(self._handler.uni_ports) > 0 and
                     len(self._pon.tconts) and
                     len(self._pon.gem_ports))

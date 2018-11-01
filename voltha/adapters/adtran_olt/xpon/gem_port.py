@@ -23,20 +23,16 @@ class GemPort(object):
                  multicast=False,
                  tcont_ref=None,
                  traffic_class=None,
-                 intf_ref=None,
-                 untagged=False,
                  name=None,
                  handler=None):
         self.name = name
         self.gem_id = gem_id
         self._alloc_id = alloc_id
         self.tcont_ref = tcont_ref
-        self.intf_ref = intf_ref
         self.traffic_class = traffic_class
         self._encryption = encryption
         self._omci_transport = omci_transport
         self.multicast = multicast
-        self.untagged = untagged
         self._handler = handler
 
         # TODO: Make this a base class and derive OLT and ONU specific classes from it

@@ -78,13 +78,9 @@ class AdtnServiceDownloadTask(Task):
         self._input_tpid = AdtnServiceDownloadTask.default_tpid
         self._output_tpid = AdtnServiceDownloadTask.default_tpid
 
-        if self._handler.xpon_support:
-            device = self._handler.adapter_agent.get_device(self.device_id)
-            self._vid = device.vlan
-        else:
-            # TODO: TCIS below is just a test, may need 0x900...as in the xPON mode
-            # self._vlan_tcis_1 = OMCI.DEFAULT_UNTAGGED_VLAN
-            self._vid = OMCI.DEFAULT_UNTAGGED_VLAN
+        # TODO: TCIS below is just a test, may need 0x900...as in the xPON mode
+        # self._vlan_tcis_1 = OMCI.DEFAULT_UNTAGGED_VLAN
+        self._vid = OMCI.DEFAULT_UNTAGGED_VLAN
 
         # Entity IDs. IDs with values can probably be most anything for most ONUs,
         #             IDs set to None are discovered/set
@@ -164,16 +160,9 @@ class AdtnServiceDownloadTask(Task):
         device = self._handler.adapter_agent.get_device(self.device_id)
 
         def resources_available():
-            # TODO: Rework for non-xpon mode
-            if self._handler.xpon_support:
-                return (device.vlan > 0 and
-                        len(self._handler.uni_ports) > 0 and
-                        len(self._pon.tconts) and
-                        len(self._pon.gem_ports))
-            else:
-                return (len(self._handler.uni_ports) > 0 and
-                        len(self._pon.tconts) and
-                        len(self._pon.gem_ports))
+            return (len(self._handler.uni_ports) > 0 and
+                    len(self._pon.tconts) and
+                    len(self._pon.gem_ports))
 
         if self._handler.enabled and resources_available():
             device.reason = 'Performing Service OMCI Download'
