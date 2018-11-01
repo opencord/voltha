@@ -1218,6 +1218,23 @@ class EthernetFrameUpstreamPerformanceMonitoringHistoryData(EntityClass):
     notifications = {OP.AlarmNotification}
 
 
+class VeipUni(EntityClass):
+    class_id = 329
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R}),
+        ECA(ByteField("administrative_state", 1), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1),
+        ECA(ByteField("operational_state", 1), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 1, optional=True, avc=True),
+        ECA(StrFixedLenField("interdomain_name", None, 25), {AA.R, AA.W},
+            optional=True),
+        ECA(ShortField("tcp_udp_pointer", None), {AA.R, AA.W}, optional=True),
+        ECA(ShortField("iana_assigned_port", 0xFFFF), {AA.R})
+    ]
+    mandatory_operations = {OP.Get, OP.Set}
+    notifications = {OP.AttributeValueChange, OP.AlarmNotification}
+
+
 class EthernetFrameExtendedPerformanceMonitoring(EntityClass):
     class_id = 334
     hidden = True

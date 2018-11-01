@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import structlog
+from enum import Enum
 from voltha.protos.common_pb2 import OperStatus, AdminState
 from voltha.protos.device_pb2 import Port
 from voltha.protos.openflow_13_pb2 import OFPPF_10GB_FD
@@ -22,90 +23,73 @@ from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, OFPPS_LINK_DOWN
 from voltha.protos.openflow_13_pb2 import ofp_port
 
+class UniType(Enum):
+    """
+    UNI Types Defined in G.988
+    """
+    PPTP = 'PhysicalPathTerminationPointEthernet'
+    VEIP = 'VirtualEthernetInterfacePoint'
+    # TODO: Add others as they become supported
+
 
 class UniPort(object):
     """Wraps southbound-port(s) support for ONU"""
-    DEFAULT_UNTAGGED_VLAN = 4091
 
-    def __init__(self, handler, name, port_no, ofp_port_no, subscriber_vlan=None,
-                 untagged_vlan=None):
+    def __init__(self, handler, name, port_no, ofp_port_no,
+                 type=UniType.PPTP):
         self.log = structlog.get_logger(device_id=handler.device_id,
                                         port_no=port_no)
-        self.log.debug('function-entry')
         self._enabled = False
         self._handler = handler
         self._name = name
         self._port = None
         self._port_number = port_no
-        self._ofp_port_no = ofp_port_no         # Set at by creator (vENET create)
-        self._logical_port_number = None        # Set at time of logical port creation
-        self._subscriber_vlan = subscriber_vlan
-        self._untagged_vlan = untagged_vlan
-        self._entity_id = None                  # TODO: Use port number from UNI-G entity ID
+        self._ofp_port_no = ofp_port_no
+        self._logical_port_number = None
+        self._entity_id = None
         self._mac_bridge_port_num = 0
+        self._type = type
 
         self._admin_state = AdminState.ENABLED
         self._oper_status = OperStatus.ACTIVE
-        # TODO Add state, stats, alarm reference, ...
-        pass
 
     def __str__(self):
         return "UniPort: {}:{}".format(self.name, self.port_number)
 
     @staticmethod
-    def create(handler, name, port_no, ofp_port_no, subscriber_vlan, untagged_vlan):
-        log = structlog.get_logger(device_id=handler.device_id, name=name)
-        log.debug('function-entry')
-        port = UniPort(handler, name, port_no, ofp_port_no, subscriber_vlan, untagged_vlan)
-
+    def create(handler, name, port_no, ofp_port_no, type):
+        port = UniPort(handler, name, port_no, ofp_port_no, type)
         return port
 
     def _start(self):
-        self.log.debug('function-entry')
         self._cancel_deferred()
-
         self._admin_state = AdminState.ENABLED
         self._oper_status = OperStatus.ACTIVE
-
         self._update_adapter_agent()
-        # TODO: start h/w sync
-        # TODO: Enable the actual physical port?
-        pass
 
     def _stop(self):
-        self.log.debug('function-entry')
         self._cancel_deferred()
-
         self._admin_state = AdminState.DISABLED
         self._oper_status = OperStatus.UNKNOWN
-
         self._update_adapter_agent()
-        # TODO: Disable/power-down the actual physical port?
-        pass
 
     def delete(self):
-        self.log.debug('function-entry')
         self.enabled = False
         self._handler = None
-        # TODO: anything else
 
     def _cancel_deferred(self):
-        self.log.debug('function-entry')
         pass
 
     @property
     def name(self):
-        self.log.debug('function-entry')
         return self._name
 
     @property
     def enabled(self):
-        self.log.debug('function-entry')
         return self._enabled
 
     @enabled.setter
     def enabled(self, value):
-        self.log.debug('function-entry')
         if self._enabled != value:
             self._enabled = value
 
@@ -120,12 +104,10 @@ class UniPort(object):
         Port number used when creating MacBridgePortConfigurationDataFrame port number
         :return: (int) port number
         """
-        self.log.debug('function-entry')
         return self._mac_bridge_port_num
 
     @mac_bridge_port_num.setter
     def mac_bridge_port_num(self, value):
-        self.log.debug('function-entry')
         self._mac_bridge_port_num = value
 
     @property
@@ -134,7 +116,6 @@ class UniPort(object):
         Physical device port number
         :return: (int) port number
         """
-        self.log.debug('function-entry')
         return self._port_number
 
     @property
@@ -142,23 +123,12 @@ class UniPort(object):
         """
         OMCI UNI_G entity ID for port
         """
-        self.log.debug('function-entry')
         return self._entity_id
 
     @entity_id.setter
     def entity_id(self, value):
-        self.log.debug('function-entry')
         assert self._entity_id is None, 'Cannot reset the Entity ID'
         self._entity_id = value
-
-    @property
-    def subscriber_vlan(self):
-        """
-        Subscriber vlan assigned to this UNI
-        :return: (int) subscriber vlan
-        """
-        self.log.debug('function-entry')
-        return self._subscriber_vlan
 
     @property
     def logical_port_number(self):
@@ -166,14 +136,20 @@ class UniPort(object):
         Logical device port number (used as OpenFlow port for UNI)
         :return: (int) port number
         """
-        self.log.debug('function-entry')
         return self._logical_port_number
+
+    @property
+    def type(self):
+        """
+        UNI Type used in OMCI messaging
+        :return: (UniType) One of the enumerated types
+        """
+        return self._type
 
     def _update_adapter_agent(self):
         """
         Update the port status and state in the core
         """
-        self.log.debug('function-entry')
         self.log.debug('update-adapter-agent', admin_state=self._admin_state,
                        oper_status=self._oper_status)
 
@@ -194,8 +170,6 @@ class UniPort(object):
         Get the VOLTHA PORT object for this port
         :return: VOLTHA Port object
         """
-        self.log.debug('function-entry')
-
         self._port = Port(port_no=self.port_number,
                           label=self.port_id_name(),
                           type=Port.ETHERNET_UNI,
@@ -206,7 +180,7 @@ class UniPort(object):
     def port_id_name(self):
         return 'uni-{}'.format(self._logical_port_number)
 
-    def add_logical_port(self, openflow_port_no, subscriber_vlan=None,
+    def add_logical_port(self, openflow_port_no,
                          capabilities=OFPPF_10GB_FD | OFPPF_FIBER,
                          speed=OFPPF_10GB_FD):
 
@@ -226,17 +200,11 @@ class UniPort(object):
             self._logical_port_number = None
 
         port_no = openflow_port_no or self._ofp_port_no
-        vlan = subscriber_vlan or self._subscriber_vlan
 
         if self._logical_port_number is None and port_no is not None:
             self._logical_port_number = port_no
-            self._subscriber_vlan = vlan
 
             device = self._handler.adapter_agent.get_device(self._handler.device_id)
-
-            if vlan is not None and device.vlan != vlan:
-                device.vlan = vlan
-                self._handler.adapter_agent.update_device(device)
 
             # leave the ports down until omci mib download has finished.  otherwise flows push before time
             openflow_port = ofp_port(
@@ -263,4 +231,3 @@ class UniPort(object):
                                                              device_port_no=self._port_number))
 
             self.log.debug('logical-port', openflow_port=openflow_port)
-            # TODO: Should we use the UNI object 'name' as the id for OpenFlow?

@@ -18,7 +18,7 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, failure, returnValue
 from voltha.extensions.omci.omci_defs import ReasonCodes, EntityOperations
 from voltha.extensions.omci.omci_me import OntGFrame
-from voltha.extensions.omci.omci_me import PptpEthernetUniFrame
+from voltha.extensions.omci.omci_me import PptpEthernetUniFrame, VeipUniFrame
 
 RC = ReasonCodes
 OP = EntityOperations
@@ -72,6 +72,7 @@ class BrcmUniLockTask(Task):
         super(BrcmUniLockTask, self).start()
         self._local_deferred = reactor.callLater(0, self.perform_lock)
 
+
     @inlineCallbacks
     def perform_lock(self):
         """
@@ -98,24 +99,20 @@ class BrcmUniLockTask(Task):
             else:
                 self.log.warn('cannot-set-lock-ontg', lock=self._lock)
 
-            pptp = self._config.pptp_entities
+            pptp_list = sorted(self._config.pptp_entities) if self._config.pptp_entities else []
+            veip_list = sorted(self._config.veip_entities) if self._config.veip_entities else []
 
-            for key, value in pptp.iteritems():
-                msg = PptpEthernetUniFrame(key,
+            for entity_id in pptp_list:
+                pptp_value = self._config.pptp_entities[entity_id]
+                msg = PptpEthernetUniFrame(entity_id,
                                            attributes=dict(administrative_state=state))
-                frame = msg.set()
-                self.log.debug('openomci-msg', msg=msg)
-                results = yield self._device.omci_cc.send(frame)
-                self.strobe_watchdog()
+                self._send_uni_lock_msg(entity_id, pptp_value, msg)
 
-                status = results.fields['omci_message'].fields['success_code']
-                self.log.info('response-status', status=status)
-
-                # Success?
-                if status in (RC.Success.value, RC.InstanceExists):
-                    self.log.debug('set-lock-uni', uni=key, value=value, lock=self._lock)
-                else:
-                    self.log.warn('cannot-set-lock-uni', uni=key, value=value, lock=self._lock)
+            for entity_id in veip_list:
+                veip_value = self._config.veip_entities[entity_id]
+                msg = VeipUniFrame(entity_id,
+                                           attributes=dict(administrative_state=state))
+                self._send_uni_lock_msg(entity_id, veip_value, msg)
 
             self.deferred.callback(self)
 
@@ -123,3 +120,21 @@ class BrcmUniLockTask(Task):
             self.log.exception('setting-uni-lock-state', e=e)
             self.deferred.errback(failure.Failure(e))
 
+
+    @inlineCallbacks
+    def _send_uni_lock_msg(self, entity_id, value, me_message):
+        frame = me_message.set()
+        self.log.debug('openomci-msg', msg=me_message)
+        results = yield self._device.omci_cc.send(frame)
+        self.strobe_watchdog()
+
+        status = results.fields['omci_message'].fields['success_code']
+        self.log.info('response-status', status=status)
+
+        # Success?
+        if status in (RC.Success.value, RC.InstanceExists):
+            self.log.debug('set-lock-uni', uni=entity_id, value=value, lock=self._lock)
+        else:
+            self.log.warn('cannot-set-lock-uni', uni=entity_id, value=value, lock=self._lock)
+
+        returnValue(None)

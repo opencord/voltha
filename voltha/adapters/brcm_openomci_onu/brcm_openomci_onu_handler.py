@@ -49,22 +49,11 @@ from voltha.adapters.brcm_openomci_onu.onu_traffic_descriptor import *
 OP = EntityOperations
 RC = ReasonCodes
 
-
 _ = third_party
 log = structlog.get_logger()
 
-
-BRDCM_DEFAULT_VLAN = 4091
-ADMIN_STATE_LOCK = 1
-ADMIN_STATE_UNLOCK = 0
-RESERVED_VLAN_ID = 4095
 _STARTUP_RETRY_WAIT = 20
 _MAXIMUM_PORT = 128          # UNI ports
-
-
-
-_ = third_party
-
 
 
 class BrcmOpenomciOnuHandler(object):
@@ -757,39 +746,59 @@ class BrcmOpenomciOnuHandler(object):
             # the first time we received a successful (no timeout) OMCI Rx response.
             try:
 
-                ani_g = config.ani_g_entities
-                uni_g = config.uni_g_entities
-                pptp = config.pptp_entities
+                # sort the lists so we get consistent port ordering.
+                ani_list = sorted(config.ani_g_entities) if config.ani_g_entities else []
+                uni_list = sorted(config.uni_g_entities) if config.uni_g_entities else []
+                pptp_list = sorted(config.pptp_entities) if config.pptp_entities else []
+                veip_list = sorted(config.veip_entities) if config.veip_entities else []
 
-                # TODO: there are onu out there that have uni ports available but no pptp.  These all-in-one devices
-                # likely need virtual ethernet interface point ME #329 configured rather than pptp.
-                if ani_g is None or uni_g is None or pptp is None:
+                if ani_list is None or uni_list is None:
                     device.reason = 'onu-missing-required-elements'
+                    self.log.warn("no-ani-or-unis")
                     self.adapter_agent.update_device(device)
                     raise Exception("onu-missing-required-elements")
 
-                # Currently logging the ani and uni for information purposes.   Actually act on the pptp as its ME ID
-                # is the most correct one to use in later tasks.
-                for key, value in ani_g.iteritems():
-                    self.log.debug("discovered-ani", key=key, value=value)
+                # Currently logging the ani, pptp, veip, and uni for information purposes.
+                # Actually act on the veip/pptp as its ME is the most correct one to use in later tasks.
+                for entity_id in ani_list:
+                    ani_value = config.ani_g_entities[entity_id]
+                    self.log.debug("discovered-ani", entity_id=entity_id, value=ani_value)
+                    # TODO: currently only one OLT PON port/ANI, so this works out.  With NGPON there will be 2..?
+                    self._total_tcont_count = ani_value.get('total-tcont-count')
+                    self.log.debug("set-total-tcont-count", tcont_count=self._total_tcont_count)
 
-                for key, value in uni_g.iteritems():
-                    self.log.debug("discovered-uni", key=key, value=value)
+                for entity_id in pptp_list:
+                    pptp_value = config.pptp_entities[entity_id]
+                    self.log.debug("discovered-pptp", entity_id=entity_id, value=pptp_value)
 
-                for key, value in pptp.iteritems():
-                    self.log.debug("discovered-pptp-uni", key=key, value=value)
-                    entity_id = key
-                    self._add_uni_port(entity_id)
+                for entity_id in veip_list:
+                    veip_value = config.veip_entities[entity_id]
+                    self.log.debug("discovered-veip", key=entity_id, value=veip_value)
 
-                    # TODO: only one uni/pptp for now. flow bug in openolt
-                    break
+                for entity_id in uni_list:
+                    uni_value = config.uni_g_entities[entity_id]
+                    self.log.debug("discovered-uni", entity_id=entity_id, value=uni_value)
 
-                self._total_tcont_count = ani_g.get('total-tcont-count')
+                    # TODO: can only support one UNI per ONU at this time. break out as soon as we have a good UNI
+                    if entity_id in pptp_list:
+                        self._add_uni_port(entity_id, uni_type=UniType.PPTP)
+                        break
+                    elif entity_id in veip_list:
+                        self._add_uni_port(entity_id, uni_type=UniType.VEIP)
+                        break
+                    else:
+                        self.log.warn("unable-to-find-uni-in-pptp-or-veip", key=entity_id, value=uni_value)
+
                 self._qos_flexibility = config.qos_configuration_flexibility or 0
                 self._omcc_version = config.omcc_version or OMCCVersion.Unknown
-                self.log.debug("set-total-tcont-count", tcont_count=self._total_tcont_count)
 
-                self._dev_info_loaded = True
+                if self._unis:
+                    self._dev_info_loaded = True
+                else:
+                    device.reason = 'no-usable-unis'
+                    self.adapter_agent.update_device(device)
+                    self.log.warn("no-usable-unis")
+                    raise Exception("no-usable-unis")
 
             except Exception as e:
                 self.log.exception('device-info-load', e=e)
@@ -829,7 +838,7 @@ class BrcmOpenomciOnuHandler(object):
             self.log.info('device-info-not-loaded-skipping-mib-download')
 
 
-    def _add_uni_port(self, entity_id):
+    def _add_uni_port(self, entity_id, uni_type=UniType.PPTP):
         self.log.debug('function-entry')
 
         device = self.adapter_agent.get_device(self.device_id)
@@ -837,7 +846,7 @@ class BrcmOpenomciOnuHandler(object):
 
         parent_adapter_agent = registry('adapter_loader').get_agent(parent_device.adapter)
         if parent_adapter_agent is None:
-            self.log.error('openolt_adapter_agent-could-not-be-retrieved')
+            self.log.error('parent-adapter-could-not-be-retrieved')
 
         # TODO: This knowledge is locked away in openolt.  and it assumes one onu equals one uni...
         parent_device = self.adapter_agent.get_device(device.parent_id)
@@ -852,13 +861,14 @@ class BrcmOpenomciOnuHandler(object):
 
         mac_bridge_port_num = working_port + 1
 
-        self.log.debug('live-port-number-ready', uni_no=uni_no, uni_name=uni_name)
+        self.log.debug('uni-port-inputs', uni_no=uni_no, uni_name=uni_name, uni_type=uni_type,
+                       entity_id=entity_id, mac_bridge_port_num=mac_bridge_port_num)
 
-        uni_port = UniPort.create(self, uni_name, uni_no, uni_name, device.vlan, device.vlan)
+        uni_port = UniPort.create(self, uni_name, uni_no, uni_name, uni_type)
         uni_port.entity_id = entity_id
         uni_port.enabled = True
         uni_port.mac_bridge_port_num = mac_bridge_port_num
-        uni_port.add_logical_port(uni_port.port_number, subscriber_vlan=device.vlan)
+        uni_port.add_logical_port(uni_port.port_number)
 
         self.log.debug("created-uni-port", uni=uni_port)
 
