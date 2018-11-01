@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7b69d7e4_1a798047",
+        "filename": "tests/atests/common/preprovisioningTest.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-11-01T18:06:18Z",
+      "side": 1,
+      "message": "Can we change from preprovisioningTest to Preprovisioning. The same request is for the file name but with filename, it does not need to start with capital P",
+      "range": {
+        "startLine": 26,
+        "startChar": 6,
+        "endLine": 26,
+        "endChar": 21
+      },
+      "revId": "6661bb536ad39fb619585296889d727483a62aa7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
