@@ -573,6 +573,24 @@
     },
     {
       "key": {
+        "uuid": "cfe19498_5deb77d3",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2018-11-01T17:10:20Z",
+      "side": 1,
+      "message": "Craig, Girish - agree about the synchronization issue. Looks like we have to have some sort of explicit inter-adapter messaging in these cases. The G.984/8 GPON model assumes that the ONU is a logical extension of the OLT. The voltha adapter model attempts to treat the ONU as a separate network element. If the ONU adapters are modeled as sub-ordinates to the OLT adapters - rather than as peers - then I think we would have a more elegant design.",
+      "parentUuid": "818992d7_7c0d59de",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "63bae7b1_60771c98",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
