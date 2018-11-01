@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b86f0b31_cf4529e1",
+        "filename": "voltha/adapters/brcm_openomci_onu/uni_port.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-11-01T20:20:31Z",
+      "side": 1,
+      "message": "Glad you caught these old Voltha v1.0 vlan items. I just finished cleaning them out of the Adtran adapter and was about to clean them up in the BroadCom, but I guess you beat me.",
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
