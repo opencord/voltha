@@ -124,7 +124,8 @@ class OnuConfiguration(object):
             '_cardholder': None,
             '_circuit_pack': None,
             '_software': None,
-            '_pptp': None
+            '_pptp': None,
+            '_veip': None
         }
 
     @property
@@ -483,5 +484,26 @@ class OnuConfiguration(object):
                         'arc-interval':             inst_data[ATTRIBUTES_KEY].get('arc_interval', 0),
                         'pppoe-filter':             inst_data[ATTRIBUTES_KEY].get('ppoe_filter', 0),
                         'power-control':            inst_data[ATTRIBUTES_KEY].get('power_control', 0)
+                    }
+        return results if len(results) else None
+
+    @property
+    def veip_entities(self):
+        """
+        Returns discovered VEIP entities.  TODO more detail here
+        """
+        veip = self._get_capability('_veip', VeipUni.class_id)
+        results = dict()
+
+        if veip is not None:
+            for inst, inst_data in veip.items():
+                if isinstance(inst, int):
+                    results[inst] = {
+                        'entity-id':                inst,
+                        'administrative-state':     inst_data[ATTRIBUTES_KEY].get('administrative_state', 0),
+                        'operational-state':        inst_data[ATTRIBUTES_KEY].get('operational_state', 0),
+                        'interdomain-name':         inst_data[ATTRIBUTES_KEY].get('interdomain_name', ""),
+                        'tcp-udp-pointer':          inst_data[ATTRIBUTES_KEY].get('tcp_udp_pointer', 0),
+                        'iana-assigned-port':       inst_data[ATTRIBUTES_KEY].get('iana_assigned_port', 0)
                     }
         return results if len(results) else None
