@@ -173,11 +173,11 @@ class FakeUpstreamFlow(FlowEntry):
         self.in_port, self.output = self.output, self.in_port
         self.flow_id = '{}-MCAST'.format(self.vlan_id)
         self._logical_port = self.vlan_id
-        self.push_vlan_id = [self.vlan_id]
+        self.push_vlan_id = self.vlan_id
         self.vlan_id = None
         self.signature = None
         self.inner_vid = None
-        self.pop_vlan = 0
+        self.pop_vlan = False
 
     def create_flow_name(self):
         return 'flow-{}-{}-MCAST'.format(self.device_id, self.vlan_id)

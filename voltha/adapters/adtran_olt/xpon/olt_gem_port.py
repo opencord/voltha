@@ -26,14 +26,12 @@ class OltGemPort(GemPort):
     """
     Adtran OLT specific implementation
     """
-    def __init__(self, gem_id, alloc_id,
+    def __init__(self, gem_id, alloc_id, pon_id, onu_id,
                  encryption=False,
                  omci_transport=False,
                  multicast=False,
                  tcont_ref=None,
                  traffic_class=None,
-                 intf_ref=None,
-                 untagged=False,
                  name=None,
                  handler=None,
                  is_mock=False,
@@ -44,32 +42,27 @@ class OltGemPort(GemPort):
                                          multicast=multicast,
                                          tcont_ref=tcont_ref,
                                          traffic_class=traffic_class,
-                                         intf_ref=intf_ref,
-                                         untagged=untagged,
                                          name=name,
                                          handler=handler)
         self._is_mock = is_mock
         self._timestamp = None
+        self.pon_id = pon_id
+        self.onu_id = onu_id
         self.data = pb_data     # Needed for non-xPON mode
 
     @staticmethod
-    def create(handler, gem_port):
-        mcast = gem_port['gemport-id'] in [4095]    # TODO: Perform proper lookup
-        untagged = 'untagged' in gem_port['name'].lower()
-        # TODO: Use next once real BBF mcast available.
-        # port_ref = 'channel-pair-ref 'if mcast else 'venet-ref'
-        port_ref = 'venet-ref 'if mcast else 'venet-ref'
+    def create(handler, gem_port, pon_id, onu_id):
+        mcast = False           # gem_port['gemport-id'] in [4095]    # TODO: Perform proper lookup
 
         return OltGemPort(gem_port['gemport-id'],
                           None,
+                          pon_id, onu_id,
                           encryption=gem_port['encryption'],  # aes_indicator,
                           tcont_ref=gem_port['tcont-ref'],
                           name=gem_port['name'],
                           traffic_class=gem_port['traffic-class'],
-                          intf_ref=gem_port.get(port_ref),
                           handler=handler,
                           multicast=mcast,
-                          untagged=untagged,
                           pb_data=gem_port['data'])
 
     @property
@@ -93,33 +86,30 @@ class OltGemPort(GemPort):
             self.set_config(self._handler.rest_client, 'encryption', value)
 
     @inlineCallbacks
-    def add_to_hardware(self, session, pon_id, onu_id, operation='POST'):
+    def add_to_hardware(self, session, operation='POST'):
         from ..adtran_olt_handler import AdtranOltHandler
-        log.info('add-gem-port-2-hw', pon_id=pon_id, onu_id=onu_id,
-                 operation=operation, gem_port=self)
-        uri = AdtranOltHandler.GPON_GEM_CONFIG_LIST_URI.format(pon_id, onu_id)
+
+        uri = AdtranOltHandler.GPON_GEM_CONFIG_LIST_URI.format(self.pon_id, self.onu_id)
         data = json.dumps(self.to_dict())
-        name = 'gem-port-create-{}-{}: {}/{}'.format(pon_id, onu_id,
+        name = 'gem-port-create-{}-{}: {}/{}'.format(self.pon_id, self.onu_id,
                                                      self.gem_id,
                                                      self.alloc_id)
         try:
             results = yield session.request(operation, uri, data=data, name=name)
+            returnValue(results)
 
         except Exception as e:
             if operation == 'POST':
-                returnValue(self.add_to_hardware(session, pon_id, onu_id,
-                                                 operation='PATCH'))
+                returnValue(self.add_to_hardware(session, operation='PATCH'))
             else:
                 log.exception('add-2-hw', gem=self, e=e)
                 raise
 
-        returnValue(results)
-
-    def remove_from_hardware(self, session, pon_id, onu_id):
+    def remove_from_hardware(self, session):
         from ..adtran_olt_handler import AdtranOltHandler
 
-        uri = AdtranOltHandler.GPON_GEM_CONFIG_URI.format(pon_id, onu_id, self.gem_id)
-        name = 'gem-port-delete-{}-{}: {}'.format(pon_id, onu_id, self.gem_id)
+        uri = AdtranOltHandler.GPON_GEM_CONFIG_URI.format(self.pon_id, self.onu_id, self.gem_id)
+        name = 'gem-port-delete-{}-{}: {}'.format(self.pon_id, self.onu_id, self.gem_id)
         return session.request('DELETE', uri, name=name)
 
     def set_config(self, session, leaf, value):

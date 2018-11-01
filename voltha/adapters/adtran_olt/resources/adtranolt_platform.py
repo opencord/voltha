@@ -18,16 +18,16 @@ from voltha.protos.device_pb2 import Port
 import voltha.protos.device_pb2 as dev_pb2
 
 #######################################################################
-##
-##  This is a copy of the OpenOLT file of a similar name and is used
-##  when running in non-xPON (OpenOLT/SEBA) mode.  We need to closely
-##  watch for changes in the OpenOLT and eventually work together to
-##  have a better way to do things (and more ONUs than 112)
-##
-##  TODO: These duplicate some methods in the OLT Handler.  Clean up
-##        and use a separate file and include it into OLT Handler object
-##        as something it derives from.
-##
+#
+#  This is a copy of the OpenOLT file of a similar name and is used
+#  when running in non-xPON (OpenOLT/SEBA) mode.  We need to closely
+#  watch for changes in the OpenOLT and eventually work together to
+#  have a better way to do things (and more ONUs than 112)
+#
+#  TODO: These duplicate some methods in the OLT Handler.  Clean up
+#        and use a separate file and include it into OLT Handler object
+#        as something it derives from.
+#
 #######################################################################
 """
 Encoding of identifiers
@@ -55,13 +55,13 @@ Alloc ID
     For Adtran, 1024..1919
     Unique per PON interface
 
-     9   7 6          0
-    +-----+------------+
-    | idx |   onu id   | + (Min Alloc ID)
-    +-----+------------+
+     9   8 7        0
+    +-----+----------+
+    | idx |  onu_id  | + (Min Alloc ID)
+    +-----+----------+
 
-    onu id = 7 bits = 128 ONUs per PON
-    Alloc index = 3 bits = 64 GEM ports per ONU
+    onu id = 8 bit
+    Alloc index = 2 bits (max 4 TCONTs/ONU)
 
 Flow id
 
@@ -117,7 +117,16 @@ MIN_GEM_PORT_ID = 2176                      # 2176..4222
 MAX_GEM_PORT_ID = MIN_GEM_PORT_ID + 2046
 
 MAX_ONUS_PER_PON = 128
-MAX_TCONTS_PER_ONU = 7
+MAX_TCONTS_PER_ONU = 4
+MAX_GEM_PORTS_PER_ONU = 16          # Hardware can handle more
+
+
+class adtran_platform(object):
+    def __init__(self):
+        pass
+
+    def mk_uni_port_num(self, intf_id, onu_id):
+        return intf_id << 11 | onu_id << 4
 
 
 def mk_uni_port_num(intf_id, onu_id):
@@ -128,15 +137,6 @@ def mk_uni_port_num(intf_id, onu_id):
     :return: (int) UNI Port number
     """
     return intf_id << 11 | onu_id << 4
-
-
-# def onu_id_from_uni_port_num(port_num):
-#     """
-#     Extract the ONU ID from a virtual UNI Port Number
-#     :param port_num: (int) virtual UNI / vENET port number on OLT PON
-#     :return: (int) onu ID
-#     """
-#     return (port_num >> 4) & 0x7F
 
 
 def intf_id_from_uni_port_num(port_num):
@@ -159,7 +159,7 @@ def mk_alloc_id(_, onu_id, idx=0):
     """
     assert 0 <= onu_id < MAX_ONUS_PER_PON, 'Invalid ONU ID. Expect 0..{}'.format(MAX_ONUS_PER_PON-1)
     assert 0 <= idx <= MAX_TCONTS_PER_ONU, 'Invalid TCONT instance. Expect 0..{}'.format(MAX_TCONTS_PER_ONU)
-    alloc_id = MIN_TCONT_ALLOC_ID + (onu_id << 3) + idx
+    alloc_id = MIN_TCONT_ALLOC_ID + (idx << 8) + onu_id
     return alloc_id
 
 
@@ -176,23 +176,6 @@ def mk_gemport_id(_, onu_id, idx=0):
     :param idx: (int)       GEM_PORT Index (0..15)
     """
     return MIN_GEM_PORT_ID + (onu_id << 4) + idx
-
-
-# def onu_id_from_gemport_id(gemport_id):
-#     """
-#     Determine ONU ID from a GEM PORT ID.    This is only called by the OLT
-#
-#     :param gemport_id: (int)  GEM Port ID
-#     """
-#     return (gemport_id - MIN_GEM_PORT_ID) >> 4
-
-
-# def mk_flow_id(intf_id, onu_id, idx):
-#     return intf_id << 11 | onu_id << 4 | idx
-
-
-# def intf_id_from_pon_id(port_no):
-#     return port_no - 5
 
 
 def intf_id_to_port_no(intf_id, intf_type):
@@ -224,29 +207,6 @@ def intf_id_to_intf_type(intf_id):
         return Port.ETHERNET_NNI
     else:
         raise Exception('Invalid intf_id value')
-
-
-# def intf_id_to_port_type_name(intf_id):
-#     try:
-#         return  port_type_name_by_port_index(intf_id_to_intf_type(intf_id))
-#     except Exception as err:
-#         raise Exception(err)
-
-
-# def port_type_name_by_port_index(port_index):
-#     try:
-#         return dev_pb2._PORT_PORTTYPE.values_by_number[port_index].name
-#     except Exception as err:
-#         raise Exception(err)
-
-
-# def extract_access_from_flow(in_port, out_port):
-#     if is_upstream(in_port, out_port):
-#         return (intf_id_from_uni_port_num(in_port), onu_id_from_uni_port_num(
-#             in_port))
-#     else:
-#         return (intf_id_from_uni_port_num(out_port), onu_id_from_uni_port_num(
-#             out_port))
 
 
 def is_upstream(in_port, out_port):

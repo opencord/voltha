@@ -14,20 +14,13 @@
 
 import structlog
 from traffic_descriptor import TrafficDescriptor
-from voltha.protos.bbf_fiber_base_pb2 import \
-    OntaniConfig, VOntaniConfig, VEnetConfig
 from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
 from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import TrafficDescriptorProfileData
 from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
-from voltha.protos.bbf_fiber_multicast_gemport_body_pb2 import \
-    MulticastGemportsConfigData
-from voltha.protos.bbf_fiber_multicast_distribution_set_body_pb2 import \
-    MulticastDistributionSetData
 
 log = structlog.get_logger()
 
 
-# SEBA
 class AdtranXPON(object):
     """
     Class to abstract common OLT and ONU xPON operations
@@ -36,25 +29,9 @@ class AdtranXPON(object):
         # xPON config dictionaries
         self._v_ont_anis = {}             # Name -> dict
         self._ont_anis = {}               # Name -> dict
-        self._v_enets = {}                # Name -> dict
         self._tconts = {}                 # Name -> dict
         self._traffic_descriptors = {}    # Name -> dict
         self._gem_ports = {}              # Name -> dict
-        self._mcast_gem_ports = {}        # Name -> dict
-        self._mcast_dist_sets = {}        # Name -> dict
-        self._cached_xpon_pon_info = {}   # PON-id -> dict
-
-    @property
-    def v_ont_anis(self):
-        return self._v_ont_anis
-
-    @property
-    def ont_anis(self):
-        return self._ont_anis
-
-    @property
-    def v_enets(self):
-        return self._v_enets
 
     @property
     def tconts(self):
@@ -71,27 +48,12 @@ class AdtranXPON(object):
     def _get_xpon_collection(self, data):
         """
         Get the collection for the object type and handler routines
-        :param data: xPON object
+        :param data: xPON object          TODO: These three are still needed for the ONU until
+                                                xPON is deprecated as the OLT calls into the ONU
+                                                to start it up and passes these three ProtoBuf
+                                                messages.
         """
-        if isinstance(data, OntaniConfig):
-            return self.ont_anis, \
-                   self.on_ont_ani_create,\
-                   self.on_ont_ani_modify, \
-                   self.on_ont_ani_delete
-
-        elif isinstance(data, VOntaniConfig):
-            return self.v_ont_anis, \
-                   self.on_vont_ani_create,\
-                   self.on_vont_ani_modify, \
-                   self.on_vont_ani_delete
-
-        elif isinstance(data, VEnetConfig):
-            return self.v_enets, \
-                   self.on_venet_create,\
-                   self.on_venet_modify, \
-                   self.on_venet_delete
-
-        elif isinstance(data, TcontsConfigData):
+        if isinstance(data, TcontsConfigData):
             return self.tconts, \
                    self.on_tcont_create,\
                    self.on_tcont_modify, \
@@ -109,64 +71,10 @@ class AdtranXPON(object):
                    self.on_gemport_modify, \
                    self.on_gemport_delete
 
-        elif isinstance(data, MulticastGemportsConfigData):
-            return self.mcast_gem_ports, \
-                   self.on_mcast_gemport_create,\
-                   self.on_mcast_gemport_modify, \
-                   self.on_mcast_gemport_delete
-
-        elif isinstance(data, MulticastDistributionSetData):
-            return self.mcast_dist_sets, \
-                   self.on_mcast_dist_set_create,\
-                   self.on_mcast_dist_set_modify, \
-                   self.on_mcast_dist_set_delete
-
         return None, None, None, None
 
     def _data_to_dict(self, data, td=None):
-        if isinstance(data, OntaniConfig):
-            name = data.name
-            interface = data.interface
-            inst_data = data.data
-
-            return 'ont-ani', {
-                'name': name,
-                'description': interface.description,
-                'enabled': interface.enabled,
-                'upstream-fec': inst_data.upstream_fec_indicator,
-                'mgnt-gemport-aes': inst_data.mgnt_gemport_aes_indicator,
-                'data': data
-            }
-        elif isinstance(data, VOntaniConfig):
-            name = data.name
-            interface = data.interface
-            inst_data = data.data
-
-            return 'vOnt-ani', {
-                'name': name,
-                'description': interface.description,
-                'enabled': interface.enabled,
-                'onu-id': inst_data.onu_id,
-                'expected-serial-number': inst_data.expected_serial_number,
-                'expected-registration-id': inst_data.expected_registration_id,
-                'preferred-channel-pair': inst_data.preferred_chanpair,
-                'channel-partition': inst_data.parent_ref,
-                'upstream-channel-speed': inst_data.upstream_channel_speed,
-                'data': data
-            }
-        elif isinstance(data, VEnetConfig):
-            name = data.name
-            interface = data.interface
-            inst_data = data.data
-
-            return 'vEnet', {
-                'name': name,
-                'description': interface.description,
-                'enabled': interface.enabled,
-                'vont-ani': inst_data.v_ontani_ref,
-                'data': data
-            }
-        elif isinstance(data, TcontsConfigData):
+        if isinstance(data, TcontsConfigData):
             return 'TCONT', {
                 'name': data.name,
                 'alloc-id': data.alloc_id,
@@ -198,26 +106,6 @@ class AdtranXPON(object):
                 'venet-ref': data.itf_ref,                # vENET
                 'data': data
             }
-        elif isinstance(data, MulticastGemportsConfigData):
-            return 'MCAST-GEM', {
-                'name': data.name,
-                'gemport-id': data.gemport_id,
-                'traffic-class': data.traffic_class,
-                'is-broadcast': data.is_broadcast,
-                'channel-pair-ref': data.itf_ref,                 # channel-pair
-                'data': data
-            }
-        elif isinstance(data, MulticastDistributionSetData):
-            data_dict = {
-                'name': data.name,
-                'multicast-gemport-ref': data.multicast_gemport_ref,
-                'multicast-vlans-all': None,
-                'multicast-vlans-list': [],
-                'data': data
-            }
-            assert True is False, 'Need to decode multicast-vlans parameter'
-            return 'MCAST-Distribution', data_dict
-
         return None
 
     def create_tcont(self, tcont_data, td_data):
@@ -307,7 +195,6 @@ class AdtranXPON(object):
 
         log.debug('new-item', item_type=item_type, item=new_item)
         items[name] = new_item
-        self._cached_xpon_pon_info = {}  # Clear cached data
 
         if create_method is not None:
             try:
@@ -322,9 +209,6 @@ class AdtranXPON(object):
 
     def xpon_update(self, data, td=None):
         log.debug('xpon-update', data=data)
-        if not self.xpon_support:
-            raise NotImplementedError("xPON support has been disabled")
-
         name = data.name
         items, create, update_method, delete = self._get_xpon_collection(data)
 
@@ -361,7 +245,6 @@ class AdtranXPON(object):
             return
 
         items[name] = update_item
-        self._cached_xpon_pon_info = {}  # Clear cached data
 
         # Act on any changed items
         if update_method is not None:
@@ -379,87 +262,7 @@ class AdtranXPON(object):
 
     def xpon_remove(self, data):
         log.debug('xpon_remove', data=data)
-        if not self.xpon_support:
-            raise NotImplementedError("xPON support has been disabled")
-
-        name = data.name
-
-        items, create, update, delete_method = self._get_xpon_collection(data)
-        item = items.get(name)
-
-        if item is not None:
-            if delete_method is None:
-                item = None
-            else:
-                try:
-                    item = delete_method(item)
-
-                except Exception as e:
-                    log.exception('xpon-remove', item=items, e=e)
-
-            self._cached_xpon_pon_info = {}  # Clear cached data
-
-            if item is None:
-                del items[name]
-            else:
-                # Update item in collection (still referenced somewhere)
-                items[name] = item
-
-    def on_ont_ani_create(self, ont_ani):
-        """
-        A new ONT-ani is being created. You can override this method to
-        perform custom operations as needed. If you override this method, you can add
-        additional items to the item dictionary to track additional implementation
-        key/value pairs.
-
-        :param ont_ani: (dict) new ONT-ani
-        :return: (dict) Updated ONT-ani dictionary, None if item should be deleted
-        """
-        return ont_ani   # Implement in your OLT, if needed
-
-    def on_ont_ani_modify(self, ont_ani, update, diffs):
-        """
-        A existing ONT-ani is being updated. You can override this method to
-        perform custom operations as needed. If you override this method, you can add
-        additional items to the item dictionary to track additional implementation
-        key/value pairs.
-
-        :param ont_ani: (dict) existing ONT-ani item dictionary
-        :param update: (dict) updated (changed) ONT-ani
-        :param diffs: (dict) collection of items different in the update
-        :return: (dict) Updated ONT-ani dictionary, None if item should be deleted
-        """
-        return update   # Implement in your OLT, if needed
-
-    def on_ont_ani_delete(self, ont_ani):
-        """
-        A existing ONT-ani is being deleted. You can override this method to
-        perform custom operations as needed. If you override this method, you can add
-        additional items to the item dictionary to track additional implementation
-        key/value pairs.
-
-        :param ont_ani: (dict) ONT-ani to delete
-        :return: (dict) None if item should be deleted
-        """
-        return None   # Implement in your OLT, if needed
-
-    def on_vont_ani_create(self, vont_ani):
-        return vont_ani   # Implement in your OLT, if needed
-
-    def on_vont_ani_modify(self, vont_ani, update, diffs):
-        return update   # Implement in your OLT, if needed
-
-    def on_vont_ani_delete(self, vont_ani):
-        return None   # Implement in your OLT, if needed
-
-    def on_venet_create(self, venet):
-        return venet   # Implement in your OLT, if needed
-
-    def on_venet_modify(self, venet, update, diffs):
-        return update   # Implement in your OLT, if needed
-
-    def on_venet_delete(self, venet):
-        return None   # Implement in your OLT, if needed
+        raise NotImplementedError("xPON support has been disabled")
 
     def on_tcont_create(self, tcont):
         return tcont   # Implement in your OLT, if needed
@@ -487,21 +290,3 @@ class AdtranXPON(object):
 
     def on_gemport_delete(self, gem_port):
         return None   # Implement in your OLT, if needed
-
-    def on_mcast_gemport_create(self, mcast_gem_port):
-        return mcast_gem_port  # Implement in your OLT, if needed
-
-    def on_mcast_gemport_modify(self, mcast_gem_port, update, diffs):
-        return update  # Implement in your OLT, if needed
-
-    def on_mcast_gemport_delete(self, mcast_gem_port):
-        return None  # Implement in your OLT, if needed
-
-    def on_mcast_dist_set_create(self, dist_set):
-        return dist_set  # Implement in your OLT, if needed
-
-    def on_mcast_dist_set_modify(self, dist_set, update, diffs):
-        return update  # Implement in your OLT, if needed
-
-    def on_mcast_dist_set_delete(self, dist_set):
-        return None  # Implement in your OLT, if needed

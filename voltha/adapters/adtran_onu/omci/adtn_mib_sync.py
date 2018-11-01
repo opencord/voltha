@@ -21,7 +21,7 @@ class AdtnMibSynchronizer(MibSynchronizer):
     OpenOMCI MIB Synchronizer state machine for Adtran ONUs
     """
     ADTN_RESYNC_DELAY = 120     # Periodically force a resync (lower for debugging)
-    ADTN_AUDIT_DELAY = 0        # Disabled until after BBWF
+    ADTN_AUDIT_DELAY = 60
 
     def __init__(self, agent, device_id, mib_sync_tasks, db, advertise_events=False):
         """

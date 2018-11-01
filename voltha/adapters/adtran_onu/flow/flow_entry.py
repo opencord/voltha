@@ -49,6 +49,7 @@ class FlowEntry(object):
         (FlowDirection.UNI, FlowDirection.ANI): FlowDirection.UPSTREAM,
         (FlowDirection.ANI, FlowDirection.UNI): FlowDirection.DOWNSTREAM
     }
+
     # Well known EtherTypes
     class EtherType(IntEnum):
         EAPOL = 0x888E
@@ -63,7 +64,6 @@ class FlowEntry(object):
         UDP = 17
 
     def __init__(self, flow, handler):
-        self._flow = flow               # TODO: Drop this reference once debugging done
         self._handler = handler
         self.flow_id = flow.id
         self._flow_direction = FlowEntry.FlowDirection.OTHER

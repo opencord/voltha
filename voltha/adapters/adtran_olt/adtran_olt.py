@@ -52,13 +52,18 @@ class AdtranOltAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='Adtran Inc.',
-            version='1.27',
+            version='1.29',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         log.debug('adtran_olt.__init__', adapter_agent=adapter_agent)
         self.devices_handlers = dict()  # device_id -> AdtranOltHandler()
         self.interface = registry('main').get_args().interface
         self.logical_device_id_to_root_device_id = dict()
+
+    @property
+    def devices(self):
+        """ BroadCom adapter needs to reach in and mess with us. """
+        return self.devices_handlers
 
     def start(self):
         """
@@ -468,193 +473,49 @@ class AdtranOltAdapter(object):
 
     # PON Mgnt APIs #
     def create_interface(self, device, data):
-        """
-        API to create various interfaces (only some PON interfaces as of now)
-        in the devices
-        """
-        log.debug('create-interface', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_create(data)
+        raise NotImplemented('xPON has been deprecated')
 
     def update_interface(self, device, data):
-        """
-        API to update various interfaces (only some PON interfaces as of now)
-        in the devices
-        """
-        log.debug('update-interface', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_update(data)
+        raise NotImplemented('xPON has been deprecated')
 
     def remove_interface(self, device, data):
-        """
-        API to delete various interfaces (only some PON interfaces as of now)
-        in the devices
-        """
-        log.debug('remove-interface', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_remove(data)
+        raise NotImplemented('xPON has been deprecated')
 
     def receive_onu_detect_state(self, proxy_address, state):
-        """
-        Receive onu detect state in ONU adapter
-        :param proxy_address: ONU device address
-        :param state: ONU detect state (bool)
-        :return: None
-        """
         raise NotImplementedError()
 
     def create_tcont(self, device, tcont_data, traffic_descriptor_data):
-        """
-        API to create tcont object in the devices
-        :param device: device id
-        :param tcont_data: tcont data object
-        :param traffic_descriptor_data: traffic descriptor data object
-        :return: None
-        """
-        log.info('create-tcont', tcont_data=tcont_data,
-                 traffic_descriptor_data=traffic_descriptor_data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.create_tcont(tcont_data, traffic_descriptor_data)
+        raise NotImplemented('xPON has been deprecated')
 
     def update_tcont(self, device, tcont_data, traffic_descriptor_data):
-        """
-        API to update tcont object in the devices
-        :param device: device id
-        :param tcont_data: tcont data object
-        :param traffic_descriptor_data: traffic descriptor data object
-        :return: None
-        """
-        log.info('update-tcont', tcont_data=tcont_data,
-                 traffic_descriptor_data=traffic_descriptor_data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.update_tcont(tcont_data, traffic_descriptor_data)
+        raise NotImplemented('xPON has been deprecated')
 
     def remove_tcont(self, device, tcont_data, traffic_descriptor_data):
-        """
-        API to delete tcont object in the devices
-        :param device: device id
-        :param tcont_data: tcont data object
-        :param traffic_descriptor_data: traffic descriptor data object
-        :return: None
-        """
-        log.info('remove-tcont', tcont_data=tcont_data,
-                 traffic_descriptor_data=traffic_descriptor_data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.remove_tcont(tcont_data, traffic_descriptor_data)
+        raise NotImplemented('xPON has been deprecated')
 
     def create_gemport(self, device, data):
-        """
-        API to create gemport object in the devices
-        :param device: device id
-        :param data: gemport data object
-        :return: None
-        """
-        log.debug('create-gemport', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_create(data)
+        raise NotImplemented('xPON has been deprecated')
 
     def update_gemport(self, device, data):
-        """
-        API to update gemport object in the devices
-        :param device: device id
-        :param data: gemport data object
-        :return: None
-        """
-        log.info('update-gemport', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_update(data)
+        raise NotImplemented('xPON has been deprecated')
 
     def remove_gemport(self, device, data):
-        """
-        API to delete gemport object in the devices
-        :param device: device id
-        :data: gemport data object
-        :return: None
-        """
-        log.info('remove-gemport', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_remove(data)
+        raise NotImplemented('xPON has been deprecated')
 
     def create_multicast_gemport(self, device, data):
-        """
-        API to create multicast gemport object in the devices
-        :param device: device id
-        :data: multicast gemport data object
-        :return: None
-        """
-        log.info('create-mcast-gemport', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_create(data)
+        raise NotImplemented('xPON has been deprecated')
 
     def update_multicast_gemport(self, device, data):
-        """
-        API to update  multicast gemport object in the devices
-        :param device: device id
-        :data: multicast gemport data object
-        :return: None
-        """
-        log.info('update-mcast-gemport', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_update(data)
+        raise NotImplemented('xPON has been deprecated')
 
     def remove_multicast_gemport(self, device, data):
-        """
-        API to delete multicast gemport object in the devices
-        :param device: device id
-        :data: multicast gemport data object
-        :return: None
-        """
-        log.info('remove-mcast-gemport', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_remove(data)
+        raise NotImplemented('xPON has been deprecated')
 
     def create_multicast_distribution_set(self, device, data):
-        """
-        API to create multicast distribution rule to specify
-        the multicast VLANs that ride on the multicast gemport
-        :param device: device id
-        :data: multicast distribution data object
-        :return: None
-        """
-        log.info('create-mcast-distribution-set', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_create(data)
+        raise NotImplemented('xPON has been deprecated')
 
     def update_multicast_distribution_set(self, device, data):
-        """
-        API to update multicast distribution rule to specify
-        the multicast VLANs that ride on the multicast gemport
-        :param device: device id
-        :data: multicast distribution data object
-        :return: None
-        """
-        log.info('update-mcast-distribution-set', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_update(data)
+        raise NotImplemented('xPON has been deprecated')
 
     def remove_multicast_distribution_set(self, device, data):
-        """
-        API to delete multicast distribution rule to specify
-        the multicast VLANs that ride on the multicast gemport
-        :param device: device id
-        :data: multicast distribution data object
-        :return: None
-        """
-        log.info('remove-mcast-distribution-set', data=data)
-        handler = self.devices_handlers.get(device.id)
-        if handler is not None:
-            handler.xpon_remove(data)
+        raise NotImplemented('xPON has been deprecated')

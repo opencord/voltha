@@ -19,7 +19,6 @@ import datetime
 import shlex
 import time
 
-import arrow
 import structlog
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue
@@ -35,13 +34,13 @@ from voltha.protos.openflow_13_pb2 import ofp_desc, ofp_switch_features, OFPC_PO
 from voltha.extensions.alarms.adapter_alarms import AdapterAlarms
 from voltha.extensions.kpi.olt.olt_pm_metrics import OltPmMetrics
 from common.utils.asleep import asleep
+from flow.flow_tables import DeviceFlows, DownstreamFlows
 
 _ = third_party
 
 DEFAULT_MULTICAST_VLAN = 4000
-BROADCOM_UNTAGGED_VLAN = 4091                     # SEBA - For BBWF demo (BroadCom Default VLAN)
-DEFAULT_UTILITY_VLAN = 4094
-DEFAULT_UNTAGGED_VLAN = BROADCOM_UNTAGGED_VLAN    # if RG does not send priority tagged frames
+BROADCOM_UNTAGGED_VLAN = 4091
+DEFAULT_UTILITY_VLAN = BROADCOM_UNTAGGED_VLAN
 
 _DEFAULT_RESTCONF_USERNAME = ""
 _DEFAULT_RESTCONF_PASSWORD = ""
@@ -52,8 +51,7 @@ _DEFAULT_NETCONF_PASSWORD = ""
 _DEFAULT_NETCONF_PORT = 830
 
 _STARTUP_RETRY_TIMEOUT = 5       # 5 seconds delay after activate failed before we
-_DEFAULT_XPON_SUPPORTED = False  # LOOK for the keywords 'xpon_support', SEBA
-                                 # for areas to clean up once xPON is deprecated
+_DEFAULT_RESOURCE_MGR_KEY = "adtran"
 
 
 class AdtranDeviceHandler(object):
@@ -107,11 +105,11 @@ class AdtranDeviceHandler(object):
         self.pm_metrics = None
         self.alarms = None
         self.multicast_vlans = [DEFAULT_MULTICAST_VLAN]
-        self.untagged_vlan = DEFAULT_UNTAGGED_VLAN
         self.utility_vlan = DEFAULT_UTILITY_VLAN
         self.mac_address = '00:13:95:00:00:00'
         self._rest_support = None
         self._initial_enable_complete = False
+        self.resource_mgr = None
 
         # Northbound and Southbound ports
         self.northbound_ports = {}  # port number -> Port
@@ -123,6 +121,7 @@ class AdtranDeviceHandler(object):
         # self.num_management_ports = None
 
         self.ip_address = None
+        self.host_and_port = None
         self.timeout = timeout
         self.restart_failure_timeout = 5 * 60   # 5 Minute timeout
 
@@ -138,10 +137,14 @@ class AdtranDeviceHandler(object):
         self.netconf_password = _DEFAULT_NETCONF_PASSWORD
         self._netconf_client = None
 
-        # TODO: Decrement xPON once Technology Profiles completed
-        self.xpon_support = _DEFAULT_XPON_SUPPORTED
+        # Flow entries
+        self.upstream_flows = DeviceFlows()
+        self.downstream_flows = DownstreamFlows()
+
         self.max_nni_ports = 1  # TODO: This is a VOLTHA imposed limit in 'flow_decomposer.py
                                 # and logical_device_agent.py
+
+        self.resource_manager_key = _DEFAULT_RESOURCE_MGR_KEY
         # OMCI ZMQ Channel
         self.pon_agent_port = DEFAULT_PON_AGENT_TCP_PORT
         self.pio_port = DEFAULT_PIO_TCP_PORT
@@ -226,11 +229,12 @@ class AdtranDeviceHandler(object):
 
         if device.ipv4_address:
             self.ip_address = device.ipv4_address
-
+            self.host_and_port = '{}:{}'.format(self.ip_address,
+                                                self.netconf_port)
         elif device.host_and_port:
-            host_and_port = device.host_and_port.split(":")
-            self.ip_address = host_and_port[0]
-            self.netconf_port = int(host_and_port[1])
+            self.host_and_port = device.host_and_port.split(":")
+            self.ip_address = self.host_and_port[0]
+            self.netconf_port = int(self.host_and_port[1])
             self.adapter_agent.update_device(device)
 
         else:
@@ -238,7 +242,6 @@ class AdtranDeviceHandler(object):
 
         #############################################################
         # Now optional parameters
-
         def check_tcp_port(value):
             ivalue = int(value)
             if ivalue <= 0 or ivalue > 65535:
@@ -247,8 +250,8 @@ class AdtranDeviceHandler(object):
 
         def check_vid(value):
             ivalue = int(value)
-            if ivalue <= 1 or ivalue > 4094:
-                raise argparse.ArgumentTypeError("Valid VLANs are 2..4094")
+            if ivalue < 1 or ivalue > 4094:
+                raise argparse.ArgumentTypeError("Valid VLANs are 1..4094")
             return ivalue
 
         parser = argparse.ArgumentParser(description='Adtran Device Adapter')
@@ -256,14 +259,14 @@ class AdtranDeviceHandler(object):
                             help='NETCONF username')
         parser.add_argument('--nc_password', '-p', action='store', default=_DEFAULT_NETCONF_PASSWORD,
                             help='NETCONF Password')
-        parser.add_argument('--nc_port', '-t', action='store', default=_DEFAULT_NETCONF_PORT, type=check_tcp_port,
-                            help='NETCONF TCP Port')
+        parser.add_argument('--nc_port', '-t', action='store', default=_DEFAULT_NETCONF_PORT,
+                            type=check_tcp_port, help='NETCONF TCP Port')
         parser.add_argument('--rc_username', '-U', action='store', default=_DEFAULT_RESTCONF_USERNAME,
                             help='REST username')
         parser.add_argument('--rc_password', '-P', action='store', default=_DEFAULT_RESTCONF_PASSWORD,
                             help='REST Password')
-        parser.add_argument('--rc_port', '-T', action='store', default=_DEFAULT_RESTCONF_PORT, type=check_tcp_port,
-                            help='RESTCONF TCP Port')
+        parser.add_argument('--rc_port', '-T', action='store', default=_DEFAULT_RESTCONF_PORT,
+                            type=check_tcp_port, help='RESTCONF TCP Port')
         parser.add_argument('--zmq_port', '-z', action='store', default=DEFAULT_PON_AGENT_TCP_PORT,
                             type=check_tcp_port, help='PON Agent ZeroMQ Port')
         parser.add_argument('--pio_port', '-Z', action='store', default=DEFAULT_PIO_TCP_PORT,
@@ -271,15 +274,12 @@ class AdtranDeviceHandler(object):
         parser.add_argument('--multicast_vlan', '-M', action='store',
                             default='{}'.format(DEFAULT_MULTICAST_VLAN),
                             help='Multicast VLAN'),
-        parser.add_argument('--untagged_vlan', '-v', action='store',
-                            default='{}'.format(DEFAULT_UNTAGGED_VLAN),
-                            help='VLAN for Untagged Frames from ONUs'),
         parser.add_argument('--utility_vlan', '-B', action='store',
                             default='{}'.format(DEFAULT_UTILITY_VLAN),
-                            help='VLAN for Untagged Frames from ONUs')
-        parser.add_argument('--xpon_enable', '-X', action='store_true',
-                            default=_DEFAULT_XPON_SUPPORTED,
-                            help='enable xPON (BBF WT-385) provisioning support')
+                            type=check_vid, help='VLAN for Controller based upstream flows from ONUs')
+        parser.add_argument('--resource_mgr_key', '-o', action='store',
+                            default=_DEFAULT_RESOURCE_MGR_KEY,
+                            help='OLT Type to look up associated resource manager configuration')
         try:
             args = parser.parse_args(shlex.split(device.extra_args))
 
@@ -296,10 +296,7 @@ class AdtranDeviceHandler(object):
 
             self.pon_agent_port = args.zmq_port
             self.pio_port = args.pio_port
-            self.xpon_support = args.xpon_enable
-
-            if not self.xpon_support:
-                self.untagged_vlan = BROADCOM_UNTAGGED_VLAN
+            self.resource_manager_key = args.resource_mgr_key
 
             if not self.rest_username:
                 self.rest_username = 'NDE0NDRkNDk0ZQ==\n'.\
@@ -382,7 +379,6 @@ class AdtranDeviceHandler(object):
 
                 ############################################################################
                 # Get the device Information
-
                 if reconciling:
                     device.connect_status = ConnectStatus.REACHABLE
                     self.adapter_agent.update_device(device)
@@ -410,7 +406,6 @@ class AdtranDeviceHandler(object):
 
                 try:
                     # Enumerate and create Northbound NNI interfaces
-
                     device.reason = 'enumerating northbound interfaces'
                     self.adapter_agent.update_device(device)
                     self.startup = self.enumerate_northbound_ports(device)
@@ -432,7 +427,6 @@ class AdtranDeviceHandler(object):
 
                 try:
                     # Enumerate and create southbound interfaces
-
                     device.reason = 'enumerating southbound interfaces'
                     self.adapter_agent.update_device(device)
                     self.startup = self.enumerate_southbound_ports(device)
@@ -452,6 +446,9 @@ class AdtranDeviceHandler(object):
                     self.log.exception('PON_enumeration', e=e)
                     returnValue(self.restart_activate(done_deferred, reconciling))
 
+                # Initialize resource manager
+                self.initialize_resource_manager()
+
                 if reconciling:
                     if device.admin_state == AdminState.ENABLED:
                         if device.parent_id:
@@ -469,7 +466,6 @@ class AdtranDeviceHandler(object):
                 else:
                     # Complete activation by setting up logical device for this OLT and saving
                     # off the devices parent_id
-
                     ld_initialized = self.create_logical_device(device)
 
                 ############################################################################
@@ -525,7 +521,6 @@ class AdtranDeviceHandler(object):
 
                 ############################################################################
                 # Setup Alarm handler
-
                 device.reason = 'setting up adapter alarms'
                 self.adapter_agent.update_device(device)
 
@@ -534,7 +529,6 @@ class AdtranDeviceHandler(object):
                 ############################################################################
                 # Register for ONU detection
                 # self.adapter_agent.register_for_onu_detect_state(device.id)
-
                 # Complete device specific steps
                 try:
                     self.log.debug('device-activation-procedures')
@@ -734,8 +728,6 @@ class AdtranDeviceHandler(object):
                 self.startup = yield EVC.remove_all(self.netconf_client)
                 from flow.utility_evc import UtilityEVC
                 self.startup = yield UtilityEVC.remove_all(self.netconf_client)
-                from flow.untagged_evc import UntaggedEVC
-                self.startup = yield UntaggedEVC.remove_all(self.netconf_client)
 
             except Exception as e:
                 self.log.exception('evc-cleanup', e=e)
@@ -756,7 +748,7 @@ class AdtranDeviceHandler(object):
                 self.log.exception('acl-cleanup', e=e)
 
             from flow.flow_entry import FlowEntry
-            FlowEntry.clear_all(device.id)
+            FlowEntry.clear_all(self)
 
             from download import Download
             Download.clear_all(self.netconf_client)
@@ -871,6 +863,9 @@ class AdtranDeviceHandler(object):
         return not self.is_nni_port(port) and not self.is_uni_port(port) and not self.is_pon_port(port)
 
     def get_port_name(self, port):
+        raise NotImplementedError('implement in derived class')
+
+    def initialize_resource_manager(self):
         raise NotImplementedError('implement in derived class')
 
     @inlineCallbacks
@@ -989,7 +984,9 @@ class AdtranDeviceHandler(object):
         for port in self.southbound_ports.itervalues():
             self.log.debug('reenable-checking-pon-port', pon_id=port.pon_id)
 
-            gpon_info = self.get_xpon_info(port.pon_id)         # SEBA
+            # TODO: Need to implement this now that XPON is deprecated
+            #gpon_info = self.get_xpon_info(port.pon_id)         # SEBA
+            gpon_info = None
             if gpon_info is not None and \
                 gpon_info['channel-terminations'] is not None and \
                 len(gpon_info['channel-terminations']) > 0:
@@ -1183,7 +1180,6 @@ class AdtranDeviceHandler(object):
         self.adapter_agent.update_child_devices_state(self.device_id,
                                                       connect_status=ConnectStatus.REACHABLE)
         # Restart ports to previous state
-
         dl = []
 
         for port in self.northbound_ports.itervalues():
@@ -1194,14 +1190,13 @@ class AdtranDeviceHandler(object):
 
         try:
             yield defer.gatherResults(dl, consumeErrors=True)
+
         except Exception as e:
             self.log.exception('port-restart', e=e)
 
         # Re-subscribe for ONU detection
         # self.adapter_agent.register_for_onu_detect_state(self.device.id)
-
         # Request reflow of any EVC/EVC-MAPs
-
         if len(self._evcs) > 0:
             dl = []
             for evc in self.evcs:
