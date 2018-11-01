@@ -273,6 +273,29 @@
     },
     {
       "key": {
+        "uuid": "78b5095d_96e0b21f",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-11-01T18:06:18Z",
+      "side": 1,
+      "message": "better to say TCP port number to communication with PonSim POD",
+      "range": {
+        "startLine": 38,
+        "startChar": 42,
+        "endLine": 38,
+        "endChar": 79
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7dea5e19_f489b6f7",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 7
