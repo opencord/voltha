@@ -178,6 +178,30 @@
     },
     {
       "key": {
+        "uuid": "e5abfdff_fe71adc0",
+        "filename": "tests/atests/common/preprovisioningTest.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-11-01T21:24:41Z",
+      "side": 1,
+      "message": "In fact this runTest global function as well as the equivalent global Initialize function in volthaMngr.py serve to simplify development, by allowing python calling.\nIf we did not save this with the release code, then we would have to recreate each time.",
+      "parentUuid": "095ccfd6_404a93d5",
+      "range": {
+        "startLine": 74,
+        "startChar": 4,
+        "endLine": 74,
+        "endChar": 11
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7d7f7558_dcfaa708",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 7
