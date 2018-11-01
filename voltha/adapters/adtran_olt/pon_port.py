@@ -20,7 +20,6 @@ import structlog
 from port import AdtnPort
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue
-from common.utils.indexpool import IndexPool
 from adtran_olt_handler import AdtranOltHandler
 from net.adtran_rest import RestInvalidResponseCode
 from codec.olt_config import OltConfig
@@ -28,6 +27,12 @@ from onu import Onu
 from voltha.extensions.alarms.onu.onu_los_alarm import OnuLosAlarm
 from voltha.protos.common_pb2 import AdminState
 from voltha.protos.device_pb2 import Port
+from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
+from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import TrafficDescriptorProfileData
+from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
+from xpon.olt_traffic_descriptor import OltTrafficDescriptor
+import resources.adtranolt_platform as platform
+
 
 try:
     from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
@@ -39,8 +44,7 @@ class PonPort(AdtnPort):
     """
     GPON Port
     """
-    MAX_ONUS_SUPPORTED = 256
-    DEFAULT_ENABLED = False
+    MAX_ONUS_SUPPORTED = 128
     MAX_DEPLOYMENT_RANGE = 25000    # Meters (OLT-PB maximum)
 
     _MCAST_ONU_ID = 253
@@ -52,7 +56,6 @@ class PonPort(AdtnPort):
 
     def __init__(self, parent, **kwargs):
         super(PonPort, self).__init__(parent, **kwargs)
-
         assert 'pon-id' in kwargs, 'PON ID not found'
 
         self._parent = parent
@@ -69,35 +72,33 @@ class PonPort(AdtnPort):
         self._discovery_tick = 20.0
         self._no_onu_discover_tick = self._discovery_tick / 2
         self._discovered_onus = []  # List of serial numbers
+        self._discovery_deferred = None     # Specifically for ONU discovery
 
-        self._onus = {}         # serial_number-base64 -> ONU  (allowed list)
-        self._onu_by_id = {}    # onu-id -> ONU
-        self._next_onu_id = Onu.MIN_ONU_ID
-        self._mcast_gem_ports = {}                # VLAN -> GemPort
-        self._onu_id_pool = IndexPool(Onu.MAX_ONU_ID - Onu.MIN_ONU_ID + 1, Onu.MIN_ONU_ID)
+        self._onus = {}                     # serial_number-base64 -> ONU  (allowed list)
+        self._onu_by_id = {}                # onu-id -> ONU
+        self._mcast_gem_ports = {}          # VLAN -> GemPort
 
-        self._discovery_deferred = None           # Specifically for ONU discovery
-        self._active_los_alarms = set()           # ONU-ID
+        self._active_los_alarms = set()     # ONU-ID
 
-        # xPON configuration        # SEBA
-        self._activation_method = 'autodiscovery' if parent.xpon_support else 'autoactivate'
+        # xPON configuration
+        self._activation_method = 'autoactivate'
 
-        if self.olt.xpon_support:
-            self._xpon_name = None
-            self._downstream_fec_enable = False
-            self._upstream_fec_enable = False
-        else:
-            self._xpon_name = 'channel-termination {}'.format(self._pon_id)
-            self._downstream_fec_enable = True
-            self._upstream_fec_enable = True
-
+        self._downstream_fec_enable = True
+        self._upstream_fec_enable = True
         self._deployment_range = 25000
         self._authentication_method = 'serial-number'
         self._mcast_aes = False
-        self._line_rate = 'down_10_up_10'
 
         # Statistics
         self.tx_bip_errors = 0
+
+        # xPON Configuration (TODO: Move Tcont/GEMPort to ONU eventually)
+        #                     TODO: TD may be system-wide, wait for Service Profiles
+        self._v_ont_anis = {}             # Name -> dict
+        self._ont_anis = {}               # Name -> dict
+        self._tconts = {}                 # Name -> dict
+        self._traffic_descriptors = {}    # Name -> dict
+        self._gem_ports = {}              # Name -> dict
 
     def __str__(self):
         return "PonPort-{}: Admin: {}, Oper: {}, OLT: {}".format(self._label,
@@ -118,15 +119,6 @@ class PonPort(AdtnPort):
                               oper_status=self._oper_status)
 
         return self._port
-
-    @property
-    def xpon_name(self):
-        return self._xpon_name
-
-    @xpon_name.setter
-    def xpon_name(self, value):
-        assert '/' not in value, "xPON names cannot have embedded forward slashes '/'"
-        self._xpon_name = value
 
     @property
     def pon_id(self):
@@ -211,19 +203,6 @@ class PonPort(AdtnPort):
                 pass    # TODO
 
     @property
-    def line_rate(self):
-        return self._line_rate
-
-    @line_rate.setter
-    def line_rate(self, value):
-        assert isinstance(value, (str, unicode)), 'Line Rate is a string'
-        # TODO cast to enum
-        if self._line_rate != value:
-            self._line_rate = value
-            if self.state == AdtnPort.State.RUNNING:
-                pass    # TODO
-
-    @property
     def deployment_range(self):
         """Maximum deployment range (in meters)"""
         return self._deployment_range
@@ -272,9 +251,6 @@ class PonPort(AdtnPort):
         value = value.lower()
         if value not in PonPort._SUPPORTED_ACTIVATION_METHODS:
             raise ValueError('Invalid ONU activation method')
-
-        if not self._parent.xpon_support and value != 'autoactivate':
-            raise ValueError('Only autoactivate is supported in non-xPON mode')
 
         self._activation_method = value
 
@@ -434,8 +410,7 @@ class PonPort(AdtnPort):
         Set the PON Port to a known good state on initial port startup.  Actual
         PON 'Start' is done elsewhere
         """
-        initial_port_state = AdminState.DISABLED if self._parent.xpon_support \
-            else AdminState.ENABLED
+        initial_port_state = AdminState.ENABLED
         self.log.info('reset', initial_state=initial_port_state)
 
         try:
@@ -481,14 +456,14 @@ class PonPort(AdtnPort):
 
         returnValue('Reset complete')
 
-    def gem_ids(self, logical_port, untagged_gem, multicast_gems=False):
+    def gem_ids(self, logical_port, flow_vlan, multicast_gems=False):
         """
         Get all GEM Port IDs used on a given PON
 
-        :param logical_port: (int) Logical port umber of ONU. None if for all ONUs
+        :param logical_port: (int) Logical port number of ONU. None if for all ONUs
                           on PON, if Multicast, VID for Multicast, or None for all
                           Multicast GEMPorts
-        :param untagged_gem: (boolean) Select from special purpose untagged GEM Port
+        :param flow_vlan: (int) If not None, this is the ingress tag (c-tag)
         :param multicast_gems: (boolean) Select from available Multicast GEM Ports
         :return: (dict) data_gem -> key -> onu-id, value -> tuple(sorted list of GEM Port IDs, onu_vid)
                         mcast_gem-> key -> mcast-vid, value -> GEM Port IDs
@@ -497,16 +472,14 @@ class PonPort(AdtnPort):
 
         if multicast_gems:
             # Multicast GEMs belong to the PON, but we may need to register them on
-            # all ONUs. Rework when BBF MCAST Gems are supported
-            for vlan, gem_port in self._mcast_gem_ports.iteritems():    # TODO: redo logic
+            # all ONUs. TODO: Rework when BBF MCAST is addressed in VOLTHA v2.O+
+            for vlan, gem_port in self._mcast_gem_ports.iteritems():
                 if logical_port is None or (logical_port == vlan and logical_port in self.olt.multicast_vlans):
                     gem_ids[vlan] = ([gem_port.gem_id], None)
         else:
             for onu_id, onu in self._onu_by_id.iteritems():
                 if logical_port is None or logical_port == onu.logical_port:
-                    gem_ids[onu_id] = (onu.gem_ids(untagged_gem),
-                                       onu.onu_vid if not untagged_gem
-                                       else self.olt.untagged_vlan)
+                    gem_ids[onu_id] = (onu.gem_ids(), flow_vlan)
         return gem_ids
 
     def _get_pon_config(self):
@@ -663,6 +636,7 @@ class PonPort(AdtnPort):
         new, rediscovered_onus = self._process_status_onu_discovered_list(status.discovered_onu)
 
         # Process newly discovered ONU list and rediscovered ONUs
+
         for serial_number in new | rediscovered_onus:
             reactor.callLater(0, self.add_onu, serial_number, status)
 
@@ -676,44 +650,6 @@ class PonPort(AdtnPort):
 
         # Process GEM Port information
         self._update_gem_status(status.gems, timestamp)
-
-    def _handle_discovered_onu(self, child_device, ind_info):
-        pon_id = ind_info['_pon_id']
-        olt_id = ind_info['_olt_id']
-
-        if ind_info['_sub_group_type'] == 'onu_discovery':
-            self.log.info('Activation-is-in-progress', olt_id=olt_id,
-                          pon_ni=pon_id, onu_data=ind_info,
-                          onu_id=child_device.proxy_address.onu_id)
-
-        elif ind_info['_sub_group_type'] == 'sub_term_indication':
-            self.log.info('ONU-activation-is-completed', olt_id=olt_id,
-                          pon_ni=pon_id, onu_data=ind_info)
-
-            msg = {'proxy_address': child_device.proxy_address,
-                   'event': 'activation-completed', 'event_data': ind_info}
-
-            # Send the event message to the ONU adapter
-            self.adapter_agent.publish_inter_adapter_message(child_device.id,
-                                                             msg)
-            if ind_info['activation_successful'] is True:
-                for key, v_ont_ani in dict():       # self.v_ont_anis.items():
-                    if v_ont_ani.v_ont_ani.data.onu_id == \
-                            child_device.proxy_address.onu_id:
-                        for tcont_key, tcont in v_ont_ani.tconts.items():
-                            owner_info = dict()
-                            # To-Do: Right Now use alloc_id as schduler ID. Need to
-                            # find way to generate uninqe number.
-                            id = tcont.alloc_id
-                            owner_info['type'] = 'agg_port'
-                            owner_info['intf_id'] = \
-                                child_device.proxy_address.channel_id
-                            owner_info['onu_id'] = \
-                                child_device.proxy_address.onu_id
-                            owner_info['alloc_id'] = tcont.alloc_id
-        else:
-            self.log.info('Invalid-ONU-event', olt_id=olt_id,
-                          pon_ni=ind_info['_pon_id'], onu_data=ind_info)
 
     def _process_statistics(self, status, timestamp):
         self.timestamp = timestamp
@@ -797,69 +733,26 @@ class PonPort(AdtnPort):
         :param serial_number: (string) Decoded (not base64) serial number string
         :return: (dict) onu config data or None on lookup failure
         """
-        activate_onu = False
         try:
             if self.activation_method == "autodiscovery":
-                if self.authentication_method == 'serial-number':
-                    gpon_info = self.olt.get_xpon_info(self.pon_id)
-                    try:
-                        # TODO: Change iteration to itervalues below
-                        vont_info = next(info for _, info in gpon_info['vont-anis'].items()
-                                         if info.get('expected-serial-number') == serial_number)
+                # if self.authentication_method == 'serial-number':
+                raise NotImplemented('TODO: Not supported at this time')
 
-                        # ont_info = next(info for _, info in gpon_info['ont-anis'].items()
-                        #                 if info.get('name') == vont_info['name'])
-
-                        vont_ani = vont_info['data']
-                        onu_id = vont_info['onu-id']
-                        enabled = vont_info['enabled']
-                        channel_speed = vont_info['upstream-channel-speed']
-                        xpon_name = vont_info['name']
-                        upstream_fec_enabled = True   # TODO: ont_info.get('upstream-fec', False)
-
-                        tconts = {key: val for key, val in gpon_info['tconts'].iteritems()
-                                  if val.vont_ani == vont_info['name']}
-
-                        gem_ports = {key: val for key, val in gpon_info['gem-ports'].iteritems()
-                                     if val.tcont_ref in tconts.keys()}
-
-                        venet = next((val for val in gpon_info['v-enets'].itervalues()
-                                      if val['vont-ani'] == vont_info['name']), None)
-                        # TODO: need to handle case where ont_ani, gems, venets, tconts are assigned
-                        #       after activation is started. only vont-ani needs to be set to get here
-
-                    except StopIteration:
-                        # Can happen if vont-ani or ont-ani has not yet been configured
-                        self.log.debug('no-vont-or-ont')
-                        return None, False
-
-                    except Exception as e:
-                        self.log.exception('autodiscovery', e=e)
-                        raise
-                else:
-                    self.log.debug('not-serial-number-authentication')
-                    return None, False
             elif self.activation_method == "autoactivate":
                 # TODO: Currently a somewhat copy of the xPON way to do things
                 #       update here with Technology profile info when it becomes available
-                gpon_info, activate_onu = self.olt.get_device_profile_info(self,
-                                                                           serial_number)
+                activate_onu, tconts, gem_ports = self.get_device_profile_info(serial_number)
+
                 try:
                     # TODO: (SEBA) All of this can be greatly simplified once we fully
                     #       deprecate xPON support
-                    vont_ani = next(info for _, info in gpon_info['vont-anis'].items()
+                    vont_ani = next(info for _, info in self._v_ont_anis.items()
                                     if info.get('expected-serial-number') == serial_number)
 
-                    # ont_ani = gpon_info['ont-anis'][vont_ani['name']]
                     onu_id = vont_ani['onu-id']
                     enabled = vont_ani['enabled']
                     channel_speed = vont_ani['upstream-channel-speed']
-                    xpon_name = vont_ani['name']
-                    upstream_fec_enabled = gpon_info['ont-anis'][vont_ani['name']]['upstream-fec']
-
-                    tconts = gpon_info['tconts']
-                    gem_ports = gpon_info['gem-ports']
-                    venet = None
+                    upstream_fec_enabled = self._ont_anis[vont_ani['name']]['upstream-fec']
 
                 except StopIteration:
                     # Can happen if vont-ani or ont-ani has not yet been configured
@@ -876,7 +769,6 @@ class PonPort(AdtnPort):
             onu_info = {
                 'device-id': self.olt.device_id,
                 'serial-number': serial_number,
-                'xpon-name': xpon_name,
                 'pon': self,
                 'onu-id': onu_id,
                 'enabled': enabled,
@@ -885,17 +777,11 @@ class PonPort(AdtnPort):
                 'password': Onu.DEFAULT_PASSWORD,
                 't-conts': tconts,
                 'gem-ports': gem_ports,
-                'channel-id': self.olt.get_channel_id(self._pon_id, onu_id),  # TODO: Is this used anywhere?
-                'vont-ani': vont_ani,
-                'venet': venet
             }
-            if self.olt.xpon_support:
-                onu_info['onu-vid'] = self.olt.get_onu_vid(onu_id)
-            else:
-                import adtranolt_platform as platform
-                intf_id = platform.intf_id_to_port_no(self._pon_id, Port.PON_OLT)
-                # TODO: Currently only one ONU port and it is hardcoded to port 0
-                onu_info['uni-ports'] = [platform.mk_uni_port_num(intf_id, onu_id)]
+            intf_id = platform.intf_id_to_port_no(self._pon_id, Port.PON_OLT)
+
+            # TODO: Currently only one ONU port and it is hardcoded to port 0
+            onu_info['uni-ports'] = [platform.mk_uni_port_num(intf_id, onu_id)]
 
             # Hold off ONU activation until at least one GEM Port is defined.
             self.log.debug('onu-info-tech-profiles', gem_ports=gem_ports)
@@ -918,27 +804,16 @@ class PonPort(AdtnPort):
         self.log.info('add-onu', serial_number=serial_number,
                       serial_number_64=serial_number_64, status=status)
 
-        # For non-XPON mode, it takes a little while for a new ONU to be removed from
-        # the discovery list. Return early here so extra ONU IDs are not allocated
-        if not self.olt.xpon_support and serial_number_64 in self._onus:
+        # It takes a little while for a new ONU to be removed from the discovery
+        # list. Return early here so extra ONU IDs are not allocated
+        if serial_number_64 in self._onus:
             returnValue('wait-for-fpga')
 
         onu_info, activate_onu = self._get_onu_info(serial_number)
 
         if activate_onu:
-            # SEBA  - This is the new no-xPON way
             alarm = OnuDiscoveryAlarm(self.olt.alarms, self.pon_id, serial_number)
             reactor.callLater(0, alarm.raise_alarm)
-            # Fall through. We do not want to return and wait for the next discovery poll
-            # as that will consume an additional ONU ID (currently allocated during
-            # add_onu_device).
-
-        elif onu_info is None:
-            # SEBA  - This is the OLD xPON way
-            self.log.info('onu-lookup-failure', serial_number=serial_number,
-                          serial_number_64=serial_number_64)
-            OnuDiscoveryAlarm(self.olt.alarms, self.pon_id, serial_number).raise_alarm()
-            returnValue('new-onu')
 
         if serial_number_64 not in status.onus or onu_info['onu-id'] in self._active_los_alarms:
             onu = None
@@ -952,17 +827,14 @@ class PonPort(AdtnPort):
                     (serial_number_64 not in self._onus and onu_id in self._onu_by_id):
                 # May be here due to unmanaged power-cycle on OLT or fiber bounced for a
                 # previously activated ONU.
-                if self.olt.xpon_support:                           # xPON will reassign the same ONU ID
-                    # Drop it and add back on next discovery cycle
-                    self.delete_onu(onu_id)
-                else:
-                    # TODO: Track when the ONU was discovered, and if > some maximum amount
-                    #       place the ONU (with serial number & ONU ID) on a wait list and
-                    #       use that to recover the ONU ID should it show up within a
-                    #       reasonable amount of time.  Periodically groom the wait list and
-                    #       delete state ONUs so we can reclaim the ONU ID.
-                    #
-                    returnValue('waiting-for-fpga')    # non-XPON mode will not
+                #
+                # TODO: Track when the ONU was discovered, and if > some maximum amount
+                #       place the ONU (with serial number & ONU ID) on a wait list and
+                #       use that to recover the ONU ID should it show up within a
+                #       reasonable amount of time.  Periodically groom the wait list and
+                #       delete state ONUs so we can reclaim the ONU ID.
+                #
+                returnValue('waiting-for-fpga')    # non-XPON mode will not
 
             elif len(self._onus) >= self.MAX_ONUS_SUPPORTED:
                 self.log.warning('max-onus-provisioned', count=len(self._onus))
@@ -975,30 +847,31 @@ class PonPort(AdtnPort):
                 self._onu_by_id[onu.onu_id] = onu
 
             if onu is not None:
-                tconts = onu_info['t-conts']
-                gem_ports = onu_info['gem-ports']
+                tconts = onu_info.pop('t-conts')
+                gem_ports = onu_info.pop('gem-ports')
 
                 if activate_onu:
-                    # SEBA  - This is the new no-xPON way to start an ONU device handler
-                    _onu_device = self._parent.add_onu_device(self._port_no,        # PON ID
-                                                              onu_info['onu-id'],   # ONU ID
+                    _onu_device = self._parent.add_onu_device(self._port_no,     # PON ID
+                                                              onu.onu_id,        # ONU ID
                                                               serial_number,
-                                                              tconts, gem_ports)
+                                                              tconts,
+                                                              gem_ports)
                 try:
-                    # Add Multicast to PON on a per-ONU basis until xPON multicast support is ready
+                    # Add Multicast to PON on a per-ONU basis until xPON multicast support
+                    # is ready
                     # In xPON/BBF, mcast gems tie back to the channel-pair
                     # MCAST VLAN IDs stored as a negative value
 
-                    for id_or_vid, gem_port in gem_ports.iteritems():  # TODO: Deprecate this when BBF ready
-                        try:
-                            if gem_port.multicast:
-                                self.log.debug('id-or-vid', id_or_vid=id_or_vid)
-                                vid = self.olt.multicast_vlans[0] if len(self.olt.multicast_vlans) else None
-                                if vid is not None:
-                                    self.add_mcast_gem_port(gem_port, vid)
-
-                        except Exception as e:
-                            self.log.exception('id-or-vid', e=e)
+                    # for id_or_vid, gem_port in gem_ports.iteritems():  # TODO: Deprecate this when BBF ready
+                    #     try:
+                    #         if gem_port.multicast:
+                    #             self.log.debug('id-or-vid', id_or_vid=id_or_vid)
+                    #             vid = self.olt.multicast_vlans[0] if len(self.olt.multicast_vlans) else None
+                    #             if vid is not None:
+                    #                 self.add_mcast_gem_port(gem_port, vid)
+                    #
+                    #     except Exception as e:
+                    #         self.log.exception('id-or-vid', e=e)
 
                     # TODO: Need to clean up TCont and GEM-Port on ONU delete in non-xPON mode
                     _results = yield onu.create(tconts, gem_ports)
@@ -1009,12 +882,12 @@ class PonPort(AdtnPort):
 
     @property
     def get_next_onu_id(self):
-        assert not self.olt.xpon_support, 'Only non-XPON mode allocates ONU IDs.  xPON assigns tem'
-        return self._onu_id_pool.get_next()
+        return self._parent.resource_mgr.get_onu_id(self._pon_id)
+        # return self._onu_id_pool.get_next()
 
     def release_onu_id(self, onu_id):
-        if not self.olt.xpon_support:
-            self._onu_id_pool.release(onu_id)
+        self._parent.resource_mgr.free_onu_id(self._pon_id, onu_id)
+        # self._onu_id_pool.release(onu_id)
 
     @inlineCallbacks
     def _remove_from_hardware(self, onu_id):
@@ -1071,3 +944,124 @@ class PonPort(AdtnPort):
         assert len(self.olt.multicast_vlans) == 1, 'Only support 1 MCAST VLAN until BBF Support'
 
         self._mcast_gem_ports[vlan] = mcast_gem
+
+    #  ===========================================================================
+    #
+    #  Some xPON methods that need refactoring
+
+    @property
+    def tconts(self):
+        return self._tconts
+
+    @property
+    def traffic_descriptors(self):
+        return self._traffic_descriptors
+
+    @property
+    def gem_ports(self):
+        return self._gem_ports
+
+    def get_device_profile_info(self, serial_number):
+        vont_ani_info = next((info for _, info in self._v_ont_anis.items()
+                             if info.get('expected-serial-number') == serial_number), None)
+        # New ONU?
+        activate_onu = vont_ani_info is None
+
+        tconts = list()
+        gem_ports = list()
+
+        if activate_onu:
+            onu_id = self.get_next_onu_id
+            name = 'customer-{}-{}'.format(self.pon_id, onu_id)
+            vont_ani_info = {
+                'name'                    : name,
+                'enabled'                 : True,
+                'description'             : '',
+                'pon-id'                  : self.pon_id,
+                'onu-id'                  : onu_id,
+                'expected-serial-number'  : serial_number,
+                'expected-registration-id': '',                         # TODO: How about this?
+                'upstream-channel-speed'  : 10000000000,
+            }
+            ont_ani_info = {
+                'name':             name,
+                'description':      '',
+                'enabled':          True,
+                'upstream-fec':     True,
+                'mgnt-gemport-aes': False
+            }
+            assert name not in self._v_ont_anis
+            assert name not in self._ont_anis
+            self._v_ont_anis[name] = vont_ani_info
+            self._ont_anis[name] = ont_ani_info
+
+            tcont, tc, td = self.create_xpon_tcont(onu_id)
+            from xpon.olt_tcont import OltTCont
+            tc['object'] = OltTCont.create(tc,
+                                           OltTrafficDescriptor.create(tc['td-ref']),
+                                           self.pon_id, onu_id)
+            self._tconts[tcont.name] = tc['object']
+            tconts.append(tc)
+
+            # Now create the User-Data GEM-Ports
+            num_priorities = 1                          # TODO: Pull from tech-profile later
+            for index in range(0, num_priorities):
+                gem_port, gp = self.create_xpon_gem_port(onu_id, index, tcont)
+
+                from xpon.olt_gem_port import OltGemPort
+                gp['object'] = OltGemPort.create(self, gp, self.pon_id, onu_id)
+                self._gem_ports[gem_port.name] = gp['object']
+                gem_ports.append(gp)
+
+        return activate_onu, tconts, gem_ports
+
+    def create_xpon_gem_port(self, onu_id, index, tcont):
+        # gem port creation (this initial one is for untagged ONU data support / EAPOL)
+        gem_port = GemportsConfigData()
+        gem_port.gemport_id = platform.mk_gemport_id(self.pon_id, onu_id, idx=index)
+        gem_port.name = 'gem-{}-{}-{}'.format(self.pon_id, onu_id, gem_port.gemport_id)
+
+        gem_port.tcont_ref = tcont.name
+        gp = {
+            'name': gem_port.name,
+            'gemport-id': gem_port.gemport_id,
+            'tcont-ref': gem_port.tcont_ref,
+            'encryption': False,
+            'traffic-class': 0,
+            'data': gem_port
+        }
+        return gem_port, gp
+
+    def create_xpon_tcont(self, onu_id):
+        """ Create the xPON TCONT Config data """
+        tcont = TcontsConfigData()
+        tcont.name = 'tcont-{}-{}-data'.format(self.pon_id, onu_id)
+        pon_intf_onu_id = (self.pon_id, onu_id)
+        tcont.alloc_id = self._parent.resource_mgr.get_alloc_id(pon_intf_onu_id)
+        # TODO: Add release of alloc_id on ONU delete and/or TCONT delete
+
+        traffic_desc = TrafficDescriptorProfileData(name='BestEffort',
+                                                    fixed_bandwidth=0,
+                                                    assured_bandwidth=0,
+                                                    maximum_bandwidth=10000000000,
+                                                    priority=0,
+                                                    weight=0,
+                                                    additional_bw_eligibility_indicator=0)
+        tc = {
+            'name': tcont.name,
+            'alloc-id': tcont.alloc_id,
+            'pon-id': self.pon_id,
+            'onu-id': onu_id,
+            'td-ref': {  # TODO: This should be the TD Name and the TD installed in xpon cache
+                'name': traffic_desc.name,
+                'fixed-bandwidth': traffic_desc.fixed_bandwidth,
+                'assured-bandwidth': traffic_desc.assured_bandwidth,
+                'maximum-bandwidth': traffic_desc.maximum_bandwidth,
+                'priority': traffic_desc.priority,
+                'weight': traffic_desc.weight,
+                'additional-bw-eligibility-indicator': 0,
+                'data': traffic_desc
+            },
+            'data': tcont
+        }
+        return tcont, tc, traffic_desc

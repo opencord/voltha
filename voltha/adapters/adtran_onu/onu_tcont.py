@@ -20,15 +20,15 @@ from voltha.adapters.adtran_olt.xpon.traffic_descriptor import TrafficDescriptor
 from voltha.extensions.omci.omci_me import TcontFrame
 from voltha.extensions.omci.omci_defs import ReasonCodes
 
+
 class OnuTCont(TCont):
     """
     Adtran ONU specific implementation
     """
     free_tcont_alloc_id = 0xFFFF
 
-    def __init__(self, handler, alloc_id, traffic_descriptor, name=None, vont_ani=None):
-        super(OnuTCont, self).__init__(alloc_id, traffic_descriptor,
-                                       name=name, vont_ani=vont_ani)
+    def __init__(self, handler, alloc_id, traffic_descriptor, name=None):
+        super(OnuTCont, self).__init__(alloc_id, traffic_descriptor, name=name)
         self._handler = handler
         self._entity_id = None
         self.log = structlog.get_logger(device_id=handler.device_id, alloc_id=alloc_id)
@@ -41,12 +41,7 @@ class OnuTCont(TCont):
     def create(handler, tcont, td):
         assert isinstance(tcont, dict), 'TCONT should be a dictionary'
         assert isinstance(td, TrafficDescriptor), 'Invalid Traffic Descriptor data type'
-
-        return OnuTCont(handler,
-                        tcont['alloc-id'],
-                        td,
-                        name=tcont['name'],
-                        vont_ani=tcont['vont-ani'])
+        return OnuTCont(handler, tcont['alloc-id'], td, name=tcont['name'])
 
     @inlineCallbacks
     def add_to_hardware(self, omci, tcont_entity_id):

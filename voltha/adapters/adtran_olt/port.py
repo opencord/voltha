@@ -56,12 +56,8 @@ class AdtnPort(object):
 
         # TODO: Deprecate 'enabled' and use admin_state instead may want initial to always be
         # disabled and then in derived classes, set it in the 'reset' method called on startup.
-        if parent.xpon_support:
-            self._enabled = not parent.xpon_support
-            self._admin_state = AdminState.DISABLED
-        else:
-            self._enabled = not parent.xpon_support
-            self._admin_state = AdminState.ENABLED
+        self._enabled = True
+        self._admin_state = AdminState.ENABLED
 
         self._oper_status = OperStatus.DISCOVERED
         self._state = AdtnPort.State.INITIAL
@@ -73,7 +69,7 @@ class AdtnPort(object):
         self.rx_bytes = 0
         self.tx_packets = 0
         self.tx_bytes = 0
-        self.timestamp = 0
+        self.timestamp = 0      # UTC when KPI items last updated
 
     def __del__(self):
         self.stop()

@@ -247,11 +247,12 @@ class EVCMap(object):
 
         for onu_or_vlan_id, gem_ids_and_vid in onu_s_gem_ids_and_vid.iteritems():
             first_gem_id = True
+            gem_ids = gem_ids_and_vid[0]
             vid = gem_ids_and_vid[1]
             ident = '{}.{}'.format(self._pon_id, onu_or_vlan_id) if vid is None \
                 else onu_or_vlan_id
 
-            for gem_id in gem_ids_and_vid[0]:
+            for gem_id in gem_ids:
                 xml += '<evc-map{}>'.format('' if not create else ' xc:operation="create"')
                 xml += '<name>{}.{}.{}</name>'.format(self.name, ident, gem_id)
                 xml += '<ce-vlan-id>{}</ce-vlan-id>'.format(Onu.gem_id_to_gvid(gem_id))
@@ -342,7 +343,7 @@ class EVCMap(object):
                     results = yield self._handler.netconf_client.edit_config(map_xml)
                     self._installed = results.ok
                     self._needs_update = results.ok
-                    self.status = '' if results.ok else results.error
+                    self._status_message = '' if results.ok else results.error
 
                     if results.ok:
                         self._existing_acls.update(work_acls)
@@ -502,13 +503,13 @@ class EVCMap(object):
         """
         from flow_entry import FlowEntry
         # Create temporary EVC-MAP
-        assert flow.flow_direction == FlowEntry.FlowDirection.UPSTREAM, \
+        assert flow.flow_direction in FlowEntry.upstream_flow_types, \
             'Only Upstream flows additions are supported at this time'
 
         log.debug('add-flow-to-evc', flow=flow, evc=evc)
 
         tmp_map = EVCMap.create_ingress_map(flow, evc, dry_run=True) \
-            if flow.flow_direction == FlowEntry.FlowDirection.UPSTREAM \
+            if flow.flow_direction in FlowEntry.upstream_flow_types \
             else EVCMap.create_egress_map(flow, evc, dry_run=True)
 
         if tmp_map is None or not tmp_map.valid:
@@ -542,7 +543,7 @@ class EVCMap(object):
         try:
             del self._flows[flow.flow_id]
 
-            log('remove-flow-to-evc', flow=flow, evc=evc)
+            log('remove-flow-to-evc', flow=flow)
             # Remove any ACLs
             acl_name = ACL.flow_to_name(flow)
             acl = None
@@ -570,7 +571,7 @@ class EVCMap(object):
 
                         self._evc.remove_evc_map(self)
                         first_flow = self._flows.itervalues().next()
-                        self._evc = first_flow.get_utility_evc(None, True)
+                        self._evc = first_flow.get_utility_evc(True)
                         self._evc.add_evc_map(self)
                         log.debug('moved-acl-flows-to-utility-evc', newevcname=self._evc.name)
 
@@ -592,6 +593,8 @@ class EVCMap(object):
 
     @staticmethod
     def create_evc_map_name(flow):
+        # Note: When actually installed into the OLT, the .onu_id.gem_port is
+        #       appended to the name
         return EVC_MAP_NAME_FORMAT.format(flow.logical_port, flow.flow_id)
 
     @staticmethod
@@ -605,8 +608,10 @@ class EVCMap(object):
         """
         items = name.split('-') if name is not None else dict()
 
+        # Note: When actually installed into the OLT, the .onu_id.gem_port is
+        #       appended to the name
         return {'ingress-port': items[1],
-                'flow-id': items[2]} if len(items) == 3 else dict()
+                'flow-id': items[2].split('.')[0]} if len(items) == 3 else dict()
 
     def add_gem_port(self, gem_port, reflow=False):
         # TODO: Refactor
@@ -650,8 +655,6 @@ class EVCMap(object):
         return succeed('nop')
 
     def _setup_gem_ids(self):
-        from flow_entry import FlowEntry
-
         # all flows should have same GEM port setup
         flow = self._flows.itervalues().next()
         is_pon = flow.handler.is_pon_port(flow.in_port)
@@ -661,9 +664,8 @@ class EVCMap(object):
 
             if pon_port is not None:
                 self._pon_id = pon_port.pon_id
-                untagged_gem = flow.eth_type == FlowEntry.EtherType.EAPOL and\
-                    flow.handler.untagged_vlan != flow.handler.utility_vlan
-                self._gem_ids_and_vid = pon_port.gem_ids(flow.logical_port, untagged_gem,
+                self._gem_ids_and_vid = pon_port.gem_ids(flow.logical_port,
+                                                         flow.vlan_id,
                                                          flow.is_multicast_flow)
 
     def _decode(self, evc):
@@ -692,7 +694,6 @@ class EVCMap(object):
             return False    # UNI Ports handled in the EVC Maps
 
         # ACL logic
-
         self._eth_type = flow.eth_type
 
         if self._eth_type == FlowEntry.EtherType.IPv4:
@@ -705,7 +706,6 @@ class EVCMap(object):
 
         # If no match of VLAN this may be for untagged traffic or upstream and needs to
         # match the gem-port vid
-
         self._setup_gem_ids()
 
         # self._match_untagged = flow.vlan_id is None and flow.inner_vid is None

@@ -17,11 +17,10 @@ class TCont(object):
     """
     Class to wrap TCont capabilities
     """
-    def __init__(self, alloc_id, traffic_descriptor, name=None, vont_ani=None):
+    def __init__(self, alloc_id, traffic_descriptor, name=None):
         self.alloc_id = alloc_id
         self.traffic_descriptor = traffic_descriptor
         self.name = name
-        self.vont_ani = vont_ani        # (string) reference
 
         # TODO: Make this a base class and derive OLT and ONU specific classes from it
         #       The primary thing difference is the add/remove from hardware methods

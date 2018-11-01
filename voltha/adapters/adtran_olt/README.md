@@ -14,9 +14,8 @@ entering two dashes '_--_'.  The full syntax to use is.
 |  -T   | --rc_port          | 8081       | REST TCP Port |
 |  -z   | --zmq_port         | 5656       | ZeroMQ OMCI Proxy Port |
 |  -M   | --multicast_vlan   | 4000       | Multicast VLANs (comma-delimited) |
-|  -v   | --untagged_vlan    | 4092       | VLAN wrapper for untagged ONU frames |
 |  -Z   | --pio_port         | 5657       | PIO Service ZeroMQ Port |
-|  -X   | --xpon_enable      | False      | Support BBF WT-386 xPON CLI/NBI provisioning |
+|  -o   | --resource_mgr_key | adtran_olt | OLT Type to look up associated resource manager configuration |
 
 For example, if your Adtran OLT is address 10.17.174.193 with the default TCP ports and
 NETCONF credentials of admin/admin and REST credentials of ADMIN/ADMIN, the command line
@@ -43,6 +42,57 @@ or
     preprovision_olt -t adtran_olt --host_and_port 10.17.174.193:830
 ```
 
+## Resource Manager Provisioning Support
+Starting in Fall of 2018, Resource Manager Support was added as the default provisioning mechanism
+for the Adtran OLT as the xPON provisioning support will be deprecated by the v2.0 release in
+late-2018/early-2019.
+
+The Resource Manager is used to manage device PON resource pool and allocate PON resources from
+such pools. Resource Manager module currently manages assignment of ONU-ID, ALLOC-ID and
+GEM-PORT ID. The Resource Manager uses the KV store to back-up all the resource pool allocation data.
+
+The Adtran OLT adapter interacts with Resource Manager module for PON resource assignments. The
+adtranolt_resource_manager module is responsible for interfacing with the Resource Manager.
+
+The Resource Manager optionally uses olt_vendor_type specific resource ranges to initialize the
+PON resource pools. In order to utilize this option, create an entry for olt_vendor_type specific
+PON resource ranges on the KV store. Please make sure to use the same KV store used by the VOLTHA core.
+
+### For example
+To specify **ADTRAN OLT** device specific resource ranges, first create a JSON file
+_adtran_olt_resource_range.json_ with the following entry
+
+{
+    "onu_start_idx": 0,
+    "onu_end_idx": 127,
+    "alloc_id_start_idx": 1024,
+    "alloc_id_end_idx": 4222,
+    "gem_port_id_start_idx": 2176,
+    "gem_port_id_end_idx": 16383,
+    "num_of_pon_port": 16
+}
+This data should be put on the KV store location _resource_manager/xgspon/resource_ranges/adtran_olt_
+
+The format of the KV store location is resource_manager/<technology>/resource_ranges/<resource_mgr_key>
+
+In the below example the KV store is assumed to be Consul. However the same is applicable to be
+etcd or any other KV store. Please make sure to use the same KV store used by the VOLTHA core.
+
+```bash
+curl -X PUT -H "Content-Type: application/json" \
+   http://127.0.0.1:8500/v1/kv/resource_manager/xgspon/resource_ranges/adtran_olt \
+   -d @./adtran_olt_resource_range.json 
+```
+The olt_vendor_type should be referred to during the preprovisioning step as shown below. The
+olt_vendor_type is an extra option and should be specified after --. The -o specifies the resource_mgr_key.
+
+ (voltha) preprovision_olt -t adtran -H 192.168.1.100:830 -- -o adtran_olt
+Once the OLT device is enabled, any further PON Resource assignments will happen within the PON Resource ranges defined in asfvolt16_resource_range.json and placed on the KV store.
+
+Additional Notes
+If a default resource range profile should be used with all olt_vendor_types, then place such Resource Range profile at the below path on the KV store.
+
+resource_manager/xgspon/resource_ranges/default
 
 ## xPON Provisioning Support
 

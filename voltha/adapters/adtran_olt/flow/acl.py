@@ -22,8 +22,9 @@ log = structlog.get_logger()
 
 _acl_list = {}      # Key -> device-id -> Name: List of encoded EVCs
 
-ACL_NAME_FORMAT = 'VOLTHA-ACL-{}-{}'  # format(flow_entry.handler.device_id, flow_entry.flow.id)
+ACL_NAME_FORMAT = 'VOLTHA-ACL-{}-{}'  # format(flow_entry.flow_id, flow-entry-hash)
 ACL_NAME_REGEX_ALL = 'VOLTHA-ACL-*'
+ACE_NAME_FORMAT = 'VOLTHA-ACE-{}-{}'  # format(flow_entry.flow_id, flow-entry-hash)
 
 
 class ACL(object):
@@ -194,11 +195,24 @@ class ACL(object):
 
     @staticmethod
     def flow_to_name(flow_entry):
-        return 'VOLTHA-ACL-{}-{}'.format(flow_entry.handler.device_id, flow_entry.flow.id)
+        return ACL_NAME_FORMAT.format(flow_entry.flow_id, ACL.acl_hash(flow_entry))
 
     @staticmethod
     def flow_to_ace_name(flow_entry):
-        return 'VOLTHA-ACE-{}-{}'.format(flow_entry.handler.device_id, flow_entry.flow.id)
+        return ACE_NAME_FORMAT.format(flow_entry.flow_id, ACL.acl_hash(flow_entry))
+
+    @staticmethod
+    def acl_hash(flow_entry):
+        from hashlib import md5
+        in_port = flow_entry.in_port or 0
+        eth_type = flow_entry.eth_type or 0
+        ip_protocol = flow_entry.ip_protocol or 0
+        ipv4_dst = flow_entry.ipv4_dst or 0
+        src_port = flow_entry.udp_src or 0
+        dst_port = flow_entry.udp_dst or 0
+        hex_string = md5('{},{},{},{},{},{}'.format(in_port, eth_type, ip_protocol,
+                                                    ipv4_dst, src_port, dst_port)).hexdigest()
+        return hex_string
 
     @property
     def valid(self):
@@ -222,8 +236,8 @@ class ACL(object):
 
             acls_installed = _acl_list[self._handler.device_id]
             if self._name in acls_installed:
-                self._status_message = "ACL '{}' id already installed".format(self._name)
-                raise Exception(self._status_message)
+                # Return OK
+                returnValue(self._enabled)
 
             try:
                 acl_xml = self._install_xml()
@@ -334,13 +348,13 @@ class ACL(object):
 
                     pairs = []
                     if isinstance(entries['acl'], list):
-                        pairs = { (entry['acl-type'], entry['acl-name']) for entry in entries['acl']
+                        pairs = {(entry['acl-type'], entry['acl-name']) for entry in entries['acl']
                                  if 'acl-name' in entry and 'acl-type' in entry and p.match(entry['acl-name'])}
                     else:
                         if 'acl' in entries:
                             entry = entries['acl']
                             if 'acl-name' in entry and 'acl-type' in entry and p.match(entry['acl-name']):
-                                pairs = [ (entry['acl-type'], entry['acl-name']) ]
+                                pairs = [(entry['acl-type'], entry['acl-name'])]
 
                     if len(pairs) > 0:
                         del_xml = '<access-lists xmlns="http://www.adtran.com/ns/yang/adtran-ietf-access-control-list">'
