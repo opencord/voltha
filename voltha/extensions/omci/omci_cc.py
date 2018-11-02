@@ -413,8 +413,6 @@ class OMCI_CC(object):
             if d is not None and not d.called:
                 d.cancel()
 
-        self._requests = dict()
-
     def _get_tx_tid(self):
         """
         Get the next Transaction ID for a tx.  Note TID=0 is reserved
