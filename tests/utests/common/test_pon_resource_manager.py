@@ -42,7 +42,7 @@ class TestResourceManager(TestCase):
 
     def test_init_pon_resource_ranges(self):
         output = json.dumps(self.default_resource_range).encode('utf-8')
-        self._rm._get_olt_vendor = Mock(return_value='default')
+        self._rm._get_olt_model = Mock(return_value='default')
         self._rm._kv_store.get_from_kv_store = Mock(return_value=output)
 
         self._rm.init_resource_ranges_from_kv_store()
