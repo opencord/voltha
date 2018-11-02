@@ -25,6 +25,7 @@ from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue, 
 from heartbeat import HeartBeat
 from voltha.extensions.kpi.onu.onu_pm_metrics import OnuPmMetrics
 from voltha.extensions.kpi.onu.onu_omci_pm import OnuOmciPmMetrics
+from voltha.extensions.alarms.adapter_alarms import AdapterAlarms
 
 from common.utils.indexpool import IndexPool
 import voltha.core.flow_decomposer as fd
@@ -71,6 +72,7 @@ class BrcmOpenomciOnuHandler(object):
         self.proxy_address = None
         self.tx_id = 0
         self._enabled = False
+        self.alarms = None
         self.pm_metrics = None
         self._omcc_version = OMCCVersion.Unknown
         self._total_tcont_count = 0  # From ANI-G ME
@@ -197,6 +199,12 @@ class BrcmOpenomciOnuHandler(object):
             self.log.info("initial-pm-config", pm_config=pm_config)
             self.adapter_agent.update_device_pm_config(pm_config, init=True)
 
+            ############################################################################
+            # Setup Alarm handler
+            self.alarms = AdapterAlarms(self.adapter_agent, device.id, self.logical_device_id)
+            # Note, ONU ID and UNI intf set in add_uni_port method
+            self._onu_omci_device.alarm_synchronizer.set_alarm_params(mgr=self.alarms,
+                                                                      ani_ports=[self._pon])
             self.enabled = True
         else:
             self.log.info('onu-already-activated')
@@ -877,6 +885,8 @@ class BrcmOpenomciOnuHandler(object):
 
         self._unis[uni_port.port_number] = uni_port
 
+        self._onu_omci_device.alarm_synchronizer.set_alarm_params(onu_id=self._onu_indication.onu_id,
+                                                                  uni_ports=self._unis.values())
         # TODO: this should be in the PonPortclass
         pon_port = self._pon.get_port()
         self.adapter_agent.delete_port_reference_from_parent(self.device_id,

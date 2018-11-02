@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import structlog
-from scapy.fields import ByteField, StrFixedLenField, ConditionalField, Field
+from scapy.fields import ByteField, ThreeBytesField, ConditionalField, Field
 from scapy.fields import ShortField, BitField
 from scapy.packet import Packet
 
@@ -306,6 +306,7 @@ class OmciAlarmNotification(OmciMessage):
         ShortField("entity_class", None),
         ShortField("entity_id", 0),
         BitField("alarm_bit_map", 0, 224),
+        ThreeBytesField("zero_padding", 0),
         ByteField("alarm_sequence_number", None)
     ]
 

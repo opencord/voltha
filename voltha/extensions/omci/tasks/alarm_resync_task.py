@@ -18,8 +18,9 @@ from twisted.internet.defer import inlineCallbacks, TimeoutError, failure, retur
 from twisted.internet import reactor
 from common.utils.asleep import asleep
 from voltha.extensions.omci.database.mib_db_dict import *
-from voltha.extensions.omci.omci_entities import OntData
 from voltha.extensions.omci.omci_defs import AttributeAccess
+from voltha.extensions.omci.database.alarm_db_ext import AlarmDbExternal
+
 AA = AttributeAccess
 
 
@@ -128,8 +129,8 @@ class AlarmResyncTask(Task):
                 self.deferred.errback(failure.Failure(e))
             else:
                 # Start the ALARM upload sequence, save alarms to the table
-
                 self.strobe_watchdog()
+
                 if number_of_commands > 0:
                     commands_retrieved = yield self.upload_alarm(number_of_commands)
                 else:
@@ -261,22 +262,8 @@ class AlarmResyncTask(Task):
                     alarm_class_id = omci_msg['alarmed_entity_class']
                     alarm_entity_id = omci_msg['alarmed_entity_id']
 
-                    # Filter out the 'alarm_data_sync' from the database. We save that at
-                    # the device level and do not want it showing up during a re-sync
-                    # during data comparison
-
-                    if alarm_class_id == OntData.class_id:
-                        break
-
-                    bit_map = omci_msg['alarm_bit_map'].encode('hex')
-                    bit_map_hex = "{0:b}".format(int(bit_map, 16))
-                    alarm_bit_map = eval(bit_map_hex)
-
-                    # alarm bit map space is 28 bytes * 8 = 224 bits
-                    if len(bit_map_hex) != 224:
-                        continue
-
-                    attributes = alarm_bit_map
+                    alarm_bit_map = omci_msg['alarm_bit_map']
+                    attributes = {AlarmDbExternal.ALARM_BITMAP_KEY: alarm_bit_map}
 
                     # Save to the database
                     self._db_active.set(self.device_id, alarm_class_id,
