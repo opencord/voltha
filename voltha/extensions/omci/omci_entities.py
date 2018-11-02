@@ -138,6 +138,7 @@ class EntityClass(object):
     mandatory_operations = set()
     optional_operations = set()
     notifications = set()
+    alarms = dict()       # Alarm Number -> Alarm Name
     hidden = False        # If true, this attribute is not reported by a MIB upload.
                           # This attribute is needed to be able to properly perform
                           # MIB Audits.
@@ -259,6 +260,13 @@ class Cardholder(EntityClass):
     ]
     mandatory_operations = {OP.Get, OP.Set}
     notifications = {OP.AttributeValueChange, OP.AlarmNotification}
+    alarms = {
+        0: 'Plug-in circuit pack missing',
+        1: 'Plug-in type mismatch alarm',
+        2: 'Improper card removal',
+        3: 'Plug-in equipment ID mismatch alarm',
+        4: 'Protection switch',
+    }
 
 
 class CircuitPack(EntityClass):
@@ -290,7 +298,14 @@ class CircuitPack(EntityClass):
     mandatory_operations = {OP.Get, OP.Set, OP.Reboot}
     optional_operations = {OP.Create, OP.Delete, OP.Test}
     notifications = {OP.AttributeValueChange, OP.AlarmNotification}
-
+    alarms = {
+        0: 'Equipment alarm',
+        1: 'Powering alarm',
+        2: 'Self-test failure',
+        3: 'Laser end of life',
+        4: 'Temperature yellow',
+        5: 'Temperature red',
+    }
 
 class SoftwareImage(EntityClass):
     class_id = 7
@@ -347,6 +362,9 @@ class PptpEthernetUni(EntityClass):
     ]
     mandatory_operations = {OP.Get, OP.Set}
     notifications = {OP.AttributeValueChange, OP.AlarmNotification}
+    alarms = {
+        0: 'LAN Loss Of Signal',
+    }
 
 
 class MacBridgeServiceProfile(EntityClass):
@@ -403,6 +421,9 @@ class MacBridgePortConfigurationData(EntityClass):
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        0: 'Port blocking',
+    }
 
 
 class MacBridgePortFilterPreAssignTable(EntityClass):
@@ -431,7 +452,6 @@ class MacBridgePortFilterPreAssignTable(EntityClass):
             range_check=lambda x: 0 <= x <= 1)
     ]
     mandatory_operations = {OP.Get, OP.Set}
-    notifications = {OP.AlarmNotification}
 
 
 class VlanTaggingFilterData(EntityClass):
@@ -653,6 +673,24 @@ class OntG(EntityClass):
         OP.Get, OP.Set, OP.Reboot, OP.Test, OP.SynchronizeTime}
     notifications = {OP.TestResult, OP.AttributeValueChange,
                      OP.AlarmNotification}
+    alarms = {
+        0: 'Equipment alarm',
+        1: 'Powering alarm',
+        2: 'Battery missing',
+        3: 'Battery failure',
+        4: 'Battery low',
+        5: 'Physical intrusion',
+        6: 'Self-test failure',
+        7: 'Dying gasp',
+        8: 'Temperature yellow',
+        9: 'Temperature red',
+        10: 'Voltage yellow',
+        11: 'Voltage red',
+        12: 'ONU manual power off',
+        13: 'Invalid image',
+        14: 'PSE overload yellow',
+        15: 'PSE overload red',
+    }
 
 
 class Ont2G(EntityClass):
@@ -722,6 +760,15 @@ class AniG(EntityClass):
     ]
     mandatory_operations = {OP.Get, OP.Set, OP.Test}
     notifications = {OP.AttributeValueChange, OP.AlarmNotification}
+    alarms = {
+        0: 'Low received optical power',
+        1: 'High received optical power',
+        2: 'Signal fail',
+        3: 'Signal degrade',
+        4: 'Low transmit optical power',
+        5: 'High transmit optical power',
+        6: 'Laser bias current',
+    }
 
 
 class UniG(EntityClass):
@@ -759,6 +806,9 @@ class GemInterworkingTp(EntityClass):
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
     notifications = {OP.AttributeValueChange, OP.AlarmNotification}
+    alarms = {
+        6: 'Operational state change',
+    }
 
 
 class GemPortNetworkCtp(EntityClass):
@@ -784,6 +834,9 @@ class GemPortNetworkCtp(EntityClass):
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        5: 'End-to-end loss of continuity',
+    }
 
 
 class GalEthernetProfile(EntityClass):
@@ -823,6 +876,9 @@ class PriorityQueueG(EntityClass):
     ]
     mandatory_operations = {OP.Get, OP.Set}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        0: 'Block loss',
+    }
 
 
 class TrafficSchedulerG(EntityClass):
@@ -861,6 +917,9 @@ class MulticastGemInterworkingTp(EntityClass):
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.GetNext, OP.Set}
     optional_operations = {OP.SetTable}
     notifications = {OP.AttributeValueChange, OP.AlarmNotification}
+    alarms = {
+        0: 'Deprecated',
+    }
 
 
 class AccessControlRow0(Packet):
@@ -965,6 +1024,9 @@ class MulticastOperationsProfile(EntityClass):
     mandatory_operations = {OP.Create, OP.Delete, OP.Set, OP.Get, OP.GetNext}
     optional_operations = {OP.SetTable}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        0: 'Lost multicast group',
+    }
 
 
 class MulticastServicePackage(Packet):
@@ -1060,6 +1122,9 @@ class VirtualEthernetInterfacePt(EntityClass):
     ]
     mandatory_operations = {OP.Get, OP.Set}
     notifications = {OP.AttributeValueChange, OP.AlarmNotification}
+    alarms = {
+        0: 'Connecting function fail',
+    }
 
 
 class Omci(EntityClass):
@@ -1147,6 +1212,22 @@ class EthernetPMMonitoringHistoryData(EntityClass):
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set, OP.GetCurrentData}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        0: 'FCS errors',
+        1: 'Excessive collision counter',
+        2: 'Late collision counter',
+        3: 'Frames too long',
+        4: 'Buffer overflows on receive',
+        5: 'Buffer overflows on transmit',
+        6: 'Single collision frame counter',
+        7: 'Multiple collision frame counter',
+        8: 'SQE counter',
+        9: 'Deferred transmission counter',
+        10: 'Internal MAC transmit error counter',
+        11: 'Carrier sense error counter',
+        12: 'Alignment error counter',
+        13: 'Internal MAC receive error counter',
+    }
 
 
 class FecPerformanceMonitoringHistoryData(EntityClass):
@@ -1164,6 +1245,12 @@ class FecPerformanceMonitoringHistoryData(EntityClass):
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set, OP.GetCurrentData}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        0: 'Corrected bytes',
+        1: 'Corrected code words',
+        2: 'Uncorrectable code words',
+        4: 'FEC seconds',
+    }
 
 
 class EthernetFrameDownstreamPerformanceMonitoringHistoryData(EntityClass):
@@ -1190,6 +1277,12 @@ class EthernetFrameDownstreamPerformanceMonitoringHistoryData(EntityClass):
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set, OP.GetCurrentData}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        0: 'Drop events',
+        1: 'CRC errored packets',
+        2: 'Undersize packets',
+        3: 'Oversize packets',
+    }
 
 
 class EthernetFrameUpstreamPerformanceMonitoringHistoryData(EntityClass):
@@ -1216,6 +1309,12 @@ class EthernetFrameUpstreamPerformanceMonitoringHistoryData(EntityClass):
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set, OP.GetCurrentData}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        0: 'Drop events',
+        1: 'CRC errored packets',
+        2: 'Undersize packets',
+        3: 'Oversize packets',
+    }
 
 
 class VeipUni(EntityClass):
@@ -1233,6 +1332,9 @@ class VeipUni(EntityClass):
     ]
     mandatory_operations = {OP.Get, OP.Set}
     notifications = {OP.AttributeValueChange, OP.AlarmNotification}
+    alarms = {
+        0: 'Connecting function fail'
+    }
 
 
 class EthernetFrameExtendedPerformanceMonitoring(EntityClass):
@@ -1269,6 +1371,12 @@ class EthernetFrameExtendedPerformanceMonitoring(EntityClass):
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
     optional_operations = {OP.GetCurrentData}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        0: 'Drop events',
+        1: 'CRC errored packets',
+        2: 'Undersize packets',
+        3: 'Oversize packets',
+    }
 
 
 class EthernetFrameExtendedPerformanceMonitoring64Bit(EntityClass):
@@ -1305,6 +1413,12 @@ class EthernetFrameExtendedPerformanceMonitoring64Bit(EntityClass):
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
     optional_operations = {OP.GetCurrentData}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        0: 'Drop events',
+        1: 'CRC errored packets',
+        2: 'Undersize packets',
+        3: 'Oversize packets',
+    }
 
 
 class GemPortNetworkCtpMonitoringHistoryData(EntityClass):
@@ -1322,6 +1436,9 @@ class GemPortNetworkCtpMonitoringHistoryData(EntityClass):
     ]
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set, OP.GetCurrentData}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        1: 'Encryption key errors',
+    }
 
 
 class XgPonTcPerformanceMonitoringHistoryData(EntityClass):
@@ -1343,6 +1460,14 @@ class XgPonTcPerformanceMonitoringHistoryData(EntityClass):
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
     optional_operations = {OP.GetCurrentData}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        1: 'PSBd HEC error count',
+        2: 'XGTC HEC error count',
+        3: 'Unknown profile count',
+        4: 'XGEM HEC loss count',
+        5: 'XGEM key errors',
+        6: 'XGEM HEC error count',
+    }
 
 
 class XgPonDownstreamPerformanceMonitoringHistoryData(EntityClass):
@@ -1370,6 +1495,10 @@ class XgPonDownstreamPerformanceMonitoringHistoryData(EntityClass):
     mandatory_operations = {OP.Create, OP.Delete, OP.Get, OP.Set}
     optional_operations = {OP.GetCurrentData}
     notifications = {OP.AlarmNotification}
+    alarms = {
+        1: 'PLOAM MIC error count',
+        2: 'OMCI MIC error count',
+    }
 
 
 class XgPonUpstreamPerformanceMonitoringHistoryData(EntityClass):

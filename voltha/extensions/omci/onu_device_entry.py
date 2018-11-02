@@ -288,8 +288,7 @@ class OnuDeviceEntry(object):
             topic = OnuDeviceEntry.event_bus_topic(self.device_id,
                                                    OnuDeviceEvents.AlarmDatabaseSyncEvent)
             msg = {
-                IN_SYNC_KEY: self._alarm_db_in_sync,
-                LAST_IN_SYNC_KEY: self.alarm_synchronizer.last_alarm_sync_time
+                IN_SYNC_KEY: self._alarm_db_in_sync
             }
             self.event_bus.publish(topic=topic, msg=msg)
 

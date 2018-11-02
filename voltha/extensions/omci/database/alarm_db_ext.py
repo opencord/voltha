@@ -16,8 +16,6 @@
 from mib_db_api import *
 from voltha.protos.omci_alarm_db_pb2 import AlarmInstanceData, AlarmClassData, \
     AlarmDeviceData, AlarmAttributeData
-from voltha.extensions.omci.omci_entities import *
-from scapy.fields import StrField, FieldListField
 
 
 class AlarmDbExternal(MibDbApi):
@@ -25,6 +23,7 @@ class AlarmDbExternal(MibDbApi):
     A persistent external OpenOMCI Alarm Database
     """
     CURRENT_VERSION = 1                       # VOLTHA v1.3.0 release
+    ALARM_BITMAP_KEY = 'alarm_bit_map'
 
     _TIME_FORMAT = '%Y%m%d-%H%M%S.%f'
 
@@ -33,8 +32,8 @@ class AlarmDbExternal(MibDbApi):
     DEVICE_PATH = ALARM_PATH + '/{}'            # .format(device_id)
 
     # Classes, Instances, and Attributes as lists from root proxy
-    CLASSES_PATH = DEVICE_PATH + '/classes'                               # .format(device_id)
-    INSTANCES_PATH = DEVICE_PATH +'/classes/{}/instances'                 # .format(device_id, class_id)
+    CLASSES_PATH = DEVICE_PATH + '/classes'                                # .format(device_id)
+    INSTANCES_PATH = DEVICE_PATH + '/classes/{}/instances'                 # .format(device_id, class_id)
     ATTRIBUTES_PATH = DEVICE_PATH + '/classes/{}/instances/{}/attributes'  # .format(device_id, class_id, instance_id)
 
     # Single Class, Instance, and Attribute as objects from device proxy
@@ -85,76 +84,16 @@ class AlarmDbExternal(MibDbApi):
     def _string_to_time(self, time):
         return datetime.strptime(time, AlarmDbExternal._TIME_FORMAT) if len(time) else None
 
-    def _attribute_to_string(self, device_id, class_id, attr_name, value):
+    def _attribute_to_string(self, value):
         """
         Convert an ME's attribute value to string representation
 
-        :param device_id: (str) ONU Device ID
-        :param class_id: (int) Class ID
-        :param attr_name: (str) Attribute Name (see EntityClasses)
-        :param value: (various) Attribute Value
-
+        :param value: (long) Alarm bitmaps are always a Long
         :return: (str) String representation of the value
-        :raises KeyError: Device, Class ID, or Attribute does not exist
         """
-        try:
-            me_map = self._omci_agent.get_device(device_id).me_map
+        return str(value)
 
-            if class_id in me_map:
-                entity = me_map[class_id]
-                attr_index = entity.attribute_name_to_index_map[attr_name]
-                eca = entity.attributes[attr_index]
-                field = eca.field
-            else:
-                # Here for auto-defined MEs (ones not defined in ME Map)
-                from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
-                field = StrFixedLenField(UNKNOWN_CLASS_ATTRIBUTE_KEY, None, 24)
-
-            if isinstance(field, StrFixedLenField):
-                from scapy.base_classes import Packet_metaclass
-                #  For StrFixedLenField, value is a str already (or possibly JSON encoded)
-                if hasattr(value, 'to_json'):
-                    # Packet Class to string
-                    str_value = value.to_json()
-                elif isinstance(field.default, Packet_metaclass) \
-                        and hasattr(field.default, 'json_from_value'):
-                    # Value/hex of Packet Class to string
-                    str_value = field.default.json_from_value(value)
-                else:
-                    str_value = str(value)
-
-            elif isinstance(field, (StrField, MACField, IPField)):
-                #  For StrField, value is an str already
-                #  For MACField, value is a string in ':' delimited form
-                #  For IPField, value is a string in '.' delimited form
-                str_value = str(value)
-
-            elif isinstance(field, (ByteField, ShortField, IntField, LongField)):
-                #  For ByteField, ShortField, IntField, and LongField value is an int
-                str_value = str(value)
-
-            elif isinstance(field, BitField):
-                # For BitField, value is a long
-                #
-                str_value = str(value)
-
-            elif isinstance(field, FieldListField):
-                str_value = json.dumps(value, separators=(',', ':'))
-
-            else:
-                self.log.warning('default-conversion', type=type(field),
-                                 class_id=class_id, attribute=attr_name, value=str(value))
-                str_value = str(value)
-
-            return str_value
-
-        except Exception as e:
-            self.log.exception('attr-to-string', device_id=device_id,
-                               class_id=class_id, attr=attr_name,
-                               value=value, e=e)
-            raise
-
-    def _string_to_attribute(self, device_id, class_id, attr_name, str_value):
+    def _string_to_attribute(self, str_value):
         """
         Convert an ME's attribute value-string to its Scapy decode equivalent
 
@@ -166,56 +105,8 @@ class AlarmDbExternal(MibDbApi):
         :return: (various) String representation of the value
         :raises KeyError: Device, Class ID, or Attribute does not exist
         """
-        try:
-            me_map = self._omci_agent.get_device(device_id).me_map
-
-            if class_id in me_map:
-                entity = me_map[class_id]
-                attr_index = entity.attribute_name_to_index_map[attr_name]
-                eca = entity.attributes[attr_index]
-                field = eca.field
-            else:
-                # Here for auto-defined MEs (ones not defined in ME Map)
-                from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
-                field = StrFixedLenField(UNKNOWN_CLASS_ATTRIBUTE_KEY, None, 24)
-
-            if isinstance(field, StrFixedLenField):
-                from scapy.base_classes import Packet_metaclass
-                if isinstance(field.default, Packet_metaclass) and \
-                        hasattr(field.default, 'to_json'):
-                    value = json.loads(str_value)
-                else:
-                    value = str_value
-
-            elif isinstance(field, MACField):
-                value = str_value
-
-            elif isinstance(field, IPField):
-                value = str_value
-
-            elif isinstance(field, (ByteField, ShortField, IntField, LongField)):
-                if str_value.lower() in ('true', 'false'):
-                    str_value = '1' if str_value.lower() == 'true' else '0'
-                value = int(str_value)
-
-            elif isinstance(field, BitField):
-                value = long(str_value)
-
-            elif isinstance(field, FieldListField):
-                value = json.loads(str_value)
-
-            else:
-                self.log.warning('default-conversion', type=type(field),
-                                 class_id=class_id, attribute=attr_name, value=str_value)
-                value = None
-
-            return value
-
-        except Exception as e:
-            self.log.exception('attr-to-string', device_id=device_id,
-                               class_id=class_id, attr=attr_name,
-                               value=str_value, e=e)
-            raise
+        # Alarms are always a bitmap which is a long
+        return long(str_value) if len(str_value) else 0L
 
     def add(self, device_id, overwrite=False):
         """
@@ -505,15 +396,12 @@ class AlarmDbExternal(MibDbApi):
 
         now = self._time_to_string(datetime.utcnow())
         attrs = [AlarmAttributeData(name=k,
-                                  value=self._attribute_to_string(device_id,
-                                                                  class_id,
-                                                                  k,
-                                                                  v)) for k, v in attributes.items()]
+                                    value=self._attribute_to_string(v)) for k, v in attributes.items()]
         class_data = AlarmClassData(class_id=class_id,
-                                  instances=[AlarmInstanceData(instance_id=instance_id,
-                                                             created=now,
-                                                             modified=now,
-                                                             attributes=attrs)])
+                                    instances=[AlarmInstanceData(instance_id=instance_id,
+                                                                 created=now,
+                                                                 modified=now,
+                                                                 attributes=attrs)])
 
         self._root_proxy.add(AlarmDbExternal.CLASSES_PATH.format(device_id), class_data)
         self.log.debug('set-complete', device_id=device_id, class_id=class_id,
@@ -537,14 +425,11 @@ class AlarmDbExternal(MibDbApi):
 
         now = self._time_to_string(datetime.utcnow())
         attrs = [AlarmAttributeData(name=k,
-                                  value=self._attribute_to_string(device_id,
-                                                                  class_id,
-                                                                  k,
-                                                                  v)) for k, v in attributes.items()]
+                                    value=self._attribute_to_string(v)) for k, v in attributes.items()]
         instance_data = AlarmInstanceData(instance_id=instance_id,
-                                        created=now,
-                                        modified=now,
-                                        attributes=attrs)
+                                          created=now,
+                                          modified=now,
+                                          attributes=attrs)
 
         self._root_proxy.add(AlarmDbExternal.INSTANCES_PATH.format(device_id, class_id),
                              instance_data)
@@ -609,11 +494,12 @@ class AlarmDbExternal(MibDbApi):
                     exist_attr_indexes[inst_data.attributes[index].name] = index
 
                 modified = False
+                str_value = ''
                 new_attributes = []
 
                 for k, v in attributes.items():
                     try:
-                        str_value = self._attribute_to_string(device_id, class_id, k, v)
+                        str_value = self._attribute_to_string(v)
                         new_attributes.append(AlarmAttributeData(name=k, value=str_value))
 
                     except Exception as e:
@@ -627,12 +513,12 @@ class AlarmDbExternal(MibDbApi):
                 if modified:
                     now = datetime.utcnow()
                     new_data = AlarmInstanceData(instance_id=instance_id,
-                                               created=inst_data.created,
-                                               modified=self._time_to_string(now),
-                                               attributes=new_attributes)
+                                                 created=inst_data.created,
+                                                 modified=self._time_to_string(now),
+                                                 attributes=new_attributes)
                     dev_proxy.remove(AlarmDbExternal.INSTANCE_PATH.format(class_id, instance_id))
                     self._root_proxy.add(AlarmDbExternal.INSTANCES_PATH.format(device_id,
-                                                                             class_id), new_data)
+                                                                               class_id), new_data)
 
                 self.log.debug('set-complete', device_id=device_id, class_id=class_id,
                                entity_id=instance_id, attributes=attributes, modified=modified)
@@ -728,7 +614,7 @@ class AlarmDbExternal(MibDbApi):
                 # Get all instances of the class
                 try:
                     cls_data = self._class_proxy(device_id, class_id).get('/', depth=-1)
-                    data = self._class_to_dict(device_id, cls_data)
+                    data = self._class_to_dict(cls_data)
 
                 except KeyError:
                     data = dict()
@@ -741,7 +627,7 @@ class AlarmDbExternal(MibDbApi):
 
                     if attributes is None:
                         # All Attributes
-                        data = self._instance_to_dict(device_id, class_id, inst_data)
+                        data = self._instance_to_dict(inst_data)
 
                     else:
                         # Specific attribute(s)
@@ -749,10 +635,7 @@ class AlarmDbExternal(MibDbApi):
                             attributes = {attributes}
 
                         data = {
-                            attr.name: self._string_to_attribute(device_id,
-                                                                 class_id,
-                                                                 attr.name,
-                                                                 attr.value)
+                            attr.name: self._string_to_attribute(attr.value)
                             for attr in inst_data.attributes if attr.name in attributes}
 
                 except KeyError:
@@ -768,7 +651,7 @@ class AlarmDbExternal(MibDbApi):
             self.log.exception('get-last-sync-exception', device_id=device_id, e=e)
             raise
 
-    def _instance_to_dict(self, device_id, class_id, instance):
+    def _instance_to_dict(self, instance):
         if not isinstance(instance, AlarmInstanceData):
             raise TypeError('{} is not of type AlarmInstanceData'.format(type(instance)))
 
@@ -779,13 +662,10 @@ class AlarmDbExternal(MibDbApi):
             ATTRIBUTES_KEY: dict()
         }
         for attribute in instance.attributes:
-            data[ATTRIBUTES_KEY][attribute.name] = self._string_to_attribute(device_id,
-                                                                             class_id,
-                                                                             attribute.name,
-                                                                             attribute.value)
+            data[ATTRIBUTES_KEY][attribute.name] = self._string_to_attribute(attribute.value)
         return data
 
-    def _class_to_dict(self, device_id, val):
+    def _class_to_dict(self, val):
         if not isinstance(val, AlarmClassData):
             raise TypeError('{} is not of type AlarmClassData'.format(type(val)))
 
@@ -793,9 +673,7 @@ class AlarmDbExternal(MibDbApi):
             CLASS_ID_KEY: val.class_id,
         }
         for instance in val.instances:
-            data[instance.instance_id] = self._instance_to_dict(device_id,
-                                                                val.class_id,
-                                                                instance)
+            data[instance.instance_id] = self._instance_to_dict(instance)
         return data
 
     def _device_to_dict(self, val):
@@ -810,8 +688,7 @@ class AlarmDbExternal(MibDbApi):
             MSG_TYPE_KEY: set()
         }
         for class_data in val.classes:
-            data[class_data.class_id] = self._class_to_dict(val.device_id,
-                                                            class_data)
+            data[class_data.class_id] = self._class_to_dict(class_data)
         for managed_entity in val.managed_entities:
             data[ME_KEY][managed_entity.class_id] = managed_entity.name
 
@@ -819,9 +696,3 @@ class AlarmDbExternal(MibDbApi):
             data[MSG_TYPE_KEY].add(msg_type.message_type)
 
         return data
-
-    def _managed_entity_to_name(self, device_id, class_id):
-        me_map = self._omci_agent.get_device(device_id).me_map
-        entity = me_map.get(class_id)
-
-        return entity.__name__ if entity is not None else 'UnknownManagedEntity'

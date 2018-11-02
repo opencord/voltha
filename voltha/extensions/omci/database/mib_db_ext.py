@@ -167,8 +167,8 @@ class MibDbExternal(MibDbApi):
                     # Packet Class to string
                     str_value = value.to_json()
                 elif isinstance(field.default, Packet_metaclass) \
-                        and hasattr(field.default, 'json_from_value')\
-                        and not isinstance(value, basestring):
+                        and hasattr(field.default, 'json_from_value'):
+                        #and not isinstance(value, basestring):
                     # Value/hex of Packet Class to string
                     str_value = field.default.json_from_value(value)
                 else:
@@ -382,7 +382,7 @@ class MibDbExternal(MibDbApi):
 
         except KeyError:
             if not create:
-                self.log.error('class-proxy-does-not-exist', device_id=device_id,
+                self.log.debug('class-proxy-does-not-exist', device_id=device_id,
                                class_id=class_id)
                 raise
 
