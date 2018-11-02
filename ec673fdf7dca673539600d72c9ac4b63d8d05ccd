@@ -258,6 +258,30 @@
     },
     {
       "key": {
+        "uuid": "a44193ec_e3cb1da0",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_uni_lock_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T14:19:52Z",
+      "side": 1,
+      "message": "Sounds good.",
+      "parentUuid": "196b7fdc_77aff2dc",
+      "range": {
+        "startLine": 102,
+        "startChar": 12,
+        "endLine": 102,
+        "endChar": 21
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2d370f83_73d7d534",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_uni_lock_task.py",
         "patchSetId": 1
