@@ -483,51 +483,25 @@ class BrcmMibDownloadTask(Task):
             # TODO: magic.  static variable for assoc_type
             attributes = dict(
                 association_type=2,                                 # Assoc Type, PPTP Ethernet UNI
-                associated_me_pointer=self._ethernet_uni_entity_id  # Assoc ME, PPTP Entity Id
-            )
+                associated_me_pointer=self._ethernet_uni_entity_id,  # Assoc ME, PPTP Entity Id
 
-            msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                attributes=attributes
-            )
-            frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
-            results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'create-extended-vlan-tagging-operation-configuration-data')
-
-            ################################################################################
-            # Update Extended VLAN Tagging Operation Config Data
-            #
-            # Specifies the TPIDs in use and that operations in the downstream direction are
-            # inverse to the operations in the upstream direction
-
-            # TODO: magic.  static variable for downstream_mode
-            attributes = dict(
+                # Specifies the TPIDs in use and that operations in the downstream direction are
+                # inverse to the operations in the upstream direction
                 input_tpid=self._input_tpid,    # input TPID
                 output_tpid=self._output_tpid,  # output TPID
                 downstream_mode=0,              # inverse of upstream
-            )
-            msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                attributes=attributes
-            )
-            frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
-            results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data')
 
-            ################################################################################
-            # Update Extended VLAN Tagging Operation Config Data
-            #
-            # parameters: Entity Id ( 0x900), Filter Inner Vlan Id(0x1000-4096,do not filter on Inner vid,
-            #             Treatment Inner Vlan Id : 2
+                # parameters: Entity Id ( 0x900), Filter Inner Vlan Id(0x1000-4096,do not filter on Inner vid,
+                #             Treatment Inner Vlan Id : 2
 
-            # Update uni side extended vlan filter
-            # filter for untagged
-            # probably for eapol
-            # TODO: lots of magic
-            # TODO: magic 0x1000 / 4096?
-            attributes = dict(
+                # Update uni side extended vlan filter
+                # filter for untagged
+                # probably for eapol
+                # TODO: lots of magic
+                # TODO: magic 0x1000 / 4096?
+
+                # See VOL-1311 - Need to set table during create to avoid exception
+                # trying to read back table during post-create-read-missing-attributes
                 received_frame_vlan_tagging_operation_table=
                 VlanTaggingOperation(
                     filter_outer_priority=15,  # This entry is not a double-tag rule
@@ -549,14 +523,15 @@ class BrcmMibDownloadTask(Task):
                     treatment_inner_tpid_de=4,
                 )
             )
+
             msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
                 self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                attributes=attributes         # See above
+                attributes=attributes
             )
-            frame = msg.set()
+            frame = msg.create()
             self.log.debug('openomci-msg', msg=msg)
             results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data-untagged')
+            self.check_status_and_state(results, 'create-extended-vlan-tagging-operation-configuration-data')
 
         except TimeoutError as e:
             self.log.warn('rx-timeout-2', e=e)
