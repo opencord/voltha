@@ -306,6 +306,30 @@
     },
     {
       "key": {
+        "uuid": "14486326_97f0e5a1",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_uni_lock_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T14:46:59Z",
+      "side": 1,
+      "message": "Sounds like the beginnings of an \"openonu\" adapter (to pair with \"openolt\" adapter. Gotta like it.",
+      "parentUuid": "b7d4d7bb_912be918",
+      "range": {
+        "startLine": 102,
+        "startChar": 12,
+        "endLine": 102,
+        "endChar": 21
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2d370f83_73d7d534",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_uni_lock_task.py",
         "patchSetId": 1
