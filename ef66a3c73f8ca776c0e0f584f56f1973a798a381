@@ -344,6 +344,30 @@
     },
     {
       "key": {
+        "uuid": "43ce0e81_4d9aad04",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-11-02T16:46:55Z",
+      "side": 1,
+      "message": "Completely rewritten hoping to your satisfaction",
+      "parentUuid": "78b5095d_96e0b21f",
+      "range": {
+        "startLine": 38,
+        "startChar": 42,
+        "endLine": 38,
+        "endChar": 79
+      },
+      "revId": "ef66a3c73f8ca776c0e0f584f56f1973a798a381",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7dea5e19_f489b6f7",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 7
