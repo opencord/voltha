@@ -1,0 +1,119 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c8ecfdda_32e50855",
+        "filename": "voltha/extensions/alarms/onu/onu_equipment_alarm.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T22:33:00Z",
+      "side": 1,
+      "message": "Not sure if the common code uses a different boiler plate?",
+      "range": {
+        "startLine": 1,
+        "startChar": 25,
+        "endLine": 1,
+        "endChar": 31
+      },
+      "revId": "10a7d1101d322393beed105eced0cce13ee56bfc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b197fda4_5ad9562e",
+        "filename": "voltha/extensions/alarms/onu/onu_temp_red_alarm.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T22:33:00Z",
+      "side": 1,
+      "message": "Is this comment right?",
+      "range": {
+        "startLine": 21,
+        "startChar": 0,
+        "endLine": 21,
+        "endChar": 73
+      },
+      "revId": "10a7d1101d322393beed105eced0cce13ee56bfc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e1aec185_35f1c0f9",
+        "filename": "voltha/extensions/omci/database/mib_db_ext.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T22:33:00Z",
+      "side": 1,
+      "message": "Is this intended to remove? Or a left over debug?",
+      "range": {
+        "startLine": 171,
+        "startChar": 24,
+        "endLine": 171,
+        "endChar": 25
+      },
+      "revId": "10a7d1101d322393beed105eced0cce13ee56bfc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "17f48e64_85d95258",
+        "filename": "voltha/extensions/omci/state_machines/alarm_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 433,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T22:33:00Z",
+      "side": 1,
+      "message": "If I follow correctly, ultimately the alarm_map that maps class+alarm_id to an onu alarm class must be defined. So, does it make sense to validate that each bit that is set in the bitmap maps to one of the defined alarm numbers in mib_entities.py? Of course the cleared bits cannot be checked. But, they wont\u0027t be declared clear if they were never set. So, asserting the sets might make sense.",
+      "range": {
+        "startLine": 433,
+        "startChar": 20,
+        "endLine": 433,
+        "endChar": 23
+      },
+      "revId": "10a7d1101d322393beed105eced0cce13ee56bfc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9dd1b4f9_7626c9d9",
+        "filename": "voltha/extensions/omci/state_machines/alarm_sync.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 597,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T22:33:00Z",
+      "side": 1,
+      "message": "Just a thought to avoid magic alarm # mappings. Could the class be embedded directly into the omci_entities.py in the new \u003calarms\u003e attribute that has been added and is directly mapped to the OMCI alarm #s there?",
+      "range": {
+        "startLine": 597,
+        "startChar": 12,
+        "endLine": 597,
+        "endChar": 13
+      },
+      "revId": "10a7d1101d322393beed105eced0cce13ee56bfc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
