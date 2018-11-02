@@ -502,7 +502,7 @@ class BrcmMibDownloadTask(Task):
 
             attributes = dict(
                 association_type=association_type,                  # Assoc Type, PPTP/VEIP Ethernet UNI
-                associated_me_pointer=self._uni_port.entity_id      # Assoc ME, PPTP/VEIP Entity Id
+                associated_me_pointer=self._uni_port.entity_id,     # Assoc ME, PPTP/VEIP Entity Id
 
                 # Specifies the TPIDs in use and that operations in the downstream direction are
                 # inverse to the operations in the upstream direction
