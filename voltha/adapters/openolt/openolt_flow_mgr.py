@@ -39,7 +39,6 @@ LLDP_ETH_TYPE = 0x88cc
 # FIXME - see also BRDCM_DEFAULT_VLAN in broadcom_onu.py
 DEFAULT_MGMT_VLAN = 4091
 
-
 # Openolt Flow
 UPSTREAM = 'upstream'
 DOWNSTREAM = 'downstream'
@@ -359,7 +358,7 @@ class OpenOltFlowMgr(object):
 
         flow_id = self.platform.mk_flow_id(intf_id, onu_id, DHCP_FLOW_INDEX)
 
-        upstream_flow = openolt_pb2.Flow(
+        dhcp_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=flow_id, flow_type=UPSTREAM,
             access_intf_id=intf_id, gemport_id=gemport_id,
             alloc_id=alloc_id,
@@ -367,33 +366,7 @@ class OpenOltFlowMgr(object):
             classifier=self.mk_classifier(classifier),
             action=self.mk_action(action))
 
-        self.add_flow_to_device(upstream_flow, logical_flow)
-
-        # FIXME - ONOS should send explicit upstream and downstream
-        #         exact dhcp trap flow.
-
-        downstream_logical_flow = copy.deepcopy(logical_flow)
-        for oxm_field in downstream_logical_flow.match.oxm_fields:
-            if oxm_field.ofb_field.type == OFPXMT_OFB_IN_PORT:
-                oxm_field.ofb_field.port = \
-                    self.platform.intf_id_to_port_no(0, Port.ETHERNET_NNI)
-
-        classifier[UDP_SRC] = 67
-        classifier[UDP_DST] = 68
-        classifier[PACKET_TAG_TYPE] = DOUBLE_TAG
-        action.pop(PUSH_VLAN, None)
-
-        flow_id = self.platform.mk_flow_id(intf_id, onu_id,
-                                           DHCP_DOWNLINK_FLOW_INDEX)
-
-        downstream_flow = openolt_pb2.Flow(
-            onu_id=onu_id, flow_id=flow_id, flow_type=DOWNSTREAM,
-            access_intf_id=intf_id, network_intf_id=0, gemport_id=gemport_id,
-            priority=logical_flow.priority, classifier=self.mk_classifier(
-                classifier),
-            action=self.mk_action(action))
-
-        self.add_flow_to_device(downstream_flow, downstream_logical_flow)
+        self.add_flow_to_device(dhcp_flow, logical_flow)
 
     def add_eapol_flow(self, intf_id, onu_id, logical_flow,
                        eapol_id=EAPOL_FLOW_INDEX,
