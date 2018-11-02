@@ -330,6 +330,30 @@
     },
     {
       "key": {
+        "uuid": "bf788ca2_35282aa4",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_uni_lock_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-11-02T14:56:56Z",
+      "side": 1,
+      "message": "I\u0027m leaning toward a base class instead of a single adapter. This would allow vendors to specialize or adopt new features for their customers (voice, CFM, DSL, ...) as needed before they get \u0027standardized\u0027 and pulled into the base classes.  May also allow a vendor to support multiple of their ONU models or code versions (patch a bug via specialized task, then revert to common code in code version with bug fix).  Of course this does not mean the base class could not be a 100% ITU compliant OMCI stack is implemented, but what are the chances of that :-)\n\nWe have a new SFU ONU coming out with which will follow this software model so that we have 3 different types of XGS-PON ONUs with a single adapter.",
+      "parentUuid": "14486326_97f0e5a1",
+      "range": {
+        "startLine": 102,
+        "startChar": 12,
+        "endLine": 102,
+        "endChar": 21
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2d370f83_73d7d534",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_uni_lock_task.py",
         "patchSetId": 1
