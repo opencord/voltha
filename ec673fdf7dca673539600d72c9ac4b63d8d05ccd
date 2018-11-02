@@ -2,6 +2,236 @@
   "comments": [
     {
       "key": {
+        "uuid": "d188b82e_58972f0f",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 755,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T04:48:46Z",
+      "side": 1,
+      "message": "can we add back and check both (pptp \u0026 veip are empty) as an or condition. One or the other needs to be non-empty",
+      "range": {
+        "startLine": 755,
+        "startChar": 55,
+        "endLine": 755,
+        "endChar": 56
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1b7c9d50_ac27778a",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 353,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T04:48:46Z",
+      "side": 1,
+      "message": "Could be encapsulated inside UniPort class",
+      "range": {
+        "startLine": 353,
+        "startChar": 12,
+        "endLine": 353,
+        "endChar": 14
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "34b7704e_30a0c7a4",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 358,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T04:48:46Z",
+      "side": 1,
+      "message": "Raise exception?",
+      "range": {
+        "startLine": 358,
+        "startChar": 16,
+        "endLine": 358,
+        "endChar": 23
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ef5e6c54_224c8eed",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 496,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T04:48:46Z",
+      "side": 1,
+      "message": "Could be encapsulated inside UniPort class",
+      "range": {
+        "startLine": 496,
+        "startChar": 0,
+        "endLine": 496,
+        "endChar": 12
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "afa89f8d_ac63b9df",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 501,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T04:48:46Z",
+      "side": 1,
+      "message": "raise exception?",
+      "range": {
+        "startLine": 501,
+        "startChar": 0,
+        "endLine": 501,
+        "endChar": 36
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4f0c29f2_c18dd4f5",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 613,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T04:48:46Z",
+      "side": 1,
+      "message": "Could be a factory method in UniPort class",
+      "range": {
+        "startLine": 613,
+        "startChar": 12,
+        "endLine": 613,
+        "endChar": 14
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c5c1543c_a12f60fa",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 620,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T04:48:46Z",
+      "side": 1,
+      "message": "throw exception?",
+      "range": {
+        "startLine": 620,
+        "startChar": 16,
+        "endLine": 620,
+        "endChar": 20
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7ad9b24f_ad7e63f7",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_uni_lock_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T04:48:46Z",
+      "side": 1,
+      "message": "Does it make any sense to use the list of UniPort instances?",
+      "range": {
+        "startLine": 102,
+        "startChar": 12,
+        "endLine": 102,
+        "endChar": 21
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2d370f83_73d7d534",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_uni_lock_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T04:48:46Z",
+      "side": 1,
+      "message": "Could be a factory method in UniPort class",
+      "range": {
+        "startLine": 107,
+        "startChar": 0,
+        "endLine": 107,
+        "endChar": 53
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fcbcc9d4_0a035739",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_uni_lock_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-02T04:48:46Z",
+      "side": 1,
+      "message": "Could be a factory method in UniPort class",
+      "range": {
+        "startLine": 113,
+        "startChar": 16,
+        "endLine": 113,
+        "endChar": 19
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b86f0b31_cf4529e1",
         "filename": "voltha/adapters/brcm_openomci_onu/uni_port.py",
         "patchSetId": 1
