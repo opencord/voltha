@@ -32,7 +32,7 @@ class OpenOltResourceMgr(object):
                                         ip=host_and_port)
         self.device_id = device_id
         self.host_and_port = host_and_port
-        self.extra_args = extra_args
+        self.extra_args = extra_args 
         self.device_info = device_info
         self.args = registry('main').get_args()
 
@@ -87,8 +87,9 @@ class OpenOltResourceMgr(object):
             technology = arange.technology
             self.log.info("device-info", technology=technology)
             ranges[technology] = arange
+            extra_args = self.extra_args + ' ' + PONResourceManager.OLT_MODEL_ARG +  ' {}'.format(self.device_info.model)
             resource_mgr = PONResourceManager(technology,
-                self.extra_args, self.device_id, self.args.backend, host, port)
+                extra_args, self.device_id, self.args.backend, host, port)
             resource_mgrs_by_tech[technology] = resource_mgr
             if global_resource_mgr is None: global_resource_mgr = resource_mgr
             for intf_id in arange.intf_ids:

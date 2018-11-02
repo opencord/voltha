@@ -46,8 +46,11 @@ class PONResourceManager(object):
     ALLOC_ID = 'ALLOC_ID'
     GEMPORT_ID = 'GEMPORT_ID'
 
-    # The resource ranges for a given device vendor_type should be placed
-    # at 'resource_manager/<technology>/resource_ranges/<olt_vendor_type>'
+    # Constants for passing command line arugments
+    OLT_MODEL_ARG = '--olt_model'
+
+    # The resource ranges for a given device model should be placed
+    # at 'resource_manager/<technology>/resource_ranges/<olt_model_type>'
     # path on the KV store.
     # If Resource Range parameters are to be read from the external KV store,
     # they are expected to be stored in the following format.
@@ -78,7 +81,7 @@ class PONResourceManager(object):
     NUM_OF_PON_PORT = "pon_ports"
 
     # PON Resource range configuration on the KV store.
-    # Format: 'resource_manager/<technology>/resource_ranges/<olt_vendor_type>'
+    # Format: 'resource_manager/<technology>/resource_ranges/<olt_model_type>'
     # The KV store backend is initialized with a path prefix and we need to
     # provide only the suffix.
     PON_RESOURCE_RANGE_CONFIG_PATH = 'resource_ranges/{}'
@@ -121,12 +124,12 @@ class PONResourceManager(object):
 
         try:
             self.technology = technology
-            self.extra_args = extra_args
+            self.extra_args = extra_args 
             self.device_id = device_id
             self.backend = backend
             self.host = host
             self.port = port
-            self.olt_vendor = None
+            self.olt_model = None
 
             self._kv_store = ResourceKvStore(technology, device_id, backend,
                                              host, port)
@@ -160,14 +163,14 @@ class PONResourceManager(object):
 
         :return boolean: True if PON resource ranges initialized else false
         """
-        self.olt_vendor = self._get_olt_vendor()
+        self.olt_model = self._get_olt_model()
         # Try to initialize the PON Resource Ranges from KV store based on the
-        # OLT vendor key, if available
-        if self.olt_vendor is None:
-            self._log.info("olt-vendor-unavailable--not-reading-from-kv-store")
+        # OLT model key, if available
+        if self.olt_model is None:
+            self._log.info("device-model-unavailable--not-reading-from-kv-store")
             return False
 
-        path = self.PON_RESOURCE_RANGE_CONFIG_PATH.format(self.olt_vendor)
+        path = self.PON_RESOURCE_RANGE_CONFIG_PATH.format(self.olt_model)
         try:
             # get resource from kv store
             result = self._kv_store.get_from_kv_store(path)
@@ -617,29 +620,27 @@ class PONResourceManager(object):
             path, json.dumps(gemport_ids)
         )
 
-    def _get_olt_vendor(self):
+    def _get_olt_model(self):
         """
-        Get olt vendor variant
+        Get olt model variant
 
-        :return: type of olt vendor
+        :return: type of olt model 
         """
-        olt_vendor = None
+        olt_model = None
         if self.extra_args and len(self.extra_args) > 0:
             parser = OltVendorArgumentParser(add_help=False)
-            parser.add_argument('--olt_vendor', '-o', action='store',
-                                choices=['default', 'asfvolt16', 'cigolt24',
-                                'tlabvolt4', 'tlabvolt8', 'tlabvolt16', 'tlabvolt24'],
-                                default='default')
+            parser.add_argument(PONResourceManager.OLT_MODEL_ARG, '-m', action='store', default='default')
             try:
                 args = parser.parse_args(shlex.split(self.extra_args))
                 self._log.debug('parsing-extra-arguments', args=args)
-                olt_vendor = args.olt_vendor
+                olt_model = args.olt_model
             except ArgumentError as e:
                 self._log.exception('invalid-arguments: {}', e=e)
             except Exception as e:
                 self._log.exception('option-parsing-error: {}', e=e)
 
-        return olt_vendor
+        self._log.debug('olt-model', olt_model=olt_model)
+        return olt_model
 
     def _generate_next_id(self, resource):
         """
