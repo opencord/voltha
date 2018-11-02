@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "7ec81719_3e03ce27",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 755,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-11-02T14:18:07Z",
+      "side": 1,
+      "message": "Agreed.  Ill add it back.",
+      "parentUuid": "d188b82e_58972f0f",
+      "range": {
+        "startLine": 755,
+        "startChar": 55,
+        "endLine": 755,
+        "endChar": 56
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1b7c9d50_ac27778a",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
         "patchSetId": 1
@@ -82,6 +106,30 @@
       "writtenOn": "2018-11-02T04:48:46Z",
       "side": 1,
       "message": "Could be encapsulated inside UniPort class",
+      "range": {
+        "startLine": 496,
+        "startChar": 0,
+        "endLine": 496,
+        "endChar": 12
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "93fe2616_a543a302",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 496,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-11-02T14:18:07Z",
+      "side": 1,
+      "message": "Agreed.  Would make more sense there, and gets some of the magic values out of here.",
+      "parentUuid": "ef5e6c54_224c8eed",
       "range": {
         "startLine": 496,
         "startChar": 0,
@@ -174,6 +222,30 @@
       "writtenOn": "2018-11-02T04:48:46Z",
       "side": 1,
       "message": "Does it make any sense to use the list of UniPort instances?",
+      "range": {
+        "startLine": 102,
+        "startChar": 12,
+        "endLine": 102,
+        "endChar": 21
+      },
+      "revId": "ec673fdf7dca673539600d72c9ac4b63d8d05ccd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "196b7fdc_77aff2dc",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_uni_lock_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-11-02T14:18:07Z",
+      "side": 1,
+      "message": "I had considered depending on UniPort as it wraps up much of this anyway.  But when creating this task i expected at some point it could be part of the global set of tasks available in extensions/omci, given the task likely would work on all onu.  In that case i wanted it to have as few dependencies as possible on brcm adapter/handler code.\n\nChip and i have also talked about moving UniPort and other classes to the extensions/omci as well given the adtran adapter/handler classes are almost identical.",
+      "parentUuid": "7ad9b24f_ad7e63f7",
       "range": {
         "startLine": 102,
         "startChar": 12,
