@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e4fb98dd_6c4dfdf6",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-03T14:56:39Z",
+      "side": 1,
+      "message": "The \u0027--olt_vendor\u0027 isn\u0027t considered in the ResourceRange path, but the --olt-model, if my understanding is correct. I am not sure if anyone is looking into the README.md file in the openolt adapter folder. I had some details in their about resource manager configurations in that README.md. You might want to update that accordingly, as per the new configurations.",
+      "revId": "32bddb6334879430ab5c83a523253aeed463aea0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
