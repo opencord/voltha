@@ -16,6 +16,24 @@
       "revId": "32bddb6334879430ab5c83a523253aeed463aea0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "65e7cefa_81c7cfa8",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-03T15:53:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e4fb98dd_6c4dfdf6",
+      "revId": "32bddb6334879430ab5c83a523253aeed463aea0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
