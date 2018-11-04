@@ -1,3 +1,4 @@
+---
 # Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,40 +12,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-logging:
-    version: 1
 
-    formatters:
-      brief:
-        format: '%(message)s'
-      default:
-        format: '%(asctime)s.%(msecs)03d %(levelname)-8s %(module)s.%(funcName)s %(message)s'
-        datefmt: '%Y%m%dT%H%M%S'
-
-    handlers:
-        console:
-            class : logging.StreamHandler
-            level: DEBUG
-            formatter: default
-            stream: ext://sys.stdout
-        localRotatingFile:
-            class: logging.handlers.RotatingFileHandler
-            filename: ofagent.log
-            formatter: default
-            maxBytes: 2097152
-            backupCount: 10
-            level: DEBUG
-        null:
-            class: logging.NullHandler
-
-    loggers:
-        amqp:
-            handlers: [null]
-            propagate: False
-        conf:
-            propagate: False
-        '': # root logger
-            handlers: [console, localRotatingFile]
-            level: INFO # this can be bumped up/down by -q and -v command line
-                        # options
-            propagate: False

@@ -33,6 +33,7 @@ from netconf.nc_server import NCServer
 
 defs = dict(
     config=os.environ.get('CONFIG', './netconf.yml'),
+    logconfig=os.environ.get('LOGCONFIG', './logconfig.yml'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
     external_host_address=os.environ.get('EXTERNAL_HOST_ADDRESS',
                                          get_my_primary_local_ipv4()),
@@ -63,6 +64,15 @@ def parse_args():
                         dest='config',
                         action='store',
                         default=defs['config'],
+                        help=_help)
+
+    _help = ('Path to logconfig.yml config file (default: %s). '
+             'If relative, it is relative to main.py of voltha.'
+             % defs['logconfig'])
+    parser.add_argument('-l', '--logconfig',
+                        dest='logconfig',
+                        action='store',
+                        default=defs['logconfig'],
                         help=_help)
 
     _help = '<hostname>:<port> to consul agent (default: %s)' % defs['consul']
@@ -203,8 +213,9 @@ def parse_args():
     return args
 
 
-def load_config(args):
-    path = args.config
+def load_config(args, configname='config'):
+    argdict = vars(args)
+    path = argdict[configname]
     if path.startswith('.'):
         dir = os.path.dirname(os.path.abspath(__file__))
         path = os.path.join(dir, path)
@@ -234,9 +245,10 @@ class Main(object):
 
         self.args = args = parse_args()
         self.config = load_config(args)
+        self.logconfig = load_config(args, 'logconfig')
 
         verbosity_adjust = (args.verbose or 0) - (args.quiet or 0)
-        self.log = setup_logging(self.config.get('logging', {}),
+        self.log = setup_logging(self.logconfig,
                                  args.instance_id,
                                  verbosity_adjust=verbosity_adjust)
 
