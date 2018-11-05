@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "b90f7d43_dcc02210",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2018-11-05T16:25:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "be295499_33fca04d",
+      "range": {
+        "startLine": 39,
+        "startChar": 0,
+        "endLine": 39,
+        "endChar": 4
+      },
+      "revId": "7b10be342bc1e25fda689f46df3bed98e55c814b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "83949e4c_3a266183",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 1
@@ -36,6 +60,24 @@
       "writtenOn": "2018-11-04T17:09:40Z",
       "side": 1,
       "message": "Not trapping downstream dhcp pkts at NNI? Is that because dhcp downstream is allowed to pass-through without going through controller?",
+      "revId": "7b10be342bc1e25fda689f46df3bed98e55c814b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "771b698e_0ee06aad",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 372,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2018-11-05T16:25:58Z",
+      "side": 1,
+      "message": "Now the downstream flow is correctly pushed by ONOS (https://gerrit.opencord.org/#/c/11680/) so there is no need to handcraft it here.",
+      "parentUuid": "83949e4c_3a266183",
       "revId": "7b10be342bc1e25fda689f46df3bed98e55c814b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
