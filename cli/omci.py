@@ -355,3 +355,7 @@ class OmciCli(Cmd):
             self.stdout.write(msg)
             if msg[-1] != '\n':
                 self.stdout.write('\n')
+
+    def do_show(self, _):
+        """Show detailed omci information"""
+        self.poutput('Use show_mib, show_alarms, show_me, show_msg_types for detailed OMCI information')
