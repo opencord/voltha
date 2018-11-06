@@ -591,6 +591,24 @@
     },
     {
       "key": {
+        "uuid": "e249e460_675bcbf2",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-06T16:33:33Z",
+      "side": 1,
+      "message": "I will defer decision on this to the community. I do not know what is wrong with inter-adapter msg\u0027ing. But, I think there is enough compelling reasons to keep it unless the VOLTHA 2.0 architecture cannot support it.",
+      "parentUuid": "cfe19498_5deb77d3",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "63bae7b1_60771c98",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
