@@ -63,30 +63,30 @@ class CigOpenomciOnuAdapter(BrcmOpenomciOnuAdapter):
     ]
 
     def __init__(self, adapter_agent, config):
-        log.debug('function-entry', config=config)
-        self.adapter_agent = adapter_agent
-        self.config = config
+        super(CigOpenomciOnuAdapter, self).__init__(adapter_agent, config)
+        # self.adapter_agent = adapter_agent
+        # self.config = config
         self.descriptor = Adapter(
             id=self.name,
             vendor='CIG Tech',
             version='0.10',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
-        self.devices_handlers = dict()
+        # self.devices_handlers = dict()
 
         # Customize OpenOMCI for CIG ONUs
-        self.broadcom_omci = deepcopy(OpenOmciAgentDefaults)
+        self._omci_support_cls = deepcopy(OpenOmciAgentDefaults)
 
-        self.broadcom_omci['mib-synchronizer']['state-machine'] = BrcmMibSynchronizer
-        self.broadcom_omci['mib-synchronizer']['database'] = MibDbVolatileDict
-        self.broadcom_omci['omci-capabilities']['tasks']['get-capabilities'] = BrcmCapabilitiesTask
+        # self.broadcom_omci['mib-synchronizer']['state-machine'] = BrcmMibSynchronizer
+        # self.broadcom_omci['mib-synchronizer']['database'] = MibDbVolatileDict
+        # self.broadcom_omci['omci-capabilities']['tasks']['get-capabilities'] = BrcmCapabilitiesTask
 
-        self._omci_agent = OpenOMCIAgent(self.adapter_agent.core,
-                                         support_classes=self.broadcom_omci)
+        # self._omci_agent = OpenOMCIAgent(self.adapter_agent.core,
+        #                                  support_classes=self.broadcom_omci)
 
-        
+        self._omci_agent = OpenOMCIAgent(self.adapter_agent.core, support_classes=self._omci_support_cls)
         # register for adapter messages
-        self.adapter_agent.register_for_inter_adapter_messages()
+        # self.adapter_agent.register_for_inter_adapter_messages()
 
     def device_types(self):
         return DeviceTypes(items=self.supported_device_types)
