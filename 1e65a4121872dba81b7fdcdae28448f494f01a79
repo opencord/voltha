@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c54638c0_bed6fa41",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-11-06T15:51:02Z",
+      "side": 1,
+      "message": "For much of this file, could you rebase against the current omci_cc.py file.  Much of the commented out code has been removed.",
+      "revId": "1e65a4121872dba81b7fdcdae28448f494f01a79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ed1b3589_c060ac5e",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 455,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-11-06T15:51:02Z",
+      "side": 1,
+      "message": "This was a bug that was fixed by Craig a week or two ago",
+      "revId": "1e65a4121872dba81b7fdcdae28448f494f01a79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c64e5712_723fb412",
+        "filename": "voltha/extensions/omci/openomci_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-11-06T15:51:02Z",
+      "side": 1,
+      "message": "I had removed this property from the OMCI agent to help restrict device adapters from directly accessing the MIB database.  If it is not needed in the downloader, could you remove it.",
+      "revId": "1e65a4121872dba81b7fdcdae28448f494f01a79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b3ed2d4d_aa7ee10d",
+        "filename": "voltha/extensions/omci/tasks/omci_sw_image_upgrade_task.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-11-06T15:51:02Z",
+      "side": 1,
+      "message": "Does the software upgrade need exclusive access to the OMCI-CC?  By setting exclusive to True, no other tasks (MIB sync, PM intervals, service provisioning) can occur.\n\nRight not I think the only exclusive OMCI task is the initial MIB upload after a MIB reset.",
+      "revId": "1e65a4121872dba81b7fdcdae28448f494f01a79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
