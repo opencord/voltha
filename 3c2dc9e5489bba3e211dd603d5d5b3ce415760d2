@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c736f20a_b158ea2a",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 170,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-06T16:33:33Z",
+      "side": 1,
+      "message": "How many instances of TechProfile will there be in the case of multiple Resource Managers for different Technologies mapped to different interfaces? Is this single resource manager implying that TechProfile only supports a single, global resource manager?",
+      "range": {
+        "startLine": 170,
+        "startChar": 23,
+        "endLine": 170,
+        "endChar": 35
+      },
+      "revId": "3c2dc9e5489bba3e211dd603d5d5b3ce415760d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a5222b6b_8cfd265e",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-06T16:33:33Z",
+      "side": 1,
+      "message": "In general, there is concern over how coupled this design is to a very specific set of OF flows. This design isn\u0027t very extensible to support abstracted flows that may present itself over time. I am wandering if we can identify flows for storage in the KV using any more abstract information from the flow, i.e. can the logical flow id be used?",
+      "range": {
+        "startLine": 39,
+        "startChar": 0,
+        "endLine": 39,
+        "endChar": 9
+      },
+      "revId": "3c2dc9e5489bba3e211dd603d5d5b3ce415760d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9f68eded_58acd154",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-06T16:33:33Z",
+      "side": 1,
+      "message": "This needs to be refactored with the latest master supporting multiple resource managers for multiple technologies. This means there are multiple TechProfiles: one per resource manager. I suggest making tech profile an attribute of resource manager rather than the opposite.",
+      "range": {
+        "startLine": 94,
+        "startChar": 28,
+        "endLine": 94,
+        "endChar": 39
+      },
+      "revId": "3c2dc9e5489bba3e211dd603d5d5b3ce415760d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b338c843_7e3df779",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 809,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-06T16:33:33Z",
+      "side": 1,
+      "message": "This problem probably affects any downstream flows that are trap to controller. Should we develop a long term solution rather than a hack as described. I think you are suggesting using the first PON interface as the resource manager pool for the downstream flow id allocation. I don\u0027t have a problem using intf_id\u003d0",
+      "range": {
+        "startLine": 809,
+        "startChar": 0,
+        "endLine": 809,
+        "endChar": 63
+      },
+      "revId": "3c2dc9e5489bba3e211dd603d5d5b3ce415760d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
