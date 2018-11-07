@@ -21,12 +21,41 @@ import logging.config
 from collections import OrderedDict
 
 import structlog
-from structlog.stdlib import BoundLogger, INFO
+from structlog.stdlib import BoundLogger
 
 try:
     from thread import get_ident as _get_ident
 except ImportError:
     from dummy_thread import get_ident as _get_ident
+
+# Add a TRACE log level to structlog and stdlib logger
+
+# new level is 5, other levels given here:
+# https://github.com/hynek/structlog/blob/18.2.0/src/structlog/stdlib.py#L296
+structlog.stdlib.TRACE = TRACE_LOGLVL = 5
+structlog.stdlib._NAME_TO_LEVEL['trace'] = TRACE_LOGLVL
+logging.addLevelName(TRACE_LOGLVL, "TRACE")
+
+
+# Create structlog TRACE level and add to BoundLogger object
+#  https://github.com/hynek/structlog/blob/18.2.0/src/structlog/stdlib.py#L59
+def trace_structlog(self, event=None, *args, **kw):
+    ''' enable TRACE for structlog '''
+    return self._proxy_to_logger("trace", event, *args, **kw)
+
+
+structlog.stdlib.BoundLogger.trace = trace_structlog
+
+
+# create standard logger TRACE level and add to Logger object
+#  https://github.com/python/cpython/blob/2.7/Lib/logging/__init__.py#L1152
+def trace_loglevel(self, message, *args, **kws):
+    ''' enable TRACE for standard logger'''
+    if self.isEnabledFor(TRACE_LOGLVL):
+        self._log(TRACE_LOGLVL, message, args, **kws)
+
+
+logging.Logger.trace = trace_loglevel
 
 
 class StructuredLogRenderer(object):
@@ -93,7 +122,7 @@ def setup_logging(log_config, instance_id, verbosity_adjust=0):
 
     # Mark first line of log
     log = structlog.get_logger()
-    log.info("first-line")
+    log.info("first-log-line, logging level %d" % logging.root.level)
     return log
 
 
@@ -123,6 +152,7 @@ def update_logging(instance_id, vcore_id):
         add_instance_id,
         add_vcore_id,
         StructuredLogRenderer(),
+        structlog.processors.UnicodeEncoder(),
     ]
     structlog.configure(processors=processors)
 

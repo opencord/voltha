@@ -124,22 +124,23 @@ class GlobalHandler(VolthaGlobalServiceServicer):
 
     @twisted_async
     def GetVoltha(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         return self.root.get('/', depth=1)
 
     @twisted_async
     def ListVolthaInstances(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         items = self.dispatcher.get_cluster_instances()
         return VolthaInstances(items=items)
 
     @twisted_async
     @inlineCallbacks
     def GetVolthaInstance(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         core_id = self.dispatcher.get_core_id_from_instance_id(request.id)
+
         if not core_id:
-            log.info('invalid-instance-id', instance=request.id)
+            log.error('invalid-instance-id', instance=request.id)
             context.set_details('Voltha Instance error')
             context.set_code(StatusCode.NOT_FOUND)
             returnValue(VolthaInstance())
@@ -148,49 +149,49 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   Empty(),
                                                   context,
                                                   core_id=core_id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Voltha Instance error')
             context.set_code(response.error_code)
             returnValue(VolthaInstance())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListLogicalDevices(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListLogicalDevices',
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.debug('grpc-response', response=response)
+
         returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListReachableLogicalDevices(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
                 'ListReachableLogicalDevices',
                 Empty(),
                 context,
                 broadcast=True)
-        log.debug('grpc-response', response=response)
+
         returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetLogicalDevice(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
 
         response = yield self.dispatcher.dispatch('GetLogicalDevice',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -198,19 +199,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(LogicalDevice())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListLogicalDevicePorts(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
 
         response = yield self.dispatcher.dispatch('ListLogicalDevicePorts',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -218,19 +219,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Ports())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetLogicalDevicePort(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
 
         response = yield self.dispatcher.dispatch('GetLogicalDevicePort',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -238,18 +239,18 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(LogicalPort())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListLogicalDeviceFlows(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListLogicalDeviceFlows',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -257,18 +258,18 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Flows())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def EnableLogicalDevicePort(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('EnableLogicalDevicePort',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -276,18 +277,18 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DisableLogicalDevicePort(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('DisableLogicalDevicePort',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -295,19 +296,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def UpdateLogicalDeviceFlowTable(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'UpdateLogicalDeviceFlowTable',
             request,
             context,
             id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -315,19 +316,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListLogicalDeviceFlowGroups(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'ListLogicalDeviceFlowGroups',
             request,
             context,
             id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -335,19 +336,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(FlowGroups())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def UpdateLogicalDeviceFlowGroupTable(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'UpdateLogicalDeviceFlowGroupTable',
             request,
             context,
             id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -355,259 +356,259 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListDevices(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListDevices',
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.debug('grpc-response', response=response)
+
         returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListAdapters(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListAdapters',
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.debug('grpc-response', response=response)
+
         returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetDevice(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('GetDevice',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Device())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def CreateDevice(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('CreateDevice',
                                                   request,
                                                   context)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Create device error')
             context.set_code(response.error_code)
             returnValue(Device())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def EnableDevice(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('EnableDevice',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Device())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DisableDevice(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('DisableDevice',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Device())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def RebootDevice(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('RebootDevice',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Device())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DeleteDevice(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('DeleteDevice',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(Empty())
 
     @twisted_async
     @inlineCallbacks
     def ListDevicePorts(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListDevicePorts',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Ports())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListDevicePmConfigs(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListDevicePmConfigs',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(PmConfigs())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def UpdateDevicePmConfigs(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('UpdateDevicePmConfigs',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListDeviceFlows(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListDeviceFlows',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Flows())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListDeviceFlowGroups(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListDeviceFlowGroups',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(FlowGroups())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListDeviceTypes(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         # we always deflect this to the local instance, as we assume
         # they all loaded the same adapters, supporting the same device
         # types
         response = yield self.dispatcher.dispatch('ListDeviceTypes',
                                                   request,
                                                   context)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device types error')
             context.set_code(response.error_code)
             returnValue(DeviceTypes())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetDeviceType(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         # we always deflect this to the local instance, as we assume
         # they all loaded the same adapters, supporting the same device
         # types
         response = yield self.dispatcher.dispatch('GetDeviceType',
                                                   request,
                                                   context)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device type \'{}\' error'.format(
@@ -615,43 +616,43 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(DeviceType())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListDeviceGroups(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListDeviceGroups',
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.debug('grpc-response', response=response)
+
         returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetDeviceGroup(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('GetDeviceGroup',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device group\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(DeviceGroup())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     # bbf_fiber rpcs start
     @twisted_async
     @inlineCallbacks
     def GetAllChannelgroupConfig(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'GetAllChannelgroupConfig',
             Empty(),
@@ -663,7 +664,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -675,7 +676,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
     @twisted_async
     @inlineCallbacks
     def UpdateChannelgroup(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.ChannelgroupConfig)
             request.id = create_empty_broadcast_id()
@@ -695,13 +696,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelgroupConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DeleteChannelgroup(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.ChannelgroupConfig)
             request.id = create_empty_broadcast_id()
@@ -721,13 +722,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelgroupConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetAllChannelpartitionConfig(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'GetAllChannelpartitionConfig',
             Empty(),
@@ -739,13 +740,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def CreateChannelpartition(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.ChannelpartitionConfig)
             request.id = create_empty_broadcast_id()
@@ -766,13 +767,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelpartitionConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def UpdateChannelpartition(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.ChannelpartitionConfig)
             request.id = create_empty_broadcast_id()
@@ -793,13 +794,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelpartitionConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DeleteChannelpartition(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.ChannelpartitionConfig)
             request.id = create_empty_broadcast_id()
@@ -820,13 +821,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelpartitionConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetAllChannelpairConfig(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'GetAllChannelpairConfig',
             Empty(),
@@ -838,13 +839,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def CreateChannelpair(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.ChannelpairConfig)
             request.id = create_empty_broadcast_id()
@@ -864,13 +865,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelpairConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def UpdateChannelpair(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.ChannelpairConfig)
             request.id = create_empty_broadcast_id()
@@ -890,13 +891,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelpairConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DeleteChannelpair(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.ChannelpairConfig)
             request.id = create_empty_broadcast_id()
@@ -916,19 +917,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelpairConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetAllChannelterminationConfig(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'GetAllChannelterminationConfig',
             request,
             context,
             id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channeltermination \'{}\' error'.format(
@@ -936,19 +937,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelterminationConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def CreateChanneltermination(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'CreateChanneltermination',
             request,
             context,
             id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channeltermination \'{}\' error'.format(
@@ -956,19 +957,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelterminationConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def UpdateChanneltermination(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'UpdateChanneltermination',
             request,
             context,
             id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channeltermination \'{}\' error'.format(
@@ -976,19 +977,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelterminationConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DeleteChanneltermination(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response =  yield self.dispatcher.dispatch(
             'DeleteChanneltermination',
             request,
             context,
             id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Channeltermination \'{}\' error'.format(
@@ -996,13 +997,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.ChannelterminationConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetAllOntaniConfig(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'GetAllOntaniConfig',
             Empty(),
@@ -1014,13 +1015,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def CreateOntani(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.OntaniConfig)
             request.id = create_empty_broadcast_id()
@@ -1040,13 +1041,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.OntaniConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def UpdateOntani(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.OntaniConfig)
             request.id = create_empty_broadcast_id()
@@ -1066,13 +1067,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.OntaniConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DeleteOntani(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.OntaniConfig)
             request.id = create_empty_broadcast_id()
@@ -1092,13 +1093,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.OntaniConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetAllVOntaniConfig(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'GetAllVOntaniConfig',
             Empty(),
@@ -1110,13 +1111,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def CreateVOntani(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.VOntaniConfig)
             request.id = create_empty_broadcast_id()
@@ -1136,13 +1137,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.VOntaniConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def UpdateVOntani(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.VOntaniConfig)
             request.id = create_empty_broadcast_id()
@@ -1162,13 +1163,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.VOntaniConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DeleteVOntani(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.VOntaniConfig)
             request.id = create_empty_broadcast_id()
@@ -1188,13 +1189,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.VOntaniConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetAllVEnetConfig(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             'GetAllVEnetConfig',
             request,
@@ -1206,13 +1207,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def CreateVEnet(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.VEnetConfig)
             request.id = create_empty_broadcast_id()
@@ -1232,13 +1233,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.VEnetConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def UpdateVEnet(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.VEnetConfig)
             request.id = create_empty_broadcast_id()
@@ -1258,13 +1259,13 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.VEnetConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DeleteVEnet(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         try:
             assert isinstance(request, fb.VEnetConfig)
             request.id = create_empty_broadcast_id()
@@ -1284,7 +1285,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(fb.VEnetConfig())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -1416,7 +1417,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
         return self.manage_global_xpon_object (request, context, _method_name)
 
     def get_all_global_xpon_object_data(self, request, context, method_name):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
             method_name,
             Empty(),
@@ -1428,11 +1429,11 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     def manage_global_xpon_object(self, request, context, method_name):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         _xpon_object_type = self.xpon_object_type[method_name]
         try:
             assert isinstance(request, _xpon_object_type)
@@ -1454,14 +1455,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(_xpon_object_type())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
     # bbf_fiber rpcs end
 
     @twisted_async
     @inlineCallbacks
     def CreateAlarmFilter(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         # Since AlarmFilter applies to the entire cluster, it will be assigned
         # a global id (using a global core_id).  Every Voltha instance will
         # have the same data.  Since the voltha instances are managed by
@@ -1483,136 +1484,136 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   context,
                                                   id=request.id,
                                                   broadcast=True)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Create alarm error')
             context.set_code(response.error_code)
             returnValue(AlarmFilter())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetAlarmFilter(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('GetAlarmFilter',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Alarm filter\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(AlarmFilter())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def UpdateAlarmFilter(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('UpdateAlarmFilter',
                                                   request,
                                                   context,
                                                   id=request.id,
                                                   broadcast=True)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Alarm filter\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(AlarmFilter())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DeleteAlarmFilter(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('DeleteAlarmFilter',
                                                   request,
                                                   context,
                                                   id=request.id,
                                                   broadcast=True)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Alarm filter\'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Empty())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(Empty())
 
     @twisted_async
     @inlineCallbacks
     def ListAlarmFilters(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('ListAlarmFilters',
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Alarm filters error')
             context.set_code(response.error_code)
             returnValue(AlarmFilter())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetImages(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('GetImages',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Images())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def SelfTest(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('SelfTest',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(SelfTestResponse())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def DownloadImage(self, request, context):
         try:
-            log.debug('grpc-request', request=request)
+            log.trace('grpc-request', request=request)
             response = yield self.dispatcher.dispatch('DownloadImage',
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.debug('grpc-response', response=response)
+
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
@@ -1622,19 +1623,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetImageDownloadStatus(self, request, context):
         try:
-            log.debug('grpc-request', request=request)
+            log.trace('grpc-request', request=request)
             response = yield self.dispatcher.dispatch('GetImageDownloadStatus',
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.debug('grpc-response', response=response)
+
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
@@ -1644,19 +1645,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(ImageDownloads())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetImageDownload(self, request, context):
         try:
-            log.debug('grpc-request', request=request)
+            log.trace('grpc-request', request=request)
             response = yield self.dispatcher.dispatch('GetImageDownload',
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.debug('grpc-response', response=response)
+
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
@@ -1666,19 +1667,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(ImageDownload())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ListImageDownloads(self, request, context):
         try:
-            log.debug('grpc-request', request=request)
+            log.trace('grpc-request', request=request)
             response = yield self.dispatcher.dispatch('ListImageDownloads',
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.debug('grpc-response', response=response)
+
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
@@ -1688,7 +1689,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(ImageDownloads())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
 
@@ -1696,12 +1697,12 @@ class GlobalHandler(VolthaGlobalServiceServicer):
     @inlineCallbacks
     def CancelImageDownload(self, request, context):
         try:
-            log.debug('grpc-request', request=request)
+            log.trace('grpc-request', request=request)
             response = yield self.dispatcher.dispatch('CancelImageDownload',
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.debug('grpc-response', response=response)
+
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
@@ -1711,19 +1712,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def ActivateImageUpdate(self, request, context):
         try:
-            log.debug('grpc-request', request=request)
+            log.trace('grpc-request', request=request)
             response = yield self.dispatcher.dispatch('ActivateImageUpdate',
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.debug('grpc-response', response=response)
+
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
@@ -1733,19 +1734,19 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def RevertImageUpdate(self, request, context):
         try:
-            log.debug('grpc-request', request=request)
+            log.trace('grpc-request', request=request)
             response = yield self.dispatcher.dispatch('RevertImageUpdate',
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.debug('grpc-response', response=response)
+
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
@@ -1755,55 +1756,55 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetMibDeviceData(self, request, context):
-        log.debug('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('GetMibDeviceData',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(MibDeviceData())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def GetAlarmDeviceData(self, request, context):
-        log.info('grpc-request', request=request)
+        log.trace('grpc-request', request=request)
         response = yield self.dispatcher.dispatch('GetAlarmDeviceData',
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(AlarmDeviceData())
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
     @inlineCallbacks
     def SimulateAlarm(self, request, context):
         try:
-            log.debug('grpc-request', request=request)
+            log.trace('grpc-request', request=request)
             response = yield self.dispatcher.dispatch('SimulateAlarm',
                                                       request,
                                                       context,
                                                       id=request.id)
-            log.debug('grpc-response', response=response)
+
         except Exception as e:
             log.exception('grpc-exception', e=e)
 
@@ -1813,5 +1814,5 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(OperationResp(code=OperationResp.OPERATION_FAILURE))
         else:
-            log.debug('grpc-success-response', response=response)
+            log.trace('grpc-success-response', response=response)
             returnValue(response)
