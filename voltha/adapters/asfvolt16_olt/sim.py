@@ -21,7 +21,8 @@ import time
 from concurrent import futures
 import grpc
 
-from voltha.adapters.asfvolt16_olt.protos.bal_pb2 import BalServicer, add_BalServicer_to_server, BalErr
+from voltha.adapters.asfvolt16_olt.protos.bal_pb2_grpc import BalServicer, add_BalServicer_to_server
+from voltha.adapters.asfvolt16_olt.protos.bal_pb2 import BalErr
 from voltha.adapters.asfvolt16_olt.protos.bal_errno_pb2 import BAL_ERR_OK
 
 log = structlog.get_logger()

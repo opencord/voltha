@@ -46,7 +46,7 @@ from simplejson import dumps
 
 from google.protobuf.empty_pb2 import Empty
 from voltha.protos import third_party
-from voltha.protos import voltha_pb2, common_pb2
+from voltha.protos import voltha_pb2, voltha_pb2_grpc, common_pb2
 
 defs = dict(
     # config=os.environ.get('CONFIG', './cli.yml'),
@@ -90,9 +90,9 @@ class VOLTHAClient(object):
     def get_stub(self):
         if self.stub is None:
             self.stub = \
-                voltha_pb2.VolthaGlobalServiceStub(self.get_channel()) \
+                voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel()) \
                     if self.global_request else \
-                    voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+                    voltha_pb2_grpc.VolthaLocalServiceStub(self.get_channel())
         return self.stub
 
     def get_first_olt_device_id(self):

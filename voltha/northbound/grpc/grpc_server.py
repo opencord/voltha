@@ -29,7 +29,7 @@ from zope.interface import implementer
 
 from common.utils.grpc_utils import twisted_async
 from voltha.core.logical_device_agent import LogicalDeviceAgent
-from voltha.protos import voltha_pb2, schema_pb2
+from voltha.protos import voltha_pb2, voltha_pb2_grpc, schema_pb2, schema_pb2_grpc, health_pb2_grpc
 from google.protobuf.empty_pb2 import Empty
 
 from voltha.registry import IComponent
@@ -37,7 +37,7 @@ from voltha.registry import IComponent
 log = get_logger()
 
 
-class SchemaService(schema_pb2.SchemaServiceServicer):
+class SchemaService(schema_pb2_grpc.SchemaServiceServicer):
 
     def __init__(self, thread_pool):
         self.thread_pool = thread_pool
@@ -87,7 +87,7 @@ class SchemaService(schema_pb2.SchemaServiceServicer):
         return self.schemas
 
 
-class HealthService(voltha_pb2.HealthServiceServicer):
+class HealthService(health_pb2_grpc.HealthServiceServicer):
 
     def __init__(self, thread_pool):
         self.thread_pool = thread_pool
@@ -105,7 +105,7 @@ class HealthService(voltha_pb2.HealthServiceServicer):
         return res
 
 '''
-class VolthaLogicalLayer(voltha_pb2.VolthaLogicalLayerServicer):
+class VolthaLogicalLayer(voltha_pb2_grpc.VolthaLogicalLayerServicer):
     # TODO still a mock
 
     def __init__(self, threadpool):
@@ -206,8 +206,8 @@ class VolthaGrpcServer(object):
 
         # add each service unit to the server and also to the list
         for activator_func, service_class in (
-            (schema_pb2.add_SchemaServiceServicer_to_server, SchemaService),
-            (voltha_pb2.add_HealthServiceServicer_to_server, HealthService),
+            (schema_pb2_grpc.add_SchemaServiceServicer_to_server, SchemaService),
+            (health_pb2_grpc.add_HealthServiceServicer_to_server, HealthService),
         ):
             service = service_class(self.thread_pool)
             self.register(activator_func, service)

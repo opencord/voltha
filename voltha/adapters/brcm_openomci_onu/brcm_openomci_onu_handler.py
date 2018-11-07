@@ -773,7 +773,7 @@ class BrcmOpenomciOnuHandler(object):
 
                 for entity_id in veip_list:
                     veip_value = config.veip_entities[entity_id]
-                    self.log.debug("discovered-veip", key=entity_id, value=veip_value)
+                    self.log.debug("discovered-veip", entity_id=entity_id, value=veip_value)
 
                 for entity_id in uni_list:
                     uni_value = config.uni_g_entities[entity_id]
@@ -787,7 +787,7 @@ class BrcmOpenomciOnuHandler(object):
                         self._add_uni_port(entity_id, uni_type=UniType.VEIP)
                         break
                     else:
-                        self.log.warn("unable-to-find-uni-in-pptp-or-veip", key=entity_id, value=uni_value)
+                        self.log.warn("unable-to-find-uni-in-pptp-or-veip", entity_id=entity_id, value=uni_value)
 
                 self._qos_flexibility = config.qos_configuration_flexibility or 0
                 self._omcc_version = config.omcc_version or OMCCVersion.Unknown
