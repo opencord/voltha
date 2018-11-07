@@ -68,19 +68,19 @@ class Dispatcher(object):
                  id=None,
                  broadcast=False):
         """
-        Called whenever a global request is received from the NBI.  The 
+        Called whenever a global request is received from the NBI.  The
         request will be dispatch as follows:
         1) to a specific voltha Instance if the core_id is specified
-        2) to the local Voltha Instance if the request specifies an ID that 
+        2) to the local Voltha Instance if the request specifies an ID that
         matches the core id of the local Voltha instance
-        3) to a remote Voltha Instance if the request specifies an ID that 
+        3) to a remote Voltha Instance if the request specifies an ID that
         matches the core id of that voltha instance
-        4) to all Voltha Instances if it's a broadcast request, 
-        e.g. getDevices, i.e. broadcast=True.  The id may or may not be 
-        None. In this case, the results will be returned as a list of 
+        4) to all Voltha Instances if it's a broadcast request,
+        e.g. getDevices, i.e. broadcast=True.  The id may or may not be
+        None. In this case, the results will be returned as a list of
         responses back to the global handler
-        5) to the local voltha instance if id=None and broadcast=False.  
-        This occurs in cases where any Voltha instance will return the same 
+        5) to the local voltha instance if id=None and broadcast=False.
+        This occurs in cases where any Voltha instance will return the same
         output, e.g. getAdapters()
         :param method_name: rpc name
         :param id: the id in the request, if present.
@@ -88,7 +88,7 @@ class Dispatcher(object):
         :param context: grpc context
         :return: the response of that dispatching request
         """
-        log.info('start',
+        log.trace('start',
                   _method_name=method_name,
                   id=id,
                   request=request)
@@ -173,7 +173,7 @@ class Dispatcher(object):
                                       request,
                                       context)
         # Then get peers results
-        log.info('maps', peers=self.peers_map, grpc=self.grpc_conn_map)
+        log.trace('maps', peers=self.peers_map, grpc=self.grpc_conn_map)
         current_responses = [result]
         for core_id in self.peers_map:
             if core_id == self.core_store_id:
@@ -197,10 +197,10 @@ class Dispatcher(object):
         returnValue(result)
 
     def _local_dispatch(self, core_id, method_name, request, context):
-        log.debug('local-dispatch', core_id=core_id)
+        log.trace('local-dispatch', core_id=core_id)
         method = getattr(self.local_handler, method_name)
         res = method(request, context=context)
-        log.debug('local-dispatch-result', res=res, context=context)
+        log.trace('local-dispatch-result', res=res, context=context)
         return res
 
     @inlineCallbacks

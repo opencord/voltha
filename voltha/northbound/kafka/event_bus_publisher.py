@@ -75,7 +75,7 @@ class EventBusPublisher(object):
                 # kafka_topic, we force instant binding with the default arg
                 lambda _, m, k=kafka_topic: self.forward(k, m)))
 
-            log.info('event-to-kafka', kafka_topic=kafka_topic,
+            log.debug('event-to-kafka on kafka topic %s' % kafka_topic,
                      event_bus_topic=event_bus_topic)
 
     def forward(self, kafka_topic, msg):
@@ -83,7 +83,7 @@ class EventBusPublisher(object):
             # convert to JSON string if msg is a protobuf msg
             if isinstance(msg, Message):
                 msg = dumps(MessageToDict(msg, True, True))
-            log.debug('forward-event-bus-publisher')
+            log.trace('forward-event-bus-publisher')
             self.kafka_proxy.send_message(kafka_topic, msg)
         except Exception, e:
             log.exception('failed-forward-event-bus-publisher', e=e)

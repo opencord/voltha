@@ -392,7 +392,6 @@ class Main(object):
                         rest_port=self.args.rest_port,
                         instance_id=self.instance_id,
                         config=self.config,
-                        consul=self.args.consul,
                         etcd=self.args.etcd,
                         container_name_regex=self.args.container_name_regex)
                 ).start()
@@ -483,12 +482,12 @@ class Main(object):
     @inlineCallbacks
     def shutdown_components(self):
         """Execute before the reactor is shut down"""
-        self.log.info('exiting-on-keyboard-interrupt')
+        self.log.info('vcore is shutting down')
         for component in reversed(registry.iterate()):
             yield component.stop()
 
         import threading
-        self.log.info('THREADS:')
+        self.log.info('Threads exiting:')
         main_thread = threading.current_thread()
         for t in threading.enumerate():
             if t is main_thread:
@@ -513,7 +512,7 @@ class Main(object):
         t0s = time.ctime(t0)
 
         def heartbeat():
-            self.log.debug(status='up', since=t0s, uptime=time.time() - t0)
+            self.log.trace(status='up', since=t0s, uptime=time.time() - t0)
 
         lc = LoopingCall(heartbeat)
         lc.start(10)
