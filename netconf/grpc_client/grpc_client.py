@@ -33,7 +33,7 @@ from werkzeug.exceptions import ServiceUnavailable
 
 from common.utils.asleep import asleep
 from netconf.protos import third_party
-from netconf.protos.schema_pb2 import SchemaServiceStub
+from netconf.protos.schema_pb2_grpc import SchemaServiceStub
 from google.protobuf.empty_pb2 import Empty
 from common.utils.consulhelpers import get_endpoint_from_consul
 # from netconf.protos.voltha_pb2 import VolthaLocalServiceStub, \

@@ -36,7 +36,7 @@ from cli.logical_device import LogicalDeviceCli
 from cli.table import print_pb_list_as_table
 from voltha.core.flow_decomposer import *
 from voltha.protos import third_party
-from voltha.protos import voltha_pb2
+from voltha.protos import voltha_pb2, voltha_pb2_grpc, health_pb2_grpc
 from voltha.protos.openflow_13_pb2 import FlowTableUpdate, FlowGroupTableUpdate
 
 _ = third_party
@@ -143,9 +143,9 @@ class VolthaCli(Cmd):
     def get_stub(self):
         if self.stub is None:
             self.stub = \
-                voltha_pb2.VolthaGlobalServiceStub(self.get_channel()) \
+                voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel()) \
                     if self.global_request else \
-                        voltha_pb2.VolthaLocalServiceStub(self.get_channel())
+                        voltha_pb2_grpc.VolthaLocalServiceStub(self.get_channel())
         return self.stub
 
     # ~~~~~~~~~~~~~~~~~ ACTUAL COMMAND IMPLEMENTATIONS ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -303,7 +303,7 @@ class VolthaCli(Cmd):
 
     def do_health(self, line):
         """Show connectivity status to Voltha status"""
-        stub = voltha_pb2.HealthServiceStub(self.get_channel())
+        stub = health_pb2_grpc.HealthServiceStub(self.get_channel())
         res = stub.GetHealthStatus(Empty())
         self.poutput(dumps(pb2dict(res), indent=4))
 

@@ -26,8 +26,9 @@ from common.utils.id_generation import create_cluster_device_id
 from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups, \
     ofp_port_status
+from voltha.protos.voltha_pb2_grpc import \
+    add_VolthaLocalServiceServicer_to_server, VolthaLocalServiceServicer
 from voltha.protos.voltha_pb2 import \
-    add_VolthaLocalServiceServicer_to_server, VolthaLocalServiceServicer, \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
     LogicalPort, LogicalPorts, Devices, Device, DeviceType, \
     DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
