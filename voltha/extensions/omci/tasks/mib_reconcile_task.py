@@ -219,7 +219,13 @@ class MibReconcileTask(Task):
 
     @inlineCallbacks
     def fix_onu_only_save_to_db(self, undecodable, onu_created, onu_db):
-        """ In ONU database and needs to be saved to OLT/OpenOMCI database """
+        """
+        In ONU database and needs to be saved to OLT/OpenOMCI database.
+
+        Note that some, perhaps all, of these instances could be ONU create
+        in response to the OLT creating some other ME instance. So treat
+        the Database operation as a create.
+        """
         successes = 0
         failures = 0
 
@@ -229,7 +235,11 @@ class MibReconcileTask(Task):
             try:
                 # If in current MIB, had an audit issue or other MIB operation
                 # put it into the database, declare it a failure so we audit again
-                olt_entry = self._sync_sm.query_mib(class_id=cid, instance_id=eid)
+                try:
+                    olt_entry = self._sync_sm.query_mib(class_id=cid, instance_id=eid)
+
+                except KeyError:        # Common for ONU created MEs during audit
+                    olt_entry = None
 
                 if olt_entry is not None and len(olt_entry):
                     self.log.debug('onu-only-in-current', cid=cid, eid=eid)
@@ -271,7 +281,12 @@ class MibReconcileTask(Task):
             try:
                 # If in current MIB, had an audit issue, declare it an error
                 # and next audit should clear it up
-                current_entry = self._sync_sm.query_mib(class_id=cid, instance_id=eid)
+                try:
+                    current_entry = self._sync_sm.query_mib(class_id=cid, instance_id=eid)
+
+                except KeyError:
+                    # Expected if no other entities with same class present in MIB
+                    current_entry = None
 
                 if current_entry is not None and len(current_entry):
                     self.log.debug('onu-only-in-current', cid=cid, eid=eid)
@@ -530,7 +545,7 @@ class MibReconcileTask(Task):
             current_entry = self._device.query_mib(cid, eid, attributes)
 
             if current_entry is not None and len(current_entry):
-                clashes = {k: v for k, v in current_entry[ATTRIBUTES_KEY].items()
+                clashes = {k: v for k, v in current_entry.items()
                            if k in attributes and v != mib_data[k]}
 
                 if len(clashes):
@@ -669,10 +684,10 @@ class MibReconcileTask(Task):
 
     def _onu_created(self, cid_eid_list, me_map):
         return [(cid, eid) for cid, eid in cid_eid_list if cid in me_map and
-                OP.Create not in me_map[cid].mandatory_operations and
-                OP.Create not in me_map[cid].optional_operations]
+                (OP.Create not in me_map[cid].mandatory_operations and
+                 OP.Create not in me_map[cid].optional_operations)]
 
     def _olt_created(self, cid_eid_list, me_map):
         return [(cid, eid) for cid, eid in cid_eid_list if cid in me_map and
-                OP.Create in me_map[cid].mandatory_operations or
-                OP.Create in me_map[cid].optional_operations]
+                (OP.Create in me_map[cid].mandatory_operations or
+                 OP.Create in me_map[cid].optional_operations)]
