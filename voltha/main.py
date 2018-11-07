@@ -275,6 +275,35 @@ def print_banner(log):
     log.info('|___/\____/_____/_/ /_/ /_/_/  |_|')
     log.info('(to stop: press Ctrl-C)')
 
+glo_tid_reported = {}
+
+def patch_thread_identifier():
+    """Replace python thread identifier by TID."""
+    # Imports
+    import threading, ctypes
+    global glo_tid_reported
+    # Define get tid function
+    def gettid():
+        """Get TID as displayed by htop."""
+        libc = 'libc.so.6'
+        for cmd in (186, 224, 178):
+            tid = ctypes.CDLL(libc).syscall(cmd)
+            if tid != -1:
+                if glo_tid_reported.get(threading._orig_get_ident(),None) != tid:
+                    print "XXX thread %x map to tid %d" % (threading._orig_get_ident(), tid)
+                    glo_tid_reported[threading._orig_get_ident()] = tid
+                return tid
+    # Get current thread
+    current = threading.current_thread()
+    # Patch _get_ident
+    threading._orig_get_ident = threading._get_ident
+    threading._get_ident = gettid
+    # Update active dictionary
+    threading._active[gettid()] = threading._active.pop(current.ident)
+    # Set new identifier for the current thread
+    current._set_ident()
+    # Done
+    print 'threading._get_ident patched!'
 
 @implementer(IComponent)
 class Main(object):
@@ -540,4 +569,5 @@ class Main(object):
 
 
 if __name__ == '__main__':
+    patch_thread_identifier()
     Main().start()
