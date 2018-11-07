@@ -17,8 +17,10 @@
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet import reactor
 
-from voltha.adapters.asfvolt16_olt.protos import bal_pb2, \
-    bal_model_types_pb2, bal_model_ids_pb2, bal_indications_pb2, asfvolt_pb2
+from voltha.adapters.asfvolt16_olt.protos import bal_pb2, bal_pb2_grpc, \
+    bal_model_types_pb2, bal_model_ids_pb2, \
+    bal_indications_pb2, bal_indications_pb2_grpc, \
+    asfvolt_pb2, asfvolt_pb2_grpc
 from voltha.adapters.asfvolt16_olt.grpc_client import GrpcClient
 from voltha.adapters.asfvolt16_olt.asfvolt16_ind_handler \
                                        import Asfvolt16IndHandler
@@ -54,9 +56,9 @@ class Bal(object):
     def connect_olt(self, host_and_port, device_id, is_init=True):
         self.device_id = device_id
         self.grpc_client.connect(host_and_port)
-        self.stub = bal_pb2.BalStub(self.grpc_client.channel)
-        self.ind_stub = bal_indications_pb2.BalGetIndStub(self.grpc_client.channel)
-        self.asfvolt_stub = asfvolt_pb2.AsfvoltStub(self.grpc_client.channel)
+        self.stub = bal_pb2_grpc.BalStub(self.grpc_client.channel)
+        self.ind_stub = bal_indications_pb2_grpc.BalGetIndStub(self.grpc_client.channel)
+        self.asfvolt_stub = asfvolt_pb2_grpc.AsfvoltStub(self.grpc_client.channel)
         self.olt.running = True
 
         # Right now Bi-Directional GRPC support is not there in grpc-c.

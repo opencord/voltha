@@ -28,7 +28,7 @@ from voltha.protos.voltha_pb2 import AlarmFilter
 from google.protobuf.empty_pb2 import Empty
 import grpc
 from voltha.protos import third_party
-from voltha.protos import voltha_pb2
+from voltha.protos import voltha_pb2, voltha_pb2_grpc
 from voltha.core.flow_decomposer import *
 from voltha.protos.openflow_13_pb2 import FlowTableUpdate
 from voltha.protos import bbf_fiber_base_pb2 as fb
@@ -215,19 +215,19 @@ class DispatcherTest(RestBase):
         sleep(20)  # A small wait for the system to settle down
         voltha_instances = orch.get_all_instances_of_service(vcore_svc_name[orch_env], port_name='grpc')
         self.assertEqual(len(voltha_instances), 3)
-        self.ponsim_voltha_stub_local = voltha_pb2.VolthaLocalServiceStub(
+        self.ponsim_voltha_stub_local = voltha_pb2_grpc.VolthaLocalServiceStub(
             self.get_channel(self._get_grpc_address(voltha_instances[2])))
-        self.ponsim_voltha_stub_global = voltha_pb2.VolthaGlobalServiceStub(
+        self.ponsim_voltha_stub_global = voltha_pb2_grpc.VolthaGlobalServiceStub(
             self.get_channel(self._get_grpc_address(voltha_instances[2])))
 
-        self.simulated_voltha_stub_local = voltha_pb2.VolthaLocalServiceStub(
+        self.simulated_voltha_stub_local = voltha_pb2_grpc.VolthaLocalServiceStub(
             self.get_channel(self._get_grpc_address(voltha_instances[1])))
-        self.simulated_voltha_stub_global = voltha_pb2.VolthaGlobalServiceStub(
+        self.simulated_voltha_stub_global = voltha_pb2_grpc.VolthaGlobalServiceStub(
             self.get_channel(self._get_grpc_address(voltha_instances[1])))
 
-        self.empty_voltha_stub_local = voltha_pb2.VolthaLocalServiceStub(
+        self.empty_voltha_stub_local = voltha_pb2_grpc.VolthaLocalServiceStub(
             self.get_channel(self._get_grpc_address(voltha_instances[0])))
-        self.empty_voltha_stub_global = voltha_pb2.VolthaGlobalServiceStub(
+        self.empty_voltha_stub_global = voltha_pb2_grpc.VolthaGlobalServiceStub(
             self.get_channel(self._get_grpc_address(voltha_instances[0])))
 
         if orch_env == ENV_DOCKER_COMPOSE:
