@@ -38,7 +38,7 @@ from voltha.adapters.iadapter import OltAdapter
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
-from voltha.protos import ponsim_pb2
+from voltha.protos import ponsim_pb2, ponsim_pb2_grpc
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus, AdminState
 from voltha.protos.common_pb2 import OperationResp
 from voltha.protos.device_pb2 import Port, Device, PmConfig, PmConfigs
@@ -131,7 +131,7 @@ class AdapterPmMetrics:
 
     def collect_port_metrics(self, channel):
         rtrn_port_metrics = dict()
-        stub = ponsim_pb2.PonSimStub(channel)
+        stub = ponsim_pb2_grpc.PonSimStub(channel)
         stats = stub.GetStats(ponsim_pb2.PonSimMetricsRequest(port=0))
         rtrn_port_metrics['pon'] = self.extract_pon_metrics(stats)
         rtrn_port_metrics['nni'] = self.extract_nni_metrics(stats)
@@ -414,7 +414,7 @@ class PonSimOltHandler(object):
             self.adapter_agent.update_device(device)
             return
 
-        stub = ponsim_pb2.PonSimStub(self.get_channel())
+        stub = ponsim_pb2_grpc.PonSimStub(self.get_channel())
         info = stub.GetDeviceInfo(Empty())
         log.info('got-info', info=info)
 
@@ -544,7 +544,7 @@ class PonSimOltHandler(object):
             return
 
         try:
-            stub = ponsim_pb2.PonSimStub(self.get_channel())
+            stub = ponsim_pb2_grpc.PonSimStub(self.get_channel())
             info = stub.GetDeviceInfo(Empty())
             log.info('got-info', info=info)
             # TODO: Verify we are connected to the same device we are
@@ -625,7 +625,7 @@ class PonSimOltHandler(object):
         """
         This call establishes a GRPC stream to receive frames.
         """
-        stub = ponsim_pb2.PonSimStub(self.get_channel())
+        stub = ponsim_pb2_grpc.PonSimStub(self.get_channel())
 
         # Attempt to establish a grpc stream with the remote ponsim service
         self.frames = stub.ReceiveFrames(Empty())
@@ -653,7 +653,7 @@ class PonSimOltHandler(object):
     # We'll go through the flows and change the output port of flows that we
     # know to be trap flows to the OF CONTROLLER port.
     def update_flow_table(self, flows):
-        stub = ponsim_pb2.PonSimStub(self.get_channel())
+        stub = ponsim_pb2_grpc.PonSimStub(self.get_channel())
         self.log.info('pushing-olt-flow-table')
         for flow in flows:
             classifier_info = {}
@@ -702,12 +702,12 @@ class PonSimOltHandler(object):
     def send_proxied_message(self, proxy_address, msg):
         self.log.info('sending-proxied-message')
         if isinstance(msg, FlowTable):
-            stub = ponsim_pb2.PonSimStub(self.get_channel())
+            stub = ponsim_pb2_grpc.PonSimStub(self.get_channel())
             self.log.info('pushing-onu-flow-table', port=msg.port)
             res = stub.UpdateFlowTable(msg)
             self.adapter_agent.receive_proxied_message(proxy_address, res)
         elif isinstance(msg, PonSimMetricsRequest):
-            stub = ponsim_pb2.PonSimStub(self.get_channel())
+            stub = ponsim_pb2_grpc.PonSimStub(self.get_channel())
             self.log.info('proxying onu stats request', port=msg.port)
             res = stub.GetStats(msg)
             self.adapter_agent.receive_proxied_message(proxy_address, res)
@@ -730,7 +730,7 @@ class PonSimOltHandler(object):
 
         if self.ponsim_comm == 'grpc':
             # send over grpc stream
-            stub = ponsim_pb2.PonSimStub(self.get_channel())
+            stub = ponsim_pb2_grpc.PonSimStub(self.get_channel())
             frame = PonSimFrame(id=self.device_id, payload=str(out_pkt), out_port=out_port)
             stub.SendFrame(frame)
         else:
@@ -839,7 +839,7 @@ class PonSimOltHandler(object):
         # Set the ofp_port_no and nni_port in case we bypassed the reconcile
         # process if the device was in DISABLED state on voltha restart
         if not self.ofp_port_no and not self.nni_port:
-            stub = ponsim_pb2.PonSimStub(self.get_channel())
+            stub = ponsim_pb2_grpc.PonSimStub(self.get_channel())
             info = stub.GetDeviceInfo(Empty())
             log.info('got-info', info=info)
             self.ofp_port_no = info.nni_port
@@ -1012,7 +1012,7 @@ class PonSimOltHandler(object):
                 'forwarding-{}-request-to-olt-for-interface-type'
                     .format(self.xpon_ponsim_olt_itfs[method_name]['log']),
                 interface_type=type(data))
-            stub = ponsim_pb2.XPonSimStub(self.get_channel())
+            stub = ponsim_pb2_grpc.XPonSimStub(self.get_channel())
             _method = getattr(
                 stub, self.xpon_ponsim_olt_itfs[method_name]['method_name'])
             if isinstance(data, TcontsConfigData):

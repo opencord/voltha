@@ -16,9 +16,9 @@
 import structlog
 from common.utils.grpc_utils import twisted_async
 from voltha.protos import third_party
-from voltha.protos.ponsim_pb2 import PonSimServicer, PonSimDeviceInfo
+from voltha.protos.ponsim_pb2_grpc import PonSimServicer, XPonSimServicer
+from voltha.protos.ponsim_pb2 import PonSimDeviceInfo
 from google.protobuf.empty_pb2 import Empty
-from voltha.protos.ponsim_pb2 import XPonSimServicer
 
 _ = third_party
 
