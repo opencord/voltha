@@ -25,11 +25,13 @@ from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.device_pb2 import PmConfigs, Images, \
     ImageDownload, ImageDownloads
 from voltha.protos.common_pb2 import OperationResp
-from voltha.protos.voltha_pb2 import \
+from voltha.protos.voltha_pb2_grpc import \
     add_VolthaGlobalServiceServicer_to_server, VolthaLocalServiceStub, \
-    VolthaGlobalServiceServicer, Voltha, VolthaInstances, VolthaInstance, \
+    VolthaGlobalServiceServicer, VolthaGlobalServiceStub
+from voltha.protos.voltha_pb2 import \
+    Voltha, VolthaInstances, VolthaInstance, \
     LogicalDevice, LogicalPort, Ports, Flows, FlowGroups, Device, SelfTestResponse, \
-    VolthaGlobalServiceStub, Devices, DeviceType, DeviceTypes, DeviceGroup, \
+    Devices, DeviceType, DeviceTypes, DeviceGroup, \
     AlarmFilter, AlarmFilters
 from voltha.registry import registry
 from google.protobuf.empty_pb2 import Empty

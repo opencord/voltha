@@ -19,9 +19,9 @@ import os
 from concurrent import futures
 
 from voltha.protos import third_party
-from voltha.protos.ponsim_pb2 import add_PonSimServicer_to_server
-from voltha.protos.ponsim_pb2 import add_XPonSimServicer_to_server
-from voltha.adapters.asfvolt16_olt.protos.bal_pb2 import add_BalServicer_to_server
+from voltha.protos.ponsim_pb2_grpc import add_PonSimServicer_to_server
+from voltha.protos.ponsim_pb2_grpc import add_XPonSimServicer_to_server
+from voltha.adapters.asfvolt16_olt.protos.bal_pb2_grpc import add_BalServicer_to_server
 from ponsim_servicer import FlowUpdateHandler, XPonHandler
 from bal_servicer import BalHandler
 

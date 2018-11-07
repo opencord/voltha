@@ -21,7 +21,7 @@ calls are forwarded to the LocalHandler.
 """
 import structlog
 from twisted.internet.defer import inlineCallbacks, returnValue
-from voltha.protos.voltha_pb2 import VolthaLocalServiceStub
+from voltha.protos.voltha_pb2_grpc import VolthaLocalServiceStub
 from voltha.registry import registry
 from twisted.internet import reactor
 import grpc

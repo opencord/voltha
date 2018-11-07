@@ -18,8 +18,9 @@
 
 import grpc
 
-from voltha.protos import schema_pb2
-from voltha.protos import voltha_pb2
+from voltha.protos import schema_pb2, schema_pb2_grpc
+from voltha.protos import voltha_pb2, voltha_pb2_grpc
+from voltha.protos import health_pb2_grpc
 from google.protobuf.empty_pb2 import Empty
 
 
@@ -28,7 +29,7 @@ def run():
     channel = grpc.insecure_channel('localhost:50055')
 
     # Test fetch the schema
-    stub = schema_pb2.SchemaServiceStub(channel)
+    stub = schema_pb2_grpc.SchemaServiceStub(channel)
     res = stub.GetSchema(Empty())
     print '\nSchema:\n'
     for key in res.protos:
@@ -39,12 +40,12 @@ def run():
         print '%s -> descriptor of %d bytes' % (key, len(res.descriptors[key]))
 
     # Ping health state as an example
-    stub = voltha_pb2.HealthServiceStub(channel)
+    stub = health_pb2_grpc.HealthServiceStub(channel)
     res = stub.GetHealthStatus(Empty())
     print '\nHealth state:', res.state
 
     # Try another API
-    stub = voltha_pb2.ExampleServiceStub(channel)
+    stub = voltha_pb2_grpc.ExampleServiceStub(channel)
     res = stub.ListAddresses(Empty())
     print '\nExample objects returned:\n', res.addresses
 
