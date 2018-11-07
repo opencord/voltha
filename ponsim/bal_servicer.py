@@ -18,7 +18,8 @@ from common.utils.grpc_utils import twisted_async
 from voltha.protos import third_party
 from voltha.protos.ponsim_pb2 import PonSimDeviceInfo
 from google.protobuf.empty_pb2 import Empty
-from voltha.adapters.asfvolt16_olt.protos.bal_pb2 import BalServicer, BalErr
+from voltha.adapters.asfvolt16_olt.protos.bal_pb2_grpc import BalServicer
+from voltha.adapters.asfvolt16_olt.protos.bal_pb2 BalErr
 from voltha.adapters.asfvolt16_olt.protos.bal_errno_pb2 import BAL_ERR_OK
 
 _ = third_party

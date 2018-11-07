@@ -27,8 +27,9 @@ from twisted.internet import reactor
 from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredQueue
 
-from protos.voltha_pb2 import ID, VolthaLocalServiceStub, FlowTableUpdate, MeterModUpdate, \
+from protos.voltha_pb2 import ID, FlowTableUpdate, MeterModUpdate, \
     FlowGroupTableUpdate, PacketOut
+from protos.voltha_pb2_grpc import VolthaLocalServiceStub
 from protos.logical_device_pb2 import LogicalPortId
 from google.protobuf import empty_pb2
 
