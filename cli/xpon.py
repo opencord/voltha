@@ -40,7 +40,7 @@ from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
 from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
 
 _ = third_party
-from voltha.protos import voltha_pb2, bbf_fiber_types_pb2, \
+from voltha.protos import voltha_pb2, voltha_pb2_grpc, bbf_fiber_types_pb2, \
     ietf_interfaces_pb2, bbf_fiber_traffic_descriptor_profile_body_pb2
 import sys
 from google.protobuf.json_format import MessageToDict
@@ -103,7 +103,7 @@ class XponCli(Cmd):
         return interface_list
 
     def get_interface_based_on_device(self):
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
         try:
             channel_terminations = stub.GetAllChannelterminationConfig(
                 voltha_pb2.ID(id=self.device_id)).channeltermination_config
@@ -152,7 +152,7 @@ class XponCli(Cmd):
     def do_show(self, line):
         """Show detailed information of each interface based on device ID
         or all interfaces"""
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
         device_id = self.device_id
         if line.strip():
             self.device_id = line.strip()
@@ -292,7 +292,7 @@ channel_group create -n "Manhattan" -d "Channel Group for Manhattan" -a up
                                        'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
@@ -447,7 +447,7 @@ channel_partition create -n "Freedom Tower"
                                        'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
@@ -628,7 +628,7 @@ channel_pair create -n "PON port" -d "Channel Pair for Freedom Tower" -a up
                                        'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
@@ -816,7 +816,7 @@ channel_termination create -i <DEVICE_ID> -n "PON port"
                                        'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
@@ -1007,7 +1007,7 @@ vont_ani create -n "Golden User" -d "Golden User in Freedom Tower" -a up
                                        'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
@@ -1143,7 +1143,7 @@ ont_ani create -n "Golden User" -d "Golden User in Freedom Tower" -a up -u true
                                        'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
@@ -1278,7 +1278,7 @@ v_enet create -n "Enet UNI 1" -d "Ethernet port - 1" -a up -r "Golden User"
                                        'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
@@ -1420,7 +1420,7 @@ traffic_descriptor_profile create -n "TDP 1" -f 100000 -a 500000 -m 1000000
                                        'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
@@ -1528,7 +1528,7 @@ tcont create -n "TCont 1" -r "Golden User" -t "TDP 1" -a 1024
                                        'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:
@@ -1630,7 +1630,7 @@ gem_port create -n "GEMPORT 1" -r "Enet UNI 1" -c 0 -a true -t "TCont 1" -g 2044
                                        'bold') + ' is not recognized')
             return
 
-        stub = voltha_pb2.VolthaGlobalServiceStub(self.get_channel())
+        stub = voltha_pb2_grpc.VolthaGlobalServiceStub(self.get_channel())
 
         if line.strip() == "get":
             if self.device_id:

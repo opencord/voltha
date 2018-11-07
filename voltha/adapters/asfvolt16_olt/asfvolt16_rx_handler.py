@@ -19,7 +19,7 @@ Asfvolt16 OLT adapter
 """
 from twisted.internet import reactor
 from common.utils.grpc_utils import twisted_async
-from voltha.adapters.asfvolt16_olt.protos import bal_indications_pb2
+from voltha.adapters.asfvolt16_olt.protos import bal_indications_pb2, bal_indications_pb2_grpc
 from voltha.adapters.asfvolt16_olt.protos import bal_model_types_pb2, \
     bal_errno_pb2, bal_pb2
 from voltha.adapters.asfvolt16_olt.grpc_server import GrpcServer
@@ -40,7 +40,7 @@ class Asfvolt16RxHandler(object):
     def start(self):
         self.grpc_server = GrpcServer(self.grpc_server_port, self, self.log)
         self.grpc_server.start(
-            bal_indications_pb2.add_BalIndServicer_to_server, self)
+            bal_indications_pb2_grpc.add_BalIndServicer_to_server, self)
 
     def stop(self):
         self.grpc_server.stop()

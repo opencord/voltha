@@ -275,6 +275,7 @@ def print_banner(log):
     log.info('|___/\____/_____/_/ /_/ /_/_/  |_|')
     log.info('(to stop: press Ctrl-C)')
 
+glo_tid_reported = {}
 
 @implementer(IComponent)
 class Main(object):
