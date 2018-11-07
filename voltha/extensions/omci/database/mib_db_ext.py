@@ -382,6 +382,11 @@ class MibDbExternal(MibDbApi):
 
         except KeyError:
             if not create:
+                # This can occur right after a MIB Reset if the ONU publishes AVCs right away
+                # and during the MIB audit resync for ONU created MEs in response to an OLT
+                # created ME.  Fail since for these test cases they occur during a verification
+                # 'query' and not the ME creation during resync. Calling code should handle
+                # they exception if it is expected to occur on occasion.
                 self.log.debug('class-proxy-does-not-exist', device_id=device_id,
                                class_id=class_id)
                 raise
@@ -425,8 +430,13 @@ class MibDbExternal(MibDbApi):
 
         except KeyError:
             if not create:
-                self.log.error('instance-proxy-does-not-exist', device_id=device_id,
-                               class_id=class_id, instance_id=instance_id)
+                # This can occur right after a MIB Reset if the ONU publishes AVCs right away
+                # and during the MIB audit resync for ONU created MEs in response to an OLT
+                # created ME.  Fail since for these test cases they occur during a verification
+                # 'query' and not the ME creation during resync. Calling code should handle
+                # they exception if it is expected to occur on occasion.
+                self.log.info('instance-proxy-does-not-exist', device_id=device_id,
+                              class_id=class_id, instance_id=instance_id)
                 raise
 
         # Create instance, first make sure class exists
