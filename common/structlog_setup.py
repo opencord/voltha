@@ -28,6 +28,26 @@ try:
 except ImportError:
     from dummy_thread import get_ident as _get_ident
 
+# Add a TRACE log level to structlog
+
+# new level is 5, other levels given here:
+# https://github.com/hynek/structlog/blob/18.2.0/src/structlog/stdlib.py#L296
+structlog.stdlib.TRACE = 5
+
+def trace_structlog(self, event=None, *args, **kw):
+    ''' enable TRACE for structlog '''
+    return self._proxy_to_logger("trace", event, *args, **kw)
+
+
+# Create structlog TRACE level and add to BoundLogger object
+#  https://github.com/hynek/structlog/blob/18.2.0/src/structlog/stdlib.py#L59
+def trace_structlog(self, event=None, *args, **kw):
+    ''' enable TRACE for structlog '''
+    return self._proxy_to_logger("trace", event, *args, **kw)
+
+
+structlog.stdlib.BoundLogger.trace = trace_structlog
+
 
 class StructuredLogRenderer(object):
     def __call__(self, logger, name, event_dict):
@@ -123,6 +143,7 @@ def update_logging(instance_id, vcore_id):
         add_instance_id,
         add_vcore_id,
         StructuredLogRenderer(),
+        structlog.processors.UnicodeEncoder(),
     ]
     structlog.configure(processors=processors)
 

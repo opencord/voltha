@@ -39,6 +39,9 @@ log = get_logger()
 # _ = third_party
 
 class ConnectionManager(object):
+
+    RETRY_BACKOFF = [0.05, 0.1, 0.2, 0.5, 1, 2, 5]
+
     def __init__(self, consul_endpoint, vcore_endpoint, vcore_grpc_timeout,
                  controller_endpoints, instance_id,
                  enable_tls=False, key_file=None, cert_file=None,
@@ -58,6 +61,7 @@ class ConnectionManager(object):
 
         self.channel = None
         self.grpc_client = None  # single, shared gRPC client to vcore
+        self.retries = 0
 
         self.agent_map = {}  # (datapath_id, controller_endpoint) -> Agent()
         self.device_id_to_datapath_id_map = {}
@@ -147,6 +151,18 @@ class ConnectionManager(object):
 
         log.debug('stop-assign-grpc-attributes')
 
+    def _backoff(self, msg):
+        wait_time = self.RETRY_BACKOFF[min(self.retries,
+                                           len(self.RETRY_BACKOFF) - 1)]
+        self.retries += 1
+        log.error(msg, retry_in=wait_time)
+        return asleep(wait_time)
+
+    def _clear_backoff(self):
+        if self.retries:
+            log.info('reconnected after %d retries' % self.retries)
+            self.retries = 0
+
     @inlineCallbacks
     def monitor_vcore_grpc_channel(self):
         log.debug('start-monitor-vcore-grpc-channel')
@@ -174,6 +190,8 @@ class ConnectionManager(object):
                         self.subscription = subscription
                         self.grpc_client.start()
 
+                    self._clear_backoff()
+
                     # Sleep a bit in between each subscribe
                     yield asleep(self.subscription_refresh_interval)
 
@@ -185,7 +203,11 @@ class ConnectionManager(object):
                     log.info('subscription-with-vcore-unavailable', subscription=subscription)
 
             except _Rendezvous, e:
-                log.error('subscription-with-vcore-terminated',exception=e, status=e.code())
+                if e.code() == grpc.StatusCode.UNAVAILABLE:
+                    log.info('grpc-endpoint-not-available')
+                else:
+                    log.exception(e)
+                yield self._backoff('not-available')
 
             except Exception as e:
                 log.exception('unexpected-subscription-termination-with-vcore', e=e)

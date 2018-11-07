@@ -40,7 +40,7 @@ class OpenFlowConnection(protocol.Protocol):
         self.agent.enter_connected()
 
     def dataReceived(self, data):
-        log.debug('data-received', len=len(data),
+        log.trace('data-received', len=len(data),
                   received=hexdump(data, result='return'))
 
         assert len(data)  # connection close shall be handled by the protocol
@@ -71,7 +71,7 @@ class OpenFlowConnection(protocol.Protocol):
             if not msg:
                 log.warn('could-not-parse',
                          data=hexdump(rawmsg, result='return'))
-            log.debug('received-msg', module=type(msg).__module__,
+            log.trace('received-msg', module=type(msg).__module__,
                   name=type(msg).__name__, xid=msg.xid, len=len(buf))
             self.rx.put(msg)
 
@@ -88,7 +88,7 @@ class OpenFlowConnection(protocol.Protocol):
         :return: None
         """
         assert self.connected
-        log.debug('sending-raw', len=len(buf))
+        log.trace('sending-raw', len=len(buf))
         self.transport.write(buf)
 
     def send(self, msg):
@@ -102,10 +102,10 @@ class OpenFlowConnection(protocol.Protocol):
         if msg.xid is None:
             msg.xid = self._gen_xid()
         buf = msg.pack()
-        log.debug('sending', module=type(msg).__module__,
+        log.trace('sending', module=type(msg).__module__,
                   name=type(msg).__name__, xid=msg.xid, len=len(buf))
         self.transport.write(buf)
-        log.debug('data-sent', sent=hexdump(buf, result='return'))
+        log.trace('data-sent', sent=hexdump(buf, result='return'))
 
     def recv(self, predicate):
         assert self.connected

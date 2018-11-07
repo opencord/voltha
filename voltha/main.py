@@ -392,7 +392,6 @@ class Main(object):
                         rest_port=self.args.rest_port,
                         instance_id=self.instance_id,
                         config=self.config,
-                        consul=self.args.consul,
                         etcd=self.args.etcd,
                         container_name_regex=self.args.container_name_regex)
                 ).start()
