@@ -167,6 +167,9 @@ class KafkaProxy(object):
                     d =  deferToThread(self.kproducer.produce, topic, msg, key)
                     yield d
                     log.debug('sent-kafka-msg', topic=topic, msg=msg)
+                    # send a lightweight poll to avoid an exception after 100k messages.
+                    d1 = deferToThread(self.kproducer.poll, 0)
+                    yield d1
                 else:
                     return
 
