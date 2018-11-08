@@ -88,14 +88,12 @@ $(M)/kafka-running: | $(M)/kafka
 	touch $@
 
 $(M)/onos: | $(M)/kafka-running
-	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/onos.yaml -f configs/seba-ponsim.yaml --set onosImage=voltha/voltha-onos:latest
+	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/onos.yaml -f configs/seba-ponsim.yaml --set onosImage=voltha-onos:latest,imagePullPolicy=Never
 	touch $@
 
 $(M)/voltha: | $(M)/kafka-running $(M)/onos
 	cd $(HOME)/cord/helm-charts; helm dep up voltha
-	cd $(HOME)/cord/helm-charts; helm upgrade --install voltha -f configs/seba-ponsim.yaml \
-    	--set etcd-operator.customResources.createEtcdClusterCRD=false \
-    	voltha
+	cd $(HOME)/cord/helm-charts; helm upgrade --install voltha voltha -f configs/seba-ponsim.yaml --set vcoreImage=voltha-voltha:latest,envoyForEtcdImage=voltha-envoy:latest,netconfImage=voltha-netconf:latest,ofagentImage=voltha-ofagent:latest,vcliImage=voltha-cli:latest,etcd-operator.customResources.createEtcdClusterCRD=false,imagePullPolicy=Never
 	touch $@
 
 $(M)/etcd-operator-ready: | $(M)/voltha
@@ -112,9 +110,7 @@ $(M)/etcd-operator-ready: | $(M)/voltha
 	touch $@
 
 $(M)/etcd-cluster: | $(M)/etcd-operator-ready
-	cd $(HOME)/cord/helm-charts; helm upgrade voltha -f configs/seba-ponsim.yaml \
-    	--set etcd-operator.customResources.createEtcdClusterCRD=true \
-    	voltha
+	cd $(HOME)/cord/helm-charts; helm upgrade --install voltha voltha -f configs/seba-ponsim.yaml --set vcoreImage=voltha-voltha:latest,envoyForEtcdImage=voltha-envoy:latest,netconfImage=voltha-netconf:latest,ofagentImage=voltha-ofagent:latest,vcliImage=voltha-cli:latest,etcd-operator.customResources.createEtcdClusterCRD=true,imagePullPolicy=Never
 	touch $@
 
 $(M)/voltha-running: | $(M)/etcd-cluster
@@ -124,7 +120,7 @@ $(M)/voltha-running: | $(M)/etcd-cluster
 $(M)/ponsim: | $(M)/voltha-running
 	cd $(HOME)/cord/helm-charts; helm upgrade --install ponnet ponnet
 	$(HOME)/cord/helm-charts/scripts/wait_for_pods.sh kube-system
-	cd $(HOME)/cord/helm-charts; helm upgrade --install ponsimv2 ponsimv2 -f configs/seba-ponsim.yaml
+	cd $(HOME)/cord/helm-charts; helm upgrade --install ponsimv2 ponsimv2 -f configs/seba-ponsim.yaml --set images.olt.repository=voltha-ponsim,images.olt.pullPolicy=Never,images.onu.repository=voltha-ponsim,images.onu.pullPolicy=Never,images.rg.repository=voltha-tester,images.rg.pullPolicy=Never
 	touch $@
 
 $(M)/pon0_fwd: | $(M)/ponsim
