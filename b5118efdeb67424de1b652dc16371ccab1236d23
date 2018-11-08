@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "22e523a1_9b6aaaa6",
+        "filename": "voltha/main.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 306,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-11-08T15:02:18Z",
+      "side": 1,
+      "message": "log?  Or does this happen before the logging is configured?",
+      "range": {
+        "startLine": 306,
+        "startChar": 4,
+        "endLine": 306,
+        "endChar": 10
+      },
+      "revId": "b5118efdeb67424de1b652dc16371ccab1236d23",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
