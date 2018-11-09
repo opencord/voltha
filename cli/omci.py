@@ -27,6 +27,8 @@ from voltha.protos import third_party
 from voltha.protos import voltha_pb2
 from voltha.protos.omci_mib_db_pb2 import MibDeviceData, MibClassData, \
     MibInstanceData
+from voltha.protos.omci_alarm_db_pb2 import AlarmDeviceData, AlarmClassData, \
+    AlarmInstanceData
 from os import linesep
 
 _ = third_party
@@ -96,8 +98,8 @@ class OmciCli(Cmd):
         try:
             res = stub.GetMibDeviceData(voltha_pb2.ID(id=device_id),
                                         metadata=(('get-depth', str(depth)), ))
-        except Exception as e:
-            pass
+        except Exception as _e:
+            res = None
 
         return res
 
@@ -142,6 +144,11 @@ class OmciCli(Cmd):
 
         except Exception:   # UnboundLocalError if Device ID not found in DB
             self.poutput(self.colorize('Failed to get MIB database for ONU {}'
+                                       .format(device_id), 'red'))
+            return
+
+        if mib_db is None:
+            self.poutput(self.colorize('MIB database for ONU {} is not currently available'
                                        .format(device_id), 'red'))
             return
 
@@ -212,8 +219,8 @@ class OmciCli(Cmd):
         return ' '.join([v[0].upper() + v[1:] for v in attr.split('_')])
 
     def _instance_to_dict(self, instance):
-        if not isinstance(instance, MibInstanceData):
-            raise TypeError('{} is not of type MibInstanceData'.format(type(instance)))
+        if not isinstance(instance, (MibInstanceData, AlarmInstanceData)):
+            raise TypeError('{} is not of type MIB/Alarm Instance Data'.format(type(instance)))
 
         data = {
             OmciCli.INSTANCE_ID_KEY: instance.instance_id,
@@ -227,8 +234,8 @@ class OmciCli(Cmd):
         return data
 
     def _class_to_dict(self, val):
-        if not isinstance(val, MibClassData):
-            raise TypeError('{} is not of type MibClassData'.format(type(val)))
+        if not isinstance(val, (MibClassData, AlarmClassData)):
+            raise TypeError('{} is not of type MIB/Alarm Class Data'.format(type(val)))
 
         data = {
             OmciCli.CLASS_ID_KEY: val.class_id,
@@ -239,7 +246,7 @@ class OmciCli(Cmd):
 
     def _device_to_dict(self, val):
         if not isinstance(val, MibDeviceData):
-            raise TypeError('{} is not of type MibDeviceData'.format(type(val)))
+            raise TypeError('{} is not of type MIB Device Data'.format(type(val)))
 
         data = {
             OmciCli.DEVICE_ID_KEY: val.device_id,
@@ -279,6 +286,10 @@ class OmciCli(Cmd):
 
         try:
             mib_db = self.get_device_mib(device_id, depth=1)
+            if mib_db is None:
+                self.poutput(self.colorize('Supported ME information for ONU {} is not currently available'
+                                           .format(device_id), 'red'))
+                return
             mib = self._device_to_dict(mib_db)
 
         except Exception:   # UnboundLocalError if Device ID not found in DB
@@ -308,6 +319,11 @@ class OmciCli(Cmd):
 
         try:
             mib_db = self.get_device_mib(device_id, depth=1)
+            if mib_db is None:
+                self.poutput(self.colorize('Message Types for ONU {} are not currently available'
+                                           .format(device_id), 'red'))
+                return
+
             mib = self._device_to_dict(mib_db)
 
         except Exception:   # UnboundLocalError if Device ID not found in DB
@@ -347,7 +363,7 @@ class OmciCli(Cmd):
         print_pb_list_as_table('Devices:', devices, omit_fields, self.poutput)
 
     def help_devices(self):
-        self.poutput('TODO: Provide some help')
+        self.poutput('List devices registered in Voltha')
 
     def poutput(self, msg):
         """Convenient shortcut for self.stdout.write(); adds newline if necessary."""
@@ -359,3 +375,106 @@ class OmciCli(Cmd):
     def do_show(self, _):
         """Show detailed omci information"""
         self.poutput('Use show_mib, show_alarms, show_me, show_msg_types for detailed OMCI information')
+
+    def get_alarm_table(self, device_id, depth=-1):
+        stub = self.get_stub()
+
+        try:
+            res = stub.GetAlarmDeviceData(voltha_pb2.ID(id=device_id),
+                                          metadata=(('get-depth', str(depth)), ))
+        except Exception as _e:
+            res = None
+
+        return res
+
+    def _alarms_to_dict(self, val):
+        if not isinstance(val, AlarmDeviceData):
+            raise TypeError('{} is not of type Alarm Device Data'.format(type(val)))
+
+        data = {
+            OmciCli.DEVICE_ID_KEY: val.device_id,
+            OmciCli.CREATED_KEY: self._string_to_time(val.created),
+            OmciCli.VERSION_KEY: val.version
+        }
+        for class_data in val.classes:
+            data[class_data.class_id] = self._class_to_dict(class_data)
+
+        return data
+
+    def help_show_alarms(self):
+        self.poutput('show_alarms [-d <device-id>]' +
+                     linesep + '-d: <device-id>   ONU Device ID')
+
+    @options([
+        make_option('-d', '--device-id', action="store", dest='device_id', type='string',
+                    help='ONU Device ID', default=None),
+    ])
+    def do_show_alarms(self, _line, opts):
+        """ Show contents of the alarm table"""
+        device_id = opts.device_id or self.device_id
+
+        try:
+            alarm_db = self.get_alarm_table(device_id, depth=-1)
+            if alarm_db is None:
+                self.poutput(self.colorize('Alarm Table for ONU {} is not currently available'
+                                           .format(device_id), 'red'))
+                return
+
+        except Exception:   # UnboundLocalError if Device ID not found in DB
+            self.poutput(self.colorize('Failed to get Alarm Table for ONU {}'
+                                       .format(device_id), 'red'))
+            return
+
+        alarms = self._alarms_to_dict(alarm_db)
+        self.poutput('OpenOMCI Alarm Table for ONU {}'.format(device_id))
+        self.poutput('Version            : {}'.format(alarms[OmciCli.VERSION_KEY]))
+        self.poutput('Created            : {}'.format(alarms[OmciCli.CREATED_KEY]))
+
+        class_ids = [k for k in alarms.iterkeys() if isinstance(k, int)]
+        class_ids.sort()
+
+        if len(class_ids) == 0:
+            self.poutput('No active alarms')
+            return
+
+        for cls_id in class_ids:
+            from omci_alarm_info import _alarm_info
+            class_data = alarms[cls_id]
+            info = _alarm_info.get(cls_id)
+
+            self.poutput('  ----------------------------------------------')
+            self.poutput('  Class ID: {0} - ({0:#x}): {1}'.
+                         format(cls_id,
+                                info.get('name') if info is not None else 'Unknown Class ID'))
+
+            inst_ids = [k for k in class_data.iterkeys() if isinstance(k, int)]
+            inst_ids.sort()
+
+            for inst_id in inst_ids:
+                inst_data = class_data[inst_id]
+                self.poutput('    Instance ID  : {0} - ({0:#x})'.format(inst_id))
+                self.poutput('    Created      : {}'.format(inst_data[OmciCli.CREATED_KEY]))
+                self.poutput('    Modified     : {}'.format(inst_data[OmciCli.MODIFIED_KEY]))
+
+                try:
+                    alarm_value = int(inst_data[OmciCli.ATTRIBUTES_KEY]['alarm_bit_map'])
+                except ValueError:
+                    alarm_value = 0
+
+                if alarm_value == 0:
+                    self.poutput('    Active Alarms: No Active Alarms')
+
+                else:
+                    padding = '    Active Alarms:'
+                    for alarm_no in xrange(0, 224):
+                        if (1 << (223 - alarm_no)) & alarm_value:
+                            if info is None:
+                                txt = 'Unknown alarm number'
+                            else:
+                                txt = info.get(alarm_no, 'Unknown alarm number')
+
+                            self.poutput('{} {}: {}'.format(padding, alarm_no, txt))
+                            padding = '                  '
+
+                    if inst_id is not inst_ids[-1]:
+                        self.poutput(linesep)
