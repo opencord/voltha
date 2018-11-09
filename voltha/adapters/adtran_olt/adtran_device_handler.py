@@ -396,7 +396,7 @@ class AdtranDeviceHandler(object):
                         device.images.image.extend(results.get('software-images', []))
 
                         device.root = True
-                        device.vendor = results.get('vendor', 'Adtran, Inc.')
+                        device.vendor = results.get('vendor', 'Adtran Inc.')
                         device.connect_status = ConnectStatus.REACHABLE
                         self.adapter_agent.update_device(device)
 

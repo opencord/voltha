@@ -146,7 +146,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             'model': 'n/a',
             'hardware_version': 'unknown',
             'serial_number': 'unknown',
-            'vendor': 'Adtran, Inc.',
+            'vendor': 'ADTRAN, Inc.',
             'firmware_version': 'unknown',
             'running-revision': 'unknown',
             'candidate-revision': 'unknown',
@@ -214,7 +214,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
     def initialize_resource_manager(self):
         # Initialize the resource manager
-        extra_args = '--olt_vendor {}'.format(self.resource_manager_key)
+        extra_args = '--olt_model {}'.format(self.resource_manager_key)
         self.resource_mgr = AdtranOltResourceMgr(self.device_id,
                                                  self.host_and_port,
                                                  extra_args,

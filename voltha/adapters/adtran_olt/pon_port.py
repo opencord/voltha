@@ -883,11 +883,9 @@ class PonPort(AdtnPort):
     @property
     def get_next_onu_id(self):
         return self._parent.resource_mgr.get_onu_id(self._pon_id)
-        # return self._onu_id_pool.get_next()
 
     def release_onu_id(self, onu_id):
         self._parent.resource_mgr.free_onu_id(self._pon_id, onu_id)
-        # self._onu_id_pool.release(onu_id)
 
     @inlineCallbacks
     def _remove_from_hardware(self, onu_id):
@@ -930,6 +928,10 @@ class PonPort(AdtnPort):
 
             except Exception as e:
                 self.log.exception('onu-remove', serial_number=onu.serial_number, e=e)
+
+        # Remove from LOS list if needed
+        if onu.id in self._active_los_alarms:
+            self._active_los_alarms.remove(onu.id)
 
     def add_mcast_gem_port(self, mcast_gem, vlan):
         """

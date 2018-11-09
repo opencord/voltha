@@ -19,6 +19,7 @@ from enum import Enum
 from acl import ACL
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
+from ncclient.operations.rpc import RPCError
 
 log = structlog.get_logger()
 
@@ -90,7 +91,6 @@ class EVCMap(object):
         self._c_tag = None
         self._men_ctag_priority = EVCMap.PriorityOption.DEFAULT
         self._men_ctag_pri = 0  # If Explicit Priority
-
         self._match_ce_vlan_id = None
         self._match_untagged = False
         self._match_destination_mac_address = None
@@ -322,8 +322,6 @@ class EVCMap(object):
             for acl in work_acls.itervalues():
                 try:
                     yield acl.install()
-                    # if not results.ok:
-                    #     pass                # TODO : do anything?
 
                 except Exception as e:
                     log.exception('acl-install-failed', name=self.name, e=e)
@@ -333,10 +331,12 @@ class EVCMap(object):
             # Now EVC-MAP
             if not self._installed or self._needs_update:
                 log.debug('needs-install-or-update', installed=self._installed, update=self._needs_update)
+                is_installed = self._installed
+                self._installed = True
                 try:
                     self._cancel_deferred()
                     map_xml = self._ingress_install_xml(self._gem_ids_and_vid, work_acls.values(),
-                                                        not self._installed) \
+                                                        not is_installed) \
                         if self._is_ingress_map else self._egress_install_xml()
 
                     log.debug('install', xml=map_xml, name=self.name)
@@ -347,12 +347,16 @@ class EVCMap(object):
 
                     if results.ok:
                         self._existing_acls.update(work_acls)
-
                     else:
                         self._new_acls.update(work_acls)
 
+                except RPCError as rpc_err:             # TODO: Try to catch this before attempting the install
+                    if rpc_err.tag == 'data-exists':    # Known race due to bulk-flow operation
+                        pass
+
                 except Exception as e:
                     log.exception('evc-map-install-failed', name=self.name, e=e)
+                    self._installed = is_installed
                     self._new_acls.update(work_acls)
                     raise
 
@@ -687,8 +691,9 @@ class EVCMap(object):
         is_uni = flow.handler.is_uni_port(flow.in_port)
 
         if is_pon or is_uni:
+            # Preserve CE VLAN tag only if utility VLAN/EVC
             self._uni_port = flow.handler.get_port_name(flow.in_port)
-            evc.ce_vlan_preservation = False
+            evc.ce_vlan_preservation = evc.ce_vlan_preservation or False
         else:
             self._status_message = 'EVC-MAPS without UNI or PON ports are not supported'
             return False    # UNI Ports handled in the EVC Maps
