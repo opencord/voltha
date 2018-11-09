@@ -17,7 +17,7 @@ from scapy.fields import ByteField, PacketField, IntField
 from scapy.fields import ShortField, ConditionalField
 from scapy.packet import Packet
 
-from voltha.extensions.omci.omci_defs import FixedLenField
+from voltha.extensions.omci.omci_fields import FixedLenField
 from voltha.extensions.omci.omci_messages import OmciCreate, OmciDelete, \
     OmciDeleteResponse, OmciSet, OmciSetResponse, OmciGet, OmciGetResponse, \
     OmciGetAllAlarms, OmciGetAllAlarmsResponse, OmciGetAllAlarmsNext, \

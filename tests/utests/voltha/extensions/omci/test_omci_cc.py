@@ -655,6 +655,24 @@ class TestOmciCc(TestCase):
 
         self.assertTrue(True, 'Truth is the truth')
 
+    def test_rx_decode_onu_g(self):
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        snapshot = self._snapshot_stats()
+
+        msg = '001e2e0a0002000001000000e000424657530000' \
+              '0000000000000000000000324246575300107496' \
+              '00000028e7fb4a91'
+
+        omci_cc.receive_message(hex2raw(msg))
+
+        # Note: No counter increments
+        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'] + 1)
+        self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'])
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'] + 1)
+        self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'])
 
 if __name__ == '__main__':
     main()
