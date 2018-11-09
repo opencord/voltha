@@ -26,12 +26,14 @@ class OnuTCont(TCont):
     Adtran ONU specific implementation
     """
     free_tcont_alloc_id = 0xFFFF
+    free_gpon_tcont_alloc_id = 0xFF     # SFU may use this to indicate a free TCONT
 
     def __init__(self, handler, alloc_id, traffic_descriptor, name=None):
         super(OnuTCont, self).__init__(alloc_id, traffic_descriptor, name=name)
         self._handler = handler
         self._entity_id = None
         self.log = structlog.get_logger(device_id=handler.device_id, alloc_id=alloc_id)
+        self._free_alloc_id = OnuTCont.free_tcont_alloc_id
 
     @property
     def entity_id(self):
@@ -44,7 +46,7 @@ class OnuTCont(TCont):
         return OnuTCont(handler, tcont['alloc-id'], td, name=tcont['name'])
 
     @inlineCallbacks
-    def add_to_hardware(self, omci, tcont_entity_id):
+    def add_to_hardware(self, omci, tcont_entity_id, prev_alloc_id=OnuTCont.free_tcont_alloc_id):
         self.log.debug('add-to-hardware', tcont_entity_id=tcont_entity_id)
 
         if self._entity_id == tcont_entity_id:
@@ -54,6 +56,7 @@ class OnuTCont(TCont):
             raise KeyError('TCONT already assigned: {}'.format(self.entity_id))
 
         try:
+            self._free_alloc_id = prev_alloc_id
             frame = TcontFrame(tcont_entity_id, self.alloc_id).set()
             results = yield omci.send(frame)
 
@@ -78,7 +81,7 @@ class OnuTCont(TCont):
     def remove_from_hardware(self, omci):
         self.log.debug('remove-from-hardware', tcont_entity_id=self.entity_id)
         try:
-            frame = TcontFrame(self.entity_id, OnuTCont.free_tcont_alloc_id).set()
+            frame = TcontFrame(self.entity_id, self._free_alloc_id).set()
             results = yield omci.send(frame)
 
             status = results.fields['omci_message'].fields['success_code']

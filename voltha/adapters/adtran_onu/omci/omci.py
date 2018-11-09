@@ -86,6 +86,10 @@ class OMCI(object):
         self._subscribe_to_events()
         self._onu_omci_device.start()
 
+        device = self._handler.adapter_agent.get_device(self._handler.device_id)
+        device.reason = 'Performing MIB Upload'
+        self._handler.adapter_agent.update_device(device)
+
         if self._onu_omci_device.mib_db_in_sync:
             self._deferred = reactor.callLater(0, self._mib_in_sync)
 
@@ -175,7 +179,7 @@ class OMCI(object):
         device = self._handler.adapter_agent.get_device(self._handler.device_id)
         device.oper_status = OperStatus.ACTIVE
         device.connect_status = ConnectStatus.REACHABLE
-        device.reason = 'MIB Synchronization complete'
+        device.reason = ''
         self._handler.adapter_agent.update_device(device)
 
         omci_dev = self._onu_omci_device
@@ -325,6 +329,10 @@ class OMCI(object):
             self._mib_download_task = None
 
             def success(_results):
+                device = self._handler.adapter_agent.get_device(self._handler.device_id)
+                device.reason = ''
+                self._handler.adapter_agent.update_device(device)
+
                 if self._mib_downloaded:
                     self._service_downloaded = True
                 else:
@@ -337,13 +345,21 @@ class OMCI(object):
             def failure(reason):
                 self.log.error('mib-download-failure', reason=reason)
                 self._mib_download_task = None
+                device = self._handler.adapter_agent.get_device(self._handler.device_id)
+                self._handler.adapter_agent.update_device(device)
                 self._mib_download_deferred = reactor.callLater(_STARTUP_RETRY_WAIT,
                                                                 self.capabilities_handler,
                                                                 None, None)
             if not self._mib_downloaded:
+                device = self._handler.adapter_agent.get_device(self._handler.device_id)
+                device.reason = 'Initial MIB Download'
+                self._handler.adapter_agent.update_device(device)
                 self._mib_download_task = AdtnMibDownloadTask(self.omci_agent,
                                                               self._handler)
             elif not self._service_downloaded:
+                device = self._handler.adapter_agent.get_device(self._handler.device_id)
+                device.reason = 'Initial Service Download'
+                self._handler.adapter_agent.update_device(device)
                 self._mib_download_task = AdtnServiceDownloadTask(self.omci_agent,
                                                                   self._handler)
             if self._mib_download_task is not None:

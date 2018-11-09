@@ -56,6 +56,7 @@ class AdtnServiceDownloadTask(Task):
     default_tpid = 0x8100                       # TODO: Move to a better location
     name = "ADTRAN Service Download Task"
     free_tcont_alloc_id = 0xFFFF
+    free_gpon_tcont_alloc_id = 0xFF
 
     def __init__(self, omci_agent, handler):
         """
@@ -68,7 +69,7 @@ class AdtnServiceDownloadTask(Task):
                                                       omci_agent,
                                                       handler.device_id,
                                                       priority=AdtnServiceDownloadTask.task_priority,
-                                                      exclusive=True)
+                                                      exclusive=False)
         self._handler = handler
         self._onu_device = omci_agent.get_device(handler.device_id)
         self._local_deferred = None
@@ -213,17 +214,21 @@ class AdtnServiceDownloadTask(Task):
 
             for tcont in self._pon.tconts.itervalues():
                 if tcont.entity_id is None:
+                    free_ids = {AdtnServiceDownloadTask.free_tcont_alloc_id,
+                                AdtnServiceDownloadTask.free_gpon_tcont_alloc_id}
+
                     free_entity_id = next((k for k, v in tcont_idents.items()
                                            if isinstance(k, int) and
-                                           v.get('attributes', {}).get('alloc_id', 0) ==
-                                           AdtnServiceDownloadTask.free_tcont_alloc_id), None)
+                                           v.get('attributes', {}).get('alloc_id', 0) in
+                                           free_ids), None)
 
                     if free_entity_id is None:
                         self.log.error('no-available-tconts')
                         raise ServiceResourcesFailure('No Available TConts')
 
                     try:
-                        yield tcont.add_to_hardware(omci_cc, free_entity_id)
+                        prev_alloc_id = tcont_idents[free_entity_id].get('attributes').get('alloc_id')
+                        yield tcont.add_to_hardware(omci_cc, free_entity_id, prev_alloc_id=prev_alloc_id)
 
                     except Exception as e:
                         self.log.exception('tcont-set', e=e, eid=free_entity_id)

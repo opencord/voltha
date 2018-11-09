@@ -68,7 +68,7 @@ class AdtnMibDownloadTask(Task):
                                                   omci_agent,
                                                   handler.device_id,
                                                   priority=AdtnMibDownloadTask.task_priority,
-                                                  exclusive=True)
+                                                  exclusive=False)
         self._handler = handler
         self._onu_device = omci_agent.get_device(handler.device_id)
         self._local_deferred = None
@@ -270,13 +270,13 @@ class AdtnMibDownloadTask(Task):
             #
             # Set anything, this request will not be used when using Extended Vlan
 
-            # frame = VlanTaggingFilterDataFrame(
-            #     self._mac_bridge_port_ani_entity_id,  # Entity ID
-            #     vlan_tcis=[self._vlan_tcis_1],        # VLAN IDs
-            #     forward_operation=0x10
-            # ).create()
-            # results = yield omci_cc.send(frame)
-            # self.check_status_and_state(results, 'create-vlan-tagging-filter-data')
+            frame = VlanTaggingFilterDataFrame(
+                self._mac_bridge_port_ani_entity_id,  # Entity ID
+                vlan_tcis=[self._vlan_tcis_1],        # VLAN IDs
+                forward_operation=0x00
+            ).create()
+            results = yield omci_cc.send(frame)
+            self.check_status_and_state(results, 'create-vlan-tagging-filter-data')
 
             #############################################################
             # Create GalEthernetProfile - Once per ONU/PON interface
