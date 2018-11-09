@@ -24,7 +24,7 @@ _acl_list = {}      # Key -> device-id -> Name: List of encoded EVCs
 
 ACL_NAME_FORMAT = 'VOLTHA-ACL-{}-{}'  # format(flow_entry.flow_id, flow-entry-hash)
 ACL_NAME_REGEX_ALL = 'VOLTHA-ACL-*'
-ACE_NAME_FORMAT = 'VOLTHA-ACE-{}-{}'  # format(flow_entry.flow_id, flow-entry-hash)
+ACE_NAME_FORMAT = 'VOLTHA-ACE-{}'  # format(flow_entry.flow_id)
 
 
 class ACL(object):
@@ -191,7 +191,16 @@ class ACL(object):
 
     @staticmethod
     def create(flow_entry):
-        return ACL(flow_entry)
+        acl = ACL(flow_entry)
+
+        # Already created and installed, return that one
+        acls_installed = _acl_list.get(flow_entry.handler.device_id)
+        if acls_installed is not None:
+            entry = acls_installed.get(acl._name)
+            if entry is not None:
+                return entry
+
+        return acl
 
     @staticmethod
     def flow_to_name(flow_entry):
@@ -199,7 +208,7 @@ class ACL(object):
 
     @staticmethod
     def flow_to_ace_name(flow_entry):
-        return ACE_NAME_FORMAT.format(flow_entry.flow_id, ACL.acl_hash(flow_entry))
+        return ACE_NAME_FORMAT.format(flow_entry.flow_id)
 
     @staticmethod
     def acl_hash(flow_entry):

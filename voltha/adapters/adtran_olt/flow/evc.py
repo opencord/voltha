@@ -395,7 +395,14 @@ class EVC(object):
         if self._flow.inner_vid is not None:
            self._switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED
 
-        # Note: The following fields will get set when the first EVC-MAP
+        # For the Utility VLAN, multiple ingress ACLs (different GEMs) will need to
+        # be trapped on this EVC. Since these are usually untagged, we have to force
+        # the EVC to preserve CE VLAN tags.
+
+        if self._s_tag == self._flow.handler.utility_vlan:
+            self._ce_vlan_preservation = True
+
+        # Note: The following fields may get set when the first EVC-MAP
         #       is associated with this object. Once set, they cannot be changed to
         #       another value.
         #  self._stpid
