@@ -74,7 +74,7 @@ class TestOmciFundamentals(TestCase):
 
         e = CircuitPack(
             number_of_ports=4,
-            serial_number='123-123A',
+            serial_number='BCMX31323334', # serial number is 4 ascii + 4 hex. 8 octets on the wire
             version='a1c12fba91de',
             vendor_id='BCM',
             total_tcont_buffer_number=128
@@ -82,11 +82,11 @@ class TestOmciFundamentals(TestCase):
 
         # Full object
         self.assertEqual(e.serialize(),
-                         '\x04123-123Aa1c12fba91de\x00\x00BCM\x00\x80')
+                         '\x04BCMX1234a1c12fba91de\x00\x00BCM\x00\x80')
 
         # Explicit mask with valid values
         self.assertEqual(e.serialize(0x800), 'BCM\x00')
-        self.assertEqual(e.serialize(0x6800), '\x04123-123ABCM\x00')
+        self.assertEqual(e.serialize(0x6800), '\x04BCMX1234BCM\x00')
 
         # Referring to an unfilled field is regarded as error
         self.assertRaises(OmciUninitializedFieldError, e.serialize, 0xc00)

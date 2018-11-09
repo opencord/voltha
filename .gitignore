@@ -89,4 +89,4 @@ coverage.xml
 nosetests.xml
 
 # OpenOLT repo
-voltha/adapters/openolt/openolt
+voltha/adapters/openolt/core

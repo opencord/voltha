@@ -14,9 +14,6 @@
 # limitations under the License.
 #
 from enum import Enum, IntEnum
-from scapy.fields import PadField
-from scapy.packet import Raw
-
 
 class OmciUninitializedFieldError(Exception):
     pass
@@ -24,23 +21,6 @@ class OmciUninitializedFieldError(Exception):
 
 class OmciInvalidTypeError(Exception):
     pass
-
-
-class FixedLenField(PadField):
-    """
-    This Pad field limits parsing of its content to its size
-    """
-    def __init__(self, fld, align, padwith='\x00'):
-        super(FixedLenField, self).__init__(fld, align, padwith)
-
-    def getfield(self, pkt, s):
-        remain, val = self._fld.getfield(pkt, s[:self._align])
-        if isinstance(val.payload, Raw) and \
-                not val.payload.load.replace(self._padwith, ''):
-            # raw payload is just padding
-            val.remove_payload()
-        return remain + s[self._align:], val
-
 
 def bitpos_from_mask(mask, lsb_pos=0, increment=1):
     """

@@ -25,8 +25,8 @@ from scapy.packet import Packet
 
 from voltha.extensions.omci.omci_defs import OmciUninitializedFieldError, \
     AttributeAccess, OmciNullPointer, EntityOperations, OmciInvalidTypeError
+from voltha.extensions.omci.omci_fields import OmciSerialNumberField
 from voltha.extensions.omci.omci_defs import bitpos_from_mask
-
 
 class EntityClassAttribute(object):
 
@@ -276,7 +276,7 @@ class CircuitPack(EntityClass):
             range_check=lambda x: 0 <= x < 255 or 256 <= x < 511),
         ECA(ByteField("type", None), {AA.R, AA.SBC}),
         ECA(ByteField("number_of_ports", None), {AA.R}, optional=True),
-        ECA(StrFixedLenField("serial_number", None, 8), {AA.R}),
+        ECA(OmciSerialNumberField("serial_number"), {AA.R}),
         ECA(StrFixedLenField("version", None, 14), {AA.R}),
         ECA(StrFixedLenField("vendor_id", None, 4), {AA.R}),
         ECA(ByteField("administrative_state", None), {AA.R, AA.W}),
@@ -648,7 +648,7 @@ class OntG(EntityClass):
             range_check=lambda x: x == 0),
         ECA(StrFixedLenField("vendor_id", None, 4), {AA.R}),
         ECA(StrFixedLenField("version", None, 14), {AA.R}),
-        ECA(StrFixedLenField("serial_number", None, 8), {AA.R}),
+        ECA(OmciSerialNumberField("serial_number"), {AA.R}),
         ECA(ByteField("traffic_management_options", None), {AA.R},
             range_check=lambda x: 0 <= x <= 2),
         ECA(ByteField("vp_vc_cross_connection_option", 0), {AA.R},
