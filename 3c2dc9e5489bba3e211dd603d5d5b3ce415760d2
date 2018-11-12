@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "95e2fa18_6b44f563",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 170,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-12T05:30:09Z",
+      "side": 1,
+      "message": "My understanding is this. We are passing here the instance of OpenOltResourceManager. The OpenOltResourceManager already has resource_manager intialized on a per pon port basis taking into account the technology. Whenever the resource is requested on a given pon port, the appropriate resource manager for that technology is chosen. So, there should not be any problem. Please let me know if I am missing something.",
+      "parentUuid": "c736f20a_b158ea2a",
+      "range": {
+        "startLine": 170,
+        "startChar": 23,
+        "endLine": 170,
+        "endChar": 35
+      },
+      "revId": "3c2dc9e5489bba3e211dd603d5d5b3ce415760d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a5222b6b_8cfd265e",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 5
@@ -83,6 +107,30 @@
       "writtenOn": "2018-11-06T16:33:33Z",
       "side": 1,
       "message": "This needs to be refactored with the latest master supporting multiple resource managers for multiple technologies. This means there are multiple TechProfiles: one per resource manager. I suggest making tech profile an attribute of resource manager rather than the opposite.",
+      "range": {
+        "startLine": 94,
+        "startChar": 28,
+        "endLine": 94,
+        "endChar": 39
+      },
+      "revId": "3c2dc9e5489bba3e211dd603d5d5b3ce415760d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6f76f803_b36fed64",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-12T05:30:09Z",
+      "side": 1,
+      "message": "My understanding is, when the pon_intf is specified, the appropriate resource_manager is automatically chosen for that technology. Please let me know if I am missing something.",
+      "parentUuid": "9f68eded_58acd154",
       "range": {
         "startLine": 94,
         "startChar": 28,
