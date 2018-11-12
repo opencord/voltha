@@ -48,6 +48,30 @@
     },
     {
       "key": {
+        "uuid": "82878ac5_2aa6c336",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-12T04:41:12Z",
+      "side": 1,
+      "message": "The flows are referenced using logical_flow Ids on the KV store. The \"flow_category\" is additional information about the flow. Since the whole of the OpenOlt flow manager module is built around specific set of flows, I will prefer not to venture into it now. I think this should be taken up separately.",
+      "parentUuid": "a5222b6b_8cfd265e",
+      "range": {
+        "startLine": 39,
+        "startChar": 0,
+        "endLine": 39,
+        "endChar": 9
+      },
+      "revId": "3c2dc9e5489bba3e211dd603d5d5b3ce415760d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9f68eded_58acd154",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 5
@@ -82,6 +106,30 @@
       "writtenOn": "2018-11-06T16:33:33Z",
       "side": 1,
       "message": "This problem probably affects any downstream flows that are trap to controller. Should we develop a long term solution rather than a hack as described. I think you are suggesting using the first PON interface as the resource manager pool for the downstream flow id allocation. I don\u0027t have a problem using intf_id\u003d0",
+      "range": {
+        "startLine": 809,
+        "startChar": 0,
+        "endLine": 809,
+        "endChar": 63
+      },
+      "revId": "3c2dc9e5489bba3e211dd603d5d5b3ce415760d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "46546e4b_d655eea7",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 809,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-12T04:41:12Z",
+      "side": 1,
+      "message": "I am indirectly using intf_id 0 here. The network_intf_id is never passed from the caller, and network_intf_id is used as intf_id, the default value 0 is chosen.\nMay be I can make it more clear.\nBy the way, using intf_id 0 is still a hack. But, I can\u0027t think of any other way of solving this problem.",
+      "parentUuid": "b338c843_7e3df779",
       "range": {
         "startLine": 809,
         "startChar": 0,
