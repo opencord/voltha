@@ -294,7 +294,6 @@ class BrcmOpenomciOnuHandler(object):
 
     # Calling this assumes the onu is active/ready and had at least an initial mib downloaded.   This gets called from
     # flow decomposition that ultimately comes from onos
-    @inlineCallbacks
     def update_flow_table(self, device, flows):
         self.log.debug('function-entry', device=device, flows=flows)
         #
@@ -302,6 +301,13 @@ class BrcmOpenomciOnuHandler(object):
         # Configuration from here should be using OMCI
         #
         #self.log.info('bulk-flow-update', device_id=device.id, flows=flows)
+
+        # no point in pushing omci flows if the device isnt reachable
+        if device.connect_status != ConnectStatus.REACHABLE or \
+           device.admin_state != AdminState.ENABLED:
+            self.log.warn("device-disabled-or-offline-skipping-flow-update",
+                          admin=device.admin_state, connect=device.connect_status)
+            return
 
         def is_downstream(port):
             return port == self._pon_port_number
@@ -435,9 +441,9 @@ class BrcmOpenomciOnuHandler(object):
                 else:
                     self._add_vlan_filter_task(device, _set_vlan_vid)
 
-
             except Exception as e:
                 self.log.exception('failed-to-install-flow', e=e, flow=flow)
+
 
     def _add_vlan_filter_task(self, device, _set_vlan_vid):
         def success(_results):
@@ -533,7 +539,6 @@ class BrcmOpenomciOnuHandler(object):
 
 
     # Not currently called.  Would be called presumably from the olt handler
-    @inlineCallbacks
     def remove_gemport(self, data):
         self.log.debug('remove-gemport', data=data)
         gem_port = GemportsConfigData()
@@ -541,7 +546,7 @@ class BrcmOpenomciOnuHandler(object):
         device = self.adapter_agent.get_device(self.device_id)
         if device.connect_status != ConnectStatus.REACHABLE:
             self.log.error('device-unreachable')
-            returnValue(None)
+            return
 
         #TODO: Create a remove task that encompasses this
 
@@ -579,13 +584,12 @@ class BrcmOpenomciOnuHandler(object):
             self.log.info('received-null-tcont-data', tcont=tcont.alloc_id)
 
     # Not currently called.  Would be called presumably from the olt handler
-    @inlineCallbacks
     def remove_tcont(self, tcont_data, traffic_descriptor_data):
         self.log.debug('remove-tcont', tcont_data=tcont_data, traffic_descriptor_data=traffic_descriptor_data)
         device = self.adapter_agent.get_device(self.device_id)
         if device.connect_status != ConnectStatus.REACHABLE:
             self.log.error('device-unreachable')
-            returnValue(None)
+            return
 
         # TODO: Create some omci task that encompases this what intended
 
@@ -595,7 +599,6 @@ class BrcmOpenomciOnuHandler(object):
 
         # TODO: create objects and populate for later omci calls
 
-    @inlineCallbacks
     def disable(self, device):
         self.log.debug('function-entry', device=device)
         try:
@@ -617,7 +620,6 @@ class BrcmOpenomciOnuHandler(object):
         except Exception as e:
             log.exception('exception-in-onu-disable', exception=e)
 
-    @inlineCallbacks
     def reenable(self, device):
         self.log.debug('function-entry', device=device)
         try:
@@ -632,13 +634,12 @@ class BrcmOpenomciOnuHandler(object):
         except Exception as e:
             log.exception('exception-in-onu-reenable', exception=e)
 
-    @inlineCallbacks
     def reboot(self):
         self.log.info('reboot-device')
         device = self.adapter_agent.get_device(self.device_id)
         if device.connect_status != ConnectStatus.REACHABLE:
             self.log.error("device-unreachable")
-            returnValue(None)
+            return
 
         def success(_results):
             self.log.info('reboot-success', _results=_results)
