@@ -609,6 +609,24 @@
     },
     {
       "key": {
+        "uuid": "312e8757_b1f9a4df",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-12T04:41:12Z",
+      "side": 1,
+      "message": "voltha2.0 has support for inter-adapter kafka messaging, so there should not be any problems.",
+      "parentUuid": "e249e460_675bcbf2",
+      "revId": "e58b6748ba2cd0e19230782d69c2ec11eb10517a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "63bae7b1_60771c98",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
