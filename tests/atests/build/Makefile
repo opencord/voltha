@@ -111,6 +111,7 @@ $(M)/etcd-operator-ready: | $(M)/voltha
 
 $(M)/etcd-cluster: | $(M)/etcd-operator-ready
 	cd $(HOME)/cord/helm-charts; helm upgrade --install voltha voltha -f configs/seba-ponsim.yaml --set images.vcore.repository=voltha-voltha,images.vcore.tag=latest,images.vcore.pullPolicy=Never,images.envoy_for_etcd.repository=voltha-envoy,images.envoy_for_etcd.tag=latest,images.envoy_for_etcd.pullPolicy=Never,images.netconf.repository=voltha-netconf,images.netconf.tag=latest,images.netconf.pullPolicy=Never,images.ofagent.repository=voltha-ofagent,images.ofagent.tag=latest,images.ofagent.pullPolicy=Never,images.vcli.repository=voltha-cli,images.vcli.tag=latest,images.vcli.pullPolicy=Never,etcd-operator.customResources.createEtcdClusterCRD=true
+	timeout 180s bash -c "until kubectl wait pod/etcd-cluster-0000 --for condition=ready; do echo 'Waiting for etcd-cluster-0000 to be ready'; done"
 	touch $@
 
 $(M)/voltha-running: | $(M)/etcd-cluster
