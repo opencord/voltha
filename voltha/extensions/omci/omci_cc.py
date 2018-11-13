@@ -20,10 +20,12 @@ OMCI Message support
 import sys
 import arrow
 from twisted.internet import reactor, defer
-from twisted.internet.defer import DeferredQueue, TimeoutError, CancelledError, failure, fail
+from twisted.internet.defer import DeferredQueue, TimeoutError, CancelledError, failure, fail, inlineCallbacks
 from common.frameio.frameio import hexify
 from voltha.extensions.omci.omci import *
 from voltha.extensions.omci.omci_me import OntGFrame, OntDataFrame
+from voltha.extensions.omci.me_frame import MEFrame
+from voltha.extensions.omci.omci_defs import ReasonCodes
 from common.event_bus import EventBusClient
 from enum import IntEnum
 from binascii import hexlify
@@ -283,7 +285,7 @@ class OMCI_CC(object):
                     omci_entities.entity_id_to_class_map = saved_me_map     # Always restore it.
 
                 try:
-                    (ts, d, tx_frame, _) = self._requests.pop(rx_tid)
+                    (ts, d, tx_frame, timeout) = self._requests.pop(rx_tid)
 
                     ts_diff = now - arrow.Arrow.utcfromtimestamp(ts)
                     secs = ts_diff.total_seconds()
@@ -307,14 +309,96 @@ class OMCI_CC(object):
                         return d.errback(failure.Failure(e))
                     return
 
-                # Notify sender of completed request
-                reactor.callLater(0, d.callback, rx_frame)
-
-                # Publish Rx event to listeners in a different task
-                reactor.callLater(0, self._publish_rx_frame, tx_frame, rx_frame)
+                reactor.callLater(0, self._process_rx_frame, timeout, secs, rx_frame, d, tx_frame)
 
             except Exception as e:
                 self.log.exception('rx-msg', e=e)
+
+    @inlineCallbacks
+    def _process_rx_frame(self, timeout, secs, rx_frame, d, tx_frame):
+        omci_msg = rx_frame.fields['omci_message']
+        if isinstance(omci_msg, OmciGetResponse) and 'table_attribute_mask' in omci_msg.fields['data']:
+            try:
+                entity_class = omci_msg.fields['entity_class']
+                entity_id = omci_msg.fields['entity_id']
+                table_attributes = omci_msg.fields['data']['table_attribute_mask']
+
+                device = self._adapter_agent.get_device(self._device_id)
+                if entity_class in self._me_map:
+                    ec = self._me_map[entity_class]
+                    for index in xrange(16):
+                        attr_mask = 1 << index
+
+                        if attr_mask & table_attributes:
+                            eca = ec.attributes[index]
+                            self.log.debug('omcc-get-table-attribute', table_name=eca.field.name)
+
+                            seq_no = 0
+                            data_buffer = ''
+                            count = omci_msg.fields['data'][eca.field.name + '_size']
+
+                            # Original timeout must be chopped up into each individual get-next request
+                            # in order for total transaction to complete within the timeframe of the
+                            # original get() timeout.
+                            number_transactions = 1 +  (count + OmciTableField.PDU_SIZE - 1) / OmciTableField.PDU_SIZE
+                            timeout /= (1 + number_transactions)
+
+                            # Start the loop
+                            vals = []
+                            for offset in xrange(0, count, OmciTableField.PDU_SIZE):
+                                frame = MEFrame(ec, entity_id, {eca.field.name: seq_no}).get_next()
+                                seq_no += 1
+
+                                max_retries = 3
+                                retries = max_retries
+                                while True:
+                                    try:
+                                        results = yield self.send(frame,
+                                            min(timeout / max_retries,
+                                                secs * 2 * (max_retries - retries + 1)))
+
+                                        omci_getnext_msg = results.fields['omci_message']
+                                        status = omci_getnext_msg.fields['success_code']
+
+                                        if status != ReasonCodes.Success.value:
+                                            raise Exception('omci-status ' + status)
+
+                                        break
+                                    except Exception as e:
+                                        self.log.exception('get-next-error ' + eca.field.name, e=e)
+                                        retries -= 1
+                                        if retries <= 0:
+                                            raise e
+
+                                # Extract the data
+                                num_octets = count - offset
+                                if num_octets > OmciTableField.PDU_SIZE:
+                                    num_octets = OmciTableField.PDU_SIZE
+
+                                data = omci_getnext_msg.fields['data'][eca.field.name]
+                                data_buffer += data[:num_octets]
+
+                            while data_buffer:
+                                data_buffer, val = eca.field.getfield(None, data_buffer)
+                                vals.append(val)
+
+                            omci_msg.fields['data'][eca.field.name] = vals;
+                            del omci_msg.fields['data'][eca.field.name + '_size']
+                            self.log.debug('omcc-got-table-attribute-rows', table_name=eca.field.name,
+                                          row_count=len(vals))
+                del omci_msg.fields['data']['table_attribute_mask']
+
+            except Exception as e:
+                self.log.exception('get-next-error', e=e)
+                d.errback(failure.Failure(e))
+                return
+
+        # Notify sender of completed request
+        reactor.callLater(0, d.callback, rx_frame)
+
+        # Publish Rx event to listeners in a different task except for internally-consumed get-next-response
+        if not isinstance(omci_msg, OmciGetNextResponse):
+            reactor.callLater(0, self._publish_rx_frame, tx_frame, rx_frame)
 
     def _decode_unknown_me(self, msg):
         """

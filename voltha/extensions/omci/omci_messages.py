@@ -19,6 +19,7 @@ from scapy.fields import ShortField, BitField
 from scapy.packet import Packet
 
 from voltha.extensions.omci.omci_defs import AttributeAccess
+from  voltha.extensions.omci.omci_fields import OmciTableField
 import voltha.extensions.omci.omci_entities as omci_entities
 
 
@@ -88,6 +89,7 @@ class OmciMaskedData(Field):
         entity_class = omci_entities.entity_id_to_class_map[class_id]
         indices = entity_class.attribute_indices_from_mask(attribute_mask)
         data = {}
+        table_attribute_mask = 0
         for index in indices:
             try:
                 fld = entity_class.attributes[index].field
@@ -99,7 +101,13 @@ class OmciMaskedData(Field):
                 s, value = fld.getfield(pkt, s)
             except Exception, e:
                 raise
-            data[fld.name] = value
+            if isinstance(pkt, OmciGetResponse) and isinstance(fld, OmciTableField):
+                data[fld.name + '_size'] = value
+                table_attribute_mask = table_attribute_mask | (1 << index)
+            else:
+                data[fld.name] = value
+        if table_attribute_mask:
+            data['table_attribute_mask'] = table_attribute_mask
         return s, data
 
 
