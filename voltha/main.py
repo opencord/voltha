@@ -284,6 +284,7 @@ def print_banner(log):
     log.info('| | / / / / / /   / / / /_/ / /| |')
     log.info('| |/ / /_/ / /___/ / / __  / ___ |')
     log.info('|___/\____/_____/_/ /_/ /_/_/  |_|')
+    log.info('TESTING PROVISIONING JOB')
     log.info('(to stop: press Ctrl-C)')
 
 
