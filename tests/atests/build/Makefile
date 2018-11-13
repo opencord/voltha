@@ -88,7 +88,7 @@ $(M)/kafka-running: | $(M)/kafka
 	touch $@
 
 $(M)/onos: | $(M)/kafka-running
-	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/onos.yaml -f configs/seba-ponsim.yaml --set images.onos.repository=voltha-onos,images.onos.tag=latest,images.onos.pullPolicy=Never
+	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/onos.yaml -f configs/seba-ponsim.yaml
 	touch $@
 
 $(M)/voltha: | $(M)/kafka-running $(M)/onos
@@ -121,7 +121,7 @@ $(M)/voltha-running: | $(M)/etcd-cluster
 $(M)/ponsim: | $(M)/voltha-running
 	cd $(HOME)/cord/helm-charts; helm upgrade --install ponnet ponnet
 	$(HOME)/cord/helm-charts/scripts/wait_for_pods.sh kube-system
-	cd $(HOME)/cord/helm-charts; helm upgrade --install ponsimv2 ponsimv2 -f configs/seba-ponsim.yaml --set images.olt.repository=voltha-ponsim,images.olt.tag=latest,images.olt.pullPolicy=Never,images.onu.repository=voltha-ponsim,images.onu.tag=latest,images.onu.pullPolicy=Never,images.rg.repository=voltha-tester,images.rg.tag=latest,images.rg.pullPolicy=Never
+	cd $(HOME)/cord/helm-charts; helm upgrade --install ponsimv2 ponsimv2 -f configs/seba-ponsim.yaml
 	touch $@
 
 $(M)/pon0_fwd: | $(M)/ponsim
