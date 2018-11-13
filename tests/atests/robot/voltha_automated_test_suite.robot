@@ -44,9 +44,9 @@ Provisioning
     PSet Log Dirs    ${LOG_DIR}
     Configure   ${OLT_IP_ADDR}    ${OLT_PORT_ID}
     Preprovision Olt
-    Query Devices Before Enable
+    Wait Until Keyword Succeeds    60s    2s    Query Devices Before Enable
     Enable
-    Query Devices After Enable
+    Wait Until Keyword Succeeds    60s    2s    Query Devices After Enable
 
 
 *** Keywords ***
@@ -58,6 +58,7 @@ Start Voltha
     VSet Log Dirs  ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
     Stop Voltha
     Start All Pods
+    Sleep    60
     Collect Pod Logs
     Alter Onos NetCfg
     
