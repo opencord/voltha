@@ -17,7 +17,8 @@ from mib_db_api import *
 from voltha.protos.omci_mib_db_pb2 import MibInstanceData, MibClassData, \
     MibDeviceData, MibAttributeData, MessageType, ManagedEntity
 from voltha.extensions.omci.omci_entities import *
-from scapy.fields import StrField, FieldListField
+from voltha.extensions.omci.omci_fields import *
+from scapy.fields import StrField, FieldListField, PacketField
 
 
 class MibDbStatistic(object):
@@ -160,7 +161,7 @@ class MibDbExternal(MibDbApi):
                 from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
                 field = StrFixedLenField(UNKNOWN_CLASS_ATTRIBUTE_KEY, None, 24)
 
-            if isinstance(field, StrFixedLenField):
+            if isinstance(field, StrFixedLenField) or isinstance(field, MultipleTypeField):
                 from scapy.base_classes import Packet_metaclass
                 #  For StrFixedLenField, value is a str already (or possibly JSON encoded)
                 if hasattr(value, 'to_json') and not isinstance(value, basestring):
@@ -230,10 +231,13 @@ class MibDbExternal(MibDbApi):
                 from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
                 field = StrFixedLenField(UNKNOWN_CLASS_ATTRIBUTE_KEY, None, 24)
 
-            if isinstance(field, StrFixedLenField):
+            if isinstance(field, StrFixedLenField) or isinstance(field, MultipleTypeField):
                 from scapy.base_classes import Packet_metaclass
-                if isinstance(field.default, Packet_metaclass) and \
-                        hasattr(field.default, 'to_json'):
+                default = field.default
+                if isinstance(field.default, PacketField):
+                    default = default.cls
+                if isinstance(default, Packet_metaclass) and \
+                        hasattr(default, 'to_json'):
                     value = json.loads(str_value)
                 else:
                     value = str_value
