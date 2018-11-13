@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import binascii
+from common.frameio.frameio import hexify
+from nose.twistedtools import deferred
 from unittest import TestCase, main
 from mock.mock_adapter_agent import MockAdapterAgent
 from mock.mock_onu_handler import MockOnuHandler
@@ -20,6 +23,8 @@ from mock.mock_olt_handler import MockOltHandler
 from mock.mock_onu import MockOnu
 from voltha.extensions.omci.omci_defs import *
 from voltha.extensions.omci.omci_frame import *
+from voltha.extensions.omci.omci_entities import *
+from voltha.extensions.omci.omci_me import ExtendedVlanTaggingOperationConfigurationDataFrame
 from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
 
 DEFAULT_OLT_DEVICE_ID = 'default_olt_mock'
@@ -81,11 +86,15 @@ class TestOmciCc(TestCase):
         self.adapter_agent.add_child_device(self.olt_handler.device,
                                             self.onu_handler.device)
 
-    def _is_omci_frame(self, results):
+    def _is_omci_frame(self, results, omci_msg_type):
         assert isinstance(results, OmciFrame), 'Not OMCI Frame'
+        assert 'omci_message' in results.fields, 'Not OMCI Frame'
+        if omci_msg_type is not None:
+            assert isinstance(results.fields['omci_message'], omci_msg_type)
         return results
 
     def _check_status(self, results, value):
+        if value is not None: assert results is not None, 'unexpected emtpy message'
         status = results.fields['omci_message'].fields['success_code']
         assert status == value,\
             'Unexpected Status Code. Got {}, Expected: {}'.format(status, value)
@@ -97,7 +106,8 @@ class TestOmciCc(TestCase):
                 self.onu_device.mib_data_sync, value)
         return results
 
-    def _check_stats(self, results, snapshot, stat, expected):
+    def _check_stats(self, results, _, stat, expected):
+        snapshot = self._snapshot_stats()
         assert snapshot[stat] == expected, \
             'Invalid statistic "{}". Got {}, Expected: {}'.format(stat,
                                                                   snapshot[stat],
@@ -673,6 +683,159 @@ class TestOmciCc(TestCase):
         self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'])
         self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'] + 1)
         self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'])
+
+    def test_rx_decode_extvlantagging(self):
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        snapshot = self._snapshot_stats()
+
+        msg = '030a290a00ab0201000d00000000001031323334' \
+              '3536373839303132333435363738393031323334' \
+              '000000281166d283'
+
+        omci_cc.receive_message(hex2raw(msg))
+
+        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'] + 1)
+        self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'])
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'] + 1)
+        self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'])
+
+    def _check_vlan_tag_op(self, results, attr, expected):
+        omci_msg = results.fields['omci_message']
+        data = omci_msg.fields['data']
+        val = data[attr]
+        self.assertEqual(expected, val)
+        return results
+
+    @deferred()
+    def test_rx_table_get_extvlantagging(self):
+        self.setup_one_of_each()
+
+        onu = self.onu_handler.onu_mock
+        entity_id = 1
+        vlan_tag_op1 = VlanTaggingOperation(
+                                     filter_outer_priority=15,
+                                     filter_outer_vid=4096,
+                                     filter_outer_tpid_de=2,
+                                     filter_inner_priority=15,
+                                     filter_inner_vid=4096,
+                                     filter_inner_tpid_de=0,
+                                     filter_ether_type=0,
+                                     treatment_tags_to_remove=0,
+                                     treatment_outer_priority=15,
+                                     treatment_outer_vid=1234,
+                                     treatment_outer_tpid_de=0,
+                                     treatment_inner_priority=0,
+                                     treatment_inner_vid=4091,
+                                     treatment_inner_tpid_de=4,
+                                 )
+        vlan_tag_op2 = VlanTaggingOperation(
+                                     filter_outer_priority=14,
+                                     filter_outer_vid=1234,
+                                     filter_outer_tpid_de=5,
+                                     filter_inner_priority=1,
+                                     filter_inner_vid=2345,
+                                     filter_inner_tpid_de=1,
+                                     filter_ether_type=0,
+                                     treatment_tags_to_remove=1,
+                                     treatment_outer_priority=15,
+                                     treatment_outer_vid=2222,
+                                     treatment_outer_tpid_de=1,
+                                     treatment_inner_priority=1,
+                                     treatment_inner_vid=3333,
+                                     treatment_inner_tpid_de=5,
+                                 )
+        vlan_tag_op3 = VlanTaggingOperation(
+                                     filter_outer_priority=13,
+                                     filter_outer_vid=55,
+                                     filter_outer_tpid_de=1,
+                                     filter_inner_priority=7,
+                                     filter_inner_vid=4567,
+                                     filter_inner_tpid_de=1,
+                                     filter_ether_type=0,
+                                     treatment_tags_to_remove=1,
+                                     treatment_outer_priority=2,
+                                     treatment_outer_vid=1111,
+                                     treatment_outer_tpid_de=1,
+                                     treatment_inner_priority=1,
+                                     treatment_inner_vid=3131,
+                                     treatment_inner_tpid_de=5,
+                                 )
+        tbl = [vlan_tag_op1, vlan_tag_op2, vlan_tag_op3]
+        tblstr = str(vlan_tag_op1) + str(vlan_tag_op2) + str(vlan_tag_op3)
+
+        onu._omci_response[OP.Get.value][ExtendedVlanTaggingOperationConfigurationData.class_id] = {
+            entity_id: OmciFrame(transaction_id=0,
+                         message_type=OmciGetResponse.message_id,
+                         omci_message=OmciGetResponse(
+                               entity_class=ExtendedVlanTaggingOperationConfigurationData.class_id,
+                               entity_id=1,
+                               success_code=RC.Success.value,
+                               attributes_mask=ExtendedVlanTaggingOperationConfigurationData.mask_for(
+                                   'received_frame_vlan_tagging_operation_table'),
+                               data={'received_frame_vlan_tagging_operation_table': 16 * len(tbl)}
+                         ))
+        }
+
+        rsp1 = binascii.a2b_hex(hexify(tblstr[0:OmciTableField.PDU_SIZE]))
+        rsp2 = binascii.a2b_hex(hexify(tblstr[OmciTableField.PDU_SIZE:]))
+        onu._omci_response[OP.GetNext.value][ExtendedVlanTaggingOperationConfigurationData.class_id] = {
+            entity_id: {0: {'failures':2,
+                            'frame':OmciFrame(transaction_id=0,
+                                 message_type=OmciGetNextResponse.message_id,
+                                 omci_message=OmciGetNextResponse(
+                                     entity_class=ExtendedVlanTaggingOperationConfigurationData.class_id,
+                                     entity_id=1,
+                                     success_code=RC.Success.value,
+                                     attributes_mask=ExtendedVlanTaggingOperationConfigurationData.mask_for(
+                                         'received_frame_vlan_tagging_operation_table'),
+                                     data={'received_frame_vlan_tagging_operation_table': rsp1
+                                     }
+                         ))},
+                        1: OmciFrame(transaction_id=0,
+                         message_type=OmciGetNextResponse.message_id,
+                         omci_message=OmciGetNextResponse(
+                             entity_class=ExtendedVlanTaggingOperationConfigurationData.class_id,
+                             entity_id=1,
+                             success_code=RC.Success.value,
+                             attributes_mask=ExtendedVlanTaggingOperationConfigurationData.mask_for(
+                                 'received_frame_vlan_tagging_operation_table'),
+                             data={'received_frame_vlan_tagging_operation_table': rsp2
+                             }
+                         ))
+                       }
+        }
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+
+        msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
+            entity_id,
+            attributes={'received_frame_vlan_tagging_operation_table':True}
+        )
+
+        snapshot = self._snapshot_stats()
+
+        frame = msg.get()
+        d = omci_cc.send(frame, timeout=5.0)
+
+        d.addCallbacks(self._is_omci_frame, self._default_errback, [OmciGetResponse])
+        d.addCallback(self._check_status, RC.Success)
+
+        d.addCallback(self._check_stats, snapshot, 'tx_frames', snapshot['tx_frames'] + 5)
+        d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'] + 3)
+        d.addCallback(self._check_stats, snapshot, 'rx_unknown_tid', snapshot['rx_unknown_tid'])
+        d.addCallback(self._check_stats, snapshot, 'rx_onu_frames', snapshot['rx_onu_frames'])
+        d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
+        d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
+        d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'] + 2)
+        d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
+        d.addCallback(self._check_stats, snapshot, 'consecutive_errors', 0)
+        d.addCallback(self._check_vlan_tag_op, 'received_frame_vlan_tagging_operation_table', tbl)
+
+        return d
 
 if __name__ == '__main__':
     main()

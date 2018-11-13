@@ -95,7 +95,8 @@ class MockOltHandler(MockDevice):
         # somewhat responsive
 
         assert 0.0 <= self.latency <= 5, 'Best practice is latency <= 5 seconds'
-        reactor.callLater(self.latency, self._deliver_proxy_message, proxy_address, response)
+        if response is not None:
+            reactor.callLater(self.latency, self._deliver_proxy_message, proxy_address, response)
 
     def _deliver_proxy_message(self, proxy_address, response):
         from common.frameio.frameio import hexify

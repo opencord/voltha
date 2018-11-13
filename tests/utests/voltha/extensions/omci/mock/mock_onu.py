@@ -53,6 +53,7 @@ class MockOnu(object):
                 },
                 # Additional OMCI GET request responses here if needed
             },
+            OP.GetNext.value: {},
             OP.Create.value: {
                 # TODO: Create some OMCI CREATE request responses here.
 
@@ -176,6 +177,7 @@ class MockOnu(object):
             OP.Delete.value: OmciDeleteResponse,
             OP.Set.value: OmciSetResponse,
             OP.Get.value: OmciGetResponse,
+            OP.GetNext.value: OmciGetNextResponse,
             OP.MibUpload.value: OmciMibUploadResponse,
             OP.MibUploadNext.value: OmciMibUploadNextResponse,
             OP.MibReset.value: OmciMibResetResponse,
@@ -218,6 +220,15 @@ class MockOnu(object):
                         pass
                         pass
                         pass
+
+                    if isinstance(omci_message, OmciGetNext):
+                        response = response[omci_message.fields['command_sequence_number']]
+
+                    if isinstance(response, dict):
+                        if response['failures'] > 0:
+                            response['failures'] -= 1
+                            return None
+                        else: response = response['frame']
 
                     response.fields['transaction_id'] = transaction_id
                     if 'success_code' in response.fields['omci_message'].fields:

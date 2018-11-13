@@ -508,26 +508,8 @@ class BrcmMibDownloadTask(Task):
                 # trying to read back table during post-create-read-missing-attributes
                 # But, because this is a R/W attribute. Some ONU may not accept the
                 # value during create. It is repeated again in a set below.
-                received_frame_vlan_tagging_operation_table=
-                VlanTaggingOperation(
-                    filter_outer_priority=15,  # This entry is not a double-tag rule
-                    filter_outer_vid=4096,     # Do not filter on the outer VID value
-                    filter_outer_tpid_de=0,    # Do not filter on the outer TPID field
-
-                    filter_inner_priority=15,
-                    filter_inner_vid=4096,
-                    filter_inner_tpid_de=0  ,
-                    filter_ether_type=0,
-
-                    treatment_tags_to_remove=0,
-                    treatment_outer_priority=15,
-                    treatment_outer_vid=0,
-                    treatment_outer_tpid_de=0,
-
-                    treatment_inner_priority=0,
-                    treatment_inner_vid=self._cvid,
-                    treatment_inner_tpid_de=4,
-                )
+                input_tpid=self._input_tpid,  # input TPID
+                output_tpid=self._output_tpid,  # output TPID
             )
 
             msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
@@ -546,7 +528,19 @@ class BrcmMibDownloadTask(Task):
                 input_tpid=self._input_tpid,    # input TPID
                 output_tpid=self._output_tpid,  # output TPID
                 downstream_mode=0,              # inverse of upstream
+            )
 
+            msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
+                self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                attributes=attributes
+            )
+
+            frame = msg.set()
+            self.log.debug('openomci-msg', msg=msg)
+            results = yield omci_cc.send(frame)
+            self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data')
+
+            attributes = dict(
                 # parameters: Entity Id ( 0x900), Filter Inner Vlan Id(0x1000-4096,do not filter on Inner vid,
                 #             Treatment Inner Vlan Id : 2
 
@@ -585,7 +579,7 @@ class BrcmMibDownloadTask(Task):
             frame = msg.set()
             self.log.debug('openomci-msg', msg=msg)
             results = yield omci_cc.send(frame)
-            self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data')
+            self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data-table')
 
         except TimeoutError as e:
             self.log.warn('rx-timeout-2', e=e)

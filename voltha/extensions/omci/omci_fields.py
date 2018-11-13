@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import binascii
-from scapy.fields import Field, StrFixedLenField, PadField
+from scapy.fields import Field, StrFixedLenField, PadField, IntField, FieldListField, ByteField, StrField, StrFixedLenField
 from scapy.packet import Raw
 
 class FixedLenField(PadField):
@@ -70,6 +70,96 @@ class XStrFixedLenField(StrFixedLenField):
     def m2i(self, pkt, x):
         return None if x is None else binascii.b2a_hex(x)
 
+class MultipleTypeField(object):
+    """MultipleTypeField are used for fields that can be implemented by
+        various Field subclasses, depending on conditions on the packet.
+
+        It is initialized with `flds` and `default`.
+
+        `default` is the default field type, to be used when none of the
+        conditions matched the current packet.
+
+        `flds` is a list of tuples (`fld`, `cond`), where `fld` if a field
+        type, and `cond` a "condition" to determine if `fld` is the field type
+        that should be used.
+
+        `cond` is either:
+
+        - a callable `cond_pkt` that accepts one argument (the packet) and
+            returns True if `fld` should be used, False otherwise.
+
+          - a tuple (`cond_pkt`, `cond_pkt_val`), where `cond_pkt` is the same
+            as in the previous case and `cond_pkt_val` is a callable that
+            accepts two arguments (the packet, and the value to be set) and
+            returns True if `fld` should be used, False otherwise.
+
+        See scapy.layers.l2.ARP (type "help(ARP)" in Scapy) for an example of
+        use.
+    """
+
+    __slots__ = ["flds", "default", "name"]
+
+    def __init__(self, flds, default):
+        self.flds  = flds
+        self.default = default
+        self.name = self.default.name
+
+    def _find_fld_pkt(self, pkt):
+        """Given a Packet instance `pkt`, returns the Field subclass to be
+            used. If you know the value to be set (e.g., in .addfield()), use
+            ._find_fld_pkt_val() instead.
+        """
+        for fld, cond in self.flds:
+            if isinstance(cond, tuple):
+                cond = cond[0]
+            if cond(pkt):
+                return fld
+        return self.default
+
+    def _find_fld_pkt_val(self, pkt, val):
+        """Given a Packet instance `pkt` and the value `val` to be set,
+            returns the Field subclass to be used.
+        """
+        for fld, cond in self.flds:
+            if isinstance(cond, tuple):
+                if cond[1](pkt, val):
+                    return fld
+            elif cond(pkt):
+                return fld
+        return self.default
+
+    def getfield(self, pkt, s):
+        return self._find_fld_pkt(pkt).getfield(pkt, s)
+
+    def addfield(self, pkt, s, val):
+        return self._find_fld_pkt_val(pkt, val).addfield(pkt, s, val)
+
+    def any2i(self, pkt, val):
+        return self._find_fld_pkt_val(pkt, val).any2i(pkt, val)
+
+    def h2i(self, pkt, val):
+        return self._find_fld_pkt_val(pkt, val).h2i(pkt, val)
+
+    def i2h(self, pkt, val):
+        return self._find_fld_pkt_val(pkt, val).i2h(pkt, val)
+
+    def i2m(self, pkt, val):
+        return self._find_fld_pkt_val(pkt, val).i2m(pkt, val)
+
+    def i2len(self, pkt, val):
+        return self._find_fld_pkt_val(pkt, val).i2len(pkt, val)
+
+    def i2repr(self, pkt, val):
+        return self._find_fld_pkt_val(pkt, val).i2repr(pkt, val)
+
+    def register_owner(self, cls):
+        for fld, _ in self.flds:
+            fld.owners.append(cls)
+        self.dflt.owners.append(cls)
+
+    def __getattr__(self, attr):
+        return getattr(self._find_fld(), attr)
+
 class OmciSerialNumberField(StrCompoundField):
     def __init__(self, name, default=None):
         assert default is None or (isinstance(default, str) and len(default) == 12), 'invalid default serial number'
@@ -78,3 +168,28 @@ class OmciSerialNumberField(StrCompoundField):
         super(OmciSerialNumberField, self).__init__(name,
             [StrFixedLenField('vendor_id', vendor_default, 4),
             XStrFixedLenField('vendor_serial_number', vendor_serial_default, 4)])
+
+class OmciTableField(MultipleTypeField):
+    def __init__(self, tblfld):
+        super(OmciTableField, self).__init__(
+            [
+            (IntField('table_length', 0), (self.cond_pkt, self.cond_pkt_val)),
+            (PadField(StrField('me_type_table', None), OmciTableField.PDU_SIZE),
+                (self.cond_pkt2, self.cond_pkt_val2))
+            ], tblfld)
+
+    PDU_SIZE = 29 # Baseline message set raw get-next PDU size
+    OmciGetResponseMessageId = 0x29 # Ugh circular dependency
+    OmciGetNextResponseMessageId = 0x3a # Ugh circular dependency
+
+    def cond_pkt(self, pkt):
+        return pkt is not None and pkt.message_id == self.OmciGetResponseMessageId
+
+    def cond_pkt_val(self, pkt, val):
+        return pkt is not None and pkt.message_id == self.OmciGetResponseMessageId
+
+    def cond_pkt2(self, pkt):
+        return pkt is not None and pkt.message_id == self.OmciGetNextResponseMessageId
+
+    def cond_pkt_val2(self, pkt, val):
+        return pkt is not None and pkt.message_id == self.OmciGetNextResponseMessageId

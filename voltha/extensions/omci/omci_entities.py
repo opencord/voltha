@@ -20,12 +20,12 @@ from binascii import hexlify
 from bitstring import BitArray
 import json
 from scapy.fields import ByteField, ShortField, MACField, BitField, IPField
-from scapy.fields import IntField, StrFixedLenField, LongField, FieldListField
+from scapy.fields import IntField, StrFixedLenField, LongField, FieldListField, PacketLenField
 from scapy.packet import Packet
 
 from voltha.extensions.omci.omci_defs import OmciUninitializedFieldError, \
     AttributeAccess, OmciNullPointer, EntityOperations, OmciInvalidTypeError
-from voltha.extensions.omci.omci_fields import OmciSerialNumberField
+from voltha.extensions.omci.omci_fields import OmciSerialNumberField, OmciTableField
 from voltha.extensions.omci.omci_defs import bitpos_from_mask
 
 class EntityClassAttribute(object):
@@ -92,6 +92,7 @@ class EntityClassAttribute(object):
         'MACField': lambda val: True,   # TODO: Add a constraint for this field type
         'BitField': lambda val: True,   # TODO: Add a constraint for this field type
         'IPField': lambda val: True,    # TODO: Add a constraint for this field type
+        'OmciTableField': lambda val: True,
 
         # TODO: As additional Scapy field types are used, add constraints
     }
@@ -630,8 +631,9 @@ class ExtendedVlanTaggingOperationConfigurationData(EntityClass):
         ECA(ShortField("output_tpid", None), {AA.R, AA.W}),
         ECA(ByteField("downstream_mode", None), {AA.R, AA.W},
             range_check=lambda x: 0 <= x <= 8),
-        ECA(StrFixedLenField("received_frame_vlan_tagging_operation_table",
-                             VlanTaggingOperation, 16), {AA.R, AA.W}),
+        ECA(OmciTableField(
+            PacketLenField("received_frame_vlan_tagging_operation_table", None,
+                VlanTaggingOperation, length_from=lambda pkt: 16)), {AA.R, AA.W}),
         ECA(ShortField("associated_me_pointer", None), {AA.R, AA.W, AA.SBC}),
         ECA(FieldListField("dscp_to_p_bit_mapping", None,
                            BitField('',  0, size=3), count_from=lambda _: 64),
