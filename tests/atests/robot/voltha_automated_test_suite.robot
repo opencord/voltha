@@ -14,6 +14,7 @@
 
 *** Settings ***
 Library           Process
+Library           OperatingSystem
 Library           ../common/auto_test.py
 Library           ../common/volthaMngr.py
 Library           ../common/preprovisioning.py
