@@ -612,7 +612,7 @@ class BBSimOltDevice(OpenoltDevice):
 
     def packet_out(self, egress_port, msg):
         pkt = Ether(msg)
-        self.log.info('packet out', egress_port=egress_port,
+        self.log.debug('packet out', egress_port=egress_port,
                       packet=str(pkt).encode("HEX"))
 
         # Find port type
