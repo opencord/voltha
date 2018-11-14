@@ -204,7 +204,7 @@ class ConnectionManager(object):
     def get_list_of_reachable_logical_devices_from_voltha(self):
 
         while self.running:
-            log.info('retrieve-logical-device-list')
+            log.debug('retrieve-logical-device-list')
             try:
                 devices = yield \
                     self.grpc_client.list_reachable_logical_devices()
@@ -286,7 +286,7 @@ class ConnectionManager(object):
         log.debug('start-monitor-logical-devices')
 
         while self.running:
-            log.info('monitoring-logical-devices')
+            log.debug('monitoring-logical-devices')
 
             # should change to a gRPC streaming call
             # see https://jira.opencord.org/browse/CORD-821
@@ -301,7 +301,7 @@ class ConnectionManager(object):
                     # update agent list and mapping tables as needed
                     self.refresh_agent_connections(reachable_devices)
                 else:
-                    log.info('vcore-communication-unavailable')
+                    log.warning('vcore-communication-unavailable')
 
                 # wait before next poll
                 yield asleep(self.devices_refresh_interval)
