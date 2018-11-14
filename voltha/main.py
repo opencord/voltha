@@ -299,11 +299,12 @@ class Main(object):
         verbosity_adjust = (args.verbose or 0) - (args.quiet or 0)
         self.log = setup_logging(self.logconfig,
                                  args.instance_id,
-                                 verbosity_adjust=verbosity_adjust)
+                                 verbosity_adjust=verbosity_adjust,
+                                 cache_on_use=True)
         self.log.info('core-number-extractor', regex=args.container_name_regex)
 
         self.voltha_version = self.get_version()
-        self.log.info('VOLTHA version is {}'.format(self.voltha_version))
+        self.log.info('VOLTHA version is %s' % self.voltha_version)
 
         # configurable variables from voltha.yml file
         #self.configurable_vars = self.config.get('Constants', {})
@@ -392,7 +393,6 @@ class Main(object):
                         rest_port=self.args.rest_port,
                         instance_id=self.instance_id,
                         config=self.config,
-                        consul=self.args.consul,
                         etcd=self.args.etcd,
                         container_name_regex=self.args.container_name_regex)
                 ).start()

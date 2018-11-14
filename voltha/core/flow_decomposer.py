@@ -616,7 +616,7 @@ class FlowDecomposer(object):
                      nni=self._nni_logical_port_no)
 
             if in_port_no == self._nni_logical_port_no:
-                log.info('trap-nni')
+                log.debug('trap-nni')
                 # Trap flow for NNI port
                 fl_lst.append(mk_flow_stat(
                     priority=flow.priority,
@@ -633,7 +633,7 @@ class FlowDecomposer(object):
                 ))
 
             else:
-                log.info('trap-uni')
+                log.debug('trap-uni')
                 # Trap flow for UNI port
 
                 # in_port_no is None for wildcard input case, do not include

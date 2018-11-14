@@ -16,9 +16,6 @@
 
 """ Etcd-based coordinator services """
 
-from consul import ConsulException
-from consul.twisted import Consul
-from requests import ConnectionError
 from structlog import get_logger
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
@@ -30,7 +27,7 @@ from common.utils.asleep import asleep
 from common.utils.message_queue import MessageQueue
 from voltha.registry import IComponent
 from worker import Worker
-from simplejson import dumps, loads
+from simplejson import dumps
 from common.utils.deferred_utils import DeferredWithTimeout, TimeOutError
 
 log = get_logger()
@@ -45,9 +42,9 @@ class CoordinatorEtcd(object):
     """
     An app shall instantiate only one Coordinator (singleton).
     A single instance of this object shall take care of all external
-    with consul, and via consul, all coordination activities with its
+    with etcd, and via etcd, all coordination activities with its
     clustered peers. Roles include:
-    - registering an ephemeral membership entry (k/v record) in consul
+    - registering an ephemeral membership entry (k/v record) in etcd
     - participating in a symmetric leader election, and potentially assuming
       the leader's role. What leadership entails is not a concern for the
       coordination, it simply instantiates (and shuts down) a leader class
@@ -65,7 +62,6 @@ class CoordinatorEtcd(object):
                  instance_id,
                  rest_port,
                  config,
-                 consul='localhost:8500',
                  etcd='localhost:2379',
                  container_name_regex='^.*\.([0-9]+)\..*$'):
 
@@ -117,12 +113,6 @@ class CoordinatorEtcd(object):
         self.membership_callback = None
 
         self.worker = Worker(self.instance_id, self)
-
-        self.host = consul.split(':')[0].strip()
-        self.port = int(consul.split(':')[1].strip())
-
-        # TODO need to handle reconnect events properly
-        self.consul = Consul(host=self.host, port=self.port)
 
         # Create etcd client
         kv_host = etcd.split(':')[0].strip()
@@ -222,7 +212,7 @@ class CoordinatorEtcd(object):
 
     def _clear_backoff(self):
         if self.retries:
-            log.info('reconnected-to-consul', after_retries=self.retries)
+            log.info('reconnected-to-etcd', after_retries=self.retries)
             self.retries = 0
 
     @inlineCallbacks
@@ -244,7 +234,7 @@ class CoordinatorEtcd(object):
         try:
             yield self.lease.revoke()
         except Exception as e:
-            log.exception('failed-to-delete-session',
+            log.exception('failed-to-delete-session %s' % e,
                           session_id=self.session_id)
 
     @inlineCallbacks
@@ -285,16 +275,18 @@ class CoordinatorEtcd(object):
     @inlineCallbacks
     def _assert_membership_record_valid(self):
         try:
-            log.info('membership-record-before')
+            log.debug('membership-record-before')
             is_timeout, (_, record) = yield \
-                                        self.consul_get_with_timeout(
+                                        self.coordinator_get_with_timeout(
                                                 key=self.membership_record_key,
                                                 index=0,
                                                 timeout=5)
             if is_timeout:
+                log.debug('timeout creating membership record in etcd, key: %s' %
+                          self.membership_record_key)
                 returnValue(False)
 
-            log.info('membership-record-after', record=record)
+            log.debug('membership-record-after', record=record)
             if record is None or \
                             'Session' not in record:
                 log.info('membership-record-change-detected',
@@ -349,12 +341,12 @@ class CoordinatorEtcd(object):
         def _renew_session(m_callback):
             try:
                 time_left = yield self.lease.remaining()
-                log.info('_renew_session', time_left=time_left)
+                log.debug('_renew_session', time_left=time_left)
                 result = yield self.lease.refresh()
-                log.info('just-renewed-session', result=result)
+                log.debug('just-renewed-session', result=result)
                 if not m_callback.called:
                     # Triggering callback will cancel the timeout timer
-                    log.info('trigger-callback-to-cancel-timeout-timer')
+                    log.debug('trigger-callback-to-cancel-timeout-timer')
                     m_callback.callback(result)
                 else:
                     # Timeout event has already been called.  Just ignore
@@ -428,7 +420,7 @@ class CoordinatorEtcd(object):
             if result.kvs:
                 kv = result.kvs[0]
                 leader = kv.value
-                log.info('get-leader-key', leader=leader, instance=self.instance_id)
+                log.debug('get-leader-key', leader=leader, instance=self.instance_id)
 
             if leader is None:
                 log.error('get-leader-failed')
@@ -437,12 +429,12 @@ class CoordinatorEtcd(object):
                     log.info('leadership-seized')
                     yield self._assert_leadership()
                 else:
-                    log.info('already-leader')
+                    log.debug('already-leader')
             else:
-                log.info('leader-is-another', leader=leader)
+                log.debug('leader-is-another', leader=leader)
                 yield self._assert_nonleadership(leader)
 
-        except Exception, e:
+        except Exception as e:
             log.exception('unexpected-error-leader-tracking', e=e)
 
         finally:
@@ -514,7 +506,7 @@ class CoordinatorEtcd(object):
                 prefix = True
                 keyset = KeySet(bytes(args[0]), prefix=True)
                 kw.pop('recurse')
-        log.info('start-op', operation=operation, args=args, kw=kw)
+        log.debug('start-op', operation=operation, args=args, kw=kw)
 
         while 1:
             try:
@@ -571,16 +563,16 @@ class CoordinatorEtcd(object):
                     result = yield operation(*args, **kw)
                 self._clear_backoff()
                 break
-            except Exception, e:
+            except Exception as e:
                 if not self.shutting_down:
                     log.exception(e)
-                yield self._backoff('unknown-error')
+                yield self._backoff('etcd-unknown-error: %s' % e)
 
-        log.info('end-op', operation=operation, args=args, kw=kw)
+        log.debug('end-op', operation=operation, args=args, kw=kw)
         returnValue(result)
 
     @inlineCallbacks
-    def consul_get_with_timeout(self, key, timeout, **kw):
+    def coordinator_get_with_timeout(self, key, timeout, **kw):
         """
         Query etcd with a timeout
         :param key: Key to query
@@ -597,7 +589,8 @@ class CoordinatorEtcd(object):
         for name, value in kw.items():
             if name == 'index':
                 mod_revision = value
-                log.info('consul_get_with_timeout', index=mod_revision)
+                log.debug('coordinator-get-with-timeout-etcd',
+                          index=mod_revision)
                 kw.pop('index')
                 break
 

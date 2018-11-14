@@ -151,7 +151,7 @@ class Worker(object):
             if self.mycore_store_id:
                 # Wait for updates to the store assigment key
                 is_timeout, (tmp_index, mappings) = yield \
-                                self.coord.consul_get_with_timeout(
+                                self.coord.coordinator_get_with_timeout(
                                     key=self.coord.core_store_assignment_key,
                                     recurse=True,
                                     index=index,
@@ -161,8 +161,8 @@ class Worker(object):
                     return
 
                 # After timeout event the index returned from
-                # consul_get_with_timeout is None.  If we are here it's not a
-                # timeout, therefore the index is a valid one.
+                # coordinator_get_with_timeout is None.  If we are here it's
+                # not a timeout, therefore the index is a valid one.
                 index=tmp_index
 
                 if mappings and index != prev_index:

@@ -518,7 +518,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ PACKET_OUT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def packet_out(self, ofp_packet_out):
-        self.log.info('packet-out', packet=ofp_packet_out)
+        self.log.debug('packet-out', packet=ofp_packet_out)
         topic = 'packet-out:{}'.format(self.logical_device_id)
         self.event_bus.publish(topic, ofp_packet_out)
 
