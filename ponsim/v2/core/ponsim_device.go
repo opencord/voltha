@@ -413,7 +413,7 @@ func (o *PonSimDevice) isMatch(
 
 			case openflow_13.OxmOfbFieldTypes_OFPXMT_OFB_ETH_TYPE:
 				cmpType := uint32(common.GetEthernetLayer(frame).EthernetType)
-				if dot1q := common.GetDot1QLayer(frame); dot1q != nil {
+				if dot1q := common.GetLastDot1QLayer(frame); dot1q != nil {
 					cmpType = uint32(dot1q.Type)
 				}
 				if ofbfield.GetOfbField().GetEthType() != cmpType {
@@ -421,7 +421,7 @@ func (o *PonSimDevice) isMatch(
 						"device":   o,
 						"flow":     flow,
 						"expected": layers.EthernetType(ofbfield.GetOfbField().GetEthType()),
-						"actual":   common.GetEthernetLayer(frame).EthernetType,
+						"actual":   cmpType,
 					}).Warn("Frame type does not match")
 					return 0, nil
 				} else {
@@ -429,7 +429,7 @@ func (o *PonSimDevice) isMatch(
 						"device":   o,
 						"flow":     flow,
 						"expected": layers.EthernetType(ofbfield.GetOfbField().GetEthType()),
-						"actual":   common.GetEthernetLayer(frame).EthernetType,
+						"actual":   cmpType,
 					}).Debug("Frame type matches")
 				}
 				matchedMask |= ETH_TYPE
