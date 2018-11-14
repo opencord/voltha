@@ -127,7 +127,7 @@ FETCH_COMPOSE_IMAGE_LIST = \
         wurstmeister/zookeeper:latest
 
 # find k8s -type f | xargs grep image: | awk '{print $NF}' | sed -e 's/\"//g' | sed '/:.*$/!s/$/:latest/g' | sort -u | sed -e 's/^/       /g' -e 's/$/ \\/g'
-# Manually remove some image from this list as they don't reflect the new 
+# Manually remove some image from this list as they don't reflect the new
 # naming conventions for the VOLTHA build
 FETCH_K8S_IMAGE_LIST = \
        alpine:3.6 \
@@ -186,7 +186,7 @@ help:
 	@echo "unum         : Build the unum docker container"
 	@echo "ponsim       : Build the ponsim docker container"
 	@echo "j2           : Build the Jinja2 template container"
-        @echo "alarm-generator : Build the alarm-generator container"
+	@echo "alarm-generator : Build the alarm-generator container"
 	@echo "test_runner  : Build a container from which tests are run"
 	@echo "start        : Start VOLTHA on the current system"
 	@echo "stop         : Stop VOLTHA on the current system"
@@ -233,6 +233,8 @@ jenkins: build
 
 jenkins-containers: base voltha ofagent netconf consul cli envoy fluentd unum j2
 
+cord-containers: base voltha ofagent netconf cli envoy alarm-generator
+
 prod-containers: base voltha ofagent netconf shovel onos dashd cli grafana consul tools envoy fluentd unum j2
 
 containers: base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools envoy fluentd unum ponsim j2 alarm-generator test_runner
@@ -244,7 +246,7 @@ ifneq ($(VOLTHA_BUILD),docker)
 voltha: voltha-adapters
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-voltha:${TAG} -f docker/Dockerfile.voltha .
 else
-voltha:
+voltha: base protos
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-voltha:${TAG} -f docker/Dockerfile.voltha_d .
 endif
 
@@ -252,7 +254,7 @@ voltha-adapters:
 	make -C voltha/adapters/asfvolt16_olt
 	make -C voltha/adapters/openolt
 
-ofagent:
+ofagent: base protos
 ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-ofagent:${TAG} -f docker/Dockerfile.ofagent .
 else
@@ -265,7 +267,7 @@ tools:
 fluentd:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-fluentd:${TAG} -f docker/Dockerfile.fluentd .
 
-envoy: envoyd
+envoy: envoyd go-builder
 ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-envoy:${TAG} -f docker/Dockerfile.envoy .
 else
@@ -281,7 +283,7 @@ endif
 go-builder:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-go-builder:${TAG} -f envoy/go/golang-builder/Dockerfile ./envoy/go/golang-builder
 
-netconf:
+netconf: base protos
 ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-netconf:${TAG} -f docker/Dockerfile.netconf .
 else
@@ -297,7 +299,7 @@ shovel:
 dashd:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-dashd:${TAG} -f docker/Dockerfile.dashd .
 
-cli:
+cli: base protos
 ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-cli:${TAG} -f docker/Dockerfile.cli .
 else
@@ -351,7 +353,7 @@ ponsim:
 j2:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-j2:${TAG} -f docker/Dockerfile.j2 docker
 
-alarm-generator:
+alarm-generator: base protos
 ifneq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-alarm-generator:${TAG} -f docker/Dockerfile.alarm-generator .
 else
@@ -367,7 +369,7 @@ endif
 @SHELL_EXPORT := $(foreach v,$(MAKE_ENV),$(v)='$($(v))')
 start:
 	$(SHELL_EXPORT) STACK_TEMPLATE=./compose/voltha-stack.yml.j2 ./scripts/run-voltha.sh start
-	
+
 stop:
 	./scripts/run-voltha.sh stop
 
@@ -391,7 +393,7 @@ ifeq ($(VOLTHA_BUILD),docker)
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-protoc:${TAG} -f docker/Dockerfile.protoc .
 endif
 
-protos:
+protos: protoc
 ifneq ($(VOLTHA_BUILD),docker)
 	make -C voltha/protos
 	make -C ofagent/protos
