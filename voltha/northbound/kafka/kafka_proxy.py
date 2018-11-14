@@ -160,19 +160,19 @@ class KafkaProxy(object):
                         log.error('no-kafka-producer', endpoint=self.kafka_endpoint)
                         return
 
-                log.debug('sending-kafka-msg', topic=topic, msg=msg)
+                log.debug('sending-kafka-msg', topic=topic, kafka_msg=msg)
                 msgs = [msg]
 
                 if self.kproducer is not None and self.event_bus_publisher and self.faulty is False:
                     d =  deferToThread(self.kproducer.produce, topic, msg, key)
                     yield d
-                    log.debug('sent-kafka-msg', topic=topic, msg=msg)
+                    log.debug('sent-kafka-msg', topic=topic, kafka_msg=msg)
                 else:
                     return
 
         except Exception, e:
             self.faulty = True
-            log.error('failed-to-send-kafka-msg', topic=topic, msg=msg, e=e)
+            log.error('failed-to-send-kafka-msg', topic=topic, kafka_msg=msg, e=e)
 
             # set the kafka producer to None.  This is needed if the
             # kafka docker went down and comes back up with a different
