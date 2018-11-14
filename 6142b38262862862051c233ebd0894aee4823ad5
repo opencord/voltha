@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "617d2e0c_c15255c3",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 6
+      },
+      "lineNbr": 138,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-14T02:45:55Z",
+      "side": 1,
+      "message": "Can you update this to include technology derived from resource manager also?",
+      "range": {
+        "startLine": 138,
+        "startChar": 4,
+        "endLine": 138,
+        "endChar": 30
+      },
+      "revId": "6142b38262862862051c233ebd0894aee4823ad5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
