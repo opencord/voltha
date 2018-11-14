@@ -274,7 +274,7 @@ class Coordinator(object):
         try:
             log.info('membership-record-before')
             is_timeout, (_, record) = yield \
-                                        self.consul_get_with_timeout(
+                                        self.coordinator_get_with_timeout(
                                                 key=self.membership_record_key,
                                                 index=0,
                                                 timeout=5)
@@ -427,7 +427,7 @@ class Coordinator(object):
                 # this shall return only when update is made to leader key
                 # or expires after 5 seconds wait
                 is_timeout, (tmp_index, updated) = yield \
-                    self.consul_get_with_timeout(
+                    self.coordinator_get_with_timeout(
                         key=self.leader_prefix,
                         index=index,
                         timeout=5)
@@ -437,8 +437,8 @@ class Coordinator(object):
                     continue
 
                 # After timeout event the index returned from
-                # consul_get_with_timeout is None.  If we are here it's not a
-                # timeout, therefore the index is a valid one.
+                # coordinator_get_with_timeout is None.  If we are here it's
+                # not a timeout, therefore the index is a valid one.
                 index=tmp_index
 
                 if updated is None or updated != last:
@@ -568,7 +568,7 @@ class Coordinator(object):
         returnValue(result)
 
     @inlineCallbacks
-    def consul_get_with_timeout(self, key, timeout, **kw):
+    def coordinator_get_with_timeout(self, key, timeout, **kw):
         """
         Query consul with a timeout
         :param key: Key to query
