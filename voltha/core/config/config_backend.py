@@ -230,7 +230,13 @@ class EtcdStore(object):
         return self._retry('DELETE', *args, **kw)
 
     def _retry(self, operation, *args, **kw):
-        log.info('backend-op', operation=operation, args=args, kw=kw)
+
+        # etcd data sometimes contains non-utf8 sequences, replace
+        log.debug('backend-op',
+                  operation=operation,
+                  args=map(lambda x : unicode(x,'utf8','replace'), args),
+                  kw=kw)
+
         while 1:
             try:
                 etcd = self._get_etcd()
