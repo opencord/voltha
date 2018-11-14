@@ -295,7 +295,8 @@ class OltAdapter(IAdapter):
             log.exception('Exception', e=e)
 
     def send_proxied_message(self, proxy_address, msg):
-        log.info('send-proxied-message', proxy_address=proxy_address, msg=msg)
+        log.debug('send-proxied-message', proxy_address=proxy_address,
+                  proxied_msg=msg)
         handler = self.devices_handlers[proxy_address.device_id]
         handler.send_proxied_message(proxy_address, msg)
 
@@ -344,8 +345,8 @@ class OnuAdapter(IAdapter):
         return device
 
     def receive_proxied_message(self, proxy_address, msg):
-        log.info('receive-proxied-message', proxy_address=proxy_address,
-                 device_id=proxy_address.device_id, msg=msg)
+        log.debug('receive-proxied-message', proxy_address=proxy_address,
+                  device_id=proxy_address.device_id, proxied_msg=msg)
         # Device_id from the proxy_address is the olt device id. We need to
         # get the onu device id using the port number in the proxy_address
         device = self.adapter_agent. \

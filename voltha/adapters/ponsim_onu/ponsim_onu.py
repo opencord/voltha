@@ -289,7 +289,7 @@ class PonSimOnuHandler(object):
         if isinstance(msg, PonSimMetrics):
             # Message is a reply to an ONU statistics request. Push it out to Kafka via adapter.submit_kpis().
             if self.pm_metrics:
-                self.log.info('Handling incoming ONU metrics')
+                self.log.debug('Handling incoming ONU metrics')
                 prefix = 'voltha.{}.{}'.format("ponsim_onu", self.device_id)
                 port_metrics = self.pm_metrics.extract_metrics(msg)
                 try:
@@ -307,7 +307,7 @@ class PonSimOnuHandler(object):
                         }
                     )
 
-                    self.log.info('Submitting KPI for incoming ONU mnetrics')
+                    self.log.debug('Submitting KPI for incoming ONU metrics')
 
                     # Step 3: submit
                     self.adapter_agent.submit_kpis(kpi_event)

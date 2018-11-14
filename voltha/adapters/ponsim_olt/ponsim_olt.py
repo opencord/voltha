@@ -700,7 +700,7 @@ class PonSimOltHandler(object):
         self.pm_metrics.update(pm_config)
 
     def send_proxied_message(self, proxy_address, msg):
-        self.log.info('sending-proxied-message')
+        self.log.debug('sending-proxied-message')
         if isinstance(msg, FlowTable):
             stub = ponsim_pb2_grpc.PonSimStub(self.get_channel())
             self.log.info('pushing-onu-flow-table', port=msg.port)
@@ -708,13 +708,13 @@ class PonSimOltHandler(object):
             self.adapter_agent.receive_proxied_message(proxy_address, res)
         elif isinstance(msg, PonSimMetricsRequest):
             stub = ponsim_pb2_grpc.PonSimStub(self.get_channel())
-            self.log.info('proxying onu stats request', port=msg.port)
+            self.log.debug('proxying onu stats request', port=msg.port)
             res = stub.GetStats(msg)
             self.adapter_agent.receive_proxied_message(proxy_address, res)
 
     def packet_out(self, egress_port, msg):
-        self.log.info('sending-packet-out', egress_port=egress_port,
-                      msg=hexify(msg))
+        self.log.debug('sending-packet-out', egress_port=egress_port,
+                       msg_hex=hexify(msg))
         pkt = Ether(msg)
         out_pkt = pkt
         if egress_port != self.nni_port.port_no:
