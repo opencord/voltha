@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9d430f48_cace9dae",
+        "filename": "voltha/coordinator_etcd.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 569,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-11-14T18:40:55Z",
+      "side": 1,
+      "message": "The convention for log messages is to use hyphenation.",
+      "range": {
+        "startLine": 569,
+        "startChar": 45,
+        "endLine": 569,
+        "endChar": 49
+      },
+      "revId": "9163981d592dcc59ec2a64e9a3ae8bb79a2cf047",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
