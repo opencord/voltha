@@ -1362,9 +1362,9 @@ class MapleOltHandler(object):
             self.log.info('send-proxied_message-exception', exc=str(e))
 
     def packet_out(self, egress_port, msg):
-        self.log.info('sending-packet-out',
-                      egress_port=egress_port,
-                      msg=hexify(msg))
+        self.log.debug('sending-packet-out',
+                       egress_port=egress_port,
+                       msg_hex=hexify(msg))
 
         pkt = Ether(msg)
         out_pkt = (

@@ -713,8 +713,8 @@ class PonSimOltHandler(object):
             self.adapter_agent.receive_proxied_message(proxy_address, res)
 
     def packet_out(self, egress_port, msg):
-        self.log.info('sending-packet-out', egress_port=egress_port,
-                      msg=hexify(msg))
+        self.log.debug('sending-packet-out', egress_port=egress_port,
+                       msg_hex=hexify(msg))
         pkt = Ether(msg)
         out_pkt = pkt
         if egress_port != self.nni_port.port_no:
