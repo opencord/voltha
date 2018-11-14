@@ -21,7 +21,6 @@ import logging.config
 from collections import OrderedDict
 
 import structlog
-from structlog.stdlib import BoundLogger, INFO
 
 try:
     from thread import get_ident as _get_ident
@@ -29,20 +28,15 @@ except ImportError:
     from dummy_thread import get_ident as _get_ident
 
 
-class StructuredLogRenderer(object):
-    def __call__(self, logger, name, event_dict):
-        # in order to keep structured log data in event_dict to be forwarded as
-        # is, we need to pass it into the logger framework as the first
-        # positional argument.
-        args = (event_dict,)
-        kwargs = {}
-        return args, kwargs
-
-
 class PlainRenderedOrderedDict(OrderedDict):
     """Our special version of OrderedDict that renders into string as a dict,
        to make the log stream output cleaner.
+
+       NOTE: This should be done as a processor loaded only for console/file
+       output, not modifying the dictionary/message passed to all structured
+       loggers which disregard ordering.
     """
+
     def __repr__(self, _repr_running={}):
         'od.__repr__() <==> repr(od)'
         call_key = id(self), _get_ident()
@@ -58,12 +52,14 @@ class PlainRenderedOrderedDict(OrderedDict):
             del _repr_running[call_key]
 
 
-def setup_logging(log_config, instance_id, verbosity_adjust=0):
+def setup_logging(log_config, instance_id,
+                  verbosity_adjust=0, cache_on_use=True):
     """
     Set up logging such that:
     - The primary logging entry method is structlog
       (see http://structlog.readthedocs.io/en/stable/index.html)
     - By default, the logging backend is Python standard lib logger
+    - Optionally cache the logger on first use
     """
 
     def add_exc_info_flag_for_exception(_, name, event_dict):
@@ -79,25 +75,28 @@ def setup_logging(log_config, instance_id, verbosity_adjust=0):
     logging.config.dictConfig(log_config)
     logging.root.level -= 10 * verbosity_adjust
 
-    processors = [
-        add_exc_info_flag_for_exception,
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        add_instance_id,
-        StructuredLogRenderer(),
-    ]
-    structlog.configure(logger_factory=structlog.stdlib.LoggerFactory(),
-                        context_class=PlainRenderedOrderedDict,
-                        wrapper_class=BoundLogger,
-                        processors=processors)
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            add_exc_info_flag_for_exception,
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            add_instance_id,
+            structlog.processors.UnicodeEncoder(),
+            structlog.stdlib.render_to_log_kwargs,
+        ],
+        context_class=dict,
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=cache_on_use,
+    )
 
     # Mark first line of log
     log = structlog.get_logger()
-    log.info("first-line")
+    log.info("first-log-line, logging level %d" % logging.root.level)
     return log
 
 
-def update_logging(instance_id, vcore_id):
+def update_logging(instance_id, vcore_id, cache_on_use=True):
     """
     Add the vcore id to the structured logger
     :param vcore_id:  The assigned vcore id
@@ -116,15 +115,21 @@ def update_logging(instance_id, vcore_id):
         event_dict['vcore_id'] = vcore_id
         return event_dict
 
-    processors = [
-        add_exc_info_flag_for_exception,
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        add_instance_id,
-        add_vcore_id,
-        StructuredLogRenderer(),
-    ]
-    structlog.configure(processors=processors)
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            add_exc_info_flag_for_exception,
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            add_instance_id,
+            add_vcore_id,
+            structlog.processors.UnicodeEncoder(),
+            structlog.processors.KeyValueRenderer(),
+        ],
+        context_class=dict,
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=cache_on_use,
+    )
 
     # Mark first line of log
     log = structlog.get_logger()
