@@ -34,12 +34,11 @@ from protos.logical_device_pb2 import LogicalPortId
 from google.protobuf import empty_pb2
 
 
-log = get_logger()
-
-
 class GrpcClient(object):
 
     def __init__(self, connection_manager, channel, grpc_timeout):
+
+        self.log = get_logger()
 
         self.connection_manager = connection_manager
         self.channel = channel
@@ -53,19 +52,19 @@ class GrpcClient(object):
         self.change_event_queue = DeferredQueue()  # queue change events
 
     def start(self):
-        log.debug('starting', grpc_timeout=self.grpc_timeout)
+        self.log.debug('starting', grpc_timeout=self.grpc_timeout)
         self.start_packet_out_stream()
         self.start_packet_in_stream()
         self.start_change_event_in_stream()
         reactor.callLater(0, self.packet_in_forwarder_loop)
         reactor.callLater(0, self.change_event_processing_loop)
-        log.info('started')
+        self.log.info('started')
         return self
 
     def stop(self):
-        log.debug('stopping')
+        self.log.debug('stopping')
         self.stopped = True
-        log.info('stopped')
+        self.log.info('stopped')
 
     def start_packet_out_stream(self):
 
@@ -84,7 +83,7 @@ class GrpcClient(object):
             try:
                 self.local_stub.StreamPacketsOut(generator)
             except _Rendezvous, e:
-                log.error('grpc-exception', status=e.code())
+                self.log.error('grpc-exception', status=e.code())
                 if e.code() == StatusCode.UNAVAILABLE:
                     os.system("kill -15 {}".format(os.getpid()))
 
@@ -99,11 +98,11 @@ class GrpcClient(object):
                 for packet_in in iterator:
                     reactor.callFromThread(self.packet_in_queue.put,
                                            packet_in)
-                    log.debug('enqued-packet-in',
+                    self.log.debug('enqued-packet-in',
                               packet_in=packet_in,
                               queue_len=len(self.packet_in_queue.pending))
             except _Rendezvous, e:
-                log.error('grpc-exception', status=e.code())
+                self.log.error('grpc-exception', status=e.code())
                 if e.code() == StatusCode.UNAVAILABLE:
                     os.system("kill -15 {}".format(os.getpid()))
 
@@ -117,11 +116,11 @@ class GrpcClient(object):
             try:
                 for event in iterator:
                     reactor.callFromThread(self.change_event_queue.put, event)
-                    log.debug('enqued-change-event',
+                    self.log.debug('enqued-change-event',
                               change_event=event,
                               queue_len=len(self.change_event_queue.pending))
             except _Rendezvous, e:
-                log.error('grpc-exception', status=e.code())
+                self.log.error('grpc-exception', status=e.code())
                 if e.code() == StatusCode.UNAVAILABLE:
                     os.system("kill -15 {}".format(os.getpid()))
 
@@ -135,7 +134,7 @@ class GrpcClient(object):
                 device_id = event.id
                 self.connection_manager.forward_change_event(device_id, event)
             except Exception, e:
-                log.exception('failed-in-packet-in-handler', e=e)
+                self.log.exception('failed-in-packet-in-handler', e=e)
             if self.stopped:
                 break
 
@@ -263,7 +262,6 @@ class GrpcClient(object):
         res = yield threads.deferToThread(
             self.local_stub.Subscribe, subscriber, timeout=self.grpc_timeout)
         returnValue(res)
-
 
     @inlineCallbacks
     def get_meter_stats(self, device_id):

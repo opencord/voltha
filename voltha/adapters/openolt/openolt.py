@@ -242,14 +242,16 @@ class OpenoltAdapter(object):
         raise NotImplementedError()
 
     def send_proxied_message(self, proxy_address, msg):
-        log.debug('send-proxied-message', proxy_address=proxy_address, msg=msg)
+        log.debug('send-proxied-message',
+                  proxy_address=proxy_address,
+                  proxied_msg=msg)
         handler = self.devices[proxy_address.device_id]
         handler.send_proxied_message(proxy_address, msg)
 
     def receive_proxied_message(self, proxy_address, msg):
         log.debug('receive_proxied_message - Not implemented',
                   proxy_address=proxy_address,
-                  msg=msg)
+                  proxied_msg=msg)
         raise NotImplementedError()
 
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
