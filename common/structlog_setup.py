@@ -21,7 +21,7 @@ import logging.config
 from collections import OrderedDict
 
 import structlog
-from structlog.stdlib import BoundLogger, INFO
+from structlog.stdlib import BoundLogger
 
 try:
     from thread import get_ident as _get_ident
@@ -93,7 +93,7 @@ def setup_logging(log_config, instance_id, verbosity_adjust=0):
 
     # Mark first line of log
     log = structlog.get_logger()
-    log.info("first-line")
+    log.info("first-log-line, logging level %d" % logging.root.level)
     return log
 
 
@@ -123,6 +123,8 @@ def update_logging(instance_id, vcore_id):
         add_instance_id,
         add_vcore_id,
         StructuredLogRenderer(),
+        structlog.processors.UnicodeEncoder(),
+        cache_logger_on_first_use=True,
     ]
     structlog.configure(processors=processors)
 
