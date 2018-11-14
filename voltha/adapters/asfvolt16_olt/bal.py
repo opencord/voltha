@@ -252,7 +252,7 @@ class Bal(object):
         # Set the Packet-out info
         # TODO: Need to provide correct value for intf_id
         obj.packet.data.pkt = pkt
-        self.log.info('sending-packet-out',
+        self.log.debug('sending-packet-out',
                       packet_out_details=obj)
         yield self.stub.BalCfgSet(obj, timeout=GRPC_TIMEOUT)
 

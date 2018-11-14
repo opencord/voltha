@@ -245,9 +245,9 @@ class Leader(object):
     def _track_members(self, index):
         previous_index = index
         try:
-            log.info('member-tracking-before')
+            log.debug('member-tracking-before')
             is_timeout, (tmp_index, results) = yield \
-                                    self.coord.consul_get_with_timeout(
+                                    self.coord.coordinator_get_with_timeout(
                                             key=self.coord.membership_prefix,
                                             recurse=True,
                                             index=index,
@@ -270,7 +270,7 @@ class Leader(object):
                 return
 
             # After timeout event the index returned from
-            # consul_get_with_timeout is None.  If we are here it's not a
+            # coordinator_get_with_timeout is None.  If we are here it's not a
             # timeout, therefore the index is a valid one.
             index=tmp_index
 
