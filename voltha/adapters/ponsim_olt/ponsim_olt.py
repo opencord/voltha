@@ -24,6 +24,7 @@ import arrow
 import voltha.core.flow_decomposer as fd
 import grpc
 import json
+import copy
 import structlog
 from scapy.layers.l2 import Ether, Dot1Q
 from scapy.layers.inet import Raw
@@ -78,6 +79,21 @@ PACKET_IN_VLAN = 4000
 is_inband_frame = BpfProgramFilter('(ether[14:2] & 0xfff) = 0x{:03x}'.format(
     PACKET_IN_VLAN))
 
+EAP_ETH_TYPE = 0x888e
+
+# Classifier
+ETH_TYPE = 'eth_type'
+TPID = 'tpid'
+IP_PROTO = 'ip_proto'
+IN_PORT = 'in_port'
+VLAN_VID = 'vlan_vid'
+VLAN_PCP = 'vlan_pcp'
+UDP_DST = 'udp_dst'
+UDP_SRC = 'udp_src'
+IPV4_DST = 'ipv4_dst'
+IPV4_SRC = 'ipv4_src'
+METADATA = 'metadata'
+OUTPUT = 'output'
 
 class AdapterPmMetrics:
     def __init__(self, device):
@@ -371,6 +387,8 @@ class PonSimOltHandler(object):
         self.pm_metrics = None
         self.alarms = None
         self.frames = None
+        self.uni_ports = []
+        self.ctag_map = {}
 
     def __del__(self):
         if self.io_port is not None:
@@ -519,6 +537,7 @@ class PonSimOltHandler(object):
                 vlan=vlan_id,
                 serial_number=onu.serial_number
             )
+            self.uni_ports.append(int(onu.uni_port))
 
         if self.ponsim_comm == 'grpc':
             self.log.info('starting-frame-grpc-stream')
@@ -604,7 +623,7 @@ class PonSimOltHandler(object):
             if isinstance(outer_shim.payload, Dot1Q):
                 inner_shim = outer_shim.payload
                 cvid = inner_shim.vlan
-                logical_port = cvid
+                logical_port = self.get_subscriber_uni_port(cvid)
                 popped_frame = (
                         Ether(src=pkt.src, dst=pkt.dst, type=inner_shim.type) /
                         inner_shim.payload
@@ -648,6 +667,76 @@ class PonSimOltHandler(object):
                       frame_len=len(frame))
         self._rcv_frame(frame)
 
+    def to_controller(self, flow):
+        for action in fd.get_actions(flow):
+            if action.type == ofp.OFPAT_OUTPUT:
+                action.output.port = ofp.OFPP_CONTROLLER
+                self.log.info('sending flow to controller')
+
+    # Lookup subscriber ctag for a particular PON port
+    def get_subscriber_ctag(self, flows, port):
+        self.log.debug('looking from subscriber flow for port', port=port)
+
+        for flow in flows:
+            in_port = fd.get_in_port(flow)
+            out_port = fd.get_out_port(flow)
+            if in_port == port and out_port == self.nni_port.port_no:
+                fields = fd.get_ofb_fields(flow)
+                self.log.debug('subscriber flow found', fields=fields)
+                for field in fields:
+                    if field.type == fd.VLAN_VID:
+                        self.log.debug('subscriber ctag found',
+                                       vlan_id=field.vlan_vid)
+                        return field.vlan_vid & 0x0fff
+        self.log.debug('No subscriber flow found', port=port)
+        return None
+
+    # Lookup UNI port for a particular subscriber ctag
+    def get_subscriber_uni_port(self, ctag):
+        self.log.debug('get_subscriber_uni_port', ctag=ctag, ctag_map=self.ctag_map)
+        c = int(ctag)
+        if c in self.ctag_map:
+            return self.ctag_map[c]
+        return None
+
+    def clear_ctag_map(self):
+        self.ctag_map = {}
+
+    def update_ctag_map(self, ctag, uni_port):
+        c = int(ctag)
+        u = int(uni_port)
+        if not self.is_uni_port(u):
+            self.log.warning('update_ctag_map: unknown UNI port', uni_port=u)
+        if c in self.ctag_map and self.ctag_map[c] != u:
+            self.log.warning('update_ctag_map: changing UNI port for ctag',
+                ctag=c, old=self.ctag_map[c], new=u)
+        self.ctag_map[c] = u
+
+    # Create a new flow that's a copy of the old flow but change the vlan_vid
+    # Used to create per-subscriber DHCP and EAPOL flows
+    def create_secondary_flow(self, flow, vlan_id):
+        secondary_flow = copy.deepcopy(flow)
+        for field in fd.get_ofb_fields(secondary_flow):
+            if field.type == fd.VLAN_VID:
+                field.vlan_vid = vlan_id | 0x1000
+        return secondary_flow
+
+    def is_uni_port(self, vlan_id):
+        return int(vlan_id) in self.uni_ports
+
+    def create_secondary_flows(self, trapflows, allflows, type):
+        secondary_flows = []
+        for vlan_vid, flow in trapflows.iteritems():
+            if self.is_uni_port(vlan_vid):
+                self.update_ctag_map(vlan_vid, vlan_vid)
+                ctag = self.get_subscriber_ctag(allflows, fd.get_in_port(flow))
+                if ctag is not None:
+                    self.update_ctag_map(ctag, vlan_vid)
+                    if ctag not in trapflows:
+                        self.log.info('add secondary %s flow' % type, ctag=ctag)
+                        secondary_flows.append(self.create_secondary_flow(flow, ctag))
+        return secondary_flows
+
     # VOLTHA's flow decomposition removes the information about which flows
     # are trap flows where traffic should be forwarded to the controller.
     # We'll go through the flows and change the output port of flows that we
@@ -655,26 +744,70 @@ class PonSimOltHandler(object):
     def update_flow_table(self, flows):
         stub = ponsim_pb2_grpc.PonSimStub(self.get_channel())
         self.log.info('pushing-olt-flow-table')
+
+        self.clear_ctag_map()
+        dhcp_upstream_flows = {}
+        eapol_flows = {}
+        secondary_flows = []
+
         for flow in flows:
             classifier_info = {}
             for field in fd.get_ofb_fields(flow):
                 if field.type == fd.ETH_TYPE:
-                    classifier_info['eth_type'] = field.eth_type
-                    self.log.debug('field-type-eth-type',
-                                eth_type=classifier_info['eth_type'])
+                    classifier_info[ETH_TYPE] = field.eth_type
                 elif field.type == fd.IP_PROTO:
-                    classifier_info['ip_proto'] = field.ip_proto
-                    self.log.debug('field-type-ip-proto',
-                                ip_proto=classifier_info['ip_proto'])
-            if ('ip_proto' in classifier_info and (
-                classifier_info['ip_proto'] == 17 or
-                classifier_info['ip_proto'] == 2)) or (
-                      'eth_type' in classifier_info and
-                      classifier_info['eth_type'] == 0x888e):
-                for action in fd.get_actions(flow):
-                    if action.type == ofp.OFPAT_OUTPUT:
-                        action.output.port = ofp.OFPP_CONTROLLER
+                    classifier_info[IP_PROTO] = field.ip_proto
+                elif field.type == fd.IN_PORT:
+                    classifier_info[IN_PORT] = field.port
+                elif field.type == fd.VLAN_VID:
+                    classifier_info[VLAN_VID] = field.vlan_vid & 0xfff
+                elif field.type == fd.VLAN_PCP:
+                    classifier_info[VLAN_PCP] = field.vlan_pcp
+                elif field.type == fd.UDP_DST:
+                    classifier_info[UDP_DST] = field.udp_dst
+                elif field.type == fd.UDP_SRC:
+                    classifier_info[UDP_SRC] = field.udp_src
+                elif field.type == fd.IPV4_DST:
+                    classifier_info[IPV4_DST] = field.ipv4_dst
+                elif field.type == fd.IPV4_SRC:
+                    classifier_info[IPV4_SRC] = field.ipv4_src
+                elif field.type == fd.METADATA:
+                    classifier_info[METADATA] = field.table_metadata
+                else:
+                    self.log.debug('field-type-unhandled field.type={}'.format(
+                        field.type))
+
+            self.log.debug('classifier_info', classifier_info=classifier_info)
+
+            if IP_PROTO in classifier_info:
+                if classifier_info[IP_PROTO] == 17:
+                    if UDP_SRC in classifier_info:
+                        if classifier_info[UDP_SRC] == 68:
+                            self.log.info('dhcp upstream flow add')
+                            if VLAN_VID in classifier_info:
+                                dhcp_upstream_flows[classifier_info[VLAN_VID]] = flow
+                        elif classifier_info[UDP_SRC] == 67:
+                            self.log.info('dhcp downstream flow add')
+                    self.to_controller(flow)
+                elif classifier_info[IP_PROTO] == 2:
+                    self.log.info('igmp flow add')
+                    self.to_controller(flow)
+                else:
+                    self.log.warn("Invalid-Classifier-to-handle",
+                                   classifier_info=classifier_info)
+            elif ETH_TYPE in classifier_info:
+                if classifier_info[ETH_TYPE] == EAP_ETH_TYPE:
+                    self.log.info('eapol flow add')
+                    self.to_controller(flow)
+                    if VLAN_VID in classifier_info:
+                        eapol_flows[classifier_info[VLAN_VID]] = flow
+
             self.log.info('out_port', out_port=fd.get_out_port(flow))
+
+        flows.extend(self.create_secondary_flows(dhcp_upstream_flows, flows, "DHCP"))
+        flows.extend(self.create_secondary_flows(eapol_flows, flows, "EAPOL"))
+
+        self.log.debug('ctag_map', ctag_map=self.ctag_map)
 
         stub.UpdateFlowTable(FlowTable(
             port=0,
@@ -717,13 +850,27 @@ class PonSimOltHandler(object):
                        msg_hex=hexify(msg))
         pkt = Ether(msg)
         out_pkt = pkt
+        self.log.debug("packet_out: incoming: %s" % pkt.summary())
         if egress_port != self.nni_port.port_no:
             # don't do the vlan manipulation for the NNI port, vlans are already correct
-            out_pkt = (
+            if pkt.haslayer(Dot1Q):
+                # For QinQ-tagged packets from ONOS:
+                # - Outer header is 802.1AD
+                # - Inner header is 802.1Q
+                # - Send inner header and payload
+                payload = pkt.getlayer(Dot1Q)
+                out_pkt = (
+                    Ether(src=pkt.src, dst=pkt.dst) /
+                    payload
+                )
+            else:
+                # Add egress port as VLAN tag
+                out_pkt = (
                     Ether(src=pkt.src, dst=pkt.dst) /
                     Dot1Q(vlan=egress_port, type=pkt.type) /
                     pkt.payload
-            )
+                )
+        self.log.debug("packet_out: outgoing: %s" % out_pkt.summary())
 
         # TODO need better way of mapping logical ports to PON ports
         out_port = self.nni_port.port_no if egress_port == self.nni_port.port_no else 1
