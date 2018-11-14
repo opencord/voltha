@@ -218,7 +218,7 @@ func (c *client) DeRegister(id string) error {
 	return c.consulapi.Agent().ServiceDeregister(id)
 }
 
-// Service return a service 
+// Service return a service
 func (c *client) Service(service, tag string) ([]*consulapi.ServiceEntry, *consulapi.QueryMeta, error) {
 	passingOnly := true
 	addrs, meta, err := c.consulapi.Health().Service(service, tag, passingOnly, nil)
@@ -247,17 +247,17 @@ func (ec * EnvoyControl) startEnvoy() {
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		log.Fatal("Couldn't attach to stderr running envoy command: %s", err.Error())
+		log.Fatalf("Couldn't attach to stderr running envoy command: %s", err.Error())
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Fatal("Couldn't attach to stdout running envoy command: %s", err.Error())
+		log.Fatalf("Couldn't attach to stdout running envoy command: %s", err.Error())
 	}
 	so := bufio.NewReader(stdout)
 	se := bufio.NewReader(stderr)
 
 	if err = cmd.Start(); err != nil {
-		log.Fatal("Error starting envoy: %s", err.Error())
+		log.Fatalf("Error starting envoy: %s", err.Error())
 	}
 	log.Printf("Envoy(%d) started", curEpoch)
 	soEof := false
@@ -276,7 +276,7 @@ func (ec * EnvoyControl) startEnvoy() {
 				soEof = true
 			}
 		} else if err != nil {
-			log.Fatal("Attempt to read envoy standard out failed: %s", err.Error())
+			log.Fatalf("Attempt to read envoy standard out failed: %s", err.Error())
 		} else if count > 0 {
 			log.Printf("ENVOY_LOG(%d)(%d): %s",curEpoch,count,string(data))
 		}
@@ -289,14 +289,14 @@ func (ec * EnvoyControl) startEnvoy() {
 				seEof = true
 			}
 		} else if err != nil {
-			log.Fatal("Attempt to read envoy standard err failed: %s", err.Error())
+			log.Fatalf("Attempt to read envoy standard err failed: %s", err.Error())
 		} else if count > 0 {
 			log.Printf("ENVOY_LOG(%d)(%d): %s",curEpoch,count,string(data))
 		}
 	}
 	log.Printf("Waiting on envoy %d to exit", curEpoch)
 	if err = cmd.Wait(); err != nil {
-		log.Fatal("Envoy %d exited with an unexpected exit code: %s", curEpoch, err.Error())
+		log.Fatalf("Envoy %d exited with an unexpected exit code: %s", curEpoch, err.Error())
 	}
 	log.Printf("Envoy %d exited", curEpoch)
 	// Check if this was the primary envoy, if so
@@ -313,7 +313,7 @@ func (ec * EnvoyControl) startEnvoy() {
 }
 
 // This function will use the provided templete file to generate
-// the targetfile substituting 
+// the targetfile substituting
 func (ec * EnvoyControl) updateEnvoyConfig(ecv * EnvoyConfigVars) (err error) {
 	var firstRun bool = true
 	var firstRun2 bool = true
@@ -331,23 +331,23 @@ func (ec * EnvoyControl) updateEnvoyConfig(ecv * EnvoyConfigVars) (err error) {
 	// Slurp up the template file.
 	tplt, err := ioutil.ReadFile(ec.envoyConfigTemplate)
 	if err != nil {
-		log.Fatal("ERROR reading the template file, aborting: %s", err.Error())
+		log.Fatalf("ERROR reading the template file, aborting: %s", err.Error())
 	}
 	//fmt.Println(string(tplt))
 	configTemplate, err := template.New("config").Funcs(funcs).Parse(string(tplt));
 	if err != nil {
-		log.Fatal("Unexpected error loading the Envoy template, aborting: %s", err.Error())
+		log.Fatalf("Unexpected error loading the Envoy template, aborting: %s", err.Error())
 	}
 	outFile,err := os.Create(ec.envoyConfig)
 	if err != nil {
-		log.Fatal("Unexpected error opening the Envoy config file for write, aborting: %s", err.Error())
+		log.Fatalf("Unexpected error opening the Envoy config file for write, aborting: %s", err.Error())
 	}
 	if err = configTemplate.Execute(outFile, ecv); err != nil {
-		log.Fatal("Unexpected error executing the Envoy config template, aborting: %s", err.Error())
+		log.Fatalf("Unexpected error executing the Envoy config template, aborting: %s", err.Error())
 	}
 	//cfgFile, err := ioutil.ReadFile(ec.envoyConfig)
 	//if err != nil {
-	//	log.Fatal("ERROR reading the config file, aborting: %s", err.Error())
+	//	log.Fatalf("ERROR reading the config file, aborting: %s", err.Error())
 	//	panic(err)
 	//}
 	//fmt.Println(string(cfgFile))
@@ -363,7 +363,7 @@ func (ec * EnvoyControl) parseAssignment(jsonString []byte) (vCluster []VolthaCl
 	//err = json.Unmarshal(jsonString, &f)
 	err = json.Unmarshal(jsonString, &f)
 	if err != nil {
-		log.Fatal("Unable to parse json record %s : %s", jsonString, err.Error())
+		log.Fatalf("Unable to parse json record %s : %s", jsonString, err.Error())
 	} else {
 		m := f.(map[string]interface{})
 		for k, v := range m {
@@ -413,7 +413,7 @@ func (ec * EnvoyControl) prepareEnvoyConfig(keyValue []byte, ecv * EnvoyConfigVa
 	ecv.VolthaVip = ec.ipAddrs[ec.vcoreSvcName][0] + ":" + ec.vcorePort
 
 	// Extract all values from the KV record
-	// In the future, the values should all be compared to what we currently have 
+	// In the future, the values should all be compared to what we currently have
 	vCluster, err = ec.parseAssignment(keyValue)
 	if err == nil {
 		ec.vc = vCluster // For future use to determine if there's been a real change
@@ -425,7 +425,7 @@ func (ec * EnvoyControl) prepareEnvoyConfig(keyValue []byte, ecv * EnvoyConfigVa
 			ecv.VolthaRR = append(ecv.VolthaRR, vCluster[i].Host + ":" + ec.vcorePort)
 		}
 	} else {
-		log.Fatal("Couldn't parse the KV record %s: %s", string(keyValue), err.Error())
+		log.Fatalf("Couldn't parse the KV record %s: %s", string(keyValue), err.Error())
 	}
 	return
 }
@@ -435,7 +435,7 @@ func (ec * EnvoyControl) runEnvoy(keyValue []byte) {
 	var ecv EnvoyConfigVars
 
 	if err = ec.prepareEnvoyConfig(keyValue, &ecv); err != nil {
-		log.Fatal("Error preparing envoy config variables, aborting: %s", err.Error())
+		log.Fatalf("Error preparing envoy config variables, aborting: %s", err.Error())
 	}
 
 	// Now that we have the data loaded, update the envoy config and start envoy
@@ -468,7 +468,7 @@ func (ec * EnvoyControl) readConsulKey(key string, qo * consulapi.QueryOptions) 
 			kvp, meta, err = kv.Get(ec.assignmentKey, qo)
 		}
 		if i == ec.retries {
-			log.Fatal("Failed to read the assignment key after %d retries, aborting: %s", ec.retries, err.Error())
+			log.Fatalf("Failed to read the assignment key after %d retries, aborting: %s", ec.retries, err.Error())
 		}
 	}
 	return
@@ -497,7 +497,7 @@ func (ec * EnvoyControl) readEtcdKey(key string) (value []byte, index int64, err
 			resp, err = ec.etcd.Get(context.Background(), ec.assignmentKey)
 		}
 		if i == ec.retries {
-			log.Fatal("Failed to read assignment key from etcd after %d retries, aborting: %s", ec.retries, err.Error())
+			log.Fatalf("Failed to read assignment key from etcd after %d retries, aborting: %s", ec.retries, err.Error())
 		}
 	}
 	return
@@ -525,7 +525,7 @@ func (ec * EnvoyControl) monitorConsulKey() {
 			}
 			val, meta, err = ec.readConsulKey(ec.assignmentKey, &qo)
 			if err != nil {
-				log.Fatal("Unable to read assignment consul key: %s\n", err.Error())
+				log.Fatalf("Unable to read assignment consul key: %s\n", err.Error())
 			} else {
 				log.Println(string(val))
 				log.Printf("meta.LastIndex = %d", meta.LastIndex)
@@ -634,16 +634,16 @@ func (ec * EnvoyControl) ParseCommandArguments() {
 func (ec * EnvoyControl) Initialize() (err error) {
 	// Resolve KV store's virtual ip address
 	if err = ec.resolveServiceAddress(ec.kvSvcName); err != nil {
-		log.Fatal("Can't proceed without KV store's vIP address: %s", err.Error())
+		log.Fatalf("Can't proceed without KV store's vIP address: %s", err.Error())
 	}
 
 	// Resolve voltha's virtual ip address
 	if err = ec.resolveServiceAddress(ec.vcoreSvcName); err != nil {
-		log.Fatal("Can't proceed without voltha's vIP address: %s", err.Error())
+		log.Fatalf("Can't proceed without voltha's vIP address: %s", err.Error())
 	}
 
 	if err = ec.kvConnect[ec.kvStore](ec.kvSvcName, ec.kvPort); err != nil {
-		log.Fatal("Failed to create KV client, aborting: %s", err.Error())
+		log.Fatalf("Failed to create KV client, aborting: %s", err.Error())
 	}
 
 	if ec.httpDisabled == true && ec.httpsDisabled == true {
@@ -672,7 +672,7 @@ func main() {
 	log.Printf("KV-store %s at %s:%s", ec.kvStore, ec.kvSvcName, ec.kvPort)
 
 	if err = ec.Initialize(); err != nil {
-		log.Fatal("Envoy control initialization failed, aborting: %s", err.Error())
+		log.Fatalf("Envoy control initialization failed, aborting: %s", err.Error())
 	}
 
 
