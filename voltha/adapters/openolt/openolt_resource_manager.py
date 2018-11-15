@@ -23,6 +23,7 @@ from voltha.core.config.config_backend import EtcdStore
 from voltha.adapters.openolt.openolt_flow_mgr import *
 
 from voltha.adapters.openolt.protos import openolt_pb2
+from voltha.adapters.openolt.openolt_platform import OpenOltPlatform
 
 
 class OpenOltResourceMgr(object):
@@ -35,6 +36,7 @@ class OpenOltResourceMgr(object):
         self.host_and_port = host_and_port
         self.extra_args = extra_args
         self.device_info = device_info
+        self.max_uni_id_per_onu = 0 #OpenOltPlatform.MAX_UNIS_PER_ONU, Uncomment or override to make default multi-uni
         self.args = registry('main').get_args()
 
         # KV store's IP Address and PORT
@@ -113,6 +115,17 @@ class OpenOltResourceMgr(object):
         for key, resource_mgr in self.resource_mgrs.iteritems():
             resource_mgr.clear_device_resource_pool()
 
+    def assert_pon_id_limit(self, pon_intf_id):
+        assert pon_intf_id in self.resource_mgrs
+
+    def assert_onu_id_limit(self, pon_intf_id, onu_id):
+        self.assert_pon_id_limit(pon_intf_id)
+        self.resource_mgrs[pon_intf_id].assert_resource_limits(onu_id, PONResourceManager.ONU_ID)
+
+    def assert_uni_id_limit(self, pon_intf_id, onu_id, uni_id):
+        self.assert_onu_id_limit(pon_intf_id, onu_id)
+        self.resource_mgrs[pon_intf_id].assert_resource_limits(uni_id, PONResourceManager.UNI_ID)
+
     def get_onu_id(self, pon_intf_id):
         onu_id = self.resource_mgrs[pon_intf_id].get_resource_id(
             pon_intf_id, PONResourceManager.ONU_ID, 1)
@@ -124,36 +137,36 @@ class OpenOltResourceMgr(object):
 
         return onu_id
 
-    def get_flow_id(self, pon_intf_onu_id):
-        pon_intf = pon_intf_onu_id[0]
-        flow_id = self.resource_mgrs[pon_intf].get_resource_id(
-            pon_intf_onu_id[0], PONResourceManager.FLOW_ID)
+    def get_flow_id(self, pon_intf_id, onu_id, uni_id):
+        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
+        flow_id = self.resource_mgrs[pon_intf_id].get_resource_id(
+            pon_intf_id, PONResourceManager.FLOW_ID)
         if flow_id is not None:
-            self.resource_mgrs[pon_intf].update_flow_id_for_onu(pon_intf_onu_id, flow_id)
+            self.resource_mgrs[pon_intf_id].update_flow_id_for_onu(pon_intf_onu_id, flow_id)
 
         return flow_id
 
-    def get_flow_id_info(self, pon_intf_id, onu_id, flow_id):
-        pon_intf_onu_id = (pon_intf_id, onu_id)
+    def get_flow_id_info(self, pon_intf_id, onu_id, uni_id, flow_id):
+        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
         return self.resource_mgrs[pon_intf_id].get_flow_id_info(pon_intf_onu_id, flow_id)
 
-    def get_current_flow_ids_for_onu(self, pon_intf_id, onu_id):
-        pon_intf_onu_id = (pon_intf_id, onu_id)
+    def get_current_flow_ids_for_uni(self, pon_intf_id, onu_id, uni_id):
+        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
         return self.resource_mgrs[pon_intf_id].get_current_flow_ids_for_onu(pon_intf_onu_id)
 
-    def update_flow_id_info_for_onu(self, pon_intf_onu_id, flow_id, flow_data):
-        pon_intf_id = pon_intf_onu_id[0]
+    def update_flow_id_info_for_uni(self, pon_intf_id, onu_id, uni_id, flow_id, flow_data):
+        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
         return self.resource_mgrs[pon_intf_id].update_flow_id_info_for_onu(
             pon_intf_onu_id, flow_id, flow_data)
 
-    def get_hsia_flow_for_onu(self, pon_intf_id, onu_id, gemport_id):
-        pon_intf_onu_id = (pon_intf_id, onu_id)
+    def get_hsia_flow_for_uni(self, pon_intf_id, onu_id, uni_id, gemport_id):
+        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
         try:
             flow_ids = self.resource_mgrs[pon_intf_id]. \
                 get_current_flow_ids_for_onu(pon_intf_onu_id)
             if flow_ids is not None:
                 for flow_id in flow_ids:
-                    flows = self.get_flow_id_info(pon_intf_id, onu_id, flow_id)
+                    flows = self.get_flow_id_info(pon_intf_id, onu_id, uni_id, flow_id)
                     assert (isinstance(flows, list))
                     for flow in flows:
                         if flow['flow_category'] == HSIA_FLOW and \
@@ -162,7 +175,7 @@ class OpenOltResourceMgr(object):
         except Exception as e:
             self.log.error("error-retrieving-flow-info", e=e)
 
-        return self.get_flow_id(pon_intf_onu_id)
+        return self.get_flow_id(pon_intf_id, onu_id, uni_id)
 
     def get_alloc_id(self, pon_intf_onu_id):
         # Derive the pon_intf from the pon_intf_onu_id tuple
@@ -194,20 +207,27 @@ class OpenOltResourceMgr(object):
 
     def get_current_gemport_ids_for_onu(self, pon_intf_onu_id):
         pon_intf_id = pon_intf_onu_id[0]
+        assert False, 'unused function'
         return self.resource_mgrs[pon_intf_id].get_current_gemport_ids_for_onu(pon_intf_onu_id)
 
-    def update_gemports_ponport_to_onu_map_on_kv_store(self, gemport_list, pon_port, onu_id):
+    def update_gemports_ponport_to_onu_map_on_kv_store(self, gemport_list, pon_port, onu_id, uni_id):
         for gemport in gemport_list:
             pon_intf_gemport = (pon_port, gemport)
             # This information is used when packet_indication is received and
             # we need to derive the ONU Id for which the packet arrived based
             # on the pon_intf and gemport available in the packet_indication
-            self.kv_store[str(pon_intf_gemport)] = str(onu_id)
+            self.kv_store[str(pon_intf_gemport)] = ' '.join(map(str, (onu_id, uni_id)))
+
+    def get_onu_uni_from_ponport_gemport(self, pon_port, gemport):
+        pon_intf_gemport = (pon_port, gemport)
+        return tuple(map(int, self.kv_store[str(pon_intf_gemport)].split(' ')))
 
     def get_gemport_id(self, pon_intf_onu_id, num_of_id=1):
         # Derive the pon_intf and onu_id from the pon_intf_onu_id tuple
         pon_intf = pon_intf_onu_id[0]
         onu_id = pon_intf_onu_id[1]
+        uni_id = pon_intf_onu_id[2]
+        assert False, 'unused function'
 
         gemport_id_list = self.resource_mgrs[pon_intf].get_current_gemport_ids_for_onu(
             pon_intf_onu_id)
@@ -230,7 +250,7 @@ class OpenOltResourceMgr(object):
                                                                 gemport_id_list)
 
         self.update_gemports_ponport_to_onu_map_on_kv_store(gemport_id_list,
-                                                            pon_intf, onu_id)
+                                                            pon_intf, onu_id, uni_id)
         return gemport_id_list
 
     def free_onu_id(self, pon_intf_id, onu_id):
@@ -241,10 +261,10 @@ class OpenOltResourceMgr(object):
         self.resource_mgrs[pon_intf_id].remove_resource_map(
             pon_intf_onu_id)
 
-    def free_flow_id(self, pon_intf_id, onu_id, flow_id):
+    def free_flow_id_for_uni(self, pon_intf_id, onu_id, uni_id, flow_id):
         self.resource_mgrs[pon_intf_id].free_resource_id(
             pon_intf_id, PONResourceManager.FLOW_ID, flow_id)
-        pon_intf_onu_id = (pon_intf_id, onu_id)
+        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
         self.resource_mgrs[pon_intf_id].update_flow_id_for_onu(pon_intf_onu_id,
                                                                flow_id, False)
         self.resource_mgrs[pon_intf_id].remove_flow_id_info(pon_intf_onu_id,
@@ -361,6 +381,7 @@ class OpenOltResourceMgr(object):
             flow_id_start_idx=flow_id_start,
             flow_id_end_idx=flow_id_end,
             flow_id_shared_pool_id=flow_id_shared_pool_id,
+            uni_id_start_idx=0, uni_id_end_idx=self.max_uni_id_per_onu,
             num_of_pon_ports=self.device_info.pon_ports,
             intf_ids=arange.intf_ids
         )
@@ -388,3 +409,6 @@ class OpenOltResourceMgr(object):
                                                   flow_id_end_idx=flow_id_end)
                 resource_mgr.update_ranges(flow_id_start_idx=flow_id_start, flow_id_end_idx=flow_id_end,
                                            flow_id_shared_resource_mgr=global_resource_mgr)
+
+        # Make sure loaded range fits the platform bit encoding ranges
+        resource_mgr.update_ranges(uni_id_start_idx=0, uni_id_end_idx=OpenOltPlatform.MAX_UNIS_PER_ONU-1)

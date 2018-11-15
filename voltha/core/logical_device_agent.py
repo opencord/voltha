@@ -786,42 +786,45 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             if len(downstream_ports) == 0:
                 return None, None
             # assert len(downstream_ports) == 1
-            flows = OrderedDict((f.id, f) for f in [
-                mk_flow_stat(
-                    priority=500,
-                    match_fields=[
-                        in_port(downstream_ports[0].port_no),
-                        vlan_vid(ofp.OFPVID_PRESENT | 0)
-                    ],
-                    actions=[
-                        set_field(vlan_vid(ofp.OFPVID_PRESENT | device.vlan)),
-                        output(upstream_ports[0].port_no)
-                    ]
-                ),
-                mk_flow_stat(
-                    priority=500,
-                    match_fields=[
-                        in_port(downstream_ports[0].port_no),
-                        vlan_vid(0)
-                    ],
-                    actions=[
-                        push_vlan(0x8100),
-                        set_field(vlan_vid(ofp.OFPVID_PRESENT | device.vlan)),
-                        output(upstream_ports[0].port_no)
-                    ]
-                ),
-                mk_flow_stat(
-                    priority=500,
-                    match_fields=[
-                        in_port(upstream_ports[0].port_no),
-                        vlan_vid(ofp.OFPVID_PRESENT | device.vlan)
-                    ],
-                    actions=[
-                        set_field(vlan_vid(ofp.OFPVID_PRESENT | 0)),
-                        output(downstream_ports[0].port_no)
-                    ]
-                ),
-            ])
+            upstream_port  = upstream_ports[0]
+            flows = OrderedDict()
+            for downstream_port in downstream_ports:
+                flows.update(OrderedDict((f.id, f) for f in [
+                    mk_flow_stat(
+                        priority=500,
+                        match_fields=[
+                            in_port(downstream_port.port_no),
+                            vlan_vid(ofp.OFPVID_PRESENT | 0)
+                        ],
+                        actions=[
+                            set_field(vlan_vid(ofp.OFPVID_PRESENT | device.vlan)),
+                            output(upstream_port.port_no)
+                        ]
+                    ),
+                    mk_flow_stat(
+                        priority=500,
+                        match_fields=[
+                            in_port(downstream_port.port_no),
+                            vlan_vid(0)
+                        ],
+                        actions=[
+                            push_vlan(0x8100),
+                            set_field(vlan_vid(ofp.OFPVID_PRESENT | device.vlan)),
+                            output(upstream_port.port_no)
+                        ]
+                    ),
+                    mk_flow_stat(
+                        priority=500,
+                        match_fields=[
+                            in_port(upstream_port.port_no),
+                            vlan_vid(ofp.OFPVID_PRESENT | device.vlan)
+                        ],
+                        actions=[
+                            set_field(vlan_vid(ofp.OFPVID_PRESENT | 0)),
+                            output(downstream_port.port_no)
+                        ]
+                    ),
+                ]))
             groups = OrderedDict()
             return flows, groups
 
