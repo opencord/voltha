@@ -34,7 +34,7 @@ class BrcmVlanFilterTask(Task):
     task_priority = 200
     name = "Broadcom VLAN Filter Task"
 
-    def __init__(self, omci_agent, device_id, set_vlan_id, priority=task_priority):
+    def __init__(self, omci_agent, device_id, uni_port, set_vlan_id, priority=task_priority):
         """
         Class initialization
 
@@ -43,12 +43,16 @@ class BrcmVlanFilterTask(Task):
         :param set_vlan_id: (int) VLAN to filter for and set
         :param priority: (int) OpenOMCI Task priority (0..255) 255 is the highest
         """
+
+        self.log = structlog.get_logger(device_id=device_id, uni_port=uni_port.port_number)
+
         super(BrcmVlanFilterTask, self).__init__(BrcmVlanFilterTask.name,
                                                  omci_agent,
                                                  device_id,
                                                  priority=priority,
                                                  exclusive=False)
         self._device = omci_agent.get_device(device_id)
+        self._uni_port = uni_port
         self._set_vlan_id = set_vlan_id
         self._results = None
         self._local_deferred = None
@@ -84,7 +88,7 @@ class BrcmVlanFilterTask(Task):
             _mac_bridge_service_profile_entity_id = 0x201
             _mac_bridge_port_ani_entity_id = 0x2102  # TODO: can we just use the entity id from the anis list?
             # Delete bridge ani side vlan filter
-            msg = VlanTaggingFilterDataFrame(_mac_bridge_port_ani_entity_id)
+            msg = VlanTaggingFilterDataFrame(_mac_bridge_port_ani_entity_id + self._uni_port.mac_bridge_port_num)
             frame = msg.delete()
             self.log.debug('openomci-msg', msg=msg)
             self.strobe_watchdog()
@@ -93,7 +97,7 @@ class BrcmVlanFilterTask(Task):
 
             # Re-Create bridge ani side vlan filter
             msg = VlanTaggingFilterDataFrame(
-                _mac_bridge_port_ani_entity_id,  # Entity ID
+                _mac_bridge_port_ani_entity_id + self._uni_port.mac_bridge_port_num,  # Entity ID
                 vlan_tcis=[self._set_vlan_id],  # VLAN IDs
                 forward_operation=0x10
             )
@@ -132,7 +136,7 @@ class BrcmVlanFilterTask(Task):
                 )
             )
             msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                _mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                _mac_bridge_service_profile_entity_id + self._uni_port.mac_bridge_port_num,  # Bridge Entity ID
                 attributes=attributes  # See above
             )
             frame = msg.set()
@@ -168,7 +172,7 @@ class BrcmVlanFilterTask(Task):
                 )
             )
             msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                _mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                _mac_bridge_service_profile_entity_id + self._uni_port.mac_bridge_port_num,  # Bridge Entity ID
                 attributes=attributes  # See above
             )
             frame = msg.set()

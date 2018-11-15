@@ -26,7 +26,7 @@ class OnuGemPort(object):
     Broadcom ONU specific implementation
     """
 
-    def __init__(self, gem_id, alloc_id, entity_id,
+    def __init__(self, gem_id, uni_id, alloc_id, entity_id,
                  direction="BIDIRECTIONAL",
                  encryption=False,
                  discard_config=None,
@@ -45,11 +45,12 @@ class OnuGemPort(object):
                  name=None,
                  handler=None):
 
-        self.log = structlog.get_logger(device_id=handler.device_id, gem_id=gem_id)
+        self.log = structlog.get_logger(device_id=handler.device_id, uni_id=uni_id, gem_id=gem_id)
         self.log.debug('function-entry')
 
         self.name = name
         self.gem_id = gem_id
+        self.uni_id = uni_id
         self._alloc_id = alloc_id
         self.tcont_ref = tcont_ref
         self.intf_ref = intf_ref
@@ -255,6 +256,7 @@ class OnuGemPort(object):
         log.debug('function-entry', gem_port=gem_port, entity_id=entity_id)
 
         return OnuGemPort(gem_id=gem_port['gemport_id'],
+                          uni_id=gem_port['uni_id'],
                           alloc_id=gem_port['alloc_id_ref'],
                           entity_id=entity_id,
                           direction=gem_port['direction'],
