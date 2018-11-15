@@ -56,6 +56,24 @@
       "revId": "cad836c04076672c9bb78d1f6d89bb795bf2387c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2880e64c_cfe16643",
+        "filename": "voltha/protos/openflow_13.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 1789,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2018-11-15T15:51:35Z",
+      "side": 1,
+      "message": "@Shad, @Saurav Could you please comment on this.",
+      "parentUuid": "d700a926_eb31b99b",
+      "revId": "cad836c04076672c9bb78d1f6d89bb795bf2387c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
