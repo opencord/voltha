@@ -89,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "29774bab_3d80014b",
+        "filename": "voltha/extensions/omci/openomci_agent.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-11-15T19:19:17Z",
+      "side": 1,
+      "message": "Yes, the OnuDeviceEntry provides a query_mib() method to get any level of detail.  If there is a single attribute with a known class/entity ID, there is also a query_mib_single_attribute() method",
+      "parentUuid": "f8864ae1_5ee08240",
+      "revId": "1e65a4121872dba81b7fdcdae28448f494f01a79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b3ed2d4d_aa7ee10d",
         "filename": "voltha/extensions/omci/tasks/omci_sw_image_upgrade_task.py",
         "patchSetId": 3
@@ -118,6 +136,24 @@
       "side": 1,
       "message": "If exclusive is False the download task will be blocked and not resume by PM/Alarm tasks.\nThe reason is not clear for me.\nCould you give some direction?\nAnd I rewrite OMCI activation software image that combine it to upgrade task in that it will be blocked for the same reason.",
       "parentUuid": "b3ed2d4d_aa7ee10d",
+      "revId": "1e65a4121872dba81b7fdcdae28448f494f01a79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8ae71e8f_e287b468",
+        "filename": "voltha/extensions/omci/tasks/omci_sw_image_upgrade_task.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2018-11-15T19:19:17Z",
+      "side": 1,
+      "message": "The exclusive flag blocks any task from running (and will wait until any current task(s) that are running to complete before starting. I do not think you need to rewrite any of the tasks, just change the exclusive flag.\n\nWhen set to false, the task will share the OMCI_CC channel with others (get/set/create/...) will be interleaved.  For example, the PM Interval get task is not exclusive and when it needs to retrieve an interval, it would just get mixed in with any other non-exclusive tasks going on.\n\nAs a side note, I am implementing the high/low priority stop-and-wait protocol on the OMCC that is recommended by G.988. It will prevent (pause) a newly submitted MIB-upload sequence on the other channel if a download is going on.  I think this is section B.2.2 of the spec.\n\nAfter v2.0 and lots of testing, I will probably improve the Task Runner use of the pair of channels better. Right now all will run on the low-priority channel.",
+      "parentUuid": "3b67227e_cb280464",
       "revId": "1e65a4121872dba81b7fdcdae28448f494f01a79",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
