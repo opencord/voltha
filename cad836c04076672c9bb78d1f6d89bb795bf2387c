@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "aa2853b6_a43ca481",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-15T14:13:29Z",
+      "side": 1,
+      "message": "How does this get set? Does there need to be a CLI option on the preprovision_olt to authorize via registration ID vs serial number?",
+      "range": {
+        "startLine": 116,
+        "startChar": 12,
+        "endLine": 116,
+        "endChar": 14
+      },
+      "revId": "cad836c04076672c9bb78d1f6d89bb795bf2387c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
