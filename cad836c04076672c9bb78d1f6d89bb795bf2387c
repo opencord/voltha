@@ -22,6 +22,40 @@
       "revId": "cad836c04076672c9bb78d1f6d89bb795bf2387c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9049e0dc_60ba87e5",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 247,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2018-11-15T15:29:06Z",
+      "side": 1,
+      "message": "The registration id of an ONU is 36 bytes long. You can check G.987.3",
+      "revId": "cad836c04076672c9bb78d1f6d89bb795bf2387c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d700a926_eb31b99b",
+        "filename": "voltha/protos/openflow_13.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 1789,
+      "author": {
+        "id": 1000097
+      },
+      "writtenOn": "2018-11-15T15:29:06Z",
+      "side": 1,
+      "message": "Two things\n1. Can we change this structure? Wouldn\u0027t this violate the openflow specification? Would we need to change ONOS to be able to interpret this data?\n\n2. This structure seems to be for a switch/logical device/OLT in our case. The Registration ID is per ONU. How would we send the Registration ID of multiple ONUs using this mechanism?",
+      "revId": "cad836c04076672c9bb78d1f6d89bb795bf2387c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
