@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0cd07edf_0903a0d2",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 8
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-15T14:44:10Z",
+      "side": 1,
+      "message": "I would like to suggest the default configuration maps to legacy 1.x mode with 1 GEM port.",
+      "range": {
+        "startLine": 51,
+        "startChar": 4,
+        "endLine": 51,
+        "endChar": 25
+      },
+      "revId": "70df497dce66fce7de8d2b2a4dd6bc6904eef2dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "24f09931_a66060a2",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 8
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-15T14:44:10Z",
+      "side": 1,
+      "message": "As above, I would like to suggest the default configuration maps to legacy 1.x mode with 1 GEM port. With all 8 pbits mapped to one, i.e. call it \"SingleQueue\"",
+      "range": {
+        "startLine": 125,
+        "startChar": 0,
+        "endLine": 125,
+        "endChar": 4
+      },
+      "revId": "70df497dce66fce7de8d2b2a4dd6bc6904eef2dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da0c8409_c6f02bb5",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 8
+      },
+      "lineNbr": 389,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-15T14:44:10Z",
+      "side": 1,
+      "message": "To avoid exposing internals of TechProfile here. Maybe, just provide a new accessor method in TechProfile to get the complete KV store path to the instance, i.e.\n\nself.tech_profile[intf_id].get_tech_profile_instance(table_id,ofp_port_name).get_tp_full_path(DEFAULT_TECH_PROFILE_TABLE_ID,ofp_port_name)",
+      "range": {
+        "startLine": 389,
+        "startChar": 30,
+        "endLine": 389,
+        "endChar": 63
+      },
+      "revId": "70df497dce66fce7de8d2b2a4dd6bc6904eef2dd",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
