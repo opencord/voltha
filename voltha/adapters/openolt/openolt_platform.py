@@ -76,21 +76,27 @@ PON OLT (OF) port number
 
 """
 
-# MAX_ONUS_PER_PON = 112
-MAX_ONUS_PER_PON = 32
-
 class OpenOltPlatform(object):
+    MAX_PONS_PER_OLT = 16
+    MAX_ONUS_PER_PON = 32
+    MAX_UNIS_PER_ONU = 16
 
-    def __init__(self, log, device_info):
+    def __init__(self, log, resource_mgr):
         self.log = log
-        self.device_info = device_info
+        self.resource_mgr = resource_mgr
 
-    def mk_uni_port_num(self, intf_id, onu_id):
-        return intf_id << 11 | onu_id << 4
+    def mk_uni_port_num(self, intf_id, onu_id, uni_id):
+        assert intf_id < OpenOltPlatform.MAX_PONS_PER_OLT
+        assert onu_id < OpenOltPlatform.MAX_ONUS_PER_PON
+        assert uni_id < OpenOltPlatform.MAX_UNIS_PER_ONU
+        self.resource_mgr.assert_uni_id_limit(intf_id, onu_id, uni_id)
+        return intf_id << 11 | onu_id << 4 | uni_id
 
-    def mk_flow_id(self, intf_id, onu_id, idx):
-        return intf_id << 9 | onu_id << 4 | idx
+    #def mk_flow_id(self, intf_id, onu_id, idx):
+    #    return intf_id << 9 | onu_id << 4 | idx
 
+    def uni_id_from_port_num(self, port_num):
+        return port_num & 0xF
 
     def onu_id_from_port_num(self, port_num):
         return (port_num >> 4) & 0x7F
@@ -123,7 +129,7 @@ class OpenOltPlatform(object):
         elif intf_id & (0x1 << 16) == (0x1 << 16):
             return Port.ETHERNET_NNI
         else:
-            return None
+            return Port.ETHERNET_UNI
 
     def port_type_name_by_port_index(self, port_index):
         try:
@@ -133,11 +139,15 @@ class OpenOltPlatform(object):
 
     def extract_access_from_flow(self, in_port, out_port):
         if self.is_upstream(out_port):
-            return (self.intf_id_from_uni_port_num(in_port),
-                    self.onu_id_from_port_num(in_port))
+            return (in_port,
+                    self.intf_id_from_uni_port_num(in_port),
+                    self.onu_id_from_port_num(in_port),
+                    self.uni_id_from_port_num(in_port))
         else:
-            return (self.intf_id_from_uni_port_num(out_port),
-                    self.onu_id_from_port_num(out_port))
+            return (out_port,
+                    self.intf_id_from_uni_port_num(out_port),
+                    self.onu_id_from_port_num(out_port),
+                    self.uni_id_from_port_num(out_port))
 
     def is_upstream(self, out_port):
 
@@ -149,6 +159,6 @@ class OpenOltPlatform(object):
             return True
 
         return False
-
-    def max_onus_per_pon(self):
-        return MAX_ONUS_PER_PON
+    #
+    #def max_onus_per_pon(self):
+    #    return OpenOltPlatform.MAX_ONUS_PER_PON

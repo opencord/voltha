@@ -373,14 +373,18 @@ class OMCI_CC(object):
                                         status = omci_getnext_msg.fields['success_code']
 
                                         if status != ReasonCodes.Success.value:
-                                            raise Exception('omci-status ' + status)
+                                            raise Exception('get-next-failure table=' + eca.field.name +
+                                                            ' entity_id=' + str(entity_id) +
+                                                            ' sqn=' + str(seq_no) + ' omci-status ' + str(status))
 
                                         break
                                     except Exception as e:
-                                        self.log.exception('get-next-error ' + eca.field.name, e=e)
                                         retries -= 1
                                         if retries <= 0:
+                                            self.log.exception('get-next-error-abort', e=e)
                                             raise e
+                                        else:
+                                            self.log.error('get-next-error-retry', e=e, retries_remaining=retries)
 
                                 # Extract the data
                                 num_octets = count - offset

@@ -47,7 +47,7 @@ class OmciGetRequest(Task):
     name = "ONU OMCI Get Task"
 
     def __init__(self, omci_agent, device_id, entity_class, entity_id, attributes,
-                 exclusive=False, allow_failure=False):
+                 exclusive=True, allow_failure=False):
         """
         Class initialization
 
@@ -57,7 +57,7 @@ class OmciGetRequest(Task):
         :param entity_id: (int) ME Class instance ID to retrieve
         :param attributes: (list or set) Name of attributes to retrieve
         :param exclusive: (bool) True if this GET request Task exclusively own the
-                                 OMCI-CC while running. Default: False
+                                 OMCI-CC while running. Default: True
         :param allow_failure: (bool) If true, attempt to get all valid attributes
                                      if the original request receives an error
                                      code of 9 (Attributes failed or unknown).

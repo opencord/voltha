@@ -213,12 +213,11 @@ class OpenoltDevice(object):
         device_info = self.stub.GetDeviceInfo(openolt_pb2.Empty())
         self.log.info('Device connected', device_info=device_info)
 
-        self.platform = self.platform_class(self.log, device_info)
         self.resource_mgr = self.resource_mgr_class(self.device_id,
                                                     self.host_and_port,
                                                     self.extra_args,
                                                     device_info)
-
+        self.platform = self.platform_class(self.log, self.resource_mgr)
         self.flow_mgr = self.flow_mgr_class(self.adapter_agent, self.log,
                                             self.stub, self.device_id,
                                             self.logical_device_id,
@@ -261,16 +260,12 @@ class OpenoltDevice(object):
         # Children ports
         child_devices = self.adapter_agent.get_child_devices(self.device_id)
         for onu_device in child_devices:
-            uni_no = self.platform.mk_uni_port_num(
-                onu_device.proxy_address.channel_id,
-                onu_device.proxy_address.onu_id)
-            uni_name = self.port_name(uni_no, Port.ETHERNET_UNI,
-                                      serial_number=onu_device.serial_number)
             onu_adapter_agent = \
                 registry('adapter_loader').get_agent(onu_device.adapter)
             onu_adapter_agent.update_interface(onu_device,
                                                {'oper_state': 'down'})
-            self.onu_ports_down(onu_device, uni_no, uni_name, oper_state)
+            self.onu_ports_down(onu_device, oper_state)
+
         # Children devices
         self.adapter_agent.update_child_devices_state(
             self.device_id, oper_status=oper_state,
@@ -521,13 +516,6 @@ class OpenoltDevice(object):
                           expected_onu_id=onu_device.proxy_address.onu_id,
                           received_onu_id=onu_indication.onu_id)
 
-        uni_no = self.platform.mk_uni_port_num(onu_indication.intf_id,
-                                          onu_indication.onu_id)
-        uni_name = self.port_name(uni_no, Port.ETHERNET_UNI,
-                                  serial_number=onu_device.serial_number)
-
-        self.log.debug('port-number-ready', uni_no=uni_no, uni_name=uni_name)
-
         # Admin state
         if onu_indication.admin_state == 'down':
             if onu_indication.oper_state != 'down':
@@ -568,8 +556,7 @@ class OpenoltDevice(object):
                 onu_device.oper_status = OperStatus.DISCOVERED
                 self.adapter_agent.update_device(onu_device)
             # Set port oper state to Discovered
-            self.onu_ports_down(onu_device, uni_no, uni_name,
-                                OperStatus.DISCOVERED)
+            self.onu_ports_down(onu_device, OperStatus.DISCOVERED)
 
             onu_adapter_agent.update_interface(onu_device,
                                                {'oper_state': 'down'})
@@ -598,42 +585,37 @@ class OpenoltDevice(object):
             self.log.warn('Not-implemented-or-invalid-value-of-oper-state',
                           oper_state=onu_indication.oper_state)
 
-    def onu_ports_down(self, onu_device, uni_no, uni_name, oper_state):
+    def onu_ports_down(self, onu_device, oper_state):
         # Set port oper state to Discovered
         # add port will update port if it exists
-        self.adapter_agent.add_port(
-            self.device_id,
-            Port(
-                port_no=uni_no,
-                label=uni_name,
-                type=Port.ETHERNET_UNI,
-                admin_state=onu_device.admin_state,
-                oper_status=oper_state))
+        # self.adapter_agent.add_port(
+        #    self.device_id,
+        #    Port(
+        #        port_no=uni_no,
+        #        label=uni_name,
+        #        type=Port.ETHERNET_UNI,
+        #        admin_state=onu_device.admin_state,
+        #        oper_status=oper_state))
+        # TODO this should be downning ports in onu adatper
 
         # Disable logical port
         onu_ports = self.proxy.get('devices/{}/ports'.format(onu_device.id))
-        onu_port_id = None
         for onu_port in onu_ports:
-            if onu_port.port_no == uni_no:
-                onu_port_id = onu_port.label
-        if onu_port_id is None:
-            self.log.error('matching-onu-port-label-not-found',
-                           onu_id=onu_device.id, olt_id=self.device_id,
-                           onu_ports=onu_ports)
-            return
-        try:
-            onu_logical_port = self.adapter_agent.get_logical_port(
-                logical_device_id=self.logical_device_id, port_id=onu_port_id)
-            onu_logical_port.ofp_port.state = OFPPS_LINK_DOWN
-            self.adapter_agent.update_logical_port(
-                logical_device_id=self.logical_device_id,
-                port=onu_logical_port)
-            self.log.debug('cascading-oper-state-to-port-and-logical-port')
-        except KeyError as e:
-            self.log.error('matching-onu-port-label-invalid',
-                           onu_id=onu_device.id, olt_id=self.device_id,
-                           onu_ports=onu_ports, onu_port_id=onu_port_id,
-                           error=e)
+            self.log.debug('onu-ports-down', onu_port=onu_port)
+            onu_port_id = onu_port.label
+            try:
+                onu_logical_port = self.adapter_agent.get_logical_port(
+                    logical_device_id=self.logical_device_id, port_id=onu_port_id)
+                onu_logical_port.ofp_port.state = OFPPS_LINK_DOWN
+                self.adapter_agent.update_logical_port(
+                    logical_device_id=self.logical_device_id,
+                    port=onu_logical_port)
+                self.log.debug('cascading-oper-state-to-port-and-logical-port')
+            except KeyError as e:
+                self.log.error('matching-onu-port-label-invalid',
+                               onu_id=onu_device.id, olt_id=self.device_id,
+                               onu_ports=onu_ports, onu_port_id=onu_port_id,
+                               error=e)
 
     def omci_indication(self, omci_indication):
 
@@ -653,22 +635,32 @@ class OpenoltDevice(object):
         self.log.debug("packet indication",
                        intf_type=pkt_indication.intf_type,
                        intf_id=pkt_indication.intf_id,
+                       port_no=pkt_indication.port_no,
+                       cookie=pkt_indication.cookie,
                        gemport_id=pkt_indication.gemport_id,
                        flow_id=pkt_indication.flow_id)
 
         if pkt_indication.intf_type == "pon":
-            pon_intf_gemport = (pkt_indication.intf_id, pkt_indication.gemport_id)
-            try:
-                onu_id = int(self.resource_mgr.kv_store[pon_intf_gemport])
-                if onu_id is None:
-                    raise Exception("onu-id-none")
-            except Exception as e:
-                self.log.error("no-onu-reference-for-gem",
-                               gemport_id=pkt_indication.gemport_id, e=e)
-                return
+            if pkt_indication.port_no:
+                logical_port_num = pkt_indication.port_no
+            else:  # TODO Remove this else block after openolt device has been fully rolled out with cookie protobuf change
+                try:
+                    onu_id_uni_id = self.resource_mgr.get_onu_uni_from_ponport_gemport(pkt_indication.intf_id,
+                                                                                       pkt_indication.gemport_id)
+                    onu_id = int(onu_id_uni_id[0])
+                    uni_id = int(onu_id_uni_id[1])
+                    self.log.debug("packet indication-kv", onu_id=onu_id, uni_id=uni_id)
+                    if onu_id is None:
+                        raise Exception("onu-id-none")
+                    if uni_id is None:
+                        raise Exception("uni-id-none")
+                    logical_port_num = self.platform.mk_uni_port_num(pkt_indication.intf_id, onu_id, uni_id)
+                except Exception as e:
+                    self.log.error("no-onu-reference-for-gem",
+                                   gemport_id=pkt_indication.gemport_id, e=e)
+                    return
 
-            logical_port_num = self.platform.mk_uni_port_num(pkt_indication.intf_id,
-                                                        onu_id)
+
         elif pkt_indication.intf_type == "nni":
             logical_port_num = self.platform.intf_id_to_port_no(
                 pkt_indication.intf_id,
@@ -693,7 +685,7 @@ class OpenoltDevice(object):
                        packet=str(pkt).encode("HEX"))
 
         # Find port type
-        egress_port_type = self.port_type(egress_port)
+        egress_port_type = self.platform.intf_id_to_port_type_name(egress_port)
         if egress_port_type == Port.ETHERNET_UNI:
 
             if pkt.haslayer(Dot1Q):
@@ -715,11 +707,14 @@ class OpenoltDevice(object):
                 'sending-packet-to-ONU', egress_port=egress_port,
                 intf_id=self.platform.intf_id_from_uni_port_num(egress_port),
                 onu_id=self.platform.onu_id_from_port_num(egress_port),
+                uni_id=self.platform.uni_id_from_port_num(egress_port),
+                port_no=egress_port,
                 packet=str(payload).encode("HEX"))
 
             onu_pkt = openolt_pb2.OnuPacket(
                 intf_id=self.platform.intf_id_from_uni_port_num(egress_port),
                 onu_id=self.platform.onu_id_from_port_num(egress_port),
+                port_no=egress_port,
                 pkt=send_pkt)
 
             self.stub.OnuPacketOut(onu_pkt)
@@ -774,7 +769,8 @@ class OpenoltDevice(object):
             parent_device_id=self.device_id, parent_port_no=port_no,
             vendor_id=serial_number.vendor_id, proxy_address=proxy_address,
             root=True, serial_number=serial_number_str,
-            admin_state=AdminState.ENABLED)
+            admin_state=AdminState.ENABLED#, **{'vlan':4091} # magic still maps to brcm_openomci_onu.pon_port.BRDCM_DEFAULT_VLAN
+        )
 
     def port_name(self, port_no, port_type, intf_id=None, serial_number=None):
         if port_type is Port.ETHERNET_NNI:
@@ -782,17 +778,7 @@ class OpenoltDevice(object):
         elif port_type is Port.PON_OLT:
             return "pon" + str(intf_id)
         elif port_type is Port.ETHERNET_UNI:
-            if serial_number is not None:
-                return serial_number
-            else:
-                return "uni-{}".format(port_no)
-
-    def port_type(self, port_no):
-        ports = self.adapter_agent.get_ports(self.device_id)
-        for port in ports:
-            if port.port_no == port_no:
-                return port.type
-        return None
+            assert False, 'local UNI management not supported'
 
     def add_logical_port(self, port_no, intf_id, oper_state):
         self.log.info('adding-logical-port', port_no=port_no)
@@ -1018,8 +1004,12 @@ class OpenoltDevice(object):
             self.log.error('port delete error', error=e)
         serial_number = self.destringify_serial_number(
             child_device.serial_number)
+        # TODO FIXME - For each uni.
+        # TODO FIXME - Flows are not deleted
+        uni_id = 0  # FIXME
         pon_intf_id_onu_id = (child_device.proxy_address.channel_id,
-                              child_device.proxy_address.onu_id)
+                              child_device.proxy_address.onu_id,
+                              uni_id)
         alloc_id = self.resource_mgr.get_alloc_id(pon_intf_id_onu_id)
         # Free any PON resources that were reserved for the ONU
         self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
