@@ -243,6 +243,8 @@ message Device {
     Images images = 9 [(access) = READ_ONLY];
     string serial_number = 10 [(access) = READ_ONLY];
     string vendor_id = 24 [(access) = READ_ONLY];
+    bool auto_discovery = 25;
+    uint64 registration_id = 26;
 
     // Addapter that takes care of device
     string adapter = 11 [(access) = READ_ONLY];

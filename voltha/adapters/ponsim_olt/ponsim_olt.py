@@ -422,6 +422,8 @@ class PonSimOltHandler(object):
         device.vendor = 'ponsim'
         device.model = 'n/a'
         device.serial_number = device.host_and_port
+        device.registration_id = (uuid4().hex + uuid4().hex)[:36] # 36 Bytes
+        device.auto_discovery= False # do not need to set be True
         device.connect_status = ConnectStatus.REACHABLE
         self.adapter_agent.update_device(device)
 
@@ -459,6 +461,8 @@ class PonSimOltHandler(object):
                 sw_desc='simualted pon',
                 # serial_num=uuid4().hex,
                 serial_num=device.serial_number,
+                registration_id=device.registration_id,
+                auto_discovery=device.auto_discovery,
                 dp_desc='n/a'
             ),
             switch_features=ofp_switch_features(
@@ -517,7 +521,8 @@ class PonSimOltHandler(object):
                 ),
                 admin_state=AdminState.ENABLED,
                 vlan=vlan_id,
-                serial_number=onu.serial_number
+                serial_number=onu.serial_number,
+                registration_id=onu.registration_id
             )
 
         if self.ponsim_comm == 'grpc':
