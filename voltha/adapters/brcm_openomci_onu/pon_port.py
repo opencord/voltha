@@ -149,12 +149,13 @@ class PonPort(object):
         """
         self.log.debug('function-entry')
 
-        self._port = Port(port_no=self.port_number,
-                          label='PON port',
-                          type=Port.PON_ONU,
-                          admin_state=self._admin_state,
-                          oper_status=self._oper_status,
-                          peers=[])
+        if self._port is None:
+            self._port = Port(port_no=self.port_number,
+                              label='PON port',
+                              type=Port.PON_ONU,
+                              admin_state=self._admin_state,
+                              oper_status=self._oper_status,
+                              peers=[])
         return self._port
 
     def _update_adapter_agent(self):
