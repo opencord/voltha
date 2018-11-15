@@ -48,7 +48,7 @@ class BrcmTpServiceSpecificTask(Task):
 
     name = "Broadcom Tech-Profile Download Task"
 
-    def __init__(self, omci_agent, handler):
+    def __init__(self, omci_agent, handler, uni_id):
         """
         Class initialization
 
@@ -71,7 +71,7 @@ class BrcmTpServiceSpecificTask(Task):
         self._max_gem_payload = DEFAULT_GEM_PAYLOAD
 
         # TODO: only using a single UNI/ethernet port
-        self._uni_port = self._handler.uni_ports[0]
+        self._uni_port = self._handler.uni_ports[uni_id]
         self._uni_port_num = self._uni_port.mac_bridge_port_num
         self._ethernet_uni_entity_id = self._uni_port.entity_id
 
@@ -179,6 +179,7 @@ class BrcmTpServiceSpecificTask(Task):
             self.log.debug('tcont-idents', tcont_idents=tcont_idents)
 
             for tcont in self._handler.pon_port.tconts.itervalues():
+                if tcont.uni_id is not None and  tcont.uni_id != self._uni_port.uni_id: continue
                 free_entity_id = None
                 for k, v in tcont_idents.items():
                     alloc_check = v.get('attributes', {}).get('alloc_id', 0)
@@ -189,7 +190,7 @@ class BrcmTpServiceSpecificTask(Task):
                     else:
                         free_entity_id = None
 
-                self.log.debug('tcont-loop', free_entity_id=free_entity_id)
+                self.log.debug('tcont-loop', free_entity_id=free_entity_id, alloc_id=tcont.alloc_id)
 
                 if free_entity_id is None:
                     self.log.error('no-available-tconts')
@@ -258,19 +259,22 @@ class BrcmTpServiceSpecificTask(Task):
                         self.tcont_me_to_queue_map[tcont_me].append(k)
                     else:
                         uni_port = (related_port & 0xffff0000) >> 16
-                        if uni_port not in self.uni_port_to_queue_map:
-                            self.log.debug("prior-q-related-port-and-uni-port-me",
-                                            related_port=related_port,
-                                            uni_port_me=uni_port)
-                            self.uni_port_to_queue_map[uni_port] = list()
+                        if uni_port ==  self._uni_port.entity_id:
+                            if uni_port not in self.uni_port_to_queue_map:
+                                self.log.debug("prior-q-related-port-and-uni-port-me",
+                                                related_port=related_port,
+                                                uni_port_me=uni_port)
+                                self.uni_port_to_queue_map[uni_port] = list()
 
-                        self.uni_port_to_queue_map[uni_port].append(k)
+                            self.uni_port_to_queue_map[uni_port].append(k)
 
 
             self.log.debug("ul-prior-q", ul_prior_q=self.tcont_me_to_queue_map)
             self.log.debug("dl-prior-q", dl_prior_q=self.uni_port_to_queue_map)
 
             for gem_port in self._handler.pon_port.gem_ports.itervalues():
+                if gem_port.uni_id is not None and gem_port.uni_id != self._uni_port.uni_id: continue
+
                 # TODO: Traffic descriptor will be available after meter bands are available
                 tcont = gem_port.tcont
                 if tcont is None:
@@ -309,7 +313,8 @@ class BrcmTpServiceSpecificTask(Task):
                     # TODO: Need to restore on failure.  Need to check status/results
                     results = yield gem_port.add_to_hardware(omci_cc,
                                                    tcont.entity_id,
-                                                   self._ieee_mapper_service_profile_entity_id,
+                                                   self._ieee_mapper_service_profile_entity_id +
+                                                             self._uni_port.mac_bridge_port_num,
                                                    self._gal_enet_profile_entity_id,
                                                    ul_prior_q_entity_id, dl_prior_q_entity_id)
                     self.check_status_and_state(results, 'create-gem-port')
@@ -329,6 +334,8 @@ class BrcmTpServiceSpecificTask(Task):
 
             gem_entity_ids = [OmciNullPointer] * 8
             for gem_port in self._handler.pon_port.gem_ports.itervalues():
+                if gem_port.uni_id is not None and gem_port.uni_id != self._uni_port.uni_id: continue
+
                 if gem_port.direction == "upstream" or \
                         gem_port.direction == "bi-directional":
                     for i, p in enumerate(gem_port.pbit_map):
@@ -340,7 +347,7 @@ class BrcmTpServiceSpecificTask(Task):
                     pass
 
             msg = Ieee8021pMapperServiceProfileFrame(
-                self._ieee_mapper_service_profile_entity_id,  # 802.1p mapper Service Mapper Profile ID
+                self._ieee_mapper_service_profile_entity_id + self._uni_port.mac_bridge_port_num,  # 802.1p mapper Service Mapper Profile ID
                 interwork_tp_pointers=gem_entity_ids  # Interworking TP IDs
             )
             frame = msg.set()
@@ -381,7 +388,7 @@ class BrcmTpServiceSpecificTask(Task):
             )
 
             msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                self._mac_bridge_service_profile_entity_id + self._uni_port.mac_bridge_port_num,  # Bridge Entity ID
                 attributes=attributes
             )
 
@@ -399,7 +406,7 @@ class BrcmTpServiceSpecificTask(Task):
             )
 
             msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                self._mac_bridge_service_profile_entity_id + self._uni_port.mac_bridge_port_num,  # Bridge Entity ID
                 attributes=attributes
             )
 
@@ -440,7 +447,7 @@ class BrcmTpServiceSpecificTask(Task):
             )
 
             msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                self._mac_bridge_service_profile_entity_id + self._uni_port.mac_bridge_port_num,  # Bridge Entity ID
                 attributes=attributes
             )
 

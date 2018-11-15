@@ -35,7 +35,7 @@ class UniType(Enum):
 class UniPort(object):
     """Wraps southbound-port(s) support for ONU"""
 
-    def __init__(self, handler, name, port_no, ofp_port_no,
+    def __init__(self, handler, name, uni_id, port_no, ofp_port_no,
                  type=UniType.PPTP):
         self.log = structlog.get_logger(device_id=handler.device_id,
                                         port_no=port_no)
@@ -49,6 +49,7 @@ class UniPort(object):
         self._entity_id = None
         self._mac_bridge_port_num = 0
         self._type = type
+        self._uni_id = uni_id
 
         self._admin_state = AdminState.ENABLED
         self._oper_status = OperStatus.ACTIVE
@@ -57,8 +58,8 @@ class UniPort(object):
         return "UniPort: {}:{}".format(self.name, self.port_number)
 
     @staticmethod
-    def create(handler, name, port_no, ofp_port_no, type):
-        port = UniPort(handler, name, port_no, ofp_port_no, type)
+    def create(handler, name, uni_id, port_no, ofp_port_no, type):
+        port = UniPort(handler, name, uni_id, port_no, ofp_port_no, type)
         return port
 
     def _start(self):
@@ -97,6 +98,15 @@ class UniPort(object):
                 self._start()
             else:
                 self._stop()
+
+    @property
+    def uni_id(self):
+        """
+        Physical prt index on ONU 0 - N
+        :return: (int) uni id
+        """
+        return self._uni_id
+
 
     @property
     def mac_bridge_port_num(self):
@@ -178,9 +188,9 @@ class UniPort(object):
         return self._port
 
     def port_id_name(self):
-        return 'uni-{}'.format(self._logical_port_number)
+        return 'uni-{}'.format(self._port_number)
 
-    def add_logical_port(self, openflow_port_no,
+    def add_logical_port(self, openflow_port_no, multi_uni_naming,
                          capabilities=OFPPF_10GB_FD | OFPPF_FIBER,
                          speed=OFPPF_10GB_FD):
 
@@ -209,12 +219,13 @@ class UniPort(object):
             # leave the ports down until omci mib download has finished.  otherwise flows push before time
             openflow_port = ofp_port(
                 port_no=port_no,
-                hw_addr=mac_str_to_tuple('08:00:%02x:%02x:%02x:%02x' %
+                hw_addr=mac_str_to_tuple('08:%02x:%02x:%02x:%02x:%02x' %
                                          ((device.parent_port_no >> 8 & 0xff),
                                           device.parent_port_no & 0xff,
+                                          (port_no >> 16) & 0xff,
                                           (port_no >> 8) & 0xff,
                                           port_no & 0xff)),
-                name=device.serial_number,
+                name=device.serial_number + ['', '-' + str(self._mac_bridge_port_num)][multi_uni_naming],
                 config=0,
                 state=OFPPS_LINK_DOWN,
                 curr=capabilities,
@@ -230,4 +241,4 @@ class UniPort(object):
                                                              device_id=device.id,
                                                              device_port_no=self._port_number))
 
-            self.log.debug('logical-port', openflow_port=openflow_port)
+            self.log.debug('logical-port', id=self.port_id_name(), device_port_no=self._port_number, openflow_port=openflow_port)

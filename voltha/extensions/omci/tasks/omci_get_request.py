@@ -47,7 +47,7 @@ class OmciGetRequest(Task):
     name = "ONU OMCI Get Task"
 
     def __init__(self, omci_agent, device_id, entity_class, entity_id, attributes,
-                 exclusive=False, allow_failure=False):
+                 exclusive=True, allow_failure=False):
         """
         Class initialization
 
