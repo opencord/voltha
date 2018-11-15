@@ -21,6 +21,9 @@ Broadcom OpenOMCI OLT/ONU adapter handler.
 import json
 import ast
 import structlog
+
+from collections import OrderedDict
+
 from twisted.internet import reactor, task
 from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue, TimeoutError
 
@@ -60,7 +63,6 @@ _ = third_party
 log = structlog.get_logger()
 
 _STARTUP_RETRY_WAIT = 20
-_MAXIMUM_PORT = 128  # UNI ports
 
 
 class BrcmOpenomciOnuHandler(object):
@@ -86,7 +88,6 @@ class BrcmOpenomciOnuHandler(object):
 
         self._onu_indication = None
         self._unis = dict()  # Port # -> UniPort
-        self._port_number_pool = IndexPool(_MAXIMUM_PORT, 0)
 
         self._pon = None
         # TODO: probably shouldnt be hardcoded, determine from olt maybe?
@@ -158,18 +159,12 @@ class BrcmOpenomciOnuHandler(object):
                          if uni.name == port_no_or_name), None)
 
         assert isinstance(port_no_or_name, int), 'Invalid parameter type'
-        return self._unis.get(port_no_or_name)
+        return next((uni for uni in self.uni_ports
+                    if uni.logical_port_number == port_no_or_name), None)
 
     @property
     def pon_port(self):
         return self._pon
-
-    @property
-    def _next_port_number(self):
-        return self._port_number_pool.get_next()
-
-    def _release_port_number(self, number):
-        self._port_number_pool.release(number)
 
     def receive_message(self, msg):
         if self.omci_cc is not None:
@@ -275,7 +270,8 @@ class BrcmOpenomciOnuHandler(object):
         try:
             if event_msg['event'] == 'download_tech_profile':
                 tp_path = event_msg['event_data']
-                self.load_and_configure_tech_profile(tp_path)
+                uni_id = event_msg['uni_id']
+                self.load_and_configure_tech_profile(uni_id, tp_path)
 
         except Exception as e:
             self.log.error("exception-handling-onu-event", e=e)
@@ -328,7 +324,7 @@ class BrcmOpenomciOnuHandler(object):
         else:
             self.log.debug("parent-adapter-not-available")
 
-    def _create_tconts(self, us_scheduler):
+    def _create_tconts(self, uni_id, us_scheduler):
         alloc_id = us_scheduler['alloc_id']
         q_sched_policy = us_scheduler['q_sched_policy']
         self.log.debug('create-tcont', us_scheduler=us_scheduler)
@@ -336,6 +332,7 @@ class BrcmOpenomciOnuHandler(object):
         tcontdict = dict()
         tcontdict['alloc-id'] = alloc_id
         tcontdict['q_sched_policy'] = q_sched_policy
+        tcontdict['uni_id'] = uni_id
 
         # TODO: Not sure what to do with any of this...
         tddata = dict()
@@ -353,7 +350,7 @@ class BrcmOpenomciOnuHandler(object):
         self.log.debug('pon-add-tcont', tcont=tcont)
 
     # Called when there is an olt up indication, providing the gem port id chosen by the olt handler
-    def _create_gemports(self, gem_ports, alloc_id_ref, direction):
+    def _create_gemports(self, uni_id, gem_ports, alloc_id_ref, direction):
         self.log.debug('create-gemport',
                        gem_ports=gem_ports, direction=direction)
 
@@ -376,6 +373,7 @@ class BrcmOpenomciOnuHandler(object):
             gemdict['priority_q'] = gem_port['priority_q']
             gemdict['scheduling_policy'] = gem_port['scheduling_policy']
             gemdict['weight'] = gem_port['weight']
+            gemdict['uni_id'] = uni_id
 
             gem_port = OnuGemPort.create(self, gem_port=gemdict, entity_id=self._pon.next_gem_entity_id)
 
@@ -383,24 +381,31 @@ class BrcmOpenomciOnuHandler(object):
 
             self.log.debug('pon-add-gemport', gem_port=gem_port)
 
-    def _do_tech_profile_configuration(self, tp):
+    def _do_tech_profile_configuration(self, uni_id, tp):
         num_of_tconts = tp['num_of_tconts']
         us_scheduler = tp['us_scheduler']
         alloc_id = us_scheduler['alloc_id']
-        self._create_tconts(us_scheduler)
+        self._create_tconts(uni_id, us_scheduler)
         upstream_gem_port_attribute_list = tp['upstream_gem_port_attribute_list']
-        self._create_gemports(upstream_gem_port_attribute_list, alloc_id, "UPSTREAM")
+        self._create_gemports(uni_id, upstream_gem_port_attribute_list, alloc_id, "UPSTREAM")
         downstream_gem_port_attribute_list = tp['downstream_gem_port_attribute_list']
-        self._create_gemports(downstream_gem_port_attribute_list, alloc_id, "DOWNSTREAM")
+        self._create_gemports(uni_id, downstream_gem_port_attribute_list, alloc_id, "DOWNSTREAM")
 
-    def load_and_configure_tech_profile(self, tp_path):
+    def load_and_configure_tech_profile(self, uni_id, tp_path):
         self.log.debug("loading-tech-profile-configuration")
-        if tp_path not in self._tech_profile_download_done:
-            self._tech_profile_download_done[tp_path] = False
 
-        if not self._tech_profile_download_done[tp_path]:
+        if uni_id not in self._tp_service_specific_task:
+            self._tp_service_specific_task[uni_id] = dict()
+
+        if uni_id not in self._tech_profile_download_done:
+            self._tech_profile_download_done[uni_id] = dict()
+
+        if tp_path not in self._tech_profile_download_done[uni_id]:
+            self._tech_profile_download_done[uni_id][tp_path] = False
+
+        if not self._tech_profile_download_done[uni_id][tp_path]:
             try:
-                if tp_path in self._tp_service_specific_task:
+                if tp_path in self._tp_service_specific_task[uni_id]:
                     self.log.info("tech-profile-config-already-in-progress",
                                    tp_path=tp_path)
                     return
@@ -408,16 +413,16 @@ class BrcmOpenomciOnuHandler(object):
                 tp = self.kv_client[tp_path]
                 tp = ast.literal_eval(tp)
                 self.log.debug("tp-instance", tp=tp)
-                self._do_tech_profile_configuration(tp)
+                self._do_tech_profile_configuration(uni_id, tp)
 
                 def success(_results):
                     self.log.info("tech-profile-config-done-successfully")
                     device = self.adapter_agent.get_device(self.device_id)
                     device.reason = 'tech-profile-config-download-success'
                     self.adapter_agent.update_device(device)
-                    if tp_path in self._tp_service_specific_task:
-                        del self._tp_service_specific_task[tp_path]
-                    self._tech_profile_download_done[tp_path] = True
+                    if tp_path in self._tp_service_specific_task[uni_id]:
+                        del self._tp_service_specific_task[uni_id][tp_path]
+                    self._tech_profile_download_done[uni_id][tp_path] = True
 
                 def failure(_reason):
                     self.log.warn('tech-profile-config-failure-retrying',
@@ -425,16 +430,16 @@ class BrcmOpenomciOnuHandler(object):
                     device = self.adapter_agent.get_device(self.device_id)
                     device.reason = 'tech-profile-config-download-failure-retrying'
                     self.adapter_agent.update_device(device)
-                    if tp_path in self._tp_service_specific_task:
-                        del self._tp_service_specific_task[tp_path]
+                    if tp_path in self._tp_service_specific_task[uni_id]:
+                        del self._tp_service_specific_task[uni_id][tp_path]
                     self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT, self.load_and_configure_tech_profile,
-                                                       tp_path)
+                                                       uni_id, tp_path)
 
                 self.log.info('downloading-tech-profile-configuration')
-                self._tp_service_specific_task[tp_path] = \
-                       BrcmTpServiceSpecificTask(self.omci_agent, self)
+                self._tp_service_specific_task[uni_id][tp_path] = \
+                       BrcmTpServiceSpecificTask(self.omci_agent, self, uni_id)
                 self._deferred = \
-                       self._onu_omci_device.task_runner.queue_task(self._tp_service_specific_task[tp_path])
+                       self._onu_omci_device.task_runner.queue_task(self._tp_service_specific_task[uni_id][tp_path])
                 self._deferred.addCallbacks(success, failure)
 
             except Exception as e:
@@ -489,15 +494,18 @@ class BrcmOpenomciOnuHandler(object):
                 _in_port = fd.get_in_port(flow)
                 assert _in_port is not None
 
+                _out_port = fd.get_out_port(flow)  # may be None
+
                 if is_downstream(_in_port):
-                    self.log.debug('downstream-flow')
+                    self.log.debug('downstream-flow', in_port=_in_port, out_port=_out_port)
+                    uni_port = self.uni_port(_out_port)
                 elif is_upstream(_in_port):
-                    self.log.debug('upstream-flow')
+                    self.log.debug('upstream-flow', in_port=_in_port, out_port=_out_port)
+                    uni_port = self.uni_port(_in_port)
                 else:
                     raise Exception('port should be 1 or 2 by our convention')
 
-                _out_port = fd.get_out_port(flow)  # may be None
-                self.log.debug('out-port', out_port=_out_port)
+                self.log.debug('flow-ports', in_port=_in_port, out_port=_out_port, uni_port=str(uni_port))
 
                 for field in fd.get_ofb_fields(flow):
                     if field.type == fd.ETH_TYPE:
@@ -596,13 +604,16 @@ class BrcmOpenomciOnuHandler(object):
                 elif _set_vlan_vid is None or _set_vlan_vid == 0:
                     self.log.warn('ignorning-flow-that-does-not-set-vlanid')
                 else:
-                    self._add_vlan_filter_task(device, _set_vlan_vid)
+                    self.log.warn('set-vlanid', uni_id=uni_port.port_number, set_vlan_vid=_set_vlan_vid)
+                    self._add_vlan_filter_task(device, uni_port, _set_vlan_vid)
 
             except Exception as e:
                 self.log.exception('failed-to-install-flow', e=e, flow=flow)
 
 
-    def _add_vlan_filter_task(self, device, _set_vlan_vid):
+    def _add_vlan_filter_task(self, device, uni_port, _set_vlan_vid):
+        assert uni_port is not None
+
         def success(_results):
             self.log.info('vlan-tagging-success', _results=_results)
             device.reason = 'omci-flows-pushed'
@@ -612,10 +623,10 @@ class BrcmOpenomciOnuHandler(object):
             self.log.warn('vlan-tagging-failure', _reason=_reason)
             device.reason = 'omci-flows-failed-retrying'
             self._vlan_filter_task = reactor.callLater(_STARTUP_RETRY_WAIT,
-                                                       self._add_vlan_filter_task, device, _set_vlan_vid)
+                                                       self._add_vlan_filter_task, device, uni_port, _set_vlan_vid)
 
         self.log.info('setting-vlan-tag')
-        self._vlan_filter_task = BrcmVlanFilterTask(self.omci_agent, self.device_id, _set_vlan_vid)
+        self._vlan_filter_task = BrcmVlanFilterTask(self.omci_agent, self.device_id, uni_port, _set_vlan_vid)
         self._deferred = self._onu_omci_device.task_runner.queue_task(self._vlan_filter_task)
         self._deferred.addCallbacks(success, failure)
 
@@ -653,8 +664,8 @@ class BrcmOpenomciOnuHandler(object):
             reactor.callLater(0, self._onu_omci_device.stop)
 
             # Let TP download happen again
-            self._tp_service_specific_task.clear()
-            self._tech_profile_download_done.clear()
+            for i in self._tp_service_specific_task: i.clear()
+            for i in self._tech_profile_download_done: i.clear()
 
             self.disable_ports(onu_device)
             onu_device.reason = "stopping-openomci"
@@ -674,8 +685,8 @@ class BrcmOpenomciOnuHandler(object):
         reactor.callLater(0, self._onu_omci_device.stop)
 
         # Let TP download happen again
-        self._tp_service_specific_task.clear()
-        self._tech_profile_download_done.clear()
+        for i in self._tp_service_specific_task: i.clear()
+        for i in self._tech_profile_download_done: i.clear()
 
         self.disable_ports(onu_device)
         onu_device.reason = "stopping-openomci"
@@ -720,8 +731,8 @@ class BrcmOpenomciOnuHandler(object):
                 reactor.callLater(0, self._onu_omci_device.stop)
 
                 # Let TP download happen again
-                self._tp_service_specific_task.clear()
-                self._tech_profile_download_done.clear()
+                for i in self._tp_service_specific_task: i.clear()
+                for i in self._tech_profile_download_done: i.clear()
 
                 self.disable_ports(device)
                 device.oper_status = OperStatus.UNKNOWN
@@ -895,18 +906,30 @@ class BrcmOpenomciOnuHandler(object):
                     uni_value = config.uni_g_entities[entity_id]
                     self.log.debug("discovered-uni", entity_id=entity_id, value=uni_value)
 
-                # TODO: can only support one UNI per ONU at this time. break out as soon as we have a good UNI
+                uni_entities = OrderedDict()
                 for entity_id in pptp_list:
                     pptp_value = config.pptp_entities[entity_id]
                     self.log.debug("discovered-pptp", entity_id=entity_id, value=pptp_value)
-                    self._add_uni_port(entity_id, uni_type=UniType.PPTP)
-                    break
+                    uni_entities[entity_id] = UniType.PPTP
 
                 for entity_id in veip_list:
                     veip_value = config.veip_entities[entity_id]
                     self.log.debug("discovered-veip", entity_id=entity_id, value=veip_value)
-                    self._add_uni_port(entity_id, uni_type=UniType.VEIP)
-                    break
+                    uni_entities[entity_id] = UniType.VEIP
+
+                uni_id = 0
+                for entity_id, uni_type in uni_entities.iteritems():
+                    try:
+                        self._add_uni_port(entity_id, uni_id, uni_type)
+                        uni_id += 1
+                    except AssertionError as e:
+                        self.log.warn("could not add UNI", entity_id=entity_id, uni_type=uni_type, e=e)
+
+                multi_uni = len(self._unis) > 1
+                for uni_port in self._unis.itervalues():
+                    uni_port.add_logical_port(uni_port.port_number, multi_uni)
+
+                self.adapter_agent.update_device(device)
 
                 self._qos_flexibility = config.qos_configuration_flexibility or 0
                 self._omcc_version = config.omcc_version or OMCCVersion.Unknown
@@ -957,7 +980,7 @@ class BrcmOpenomciOnuHandler(object):
             self.log.info('device-info-not-loaded-skipping-mib-download')
 
 
-    def _add_uni_port(self, entity_id, uni_type=UniType.PPTP):
+    def _add_uni_port(self, entity_id, uni_id, uni_type=UniType.PPTP):
         self.log.debug('function-entry')
 
         device = self.adapter_agent.get_device(self.device_id)
@@ -970,24 +993,21 @@ class BrcmOpenomciOnuHandler(object):
         # TODO: This knowledge is locked away in openolt.  and it assumes one onu equals one uni...
         parent_device = self.adapter_agent.get_device(device.parent_id)
         parent_adapter = parent_adapter_agent.adapter.devices[parent_device.id]
-        uni_no_start = parent_adapter.platform.mk_uni_port_num(
-            self._onu_indication.intf_id, self._onu_indication.onu_id)
+        uni_no = parent_adapter.platform.mk_uni_port_num(
+            self._onu_indication.intf_id, self._onu_indication.onu_id, uni_id)
 
         # TODO: Some or parts of this likely need to move to UniPort. especially the format stuff
-        working_port = self._next_port_number
-        uni_no = uni_no_start + working_port
         uni_name = "uni-{}".format(uni_no)
 
-        mac_bridge_port_num = working_port + 1
+        mac_bridge_port_num = uni_id + 1 # TODO +1 is only to test non-zero index
 
-        self.log.debug('uni-port-inputs', uni_no=uni_no, uni_name=uni_name, uni_type=uni_type,
+        self.log.debug('uni-port-inputs', uni_no=uni_no, uni_id=uni_id, uni_name=uni_name, uni_type=uni_type,
                        entity_id=entity_id, mac_bridge_port_num=mac_bridge_port_num)
 
-        uni_port = UniPort.create(self, uni_name, uni_no, uni_name, uni_type)
+        uni_port = UniPort.create(self, uni_name, uni_id, uni_no, uni_name, uni_type)
         uni_port.entity_id = entity_id
         uni_port.enabled = True
         uni_port.mac_bridge_port_num = mac_bridge_port_num
-        uni_port.add_logical_port(uni_port.port_number)
 
         self.log.debug("created-uni-port", uni=uni_port)
 
@@ -1000,14 +1020,19 @@ class BrcmOpenomciOnuHandler(object):
                                                                   uni_ports=self._unis.values())
         # TODO: this should be in the PonPortclass
         pon_port = self._pon.get_port()
-        self.adapter_agent.delete_port_reference_from_parent(self.device_id,
-                                                             pon_port)
 
-        pon_port.peers.extend([Port.PeerPort(device_id=device.parent_id,
-                                             port_no=uni_port.port_number)])
+        # Delete reference to my own UNI as peer from parent.
+        # TODO why is this here, add_port_reference_to_parent already prunes duplicates
+        me_as_peer = Port.PeerPort(device_id=device.parent_id, port_no=uni_port.port_number)
+        partial_pon_port = Port(port_no=pon_port.port_no, label=pon_port.label,
+                                type=pon_port.type, admin_state=pon_port.admin_state,
+                                oper_status=pon_port.oper_status,
+                                peers=[me_as_peer]) # only list myself as a peer to avoid deleting all other UNIs from parent
+        self.adapter_agent.delete_port_reference_from_parent(self.device_id, partial_pon_port)
+
+        pon_port.peers.extend([me_as_peer])
 
         self._pon._port = pon_port
 
         self.adapter_agent.add_port_reference_to_parent(self.device_id,
                                                         pon_port)
-        self.adapter_agent.update_device(device)

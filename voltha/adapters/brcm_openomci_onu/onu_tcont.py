@@ -26,11 +26,12 @@ class OnuTCont(object):
     """
     Broadcom ONU specific implementation
     """
-    def __init__(self, handler, alloc_id, q_sched_policy, traffic_descriptor):
+    def __init__(self, handler, uni_id, alloc_id, q_sched_policy, traffic_descriptor):
 
-        self.log = structlog.get_logger(device_id=handler.device_id, alloc_id=alloc_id)
+        self.log = structlog.get_logger(device_id=handler.device_id, uni_id=uni_id, alloc_id=alloc_id)
         self.log.debug('function-entry')
 
+        self.uni_id = uni_id
         self.alloc_id = alloc_id
         self._q_sched_policy = 0
         self.q_sched_policy = q_sched_policy
@@ -64,6 +65,7 @@ class OnuTCont(object):
         log.debug('function-entry', tcont=tcont)
 
         return OnuTCont(handler,
+                        tcont['uni_id'],
                         tcont['alloc-id'],
                         tcont['q_sched_policy'],
                         td

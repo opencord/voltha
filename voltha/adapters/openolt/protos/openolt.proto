@@ -217,6 +217,8 @@ message PacketIndication {
     fixed32 intf_id = 1;
     fixed32 gemport_id = 2;
     fixed32 flow_id = 3;
+    fixed32 port_no = 6;
+    fixed64 cookie = 7;
     bytes pkt = 4;
 }
 
@@ -244,6 +246,7 @@ message OmciMsg {
 message OnuPacket {
     fixed32 intf_id = 1;
     fixed32 onu_id = 2;
+    fixed32 port_no = 4;
     bytes pkt = 3;
 }
 
@@ -342,6 +345,7 @@ message Action {
 message Flow {
     sfixed32 access_intf_id = 1;
     sfixed32 onu_id = 2;
+    sfixed32 uni_id = 11;
     fixed32 flow_id = 3;
     string flow_type = 4;	// upstream, downstream, broadcast, multicast
     sfixed32 alloc_id = 10;
@@ -350,6 +354,8 @@ message Flow {
     Classifier classifier = 7;
     Action action = 8;
     sfixed32 priority = 9;
+    fixed64 cookie = 12; // must be provided for any flow with trap_to_host action. Returned in PacketIndication
+    fixed32 port_no = 13; // must be provided for any flow with trap_to_host action. Returned in PacketIndication
 }
 
 message SerialNumber {
@@ -515,6 +521,8 @@ message Tcont {
 message Tconts {
     fixed32 intf_id = 1;
     fixed32 onu_id = 2;
+    fixed32 uni_id = 4;
+    fixed32 port_no = 5;
     repeated Tcont tconts = 3;
 }
 

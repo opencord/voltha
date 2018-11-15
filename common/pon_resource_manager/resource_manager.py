@@ -43,6 +43,7 @@ class PONResourceManager(object):
     """Implements APIs to initialize/allocate/release alloc/gemport/onu IDs."""
 
     # Constants to identify resource pool
+    UNI_ID = 'UNI_ID'
     ONU_ID = 'ONU_ID'
     ALLOC_ID = 'ALLOC_ID'
     GEMPORT_ID = 'GEMPORT_ID'
@@ -67,12 +68,16 @@ class PONResourceManager(object):
         "gemport_id_end": 8960,
         "flow_id_start": 1,
         "flow_id_end": 16383,
+        "uni_id_start": 0,
+        "uni_id_end": 0,
         "pon_ports": 16
     }
 
     '''
     # constants used as keys to reference the resource range parameters from
     # and external KV store.
+    UNI_ID_START_IDX = "uni_id_start"
+    UNI_ID_END_IDX = "uni_id_end"
     ONU_ID_START_IDX = "onu_id_start"
     ONU_ID_END_IDX = "onu_id_end"
     ONU_ID_SHARED_IDX = "onu_id_shared"
@@ -202,7 +207,16 @@ class PONResourceManager(object):
             resource_range_config = result
 
             if resource_range_config is not None:
-                self.pon_resource_ranges = json.loads(resource_range_config)
+                # update internal ranges from kv ranges. If there are missing
+                # values in the KV profile, continue to use the defaults
+                for key,value in json.loads(resource_range_config): self.pon_resource_ranges[key] = value
+
+                # initialize optional elements that may not be in the profile
+                if self.pon_resource_ranges[PONResourceManager.UNI_ID_START_IDX] is None:
+                    self.pon_resource_ranges[PONResourceManager.UNI_ID_START_IDX] = 0
+                if self.pon_resource_ranges[PONResourceManager.UNI_ID_END_IDX] is None:
+                    self.pon_resource_ranges[PONResourceManager.UNI_ID_END_IDX] = 0
+
                 self._log.debug("Init-resource-ranges-from-kvstore-success",
                                 pon_resource_ranges=self.pon_resource_ranges,
                                 path=path)
@@ -213,7 +227,8 @@ class PONResourceManager(object):
                                 e=e)
         return False
 
-    def update_range_(self, start_idx, start, end_idx, end, shared_idx, shared_pool_id, shared_resource_mgr):
+    def update_range_(self, start_idx, start, end_idx, end, shared_idx = None, shared_pool_id = None,
+                      shared_resource_mgr = None):
         if (start is not None) and \
                 (start_idx not in self.pon_resource_ranges or self.pon_resource_ranges[start_idx] < start):
             self.pon_resource_ranges[start_idx] = start
@@ -243,7 +258,9 @@ class PONResourceManager(object):
                       flow_id_start_idx=None,
                       flow_id_end_idx=None,
                       flow_id_shared_pool_id=None,
-                      flow_id_shared_resource_mgr=None):
+                      flow_id_shared_resource_mgr=None,
+                      uni_id_start_idx=None,
+                      uni_id_end_idx=None):
 
         self.update_range_(PONResourceManager.ONU_ID_START_IDX, onu_id_start_idx,
                            PONResourceManager.ONU_ID_END_IDX, onu_id_end_idx,
@@ -265,6 +282,9 @@ class PONResourceManager(object):
                            PONResourceManager.FLOW_ID_SHARED_IDX, flow_id_shared_pool_id,
                            flow_id_shared_resource_mgr)
 
+        self.update_range_(PONResourceManager.UNI_ID_START_IDX, uni_id_start_idx,
+                           PONResourceManager.UNI_ID_END_IDX, uni_id_end_idx)
+
     def init_default_pon_resource_ranges(self,
                                          onu_id_start_idx=1,
                                          onu_id_end_idx=127,
@@ -278,6 +298,8 @@ class PONResourceManager(object):
                                          flow_id_start_idx=1,
                                          flow_id_end_idx=16383,
                                          flow_id_shared_pool_id=None,
+                                         uni_id_start_idx=0,
+                                         uni_id_end_idx=0,
                                          num_of_pon_ports=16,
                                          intf_ids=None):
         """
@@ -303,7 +325,8 @@ class PONResourceManager(object):
         self.update_ranges(onu_id_start_idx, onu_id_end_idx, onu_id_shared_pool_id, None,
                            alloc_id_start_idx, alloc_id_end_idx, alloc_id_shared_pool_id, None,
                            gemport_id_start_idx, gemport_id_end_idx, gemport_id_shared_pool_id, None,
-                           flow_id_start_idx, flow_id_end_idx, flow_id_shared_pool_id, None)
+                           flow_id_start_idx, flow_id_end_idx, flow_id_shared_pool_id, None,
+                           uni_id_start_idx, uni_id_end_idx)
 
         if intf_ids is None:
             intf_ids = range(0, num_of_pon_ports)
@@ -467,6 +490,27 @@ class PONResourceManager(object):
             self._log.exception("error-initializing-resource-pool", e=e)
 
         return status
+
+    def assert_resource_limits(self, id, resource_type):
+        """
+        Assert the specified id value is in the limit bounds of he requested resource type.
+
+        :param id: The value to assert is in limits
+        :param resource_type: String to identify type of resource
+        """
+        start_idx = PONResourceManager.ONU_ID_START_IDX if resource_type == PONResourceManager.ONU_ID \
+            else PONResourceManager.ALLOC_ID_START_IDX if resource_type == PONResourceManager.ALLOC_ID \
+            else PONResourceManager.GEMPORT_ID_START_IDX if resource_type == PONResourceManager.GEMPORT_ID \
+            else PONResourceManager.FLOW_ID_START_IDX if resource_type == PONResourceManager.FLOW_ID \
+            else PONResourceManager.UNI_ID_START_IDX if resource_type == PONResourceManager.UNI_ID \
+            else None
+        end_idx = PONResourceManager.ONU_ID_END_IDX if resource_type == PONResourceManager.ONU_ID \
+            else PONResourceManager.ALLOC_ID_END_IDX if resource_type == PONResourceManager.ALLOC_ID \
+            else PONResourceManager.GEMPORT_ID_END_IDX if resource_type == PONResourceManager.GEMPORT_ID \
+            else PONResourceManager.FLOW_ID_END_IDX if resource_type == PONResourceManager.FLOW_ID \
+            else PONResourceManager.UNI_ID_END_IDX if resource_type == PONResourceManager.UNI_ID \
+            else None
+        assert id >= self.pon_resource_ranges[start_idx] and id <= self.pon_resource_ranges[end_idx]
 
     def get_resource_id(self, pon_intf_id, resource_type, num_of_id=1):
         """
