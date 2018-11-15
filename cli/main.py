@@ -315,6 +315,10 @@ class VolthaCli(Cmd):
         make_option('-i', '--ip-address', action='store', dest='ip_address'),
         make_option('-H', '--host_and_port', action='store',
                     dest='host_and_port'),
+        make_option('-a', '--auto_discovery_onu', action='store_false',
+                    dest='auto_discovery_onu'),
+        make_option('-e', '--enable_olt_onu', action='store_false',
+                    dest='enable_olt_onu'),
     ])
     def do_preprovision_olt(self, line, opts):
         """Preprovision a new OLT with given device type"""
@@ -328,6 +332,12 @@ class VolthaCli(Cmd):
             kw['mac_address'] = opts.mac_address.lower()
         else:
             raise Exception('Either IP address or Mac Address is needed')
+
+        if opts.auto_discovery_onu is not None:
+            kw['auto_discovery_onu'] = True 
+        else:
+            kw['auto_discovery_onu'] = False
+
         # Pass any extra arguments past '--' to the device as custom arguments
         kw['extra_args'] = line
 
@@ -335,6 +345,9 @@ class VolthaCli(Cmd):
         device = stub.CreateDevice(device)
         self.poutput('success (device id = {})'.format(device.id))
         self.default_device_id = device.id
+        self.do_devices(line)
+        if opts.enable_olt_onu is not None:
+            self.do_enable(device.id)
 
     def do_enable(self, line):
         """

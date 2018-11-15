@@ -16,6 +16,7 @@
 import threading
 import binascii
 import grpc
+from uuid import uuid4
 
 import structlog
 from twisted.internet import reactor
@@ -108,6 +109,15 @@ class OpenoltDevice(object):
             # Update device
             device.root = True
             device.serial_number = self.host_and_port  # FIXME
+
+            self.log.info('openolt-device-auto-discovery-onu', device_id=self.device_id,
+                    serial_number=device.serial_number,
+                    auto_discovery_onu=device.auto_discovery_onu,
+                    registration_id=device.registration_id)
+            if device.auto_discovery_onu == True:
+                # 36 Bytes. The default mode is disabled auto-discovery without registration id, 
+                # if we set this id with auto-discovery mode that would fail to activate ONU.
+                device.registration_id = (uuid4().hex + uuid4().hex)[:36] #FIXME
             device.connect_status = ConnectStatus.UNREACHABLE
             device.oper_status = OperStatus.ACTIVATING
             self.adapter_agent.update_device(device)
@@ -131,7 +141,9 @@ class OpenoltDevice(object):
                     )
                 ),
                 desc=ofp_desc(
-                    serial_num=device.serial_number
+                    serial_num=device.serial_number,
+                    auto_discovery_onu=device.auto_discovery_onu,
+                    registration_id=device.registration_id
                 )
             )
             ld_init = self.adapter_agent.create_logical_device(ld,
@@ -383,11 +395,15 @@ class OpenoltDevice(object):
     def onu_discovery_indication(self, onu_disc_indication):
         intf_id = onu_disc_indication.intf_id
         serial_number = onu_disc_indication.serial_number
+        auto_discovery_onu = onu_disc_indication.auto_discovery_onu
+        registration_id = onu_disc_indication.registration_id
 
         serial_number_str = self.stringify_serial_number(serial_number)
 
         self.log.debug("onu discovery indication", intf_id=intf_id,
-                       serial_number=serial_number_str)
+                       serial_number=serial_number_str,
+                       auto_discovery_onu=auto_discovery_onu,
+                       registration_id=registration_id)
 
         # Post ONU Discover alarm  20180809_0805
         try:
@@ -420,9 +436,10 @@ class OpenoltDevice(object):
                 self.add_onu_device(
                     intf_id,
                     self.platform.intf_id_to_port_no(intf_id, Port.PON_OLT),
-                    onu_id, serial_number)
+                    onu_id, serial_number, auto_discovery_onu, registration_id)
                 self.activate_onu(intf_id, onu_id, serial_number,
-                                  serial_number_str, alloc_id)
+                                  serial_number_str, alloc_id,
+                                  auto_discovery_onu, registration_id)
             except Exception as e:
                 self.log.exception('onu-activation-failed', e=e)
 
@@ -446,7 +463,8 @@ class OpenoltDevice(object):
             elif onu_device.oper_status == OperStatus.UNKNOWN:
                 self.log.info("onu in unknown state, recovering from olt \
                               reboot probably, activate onu", intf_id=intf_id,
-                              onu_id=onu_id, serial_number=serial_number_str)
+                              onu_id=onu_id, serial_number=serial_number_str,
+                              registration_id=registration_id)
 
                 onu_device.oper_status = OperStatus.DISCOVERED
                 self.adapter_agent.update_device(onu_device)
@@ -458,7 +476,8 @@ class OpenoltDevice(object):
                     alloc_id = self.resource_mgr.get_alloc_id(
                         pon_intf_onu_id)
                     self.activate_onu(intf_id, onu_id, serial_number,
-                                      serial_number_str, alloc_id)
+                                      serial_number_str, alloc_id,
+                                      auto_discovery_onu, registration_id)
                 except Exception as e:
                     self.log.error('onu-activation-error',
                                    serial_number=serial_number_str, error=e)
@@ -767,9 +786,11 @@ class OpenoltDevice(object):
                                    onu_id=proxy_address.onu_id, pkt=str(msg))
         self.stub.OmciMsgOut(omci)
 
-    def add_onu_device(self, intf_id, port_no, onu_id, serial_number):
-        self.log.info("Adding ONU", port_no=port_no, onu_id=onu_id,
-                      serial_number=serial_number)
+    def add_onu_device(self, intf_id, port_no, onu_id, serial_number,
+            auto_discovery_onu, registration_id):
+        self.log.info("Adding ONU", port_no=port_no, onu_id=onu_id, 
+                auto_discovery_onu=auto_discovery_onu, 
+                serial_number=serial_number, registration_id=registration_id)
 
         # NOTE - channel_id of onu is set to intf_id
         proxy_address = Device.ProxyAddress(device_id=self.device_id,
@@ -784,7 +805,8 @@ class OpenoltDevice(object):
             parent_device_id=self.device_id, parent_port_no=port_no,
             vendor_id=serial_number.vendor_id, proxy_address=proxy_address,
             root=True, serial_number=serial_number_str,
-            admin_state=AdminState.ENABLED)
+            auto_discovery_onu=auto_discovery_onu,
+            registration_id=registration_id, admin_state=AdminState.ENABLED)
 
     def port_name(self, port_no, port_type, intf_id=None, serial_number=None):
         if port_type is Port.ETHERNET_NNI:
@@ -995,23 +1017,32 @@ class OpenoltDevice(object):
             self.log.info('openolt device reenabled')
 
     def activate_onu(self, intf_id, onu_id, serial_number,
-                     serial_number_str, alloc_id):
+                     serial_number_str, alloc_id,
+                     auto_discovery_onu, registration_id):
         pir = self.bw_mgr.pir(serial_number_str)
         self.log.debug("activating-onu", intf_id=intf_id, onu_id=onu_id,
                        serial_number_str=serial_number_str,
                        serial_number=serial_number, pir=pir,
-                       alloc_id=alloc_id)
+                       alloc_id=alloc_id,
+                       auto_discovery_onu=auto_discovery_onu,
+                       registration_id=registration_id)
         onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
                               serial_number=serial_number, pir=pir,
-                              alloc_id=alloc_id)
+                              alloc_id=alloc_id,
+                              auto_discovery_onu=auto_discovery_onu,
+                              registration_id=registration_id)
         self.stub.ActivateOnu(onu)
-        self.log.info('onu-activated', serial_number=serial_number_str)
+        self.log.info('onu-activated', serial_number=serial_number_str,
+                auto_discovery_onu=auto_discovery_onu,
+                registration_id=registration_id)
 
     def delete_child_device(self, child_device):
         self.log.debug('sending-deactivate-onu',
                        olt_device_id=self.device_id,
                        onu_device=child_device,
-                       onu_serial_number=child_device.serial_number)
+                       onu_serial_number=child_device.serial_number,
+                       auto_discovery_onu=auto_discovery_onu,
+                       onu_registration_id=child_device.registration_id)
         try:
             self.adapter_agent.delete_child_device(self.device_id,
                                                    child_device.id,
@@ -1037,7 +1068,9 @@ class OpenoltDevice(object):
         onu = openolt_pb2.Onu(intf_id=child_device.proxy_address.channel_id,
                               onu_id=child_device.proxy_address.onu_id,
                               serial_number=serial_number,
-                              alloc_id=alloc_id)
+                              alloc_id=alloc_id,
+                              auto_discovery_onu=auto_discovery_onu,
+                              registration_id=onu_registration_id)
         self.stub.DeleteOnu(onu)
 
     def reboot(self):

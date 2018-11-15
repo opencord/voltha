@@ -1786,6 +1786,8 @@ message ofp_desc {
     string sw_desc = 3;        /* Software description. */
     string serial_num = 4;     /* Serial number. */
     string dp_desc = 5;        /* Human readable description of datapath. */
+    bool auto_discovery_onu = 6;   /* decide how is activating to ONU. */
+    string registration_id = 7;/* ONU registration ID for activating ONU. */
 };
 
 /* Body for ofp_multipart_request of type OFPMP_FLOW. */

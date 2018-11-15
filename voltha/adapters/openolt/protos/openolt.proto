@@ -176,6 +176,8 @@ message IntfIndication {
 message OnuDiscIndication {
     fixed32 intf_id = 1;
     SerialNumber serial_number = 2;
+    bool auto_discovery_onu = 3;
+    string registration_id = 4;
 }
 
 message OnuIndication {
@@ -220,6 +222,8 @@ message Onu {
     SerialNumber serial_number = 3;
     fixed32 pir = 4;   // peak information rate assigned to onu
     fixed32 alloc_id = 5;
+    bool auto_discovery_onu = 6;
+    string registration_id = 7;
 }
 
 message OmciMsg {
