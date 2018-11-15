@@ -74,6 +74,24 @@
       "revId": "cad836c04076672c9bb78d1f6d89bb795bf2387c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1cf76556_74d423ec",
+        "filename": "voltha/protos/openflow_13.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 1789,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-15T16:11:22Z",
+      "side": 1,
+      "message": "I think the point of auto-discovery in BAL is to instruct it to automatically learn the ONU Registration ID during activation. I don\u0027t think this should be part of the indication. It is a configuration item to authenticate the ONU by Serial Number or by Registration ID and shouldn\u0027t be passed to ONOS.\n\nIf the ONU\u0027s discvoered registration ID doesn\u0027t match the system\u0027s authorized registration ID, the ONU should not be allowed to enter O5 state, i.e. it should not be activated.",
+      "parentUuid": "2880e64c_cfe16643",
+      "revId": "cad836c04076672c9bb78d1f6d89bb795bf2387c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
