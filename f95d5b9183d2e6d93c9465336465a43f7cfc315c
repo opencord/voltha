@@ -22,6 +22,30 @@
       "revId": "f95d5b9183d2e6d93c9465336465a43f7cfc315c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "14438563_236473ba",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 12
+      },
+      "lineNbr": 352,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-16T16:34:51Z",
+      "side": 1,
+      "message": "I must have missed it somehow. Added it now.",
+      "parentUuid": "151bca2d_a6e745d1",
+      "range": {
+        "startLine": 352,
+        "startChar": 12,
+        "endLine": 352,
+        "endChar": 30
+      },
+      "revId": "f95d5b9183d2e6d93c9465336465a43f7cfc315c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
