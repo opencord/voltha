@@ -148,7 +148,7 @@ class OmciGetRequest(Task):
         """
         Perform the initial get request
         """
-        self.log.info('perform-get')
+        self.log.debug('perform-get')
 
         try:
             frame = MEFrame(self._entity_class, self._entity_id, self._attributes).get()
@@ -156,7 +156,7 @@ class OmciGetRequest(Task):
             results = yield self._device.omci_cc.send(frame)
 
             status = results.fields['omci_message'].fields['success_code']
-            self.log.info('perform-get-status', status=status)
+            self.log.debug('perform-get-status', status=status)
 
             # Success?
             if status == RC.Success.value:
@@ -192,7 +192,7 @@ class OmciGetRequest(Task):
             else:
                 raise GetException('Get failed with status code: {}'.format(status))
 
-            self.log.info('get-completed')
+            self.log.debug('get-completed')
             self.deferred.callback(self)
 
         except TimeoutError as e:
@@ -215,7 +215,7 @@ class OmciGetRequest(Task):
 
         :param missing_attr: (set) Missing attributes
         """
-        self.log.info('perform-get-missing', attrs=missing_attr)
+        self.log.debug('perform-get-missing', attrs=missing_attr)
 
         results_omci = self._results.fields['omci_message'].fields
 
@@ -265,7 +265,7 @@ class OmciGetRequest(Task):
         :param attributes:
         :return:
         """
-        self.log.info('perform-get-failed', attrs=attributes)
+        self.log.debug('perform-get-failed', attrs=attributes)
 
         for attr in attributes:
             try:
@@ -277,7 +277,7 @@ class OmciGetRequest(Task):
                 status = results.fields['omci_message'].fields['success_code']
 
                 if status == RC.AttributeFailure.value:
-                    self.log.info('unknown-or-invalid-attribute', attr=attr, status=status)
+                    self.log.debug('unknown-or-invalid-attribute', attr=attr, status=status)
                     self._failed_or_unknown_attributes.add(attr)
 
                 elif status != RC.Success.value:

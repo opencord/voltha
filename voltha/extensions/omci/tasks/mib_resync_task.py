@@ -122,7 +122,7 @@ class MibResyncTask(Task):
         During the mib upload process, the maximum time between mib upload next
         requests is 1 minute.
         """
-        self.log.info('perform-mib-resync')
+        self.log.debug('perform-mib-resync')
 
         try:
             results = yield self.snapshot_mib()
