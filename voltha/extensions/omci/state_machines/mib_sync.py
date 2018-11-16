@@ -170,6 +170,11 @@ class MibSynchronizer(object):
                                queued=True,
                                name='{}-{}'.format(self.__class__.__name__,
                                                    device_id))
+        try:
+            import logging
+            logging.getLogger('transitions').setLevel(logging.WARNING)
+        except Exception as e:
+            self.log.exception('log-level-failed', e=e)
 
     def _cancel_deferred(self):
         d1, self._deferred = self._deferred, None
@@ -843,7 +848,7 @@ class MibSynchronizer(object):
                         if modified:
                             self.increment_mib_data_sync()
 
-            except KeyError as e:
+            except KeyError as _e:
                 pass            # NOP
             except Exception as e:
                 self.log.exception('set', e=e)

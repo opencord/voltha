@@ -85,7 +85,7 @@ class MibUploadTask(Task):
         """
         Perform the MIB Upload sequence
         """
-        self.log.info('perform-mib-upload')
+        self.log.debug('perform-mib-upload')
 
         seq_no = 0
         number_of_commands = 0

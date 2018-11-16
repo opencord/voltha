@@ -186,7 +186,8 @@ class IntervalDataTask(Task):
                     final_results[attribute] = omci_msg['data'].get(attribute)
 
             except TimeoutError as e:
-                self.log.warn('interval-get-timeout', e=e, class_id=self._class_id)
+                self.log.warn('interval-get-timeout', e=e, class_id=self._class_id,
+                              entity_id=self._entity_id, attributes=attributes)
                 self.deferred.errback(failure.Failure(e))
 
             except Exception as e:

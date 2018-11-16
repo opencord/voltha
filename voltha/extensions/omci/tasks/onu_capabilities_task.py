@@ -134,7 +134,7 @@ class OnuCapabilitiesTask(Task):
         Then a loop is entered and get-next commands are sent for each sequence
         requested.
         """
-        self.log.info('perform-get')
+        self.log.debug('perform-get')
 
         try:
             self.strobe_watchdog()

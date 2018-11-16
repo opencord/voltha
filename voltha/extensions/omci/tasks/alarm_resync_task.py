@@ -116,7 +116,7 @@ class AlarmResyncTask(Task):
         During the alarm upload process, the maximum time between alarm upload next
         requests is 1 minute.
         """
-        self.log.info('perform-alarm-resync')
+        self.log.debug('perform-alarm-resync')
 
         try:
             self.strobe_watchdog()
