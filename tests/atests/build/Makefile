@@ -77,7 +77,6 @@ $(M)/helm-init: | $(M)/kubeadm /usr/local/bin/helm
 $(HOME)/cord/helm-charts: | $(M)/setup
 	mkdir -p $(HOME)/cord
 	cd $(HOME)/cord; git clone https://gerrit.opencord.org/helm-charts
-	cd $(HOME)/cord/helm-charts; git fetch https://gerrit.opencord.org/helm-charts refs/changes/50/11750/7 && git checkout FETCH_HEAD
 
 $(M)/kafka: | $(HOME)/cord/helm-charts $(M)/helm-init
 	cd $(HOME)/cord/helm-charts && \
