@@ -151,14 +151,14 @@ class OmciModifyRequest(Task):
         """
         Perform the request
         """
-        self.log.info('perform-request')
+        self.log.debug('perform-request')
 
         try:
             self.strobe_watchdog()
             self._results = yield self._device.omci_cc.send(self._frame)
 
             status = self._results.fields['omci_message'].fields['success_code']
-            self.log.info('response-status', status=status)
+            self.log.debug('response-status', status=status)
 
             # Success?
             if status in (RC.Success.value, RC.InstanceExists):

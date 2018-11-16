@@ -75,7 +75,7 @@ class SyncTimeTask(Task):
         """
         Sync the time
         """
-        self.log.info('perform-sync-time')
+        self.log.debug('perform-sync-time')
 
         try:
             device = self.omci_agent.get_device(self.device_id)
