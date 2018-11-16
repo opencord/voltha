@@ -28,11 +28,11 @@ Test Teardown     Stop Voltha
 ${LOG_DIR}        /tmp/voltha_test_results
 ${ROOT_DIR}       ${EMPTY}
 ${VOLTHA_DIR}     ${EMPTY}
-${PONSIM_PID}     ${EMPTY}
 ${ONOS_SSH_PORT}  8101
 ${OLT_IP_ADDR}    olt.voltha.svc
 ${OLT_PORT_ID}    50060
-
+${OLT_TYPE}       ponsim_olt
+${ONU_TYPE}       ponsim_onu
 
 *** Test Cases ***
 Provisioning
@@ -42,11 +42,22 @@ Provisioning
     ...                 information. It then verifies that all the physical and logical devices are ACTIVE
     ...                 and REACHEABLE
     PSet Log Dirs    ${LOG_DIR}
-    Configure   ${OLT_IP_ADDR}    ${OLT_PORT_ID}
+    Configure   ${OLT_IP_ADDR}    ${OLT_PORT_ID}    ${OLT_TYPE}    ${ONU_TYPE} 
     Preprovision Olt
-    Wait Until Keyword Succeeds    60s    2s    Query Devices Before Enable
+    Wait Until Keyword Succeeds    60s    2s    Query Devices Before Enabling
+    ${Result}   Check Preprovision Success
+    Should Be True  ${Result}
+    ${Result}   Check Olt Fields Before Enabling
+    Should Be True  ${Result}
     Enable
-    Wait Until Keyword Succeeds    60s    2s    Query Devices After Enable
+    Wait Until Keyword Succeeds    60s    2s    Query Devices After Enabling
+    ${Result}   Check Enable Success
+    Should Be True  ${Result}
+    ${Result}   Check Olt Fields After Enabling
+    Should Be True  ${Result}
+    ${Result}   Check Onu Fields After Enabling
+    Should Be True  ${Result}
+    
 
 
 *** Keywords ***
