@@ -182,6 +182,12 @@ class PerformanceIntervals(object):
                                ignore_invalid_triggers=True,
                                name='{}-{}'.format(self.__class__.__name__,
                                                    device_id))
+        try:
+            import logging
+            logging.getLogger('transitions').setLevel(logging.WARNING)
+        except Exception as e:
+            self.log.exception('log-level-failed', e=e)
+
 
     def _cancel_deferred(self):
         d1, self._deferred = self._deferred, None
@@ -411,7 +417,7 @@ class PerformanceIntervals(object):
                         instances[entity_id] = (cid, eid)
 
         except Exception as e:
-            self.log.exception('pm-me-setup', e=e)
+            self.log.exception('pm-me-setup', class_id=class_id, e=e)
 
         # Got to synchronize_time state
         self._deferred = reactor.callLater(0, self.tick)
@@ -562,7 +568,7 @@ class PerformanceIntervals(object):
         """
 
         if self._next_interval is not None and self._next_interval > datetime.utcnow():
-            self.log.info('wait-next-interval')
+            self.log.debug('wait-next-interval')
             # Not ready for next interval, transition back to idle and we should get
             # called again after a short delay
             reactor.callLater(0, self.success)
@@ -578,14 +584,14 @@ class PerformanceIntervals(object):
             class_id = key[0]
             entity_id = key[1]
 
-            self.log.info("in-enter-collect-data", key=key, retries=self._pm_me_collect_retries[key])
+            self.log.debug("in-enter-collect-data", key=key, retries=self._pm_me_collect_retries[key])
 
             # Collect the data ?
             if self._pm_me_collect_retries[key] > 0:
                 def success(results):
-                    self.log.info('collect-success', results=results,
-                                  class_id=results.get('class_id'),
-                                  entity_id=results.get('entity_id'))
+                    self.log.debug('collect-success', results=results,
+                                   class_id=results.get('class_id'),
+                                   entity_id=results.get('entity_id'))
                     self._current_task = None
                     self._pm_me_collect_retries[key] = 0
                     self._deferred = reactor.callLater(0, self.success)
@@ -599,8 +605,6 @@ class PerformanceIntervals(object):
                     return reason   # Halt callback processing
 
                 # start the task
-                self.log.info('collect-task-start')
-
                 if key in self._pm_me_extended_info:
                     self.log.debug('collect-extended-info-found', key=key, extended_info=self._pm_me_extended_info[key])
                     parent_class_id = self._pm_me_extended_info[key][0]
@@ -624,7 +628,7 @@ class PerformanceIntervals(object):
 
         # Here if all intervals have been collected (we are up to date)
         self._next_interval = self.get_next_interval
-        self.log.info('collect-calculate-next', next=self._next_interval)
+        self.log.debug('collect-calculate-next', next=self._next_interval)
 
         self._pm_me_collect_retries = dict.fromkeys(self._pm_me_collect_retries, self._collect_attempts)
         reactor.callLater(0, self.success)

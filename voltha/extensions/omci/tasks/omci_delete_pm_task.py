@@ -71,7 +71,7 @@ class OmciDeletePMRequest(Task):
     @inlineCallbacks
     def perform_delete(self):
         """ Perform the delete requests """
-        self.log.info('perform-delete')
+        self.log.debug('perform-delete')
 
         try:
             for me in self._me_tuples:
@@ -90,7 +90,7 @@ class OmciDeletePMRequest(Task):
                 results = yield self._device.omci_cc.send(frame)
 
                 status = results.fields['omci_message'].fields['success_code']
-                self.log.info('perform-delete-status', status=status)
+                self.log.debug('perform-delete-status', status=status)
 
                 # Did it fail, it instance does not exist, not an error
                 if status != RC.Success.value and status != RC.UnknownInstance.value:

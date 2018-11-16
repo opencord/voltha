@@ -305,7 +305,7 @@ class AlarmSynchronizer(object):
         self._task_deferred.addCallbacks(success, failure)
 
     def reconcile_alarm_table(self, results):
-        self.log.info('alarm-reconcile', state=self.state, results=results)
+        self.log.debug('alarm-reconcile', state=self.state, results=results)
 
         onu_only = results['onu-only']
         olt_only = results['olt-only']
@@ -390,7 +390,7 @@ class AlarmSynchronizer(object):
         :param _topic: (str) OMCI-RX topic
         :param msg: (dict) Dictionary with 'rx-response' and 'tx-request' (if any)
         """
-        self.log.info('on-alarm-update-response', state=self.state, msg=msg)
+        self.log.debug('on-alarm-update-response', state=self.state, msg=msg)
 
         if self._omci_cc_subscriptions[RxEvent.Get_ALARM_Get]:
             if self.state == 'disabled':
@@ -404,7 +404,7 @@ class AlarmSynchronizer(object):
                         isinstance(response.fields.get('omci_message'), OmciGetAllAlarmsResponse):
                     # ONU will reset its last alarm sequence number to 0 on receipt of the
                     # Get All Alarms request
-                    self.log.info('received alarm response')
+                    self.log.debug('received-alarm-response')
                     self.reset_alarm_sequence()
 
             except Exception as e:
@@ -419,7 +419,7 @@ class AlarmSynchronizer(object):
                     TX_REQUEST_KEY  -> None (this is an autonomous msg)
                     RX_RESPONSE_KEY -> OmciMessage (Alarm notification frame)
         """
-        self.log.info('on-alarm-update-response', state=self.state, msg=msg)
+        self.log.debug('on-alarm-update-response', state=self.state, msg=msg)
 
         alarm_msg = msg.get(RX_RESPONSE_KEY)
         if alarm_msg is not None:

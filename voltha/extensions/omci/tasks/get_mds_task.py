@@ -75,7 +75,7 @@ class GetMdsTask(Task):
         """
         Get the 'mib_data_sync' attribute of the ONU
         """
-        self.log.info('perform-get-mds')
+        self.log.debug('perform-get-mds')
 
         try:
             device = self.omci_agent.get_device(self.device_id)
