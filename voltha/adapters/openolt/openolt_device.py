@@ -16,7 +16,8 @@
 import threading
 import binascii
 import grpc
-
+import socket
+import re
 import structlog
 from twisted.internet import reactor
 from scapy.layers.l2 import Ether, Dot1Q
@@ -102,8 +103,11 @@ class OpenoltDevice(object):
                                         ip=self.host_and_port)
         self.proxy = registry('core').get_proxy('/')
 
+        self.log.info('openolt-device-init')
+
         # Device already set in the event of reconciliation
         if not is_reconciliation:
+            self.log.info('updating-device')
             # It is a new device
             # Update device
             device.root = True
@@ -115,8 +119,15 @@ class OpenoltDevice(object):
         # If logical device does not exist create it
         if not device.parent_id:
             if dpid == None:
-                dpid = '00:00:' + self.ip_hex(self.host_and_port.split(":")[0])
+                uri = self.host_and_port.split(":")[0]
+                try:
+                    socket.inet_pton(socket.AF_INET, uri)
+                    dpid = '00:00:' + self.ip_hex(uri)
+                except socket.error:
+                    # this is not an IP
+                    dpid = self.stringToMacAddr(uri)
 
+            self.log.info('creating-openolt-logical-device', dp_id=dpid)
             # Create logical OF device
             ld = LogicalDevice(
                 root_device_id=self.device_id,
@@ -137,6 +148,8 @@ class OpenoltDevice(object):
             ld_init = self.adapter_agent.create_logical_device(ld,
                                                                dpid=dpid)
             self.logical_device_id = ld_init.id
+
+            self.log.info('created-openolt-logical-device', logical_device_id=ld_init.id)
         else:
             # logical device already exists
             self.logical_device_id = device.parent_id
@@ -149,6 +162,20 @@ class OpenoltDevice(object):
                                transitions=OpenoltDevice.transitions,
                                send_event=True, initial='state_null')
         self.go_state_init()
+
+    def stringToMacAddr(self, uri):
+        regex = re.compile('[^a-zA-Z]')
+        uri = regex.sub('', uri)
+
+        l = len(uri)
+        if l > 6:
+            uri = uri[0:6]
+        else:
+            uri = uri + uri[0:6 - l]
+
+        print uri
+
+        return ":".join([hex(ord(x))[-2:] for x in uri])
 
     def do_state_init(self, event):
         # Initialize gRPC

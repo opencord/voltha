@@ -117,6 +117,7 @@ class OpenoltAdapter(object):
             self.devices[device.id] = OpenoltDevice(**kwargs)
         except Exception as e:
             log.error('Failed to adopt OpenOLT device', error=e)
+            # TODO set status to ERROR so that is clear something went wrong
             del self.devices[device.id]
             raise
         else:
