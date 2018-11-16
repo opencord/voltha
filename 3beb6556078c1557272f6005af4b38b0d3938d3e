@@ -22,6 +22,30 @@
       "revId": "3beb6556078c1557272f6005af4b38b0d3938d3e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1807001c_f87b8b8a",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 530,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-16T01:02:48Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2c78dcb4_2df9eba7",
+      "range": {
+        "startLine": 528,
+        "startChar": 0,
+        "endLine": 530,
+        "endChar": 69
+      },
+      "revId": "3beb6556078c1557272f6005af4b38b0d3938d3e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
