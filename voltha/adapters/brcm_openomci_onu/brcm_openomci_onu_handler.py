@@ -875,7 +875,7 @@ class BrcmOpenomciOnuHandler(object):
                 pptp_list = sorted(config.pptp_entities) if config.pptp_entities else []
                 veip_list = sorted(config.veip_entities) if config.veip_entities else []
 
-                if ani_list is None or uni_list is None:
+                if ani_list is None or (pptp_list is None and veip_list is None):
                     device.reason = 'onu-missing-required-elements'
                     self.log.warn("no-ani-or-unis")
                     self.adapter_agent.update_device(device)
@@ -883,6 +883,7 @@ class BrcmOpenomciOnuHandler(object):
 
                 # Currently logging the ani, pptp, veip, and uni for information purposes.
                 # Actually act on the veip/pptp as its ME is the most correct one to use in later tasks.
+                # And in some ONU the UNI-G list is incomplete or incorrect...
                 for entity_id in ani_list:
                     ani_value = config.ani_g_entities[entity_id]
                     self.log.debug("discovered-ani", entity_id=entity_id, value=ani_value)
@@ -890,28 +891,22 @@ class BrcmOpenomciOnuHandler(object):
                     self._total_tcont_count = ani_value.get('total-tcont-count')
                     self.log.debug("set-total-tcont-count", tcont_count=self._total_tcont_count)
 
-                for entity_id in pptp_list:
-                    pptp_value = config.pptp_entities[entity_id]
-                    self.log.debug("discovered-pptp", entity_id=entity_id, value=pptp_value)
-
-                for entity_id in veip_list:
-                    veip_value = config.veip_entities[entity_id]
-                    self.log.debug("discovered-veip", entity_id=entity_id, value=veip_value)
-
                 for entity_id in uni_list:
                     uni_value = config.uni_g_entities[entity_id]
                     self.log.debug("discovered-uni", entity_id=entity_id, value=uni_value)
 
-                    # TODO: can only support one UNI per ONU at this time. break out as soon as we have a good UNI
-                    if entity_id in pptp_list:
-                        self._add_uni_port(entity_id, uni_type=UniType.PPTP)
-                        break
-                    elif entity_id in veip_list:
-                        self._add_uni_port(entity_id, uni_type=UniType.VEIP)
-                        break
-                    else:
-                        self.log.warn("unable-to-find-uni-in-pptp-or-veip",
-                                      entity_id=entity_id, value=uni_value)
+                # TODO: can only support one UNI per ONU at this time. break out as soon as we have a good UNI
+                for entity_id in pptp_list:
+                    pptp_value = config.pptp_entities[entity_id]
+                    self.log.debug("discovered-pptp", entity_id=entity_id, value=pptp_value)
+                    self._add_uni_port(entity_id, uni_type=UniType.PPTP)
+                    break
+
+                for entity_id in veip_list:
+                    veip_value = config.veip_entities[entity_id]
+                    self.log.debug("discovered-veip", entity_id=entity_id, value=veip_value)
+                    self._add_uni_port(entity_id, uni_type=UniType.VEIP)
+                    break
 
                 self._qos_flexibility = config.qos_configuration_flexibility or 0
                 self._omcc_version = config.omcc_version or OMCCVersion.Unknown
