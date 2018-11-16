@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0865755f_60b88978",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 410,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-16T03:49:01Z",
+      "side": 1,
+      "message": "Since there is hi coupling between the bridge setup and the tp-specific-setup wrt entity-ids, can we move the tp-setup method back to this file (or somehow providing stronger coupling on the magic #\u0027s that must align between the tasks).",
+      "range": {
+        "startLine": 410,
+        "startChar": 0,
+        "endLine": 410,
+        "endChar": 45
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "42304272_4a7f46c5",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-16T03:49:01Z",
+      "side": 1,
+      "message": "Magic coupling between two tasks. Can we do something to consolidate or reference the same values between initial-download and tp-specific download.",
+      "range": {
+        "startLine": 94,
+        "startChar": 8,
+        "endLine": 94,
+        "endChar": 12
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "cbbb5c84_d6cf410b",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-16T03:49:01Z",
+      "side": 1,
+      "message": "This task is timing out in my test. Need to strobe_watchdog() incrementally throughout the sequence. Those functions call check_status_and_state are implicitly being handled. But, many of the others are not, queries, tconts, gems, pq\u0027s, etc.",
+      "range": {
+        "startLine": 165,
+        "startChar": 8,
+        "endLine": 165,
+        "endChar": 38
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "33a91af5_97adc7b6",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 255,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-16T03:49:01Z",
+      "side": 1,
+      "message": "dl_prior_q",
+      "range": {
+        "startLine": 255,
+        "startChar": 41,
+        "endLine": 255,
+        "endChar": 51
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "457fcf8f_7b939a5e",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 257,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-16T03:49:01Z",
+      "side": 1,
+      "message": "Why do we have separate GEM ports for upstream and downstream. GEM ports should support a bi-directional status to carry traffic symmetrically.",
+      "range": {
+        "startLine": 257,
+        "startChar": 0,
+        "endLine": 257,
+        "endChar": 74
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "563621e2_1cf960a7",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 350,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-16T03:49:01Z",
+      "side": 1,
+      "message": "This needs remerged from the equivalent in mib_download that has been updated",
+      "range": {
+        "startLine": 350,
+        "startChar": 0,
+        "endLine": 350,
+        "endChar": 60
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
