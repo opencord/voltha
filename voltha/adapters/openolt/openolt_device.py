@@ -16,6 +16,7 @@
 import threading
 import binascii
 import grpc
+import socket
 
 import structlog
 from twisted.internet import reactor
@@ -115,7 +116,14 @@ class OpenoltDevice(object):
         # If logical device does not exist create it
         if not device.parent_id:
             if dpid == None:
-                dpid = '00:00:' + self.ip_hex(self.host_and_port.split(":")[0])
+                uri = self.host_and_port.split(":")[0]
+                try:
+                    socket.inet_pton(socket.AF_INET, self.ip)
+                    dpid = '00:00:' + self.ip_hex(uri)
+                except socket.error:
+                    # this is not an IP
+                    dp_id = self.stringToMacAddr(uri)
+
 
             # Create logical OF device
             ld = LogicalDevice(
@@ -149,6 +157,15 @@ class OpenoltDevice(object):
                                transitions=OpenoltDevice.transitions,
                                send_event=True, initial='state_null')
         self.go_state_init()
+
+    def stringToMacAddr(self, uri):
+        l = len(uri)
+        if l > 6:
+            uri = uri[0:6]
+        else:
+            uri = uri + uri[0:6 - l]
+
+        return [x + x for x in uri]
 
     def do_state_init(self, event):
         # Initialize gRPC
