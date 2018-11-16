@@ -260,6 +260,30 @@
     },
     {
       "key": {
+        "uuid": "7a7fcde9_6bd9569f",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-16T05:17:58Z",
+      "side": 1,
+      "message": "This is a very valid concern. I did not understand your comment earlier. I will address this.",
+      "parentUuid": "0c26fba8_87c32815",
+      "range": {
+        "startLine": 94,
+        "startChar": 28,
+        "endLine": 94,
+        "endChar": 39
+      },
+      "revId": "3c2dc9e5489bba3e211dd603d5d5b3ce415760d2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b338c843_7e3df779",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 5
