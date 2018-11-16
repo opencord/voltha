@@ -48,6 +48,30 @@
     },
     {
       "key": {
+        "uuid": "7f41392b_81be4c24",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-16T05:17:58Z",
+      "side": 1,
+      "message": "May be I put all this one header file and import it.",
+      "parentUuid": "42304272_4a7f46c5",
+      "range": {
+        "startLine": 94,
+        "startChar": 8,
+        "endLine": 94,
+        "endChar": 12
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cbbb5c84_d6cf410b",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 9
@@ -59,6 +83,30 @@
       "writtenOn": "2018-11-16T03:49:01Z",
       "side": 1,
       "message": "This task is timing out in my test. Need to strobe_watchdog() incrementally throughout the sequence. Those functions call check_status_and_state are implicitly being handled. But, many of the others are not, queries, tconts, gems, pq\u0027s, etc.",
+      "range": {
+        "startLine": 165,
+        "startChar": 8,
+        "endLine": 165,
+        "endChar": 38
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ea48fbf4_3bc2e35d",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-16T05:17:58Z",
+      "side": 1,
+      "message": "Ok. I will add strobe_watchdog",
+      "parentUuid": "cbbb5c84_d6cf410b",
       "range": {
         "startLine": 165,
         "startChar": 8,
@@ -94,6 +142,30 @@
     },
     {
       "key": {
+        "uuid": "1b23f6a3_51e4bb10",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 255,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-16T05:17:58Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "33a91af5_97adc7b6",
+      "range": {
+        "startLine": 255,
+        "startChar": 41,
+        "endLine": 255,
+        "endChar": 51
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "457fcf8f_7b939a5e",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 9
@@ -117,6 +189,30 @@
     },
     {
       "key": {
+        "uuid": "bb834348_98ab35a5",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 257,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-16T05:17:58Z",
+      "side": 1,
+      "message": "GemPorts are mostly used in Bidirectional manner. But, they also allow configurations in each direction and I had seen some configurations that had different p-bit mappers in upstream and downstream. It is to support those kind of configurations that I have provided support for upstream and downstream gem ports.",
+      "parentUuid": "457fcf8f_7b939a5e",
+      "range": {
+        "startLine": 257,
+        "startChar": 0,
+        "endLine": 257,
+        "endChar": 74
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "563621e2_1cf960a7",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 9
@@ -128,6 +224,30 @@
       "writtenOn": "2018-11-16T03:49:01Z",
       "side": 1,
       "message": "This needs remerged from the equivalent in mib_download that has been updated",
+      "range": {
+        "startLine": 350,
+        "startChar": 0,
+        "endLine": 350,
+        "endChar": 60
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "38c65800_a616b517",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 350,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-16T05:17:58Z",
+      "side": 1,
+      "message": "This was already merged from equivalent mib_download when I uploaded the last patch",
+      "parentUuid": "563621e2_1cf960a7",
       "range": {
         "startLine": 350,
         "startChar": 0,
