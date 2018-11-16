@@ -339,7 +339,7 @@ class OnuPmIntervalMetrics(AdapterPmMetrics):
 
         :return: (dict) Key/Value of metric data
         """
-        self.log.debug('publish-metrics', metrics=interval_data)
+        self.log.debug('publish-metrics')
 
         try:
             # Locate config
