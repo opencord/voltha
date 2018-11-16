@@ -69,6 +69,6 @@ if __name__ == "__main__":
 
     volthaMngr.voltha_Initialize(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
-    preprovisioning.runTest('olt.voltha.svc', 50060, LOG_DIR)
+    preprovisioning.runTest('olt.voltha.svc', 50060, 'ponsim_olt', 'ponsim_onu', LOG_DIR)
 
     time.sleep(5)

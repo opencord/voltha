@@ -50,7 +50,7 @@ def send_command_to_voltha_cli(logDir, cmd, logFile):
     child.expect('[pP]assword:')
     child.sendline('admin')
     child.expect('\((\\x1b\[\d*;?\d+m){1,2}voltha(\\x1b\[\d*;?\d+m){1,2}\)')
-    time.sleep(5)
+    time.sleep(10)
     bytes = child.sendline(cmd)
     child.expect('\((\\x1b\[\d*;?\d+m){1,2}voltha(\\x1b\[\d*;?\d+m){1,2}\)')
     print (child.before)
