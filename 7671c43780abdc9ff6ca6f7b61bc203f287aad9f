@@ -72,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "8d5d9f91_be38ab00",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-16T11:08:06Z",
+      "side": 1,
+      "message": "I have now moved these common files.",
+      "parentUuid": "42304272_4a7f46c5",
+      "range": {
+        "startLine": 94,
+        "startChar": 8,
+        "endLine": 94,
+        "endChar": 12
+      },
+      "revId": "7671c43780abdc9ff6ca6f7b61bc203f287aad9f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cbbb5c84_d6cf410b",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 9
