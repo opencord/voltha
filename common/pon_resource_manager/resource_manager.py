@@ -412,7 +412,7 @@ class PONResourceManager(object):
         # delegate to the master instance if sharing enabled across instances
         shared_resource_mgr = self.shared_resource_mgrs[self.shared_idx_by_type[resource_type]]
         if shared_resource_mgr is not None and shared_resource_mgr is not self:
-            return shared_resource_mgr.get_resource_id(pon_intf_id, resource_type)
+            return shared_resource_mgr.get_resource_id(pon_intf_id, resource_type, num_of_id)
 
         path = self._get_path(pon_intf_id, resource_type)
         if path is None:
