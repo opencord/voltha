@@ -618,6 +618,37 @@ class VlanTaggingOperation(Packet):
         )
         return json.dumps(temp.fields, separators=(',', ':'))
 
+    def index(self):
+        return '{:02}'.format(self.fields.get('filter_outer_priority',0)) + \
+               '{:03}'.format(self.fields.get('filter_outer_vid',0)) + \
+               '{:01}'.format(self.fields.get('filter_outer_tpid_de',0)) + \
+               '{:03}'.format(self.fields.get('filter_inner_priority',0)) + \
+               '{:04}'.format(self.fields.get('filter_inner_vid',0)) + \
+               '{:01}'.format(self.fields.get('filter_inner_tpid_de',0)) + \
+               '{:02}'.format(self.fields.get('filter_ether_type',0))
+
+    def is_delete(self):
+        return self.fields.get('treatment_tags_to_remove',0) == 0x3 and \
+            self.fields.get('pad3',0) == 0x3ff and \
+            self.fields.get('treatment_outer_priority',0) == 0xf and \
+            self.fields.get('treatment_outer_vid',0) == 0x1fff and \
+            self.fields.get('treatment_outer_tpid_de',0) == 0x7 and \
+            self.fields.get('pad4',0) == 0xfff and \
+            self.fields.get('treatment_inner_priority',0) == 0xf and \
+            self.fields.get('treatment_inner_vid',0) == 0x1fff and \
+            self.fields.get('treatment_inner_tpid_de',0) == 0x7
+
+    def delete(self):
+        self.fields['treatment_tags_to_remove'] = 0x3
+        self.fields['pad3'] = 0x3ff
+        self.fields['treatment_outer_priority'] = 0xf
+        self.fields['treatment_outer_vid'] = 0x1fff
+        self.fields['treatment_outer_tpid_de'] = 0x7
+        self.fields['pad4'] = 0xfff
+        self.fields['treatment_inner_priority'] = 0xf
+        self.fields['treatment_inner_vid'] = 0x1fff
+        self.fields['treatment_inner_tpid_de'] = 0x7
+        return self
 
 class ExtendedVlanTaggingOperationConfigurationData(EntityClass):
     class_id = 171

@@ -14,7 +14,9 @@
 # limitations under the License.
 #
 import binascii
-from scapy.fields import Field, StrFixedLenField, PadField, IntField, FieldListField, ByteField, StrField, StrFixedLenField
+import json
+from scapy.fields import Field, StrFixedLenField, PadField, IntField, FieldListField, ByteField, StrField, \
+    StrFixedLenField, PacketField
 from scapy.packet import Raw
 
 class FixedLenField(PadField):
@@ -171,6 +173,9 @@ class OmciSerialNumberField(StrCompoundField):
 
 class OmciTableField(MultipleTypeField):
     def __init__(self, tblfld):
+        assert isinstance(tblfld, PacketField)
+        assert hasattr(tblfld.cls, 'index'), 'No index() method defined for OmciTableField row object'
+        assert hasattr(tblfld.cls, 'is_delete'), 'No delete() method defined for OmciTableField row object'
         super(OmciTableField, self).__init__(
             [
             (IntField('table_length', 0), (self.cond_pkt, self.cond_pkt_val)),
@@ -193,3 +198,42 @@ class OmciTableField(MultipleTypeField):
 
     def cond_pkt_val2(self, pkt, val):
         return pkt is not None and pkt.message_id == self.OmciGetNextResponseMessageId
+
+    def to_json(self, new_values, old_values_json):
+        if not isinstance(new_values, list): new_values = [new_values] # If setting a scalar, augment the old table
+        else: old_values_json = None # If setting a vector of new values, erase all old_values
+
+        key_value_pairs = dict()
+
+        old_table = self.load_json(old_values_json)
+        for old in old_table:
+            index = old.index()
+            key_value_pairs[index] = old
+        for new in new_values:
+            index = new.index()
+            if new.is_delete():
+                del key_value_pairs[index]
+            else:
+                key_value_pairs[index] = new
+
+        new_table = []
+        for k, v in sorted(key_value_pairs.iteritems()):
+            assert isinstance(v, self.default.cls), 'object type for Omci Table row object invalid'
+            new_table.append(v.fields)
+
+        str_values = json.dumps(new_table, separators=(',', ':'))
+
+        return str_values
+
+    def load_json(self, json_str):
+        if json_str is None: json_str = '[]'
+        json_values = json.loads(json_str)
+        key_value_pairs = dict()
+        for json_value in json_values:
+            v = self.default.cls(**json_value)
+            index = v.index()
+            key_value_pairs[index] = v
+        table = []
+        for k, v in sorted(key_value_pairs.iteritems()):
+            table.append(v)
+        return table

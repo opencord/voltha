@@ -507,13 +507,13 @@ class TestOmciMibDbDict(TestCase):
         data = self.db.query(_DEVICE_ID, class_id, inst_id, attributes.keys())
         table_as_dict = json.loads(table_data.to_json())
 
-        self.assertTrue(all(isinstance(data['received_frame_vlan_tagging_operation_table'][k],
+        self.assertTrue(all(isinstance(data['received_frame_vlan_tagging_operation_table'][0].fields[k],
                                        type(attributes['received_frame_vlan_tagging_operation_table'].fields[k]))
                             for k in attributes['received_frame_vlan_tagging_operation_table'].fields.keys()))
-        self.assertTrue(all(data['received_frame_vlan_tagging_operation_table'][k] ==
+        self.assertTrue(all(data['received_frame_vlan_tagging_operation_table'][0].fields[k] ==
                             attributes['received_frame_vlan_tagging_operation_table'].fields[k]
                             for k in attributes['received_frame_vlan_tagging_operation_table'].fields.keys()))
-        self.assertTrue(all(data['received_frame_vlan_tagging_operation_table'][k] == table_as_dict[k]
+        self.assertTrue(all(data['received_frame_vlan_tagging_operation_table'][0].fields[k] == table_as_dict[k]
                             for k in table_as_dict.keys()))
 
 
