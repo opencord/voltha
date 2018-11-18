@@ -265,6 +265,9 @@ class MibDbVolatileDict(MibDbApi):
                 assert value is not None, "Attribute '{}' value cannot be 'None'".\
                     format(attribute)
 
+                db_value = instance_db[ATTRIBUTES_KEY].get(attribute) \
+                    if ATTRIBUTES_KEY in instance_db else None
+
                 if entity is not None and isinstance(value, basestring):
                     from scapy.fields import StrFixedLenField
                     attr_index = entity.attribute_name_to_index_map[attribute]
@@ -278,6 +281,14 @@ class MibDbVolatileDict(MibDbApi):
                             # Value/hex of Packet Class to string
                             value = field.default.json_from_value(value)
 
+                if entity is not None and attribute in entity.attribute_name_to_index_map:
+                    attr_index = entity.attribute_name_to_index_map[attribute]
+                    eca = entity.attributes[attr_index]
+                    field = eca.field
+
+                    if hasattr(field, 'to_json'):
+                        value = field.to_json(value, db_value)
+
                 # Complex packet types may have an attribute encoded as an object, this
                 # can be check by seeing if there is a to_json() conversion callable
                 # defined
@@ -287,9 +298,6 @@ class MibDbVolatileDict(MibDbApi):
                 # Other complex packet types may be a repeated list field (FieldListField)
                 elif isinstance(value, (list, dict)):
                     value = json.dumps(value, separators=(',', ':'))
-
-                db_value = instance_db[ATTRIBUTES_KEY].get(attribute) \
-                    if ATTRIBUTES_KEY in instance_db else None
 
                 assert db_value is None or isinstance(value, type(db_value)), \
                     "New value type for attribute '{}' type is changing from '{}' to '{}'".\
@@ -389,21 +397,24 @@ class MibDbVolatileDict(MibDbApi):
 
         device_db = self._data[device_id]
         if class_id is None:
-            return self._fix_dev_json_attributes(copy.copy(device_db))
+            return self._fix_dev_json_attributes(copy.copy(device_db), device_id)
 
         if not isinstance(class_id, int):
             raise TypeError('Class ID is an integer')
 
+        me_map = self._omci_agent.get_device(device_id).me_map
+        entity = me_map.get(class_id)
+
         class_db = device_db.get(class_id, dict())
         if instance_id is None or len(class_db) == 0:
-            return self._fix_cls_json_attributes(copy.copy(class_db))
+            return self._fix_cls_json_attributes(copy.copy(class_db), entity)
 
         if not isinstance(instance_id, int):
             raise TypeError('Instance ID is an integer')
 
         instance_db = class_db.get(instance_id, dict())
         if attributes is None or len(instance_db) == 0:
-            return self._fix_inst_json_attributes(copy.copy(instance_db))
+            return self._fix_inst_json_attributes(copy.copy(instance_db), entity)
 
         if not isinstance(attributes, (basestring, list, set)):
             raise TypeError('Attributes should be a string or list/set of strings')
@@ -415,7 +426,9 @@ class MibDbVolatileDict(MibDbApi):
                    if attr in attributes}
 
         for attr, attr_data in results.items():
-            results[attr] = self._fix_attr_json_attribute(copy.copy(attr_data))
+            attr_index = entity.attribute_name_to_index_map[attr]
+            eca = entity.attributes[attr_index]
+            results[attr] = self._fix_attr_json_attribute(copy.copy(attr_data), eca)
 
         return results
 
@@ -426,26 +439,38 @@ class MibDbVolatileDict(MibDbApi):
     # That other database values (created, modified, ...) will still reference
     # back to the original DB.
 
-    def _fix_dev_json_attributes(self, dev_data):
+    def _fix_dev_json_attributes(self, dev_data, device_id):
         for cls_id, cls_data in dev_data.items():
             if isinstance(cls_id, int):
-                dev_data[cls_id] = self._fix_cls_json_attributes(copy.copy(cls_data))
+                me_map = self._omci_agent.get_device(device_id).me_map
+                entity = me_map.get(cls_id)
+                dev_data[cls_id] = self._fix_cls_json_attributes(copy.copy(cls_data), entity)
         return dev_data
 
-    def _fix_cls_json_attributes(self, cls_data):
+    def _fix_cls_json_attributes(self, cls_data, entity):
         for inst_id, inst_data in cls_data.items():
             if isinstance(inst_id, int):
-                cls_data[inst_id] = self._fix_inst_json_attributes(copy.copy(inst_data))
+                cls_data[inst_id] = self._fix_inst_json_attributes(copy.copy(inst_data), entity)
         return cls_data
 
-    def _fix_inst_json_attributes(self, inst_data):
+    def _fix_inst_json_attributes(self, inst_data, entity):
         if ATTRIBUTES_KEY in inst_data:
             for attr, attr_data in inst_data[ATTRIBUTES_KEY].items():
-                inst_data[ATTRIBUTES_KEY][attr] = self._fix_attr_json_attribute(copy.copy(attr_data))
+                attr_index = entity.attribute_name_to_index_map[attr] \
+                    if entity is not None and attr in entity.attribute_name_to_index_map else None
+                eca = entity.attributes[attr_index] if attr_index is not None else None
+                inst_data[ATTRIBUTES_KEY][attr] = self._fix_attr_json_attribute(copy.copy(attr_data), eca)
         return inst_data
 
-    def _fix_attr_json_attribute(self, attr_data):
+    def _fix_attr_json_attribute(self, attr_data, eca):
+
         try:
+            if eca is not None:
+                field = eca.field
+                if hasattr(field, 'load_json'):
+                    value = field.load_json(attr_data)
+                    return value
+
             return json.loads(attr_data) if isinstance(attr_data, basestring) else attr_data
 
         except ValueError:

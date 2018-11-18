@@ -136,7 +136,7 @@ class MibDbExternal(MibDbApi):
     def _string_to_time(self, time):
         return datetime.strptime(time, MibDbExternal._TIME_FORMAT) if len(time) else None
 
-    def _attribute_to_string(self, device_id, class_id, attr_name, value):
+    def _attribute_to_string(self, device_id, class_id, attr_name, value, old_value = None):
         """
         Convert an ME's attribute value to string representation
 
@@ -161,9 +161,8 @@ class MibDbExternal(MibDbApi):
                 from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
                 field = StrFixedLenField(UNKNOWN_CLASS_ATTRIBUTE_KEY, None, 24)
 
-            if isinstance(field, StrFixedLenField) or isinstance(field, MultipleTypeField):
+            if isinstance(field, StrFixedLenField):
                 from scapy.base_classes import Packet_metaclass
-                #  For StrFixedLenField, value is a str already (or possibly JSON encoded)
                 if hasattr(value, 'to_json') and not isinstance(value, basestring):
                     # Packet Class to string
                     str_value = value.to_json()
@@ -189,6 +188,9 @@ class MibDbExternal(MibDbApi):
                 # For BitField, value is a long
                 #
                 str_value = str(value)
+
+            elif hasattr(field, 'to_json'):
+                str_value = field.to_json(value, old_value)
 
             elif isinstance(field, FieldListField):
                 str_value = json.dumps(value, separators=(',', ':'))
@@ -231,11 +233,9 @@ class MibDbExternal(MibDbApi):
                 from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
                 field = StrFixedLenField(UNKNOWN_CLASS_ATTRIBUTE_KEY, None, 24)
 
-            if isinstance(field, StrFixedLenField) or isinstance(field, MultipleTypeField):
+            if isinstance(field, StrFixedLenField):
                 from scapy.base_classes import Packet_metaclass
                 default = field.default
-                if isinstance(field.default, PacketField):
-                    default = default.cls
                 if isinstance(default, Packet_metaclass) and \
                         hasattr(default, 'to_json'):
                     value = json.loads(str_value)
@@ -255,6 +255,9 @@ class MibDbExternal(MibDbApi):
 
             elif isinstance(field, BitField):
                 value = long(str_value)
+
+            elif hasattr(field, 'load_json'):
+                value = field.load_json(str_value)
 
             elif isinstance(field, FieldListField):
                 value = json.loads(str_value)
@@ -740,7 +743,10 @@ class MibDbExternal(MibDbApi):
 
                 for k, v in attributes.items():
                     try:
-                        str_value = self._attribute_to_string(device_id, class_id, k, v)
+                        old_value = None if k not in exist_attr_indexes \
+                            else new_attributes[exist_attr_indexes[k]].value
+
+                        str_value = self._attribute_to_string(device_id, class_id, k, v, old_value)
 
                         if k not in exist_attr_indexes:
                             new_attributes.append(MibAttributeData(name=k, value=str_value))

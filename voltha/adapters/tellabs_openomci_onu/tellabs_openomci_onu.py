@@ -73,6 +73,8 @@ class TellabsOpenomciOnuAdapter(BrcmOpenomciOnuAdapter):
         )
         log.info('tellabs_openomci_onu.__init__', adapter=self.descriptor)
 
+        self.broadcom_omci['mib-synchronizer']['state-machine'] = BrcmMibSynchronizer
+        #self.broadcom_omci['mib-synchronizer']['database'] = MibDbVolatileDict
         self.broadcom_omci['mib-synchronizer']['database'] = MibDbExternal
 
     def device_types(self):

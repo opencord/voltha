@@ -440,14 +440,14 @@ class OMCI_CC(object):
                                                        },
                                                    }),
             # OmciAlarmNotification.message_id: (OmciAlarmNotification, None),
-            # OmciAttributeValueChange.message_id: (OmciAttributeValueChange,
-            #                                       {
-            #                                           'entity_class': unpack('!H', msg[0:2])[0],
-            #                                           'entity_id': unpack('!H', msg[2:4])[0],
-            #                                           'data': {
-            #                                               UNKNOWN_CLASS_ATTRIBUTE_KEY: hexlify(msg[4:-8])
-            #                                           },
-            #                                       }),
+            OmciAttributeValueChange.message_id: (OmciAttributeValueChange,
+                                                   {
+                                                       'entity_class': unpack('!H', msg[0:2])[0],
+                                                       'entity_id': unpack('!H', msg[2:4])[0],
+                                                       'data': {
+                                                           UNKNOWN_CLASS_ATTRIBUTE_KEY: hexlify(msg[4:-8])
+                                                       },
+                                                   }),
             # OmciTestResult.message_id: (OmciTestResult, None),
         }.get(msg_type, None)
 
