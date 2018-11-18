@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "8895df92_182b9f12",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-11-18T13:34:04Z",
+      "side": 1,
+      "message": "Broadcom SDK predefined auto-discovery mode to False. I was thinking it might be a problem by setting auto-discovery mode for some of ONU or changing it on the fly. such as: CLI or out of system. For now. We could discuss what is way of changing this mode.",
+      "parentUuid": "aa2853b6_a43ca481",
+      "range": {
+        "startLine": 116,
+        "startChar": 12,
+        "endLine": 116,
+        "endChar": 14
+      },
+      "revId": "cad836c04076672c9bb78d1f6d89bb795bf2387c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9049e0dc_60ba87e5",
         "filename": "voltha/protos/device.proto",
         "patchSetId": 1
@@ -36,6 +60,24 @@
       "writtenOn": "2018-11-15T15:29:06Z",
       "side": 1,
       "message": "The registration id of an ONU is 36 bytes long. You can check G.987.3",
+      "revId": "cad836c04076672c9bb78d1f6d89bb795bf2387c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "251229ff_07490844",
+        "filename": "voltha/protos/device.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 247,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-11-18T13:34:04Z",
+      "side": 1,
+      "message": "Yes, thanks. I could change this type to \"string\"",
+      "parentUuid": "9049e0dc_60ba87e5",
       "revId": "cad836c04076672c9bb78d1f6d89bb795bf2387c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
