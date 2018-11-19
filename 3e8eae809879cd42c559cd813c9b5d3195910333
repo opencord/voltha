@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "18e3c197_6244124b",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 788,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T15:02:48Z",
+      "side": 1,
+      "message": "Common code could be refactored to after pptp and veip iteration loops",
+      "range": {
+        "startLine": 788,
+        "startChar": 20,
+        "endLine": 788,
+        "endChar": 29
+      },
+      "revId": "3e8eae809879cd42c559cd813c9b5d3195910333",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "479d2ddf_4967a107",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 790,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T15:02:48Z",
+      "side": 1,
+      "message": "Happy day case probably doesn\u0027t need logged",
+      "range": {
+        "startLine": 790,
+        "startChar": 24,
+        "endLine": 790,
+        "endChar": 28
+      },
+      "revId": "3e8eae809879cd42c559cd813c9b5d3195910333",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
