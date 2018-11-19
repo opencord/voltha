@@ -580,9 +580,14 @@ class BBSimOltFlowMgr(object):
     def find_next_flow(self, flow):
         table_id = fd.get_goto_table_id(flow)
         metadata = 0
+        # Prior to ONOS 1.13.5, Metadata contained the UNI output port number. In
+        # 1.13.5 and later, the lower 32-bits is the output port number and the
+        # upper 32-bits is the inner-vid we are looking for. Use just the lower 32
+        # bits.  Allows this code to work with pre- and post-1.13.5 ONOS OltPipeline
+
         for field in fd.get_ofb_fields(flow):
             if field.type == fd.METADATA:
-                metadata = field.table_metadata
+                metadata = field.table_metadata & 0xFFFFFFFF
         if table_id is None:
             return None
         flows = self.logical_flows_proxy.get('/').items
