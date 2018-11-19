@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c154a207_2576943e",
+        "filename": "voltha/adapters/bbsimolt/bbsimolt_flow_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 594,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2018-11-19T20:40:36Z",
+      "side": 1,
+      "message": "The same fix is required in openolt_flow_mgr.py",
+      "revId": "ebe8c7b449e977921aaa627a5ca1e08884437b6b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
