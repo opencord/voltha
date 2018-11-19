@@ -1,0 +1,280 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ae0e6315_27c12a8a",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 291,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "This is a normal flow if TPs are not provision. Can you deprioritize the log to a debug or informational so I doesn\u0027t clutter the log with exception traceback.",
+      "range": {
+        "startLine": 291,
+        "startChar": 12,
+        "endLine": 291,
+        "endChar": 15
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "76b0ce0f_96937bcf",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 292,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "No Downstream Mapper is needed. This ME only applies to upstream traffic mapped into a TCONT",
+      "range": {
+        "startLine": 292,
+        "startChar": 12,
+        "endLine": 292,
+        "endChar": 15
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c609f316_c20df900",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 326,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "Downstream traffic should flow through the same upstream GemNetworkTP/CTP and hence does not need a separate bridge port.",
+      "range": {
+        "startLine": 326,
+        "startChar": 12,
+        "endLine": 326,
+        "endChar": 15
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5468d756_33516cc8",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 359,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "Ditto",
+      "range": {
+        "startLine": 359,
+        "startChar": 12,
+        "endLine": 359,
+        "endChar": 15
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7b22ae63_cbaad9d1",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 247,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "This logic is a little naive. The PriorityQueue MEs are not an arbitrary pool of queues. They are statically mapped to TCONT/UNI and Priority by artificact of the \"Related Port\" attribute. Since priority level and tcont/uni are allocated in Tech Profile, this logic needs to search and find the exact matching ME rather than simply popping off the first available. The pop() will only work for the first TCONT and first UNI.",
+      "range": {
+        "startLine": 247,
+        "startChar": 12,
+        "endLine": 247,
+        "endChar": 15
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bbd8d1a9_e59f295b",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "The logically separated up/dn-stream GEMs need to be recombined here to configure only a single \"bi-directional\" gem to add_to_hardware that specifies the ul_prior_q as the \"Traffic Management Pointer Upstream\" and the dl_prior_q as the \"Priority Queue Pointer Downstream\".",
+      "range": {
+        "startLine": 263,
+        "startChar": 0,
+        "endLine": 263,
+        "endChar": 12
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "370c735e_4d744a07",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 300,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "Somewhat irrelevant here as 802.1pMapper is only applicable for upstream flows into a tcont.",
+      "range": {
+        "startLine": 300,
+        "startChar": 12,
+        "endLine": 300,
+        "endChar": 29
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f8976f82_09dc5cd6",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 320,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "Downstream handling does not include a 802.1p Mapper ME. That ME is for upstream mapping only.",
+      "range": {
+        "startLine": 320,
+        "startChar": 12,
+        "endLine": 320,
+        "endChar": 15
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b48af693_dae699a8",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_vlan_filter_task.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "Downstream flows do not use a separate bridge port and should not need a separate VTFD",
+      "range": {
+        "startLine": 115,
+        "startChar": 12,
+        "endLine": 115,
+        "endChar": 15
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "686087d8_a5aae09e",
+        "filename": "voltha/adapters/brcm_openomci_onu/onu_gem_port.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 283,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "This is still valid. For a given GEM-ID, it can only be downstream for multicast. It needs to be \"bi-directional\"",
+      "range": {
+        "startLine": 283,
+        "startChar": 14,
+        "endLine": 283,
+        "endChar": 23
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "cc514b6a_1bef9b76",
+        "filename": "voltha/adapters/brcm_openomci_onu/onu_gem_port.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 287,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "GemPortNetworkCtpFrame needs modified to support configuring the \"Priority Queue Pointer Downstream\" attribute.",
+      "range": {
+        "startLine": 287,
+        "startChar": 18,
+        "endLine": 287,
+        "endChar": 40
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2956ea0d_21c5a748",
+        "filename": "voltha/adapters/brcm_openomci_onu/onu_tcont.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-19T21:30:51Z",
+      "side": 1,
+      "message": "You can dynamically determine if sched policy is R/W by examining ONU2-G\u0027s \"QoS configuration flexibility\"",
+      "range": {
+        "startLine": 80,
+        "startChar": 12,
+        "endLine": 80,
+        "endChar": 13
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
