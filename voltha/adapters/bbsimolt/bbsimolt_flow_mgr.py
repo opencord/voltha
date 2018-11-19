@@ -589,9 +589,9 @@ class BBSimOltFlowMgr(object):
         next_flows = []
         for f in flows:
             if f.table_id == table_id:
-                # FIXME
+                # NOTE: metadata port number is in lower 32 bits, cvid is in upper 32 bits
                 if fd.get_in_port(f) == fd.get_in_port(flow) and \
-                        fd.get_out_port(f) == metadata:
+                        fd.get_out_port(f) == metadata & 0xFFFFFFFF:
 
                     next_flows.append(f)
 
