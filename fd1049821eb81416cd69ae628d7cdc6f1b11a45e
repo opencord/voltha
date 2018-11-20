@@ -275,6 +275,30 @@
       "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d7e14ab3_3527930c",
+        "filename": "voltha/adapters/brcm_openomci_onu/onu_tcont.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-20T11:41:05Z",
+      "side": 1,
+      "message": "You are right. That is what I mentioned in the comments. However I cannot configure the scheduling policy as it is READ-ONLY.",
+      "parentUuid": "2956ea0d_21c5a748",
+      "range": {
+        "startLine": 80,
+        "startChar": 12,
+        "endLine": 80,
+        "endChar": 13
+      },
+      "revId": "fd1049821eb81416cd69ae628d7cdc6f1b11a45e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
