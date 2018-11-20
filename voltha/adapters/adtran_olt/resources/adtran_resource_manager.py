@@ -56,7 +56,7 @@ class AdtranPONResourceManager(PONResourceManager):
                 pon_intf_id=pon_id,
                 resource_type=PONResourceManager.GEMPORT_ID,
                 start_idx=self.pon_resource_ranges[PONResourceManager.GEMPORT_ID_START_IDX],
-                end_idx=self.pon_resource_ranges[PONResourceManager.GEMPORT_ID_START_IDX])
+                end_idx=self.pon_resource_ranges[PONResourceManager.GEMPORT_ID_END_IDX])
 
     def clear_device_resource_pool(self):
         """

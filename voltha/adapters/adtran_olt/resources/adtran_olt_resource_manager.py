@@ -137,7 +137,7 @@ class AdtranOltResourceMgr(object):
             resource_type=PONResourceManager.GEMPORT_ID,
             num_of_id=1
         )
-        if gemport_id_list and len(gemport_id_list) == 0:
+        if gemport_id_list is None or len(gemport_id_list) == 0:
             self.log.error("no-gemport-id-available")
             return None
 
@@ -145,16 +145,15 @@ class AdtranOltResourceMgr(object):
         # allocated for the pon_intf_onu_id tuple
         self.resource_mgr.update_gemport_ids_for_onu(pon_intf_onu_id,
                                                      gemport_id_list)
-
         # We currently use only one gemport
         gemport = gemport_id_list[0]
 
         pon_intf_gemport = (pon_intf, gemport)
+
         # This information is used when packet_indication is received and
         # we need to derive the ONU Id for which the packet arrived based
         # on the pon_intf and gemport available in the packet_indication
         self.kv_store[str(pon_intf_gemport)] = str(onu_id)
-
         return gemport
 
     def free_pon_resources_for_onu(self, pon_intf_id_onu_id):
