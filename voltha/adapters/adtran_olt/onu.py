@@ -359,7 +359,7 @@ class Onu(object):
 
         try:
             yield defer.gatherResults(dl, consumeErrors=True)
-        except Exception:
+        except Exception as _e:
             pass
 
         dl = []
@@ -368,7 +368,7 @@ class Onu(object):
 
         try:
             yield defer.gatherResults(dl, consumeErrors=True)
-        except Exception as e:
+        except Exception as _e:
              pass
 
         self._gem_ports.clear()
@@ -379,6 +379,7 @@ class Onu(object):
                                                 self._serial_number_base64, self._enabled)
         try:
             yield self.olt.rest_client.request('DELETE', uri, name=name)
+            self._olt = None
 
         except RestInvalidResponseCode as e:
             if e.code != 404:
@@ -387,7 +388,6 @@ class Onu(object):
         except Exception as e:
             self.log.exception('onu-delete', e=e)
 
-        self._olt = None
         returnValue('deleted')
 
     def start(self):
@@ -679,6 +679,7 @@ class Onu(object):
         del self._tconts[alloc_id]
         try:
             results = yield tcont.remove_from_hardware(self.olt.rest_client)
+
         except RestInvalidResponseCode as e:
             results = None
             if e.code != 404:

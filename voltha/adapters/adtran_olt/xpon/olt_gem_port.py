@@ -51,11 +51,11 @@ class OltGemPort(GemPort):
         self.data = pb_data     # Needed for non-xPON mode
 
     @staticmethod
-    def create(handler, gem_port, pon_id, onu_id):
+    def create(handler, gem_port, alloc_id, pon_id, onu_id):
         mcast = False           # gem_port['gemport-id'] in [4095]    # TODO: Perform proper lookup
 
         return OltGemPort(gem_port['gemport-id'],
-                          None,
+                          alloc_id,
                           pon_id, onu_id,
                           encryption=gem_port['encryption'],  # aes_indicator,
                           tcont_ref=gem_port['tcont-ref'],

@@ -52,7 +52,7 @@ class AdtranOltAdapter(object):
         self.descriptor = Adapter(
             id=self.name,
             vendor='ADTRAN, Inc.',
-            version='1.30',
+            version='1.31',
             config=AdapterConfig(log_level=LogLevel.INFO)
         )
         log.debug('adtran_olt.__init__', adapter_agent=adapter_agent)
@@ -325,7 +325,23 @@ class AdtranOltAdapter(object):
         handler = self.devices_handlers.get(device.id)
         if handler is not None:
             reactor.callLater(0, handler.delete)
+            del self.device_handlers[device.id]
+            del self.logical_device_id_to_root_device_id[device.parent_id]
+
         return device
+
+    def delete_child_device(self, parent_device_id, child_device):
+        # TODO: Remove if no longer called (may be deprecated xPON interface)
+        log.info('delete-child_device', parent_device_id=parent_device_id,
+                 child_device=child_device)
+        handler = self.devices_handlers[parent_device_id]
+        if handler is not None:
+            reactor.callLater(0, handler.delete_child_device, child_device)
+
+        else:
+            log.error('Could not find matching handler',
+                      looking_for_device_id=parent_device_id,
+                      available_handlers=self.devices.keys())
 
     def get_device_details(self, device):
         """

@@ -47,7 +47,6 @@ class NniPort(AdtnPort):
         # when we enumerated the ports
         self._physical_port_name = kwargs.get('name', 'nni-{}'.format(self._port_no))
         self._logical_port_name = 'nni-{}'.format(self._port_no)
-
         self._logical_port = None
 
         self.sync_tick = 10.0

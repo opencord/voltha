@@ -163,19 +163,19 @@ def mk_alloc_id(_, onu_id, idx=0):
     return alloc_id
 
 
-def mk_gemport_id(_, onu_id, idx=0):
-    """
-    Allocate a GEM-PORT ID.    This is only called by the OLT
-
-    A 4-bit mask was used since we need a gvid for untagged-EAPOL
-    traffic and then up to 8 more for user-user data priority
-    levels.
-
-    :param _: (int)         PON ID (0..n) - not used
-    :param onu_id: (int)    ONU ID (0..MAX_ONUS_PER_PON-1)
-    :param idx: (int)       GEM_PORT Index (0..15)
-    """
-    return MIN_GEM_PORT_ID + (onu_id << 4) + idx
+# def mk_gemport_id(_, onu_id, idx=0):        #  Deprecated, moved to resource manager
+#     """
+#     Allocate a GEM-PORT ID.    This is only called by the OLT
+#
+#     A 4-bit mask was used since we need a gvid for untagged-EAPOL
+#     traffic and then up to 8 more for user-user data priority
+#     levels.
+#
+#     :param _: (int)         PON ID (0..n) - not used
+#     :param onu_id: (int)    ONU ID (0..MAX_ONUS_PER_PON-1)
+#     :param idx: (int)       GEM_PORT Index (0..15)
+#     """
+#     return MIN_GEM_PORT_ID + (onu_id << 4) + idx
 
 
 def intf_id_to_port_no(intf_id, intf_type):

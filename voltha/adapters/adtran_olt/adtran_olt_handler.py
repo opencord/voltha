@@ -617,6 +617,17 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         super(AdtranOltHandler, self).delete()
 
+    def delete_child_device(self, proxy_address):
+        super(AdtranOltHandler, self).delete_child_device(proxy_address)
+
+        # TODO: Verify that ONU object cleanup of ONU will also clean
+        #       up logical id and physical port
+        pon_intf_id_onu_id = (proxy_address.channel_id,
+                              proxy_address.onu_id)
+
+        # Free any PON resources that were reserved for the ONU
+        self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
+
     def rx_pa_packet(self, packets):
         if self._pon_agent is not None:
             for packet in packets:
