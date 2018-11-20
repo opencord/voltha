@@ -45,6 +45,30 @@
       "revId": "3e8eae809879cd42c559cd813c9b5d3195910333",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c863f66b_9f807d9b",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 790,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-11-20T14:22:33Z",
+      "side": 1,
+      "message": "Now that they tested with their ISKT i will just remove this altogether.  It was really there just to get some debug logging out of their onu.  Next patch the whole uni_value block will just go away given i dont even use it anymore.",
+      "parentUuid": "479d2ddf_4967a107",
+      "range": {
+        "startLine": 790,
+        "startChar": 24,
+        "endLine": 790,
+        "endChar": 28
+      },
+      "revId": "3e8eae809879cd42c559cd813c9b5d3195910333",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
