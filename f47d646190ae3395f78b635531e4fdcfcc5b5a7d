@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0df7bc7b_0e973816",
+        "filename": "tests/atests/common/preprovisioning.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-11-20T15:19:08Z",
+      "side": 1,
+      "message": "success -\u003e success",
+      "revId": "f47d646190ae3395f78b635531e4fdcfcc5b5a7d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "82919a7d_4924008b",
+        "filename": "tests/atests/common/preprovisioning.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-11-20T15:19:08Z",
+      "side": 1,
+      "message": "before_enable -\u003ebefore_enabling?",
+      "revId": "f47d646190ae3395f78b635531e4fdcfcc5b5a7d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d815a2af_98dc4321",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-11-20T15:19:08Z",
+      "side": 1,
+      "message": "Instead of having two lines of one validation, we should go with one line, more descriptive name such as: Status Should Be Success.\n\nThe same comment for the rest!",
+      "revId": "f47d646190ae3395f78b635531e4fdcfcc5b5a7d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
