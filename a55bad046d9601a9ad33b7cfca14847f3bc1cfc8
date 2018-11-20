@@ -1,0 +1,165 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0c1d0cda_54502db9",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 16
+      },
+      "lineNbr": 491,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-20T14:54:59Z",
+      "side": 1,
+      "message": "Please add this back in.",
+      "range": {
+        "startLine": 491,
+        "startChar": 68,
+        "endLine": 491,
+        "endChar": 81
+      },
+      "revId": "a55bad046d9601a9ad33b7cfca14847f3bc1cfc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2111fb2a_9bc2f004",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 16
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-20T14:54:59Z",
+      "side": 1,
+      "message": "Maybe use the result\u003dyield/check_status_and_state() construct used in other places rather than an explicit strobe_watchdog()",
+      "range": {
+        "startLine": 201,
+        "startChar": 16,
+        "endLine": 201,
+        "endChar": 21
+      },
+      "revId": "a55bad046d9601a9ad33b7cfca14847f3bc1cfc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2e4f4396_7e5a19b7",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 16
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-20T14:54:59Z",
+      "side": 1,
+      "message": "My system is ok now with this deleted if you want",
+      "range": {
+        "startLine": 229,
+        "startChar": 12,
+        "endLine": 229,
+        "endChar": 16
+      },
+      "revId": "a55bad046d9601a9ad33b7cfca14847f3bc1cfc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "583e1f06_c89bda77",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 16
+      },
+      "lineNbr": 241,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-20T14:54:59Z",
+      "side": 1,
+      "message": "ditto",
+      "range": {
+        "startLine": 241,
+        "startChar": 12,
+        "endLine": 241,
+        "endChar": 16
+      },
+      "revId": "a55bad046d9601a9ad33b7cfca14847f3bc1cfc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "44784765_d780ca1c",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 16
+      },
+      "lineNbr": 261,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-20T14:54:59Z",
+      "side": 1,
+      "message": "Relative priority used for either TCONT or UNI scheduler is in related_port 16-LSB. I suggest matching the highest priority pbit in gem_port.pbit_map against the related port priority to find the specific Q for the tcont/uni for the desired priority.",
+      "range": {
+        "startLine": 261,
+        "startChar": 24,
+        "endLine": 261,
+        "endChar": 28
+      },
+      "revId": "a55bad046d9601a9ad33b7cfca14847f3bc1cfc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "42991dc5_93f99bac",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 16
+      },
+      "lineNbr": 288,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-20T14:54:59Z",
+      "side": 1,
+      "message": "Use status\u003dyield/check_status_and_state() rather than strobe_watchdog()",
+      "range": {
+        "startLine": 288,
+        "startChar": 20,
+        "endLine": 288,
+        "endChar": 25
+      },
+      "revId": "a55bad046d9601a9ad33b7cfca14847f3bc1cfc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ca64428b_8e3c0919",
+        "filename": "voltha/adapters/brcm_openomci_onu/pon_port.py",
+        "patchSetId": 16
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-20T14:54:59Z",
+      "side": 1,
+      "message": "Not needed now?",
+      "range": {
+        "startLine": 55,
+        "startChar": 8,
+        "endLine": 55,
+        "endChar": 12
+      },
+      "revId": "a55bad046d9601a9ad33b7cfca14847f3bc1cfc8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
