@@ -36,6 +36,40 @@
     },
     {
       "key": {
+        "uuid": "da8ad2f7_9b1b1933",
+        "filename": "tests/atests/common/preprovisioning.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-11-20T17:38:26Z",
+      "side": 1,
+      "message": "after_enable -\u003e after_enabling",
+      "revId": "f47d646190ae3395f78b635531e4fdcfcc5b5a7d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "dee0558b_b280ae63",
+        "filename": "tests/atests/common/preprovisioning.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 141,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-11-20T17:38:26Z",
+      "side": 1,
+      "message": "after_enable -\u003e after_enabling",
+      "revId": "f47d646190ae3395f78b635531e4fdcfcc5b5a7d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d815a2af_98dc4321",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 2
