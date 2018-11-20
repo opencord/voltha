@@ -135,6 +135,24 @@
       "revId": "f47d646190ae3395f78b635531e4fdcfcc5b5a7d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c951ee09_a625eea2",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-11-20T21:53:26Z",
+      "side": 1,
+      "message": "RF does not lend itself to this\nOn one line the return value from a Keyword is assigned and then on the second line we can compare\nI\u0027ve also tried the various forms of the \"Should Be Equal\" with two parameters: the first was \u0027True\u0027 and the second was Keyword (call to python library) and this was the error I was seeing:\nTrue !\u003d Check Preprovision Success\n\nAnd in the various RF examples I examined they all use the two line syntax.\n\nSo I\u0027m going back to what I had initially",
+      "parentUuid": "d815a2af_98dc4321",
+      "revId": "f47d646190ae3395f78b635531e4fdcfcc5b5a7d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
