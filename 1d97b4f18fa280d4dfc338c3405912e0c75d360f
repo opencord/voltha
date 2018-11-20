@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cd597649_a2ee28d7",
+        "filename": "voltha/adapters/bbsimolt/bbsimolt_device.py",
+        "patchSetId": 15
+      },
+      "lineNbr": 615,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2018-11-20T20:10:26Z",
+      "side": 1,
+      "message": "I think hyphenation of the message is the convention.\n\nAlso, `sending-packet-out` seems to be used in several places instead of `packet-out`",
+      "range": {
+        "startLine": 615,
+        "startChar": 8,
+        "endLine": 615,
+        "endChar": 61
+      },
+      "revId": "1d97b4f18fa280d4dfc338c3405912e0c75d360f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b172cc84_d1ecc13c",
+        "filename": "voltha/adapters/ponsim_onu/ponsim_onu.py",
+        "patchSetId": 15
+      },
+      "lineNbr": 292,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2018-11-20T20:10:26Z",
+      "side": 1,
+      "message": "should be hyphenated",
+      "range": {
+        "startLine": 292,
+        "startChar": 16,
+        "endLine": 292,
+        "endChar": 63
+      },
+      "revId": "1d97b4f18fa280d4dfc338c3405912e0c75d360f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba084b5a_f197bf3d",
+        "filename": "voltha/adapters/ponsim_onu/ponsim_onu.py",
+        "patchSetId": 15
+      },
+      "lineNbr": 310,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2018-11-20T20:10:26Z",
+      "side": 1,
+      "message": "should be hyphenated",
+      "range": {
+        "startLine": 310,
+        "startChar": 20,
+        "endLine": 310,
+        "endChar": 77
+      },
+      "revId": "1d97b4f18fa280d4dfc338c3405912e0c75d360f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
