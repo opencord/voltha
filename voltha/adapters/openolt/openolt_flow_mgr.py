@@ -86,6 +86,7 @@ class OpenOltFlowMgr(object):
         self.resource_mgr = resource_mgr
         self.tech_profile = dict()
         self._populate_tech_profile_per_pon_port()
+        self.retry_add_flow_list = []
 
     def add_flow(self, flow):
         self.log.debug('add flow', flow=flow)
@@ -257,6 +258,12 @@ class OpenOltFlowMgr(object):
         else:
             self.log.error("invalid-info", uni_port_no=uni_port_no,
                            child_device_id=child_device_id)
+
+    def retry_add_flow(self, flow):
+        self.log.debug("retry-add-flow")
+        if flow.id in self.retry_add_flow_list:
+            self.retry_add_flow_list.remove(flow.id)
+        self.add_flow(flow)
 
     def remove_flow(self, flow):
         self.log.debug('trying to remove flows from logical flow :',
@@ -919,7 +926,11 @@ class OpenOltFlowMgr(object):
         if len(next_flows) == 0:
             self.log.warning('no next flow found, it may be a timing issue',
                              flow=flow, number_of_flows=len(flows))
-            reactor.callLater(5, self.add_flow, flow)
+            if flow.id in self.retry_add_flow_list:
+                self.log.debug('flow is already in retry list', flow_id=flow.id)
+            else:
+                self.retry_add_flow_list.append(flow.id)
+                reactor.callLater(5, self.retry_add_flow, flow)
             return None
 
         next_flows.sort(key=lambda f: f.priority, reverse=True)
