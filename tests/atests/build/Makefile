@@ -91,29 +91,22 @@ $(M)/onos: | $(M)/kafka-running
 	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/onos.yaml -f configs/seba-ponsim.yaml --set images.onos.repository=voltha-onos,images.onos.tag=latest,images.onos.pullPolicy=Never
 	touch $@
 
-$(M)/voltha: | $(M)/kafka-running $(M)/onos
+$(M)/voltha: | $(M)/kafka-running $(M)/etcd-operator-ready
 	cd $(HOME)/cord/helm-charts; helm dep up voltha
-	cd $(HOME)/cord/helm-charts; helm upgrade --install voltha voltha -f configs/seba-ponsim.yaml --set images.vcore.repository=voltha-voltha,images.vcore.tag=latest,images.vcore.pullPolicy=Never,images.envoy_for_etcd.repository=voltha-envoy,images.envoy_for_etcd.tag=latest,images.envoy_for_etcd.pullPolicy=Never,images.netconf.repository=voltha-netconf,images.netconf.tag=latest,images.netconf.pullPolicy=Never,images.ofagent.repository=voltha-ofagent,images.ofagent.tag=latest,images.ofagent.pullPolicy=Never,images.vcli.repository=voltha-cli,images.vcli.tag=latest,images.vcli.pullPolicy=Never,etcd-operator.customResources.createEtcdClusterCRD=false
+	cd $(HOME)/cord/helm-charts; helm upgrade --install voltha voltha -f configs/seba-ponsim.yaml --set images.vcore.repository=voltha/voltha-voltha,images.vcore.tag=latest,images.vcore.pullPolicy=Never,images.envoy_for_etcd.repository=voltha/voltha-envoy,images.envoy_for_etcd.tag=latest,images.envoy_for_etcd.pullPolicy=Never,images.netconf.repository=voltha/voltha-netconf,images.netconf.tag=latest,images.netconf.pullPolicy=Never,images.ofagent.repository=voltha/voltha-ofagent,images.ofagent.tag=latest,images.ofagent.pullPolicy=Never,images.vcli.repository=voltha/voltha-cli,images.vcli.tag=latest,images.vcli.pullPolicy=Never
 	touch $@
 
-$(M)/etcd-operator-ready: | $(M)/voltha
-	until kubectl api-versions | grep etcd.database.coreos.com/v1beta2; \
+$(M)/etcd-operator-ready: | $(HOME)/cord/helm-charts $(M)/helm-init
+	cd $(HOME)/cord/helm-charts; helm upgrade --install etcd-operator stable/etcd-operator -f configs/seba-ponsim.yaml
+	until kubectl get crd | grep etcdclusters; \
 	do \
-		echo "Waiting for etcd.database.coreos.com/v1beta2 to be available"; \
-		sleep 5; \
-	done
-	until kubectl api-resources | grep EtcdCluster; \
-	do \
-		echo "Waiting for EtcdCluster API resource to be available"; \
+		echo "Waiting for etcdclusters CRD to be available"; \
 		sleep 5; \
 	done
 	touch $@
 
-$(M)/etcd-cluster: | $(M)/etcd-operator-ready
-	cd $(HOME)/cord/helm-charts; helm upgrade --install voltha voltha -f configs/seba-ponsim.yaml --set images.vcore.repository=voltha-voltha,images.vcore.tag=latest,images.vcore.pullPolicy=Never,images.envoy_for_etcd.repository=voltha-envoy,images.envoy_for_etcd.tag=latest,images.envoy_for_etcd.pullPolicy=Never,images.netconf.repository=voltha-netconf,images.netconf.tag=latest,images.netconf.pullPolicy=Never,images.ofagent.repository=voltha-ofagent,images.ofagent.tag=latest,images.ofagent.pullPolicy=Never,images.vcli.repository=voltha-cli,images.vcli.tag=latest,images.vcli.pullPolicy=Never,etcd-operator.customResources.createEtcdClusterCRD=true
-	touch $@
-
-$(M)/voltha-running: | $(M)/etcd-cluster
+$(M)/voltha-running: | $(M)/voltha
+	timeout 180s bash -c "until kubectl get pod|grep etcd-cluster|grep 1/1; do echo 'Waiting for etcd-cluster to be ready'; sleep 10; done"
 	$(HOME)/cord/helm-charts/scripts/wait_for_pods.sh voltha
 	touch $@
 
