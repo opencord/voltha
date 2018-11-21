@@ -14,15 +14,14 @@
 
 *** Settings ***
 Library           Process
+Library           OperatingSystem
 Library           ../common/auto_test.py
 Library           ../common/volthaMngr.py
 Library           ../common/preprovisioning.py
 Library           volthaMngr.VolthaMngr
-LIbrary           preprovisioning.Preprovisioning
-
+Library           preprovisioning.Preprovisioning
 Test Setup        Start Voltha      
 Test Teardown     Stop Voltha
-
 
 *** Variables ***
 ${LOG_DIR}        /tmp/voltha_test_results
@@ -44,9 +43,9 @@ Provisioning
     PSet Log Dirs    ${LOG_DIR}
     Configure   ${OLT_IP_ADDR}    ${OLT_PORT_ID}
     Preprovision Olt
-    Query Devices Before Enable
+    Wait Until Keyword Succeeds    60s    2s    Query Devices Before Enable
     Enable
-    Query Devices After Enable
+    Wait Until Keyword Succeeds    60s    2s    Query Devices After Enable
 
 
 *** Keywords ***
@@ -58,15 +57,14 @@ Start Voltha
     VSet Log Dirs  ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
     Stop Voltha
     Start All Pods
+    Sleep    60
     Collect Pod Logs
+    ${pod_status}    Run    kubectl get pods --all-namespaces
+    Log To Console    \n ${pod_status}
     Alter Onos NetCfg
-    
     
 Stop Voltha
     [Documentation]     Stop Voltha infrastucture. This includes clearing all installation milestones 
-    ...                 files and stopping all Kubernetes pods 
+    ...                 files and stopping all Kubernetes pods
     Stop All Pods
-    Reset Kube Adm
-    
-    
-    
+    Reset Kube Adm 
