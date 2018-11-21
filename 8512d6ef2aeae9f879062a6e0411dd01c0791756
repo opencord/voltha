@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ea6fbdd3_bd9dd84f",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 17
+      },
+      "lineNbr": 178,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-21T05:35:31Z",
+      "side": 1,
+      "message": "Can be removed.",
+      "range": {
+        "startLine": 178,
+        "startChar": 0,
+        "endLine": 178,
+        "endChar": 34
+      },
+      "revId": "8512d6ef2aeae9f879062a6e0411dd01c0791756",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c59761f3_f5765f6f",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 17
+      },
+      "lineNbr": 292,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-21T05:35:31Z",
+      "side": 1,
+      "message": "p-bit0 is lowest priority mapped to PQ-7. p-bit7 is highest priority mapped to PQ-0",
+      "range": {
+        "startLine": 292,
+        "startChar": 20,
+        "endLine": 292,
+        "endChar": 21
+      },
+      "revId": "8512d6ef2aeae9f879062a6e0411dd01c0791756",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
