@@ -584,7 +584,8 @@ class PerformanceIntervals(object):
             class_id = key[0]
             entity_id = key[1]
 
-            self.log.debug("in-enter-collect-data", key=key, retries=self._pm_me_collect_retries[key])
+            self.log.debug("in-enter-collect-data", data_key=key,
+                           retries=self._pm_me_collect_retries[key])
 
             # Collect the data ?
             if self._pm_me_collect_retries[key] > 0:
@@ -606,12 +607,13 @@ class PerformanceIntervals(object):
 
                 # start the task
                 if key in self._pm_me_extended_info:
-                    self.log.debug('collect-extended-info-found', key=key, extended_info=self._pm_me_extended_info[key])
+                    self.log.debug('collect-extended-info-found', data_key=key,
+                                   extended_info=self._pm_me_extended_info[key])
                     parent_class_id = self._pm_me_extended_info[key][0]
                     parent_entity_id = self._pm_me_extended_info[key][1]
                     upstream = self._pm_me_extended_info[key][2]
                 else:
-                    self.log.debug('collect-extended-info-not-found', key=key)
+                    self.log.debug('collect-extended-info-not-found', data_key=key)
                     parent_class_id = None
                     parent_entity_id = None
                     upstream = None

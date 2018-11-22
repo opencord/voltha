@@ -82,7 +82,7 @@ class OnuTCont(object):
             #msg = TcontFrame(self.entity_id, self.alloc_id, self.q_sched_policy)
             msg = TcontFrame(self.entity_id, self.alloc_id)
             frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci.send(frame)
             self.check_status_and_state(results, 'set-tcont')
 
@@ -103,7 +103,7 @@ class OnuTCont(object):
         try:
             msg = TcontFrame(self.entity_id, 0xFFFF)
             frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci.send(frame)
             self.check_status_and_state(results, 'delete-tcont')
 
@@ -121,7 +121,8 @@ class OnuTCont(object):
         failed_mask = omci_msg.get('failed_attributes_mask', 'n/a')
         unsupported_mask = omci_msg.get('unsupported_attributes_mask', 'n/a')
 
-        self.log.debug("OMCI Result:", operation, omci_msg=omci_msg, status=status, error_mask=error_mask,
+        self.log.debug("OMCI Result: %s", operation, omci_msg=omci_msg,
+                       status=status, error_mask=error_mask,
                        failed_mask=failed_mask, unsupported_mask=unsupported_mask)
 
         if status == RC.Success:

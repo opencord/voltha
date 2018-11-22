@@ -301,7 +301,7 @@ class OnuGemPort(object):
                 attributes=attributes
             )
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci.send(frame)
             self.check_status_and_state(results, 'create-gem-port-network-ctp')
 
@@ -321,7 +321,7 @@ class OnuGemPort(object):
                 gal_profile_pointer=gal_enet_profile_entity_id
             )
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci.send(frame)
             self.check_status_and_state(results, 'create-gem-interworking-tp')
 
@@ -339,7 +339,7 @@ class OnuGemPort(object):
         try:
             msg = GemInterworkingTpFrame(self.entity_id)
             frame = msg.delete()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci.send(frame)
             self.check_status_and_state(results, 'delete-gem-port-network-ctp')
         except Exception as e:
@@ -349,7 +349,7 @@ class OnuGemPort(object):
         try:
             msg = GemPortNetworkCtpFrame(self.entity_id)
             frame = msg.delete()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci.send(frame)
             self.check_status_and_state(results, 'delete-gem-interworking-tp')
         except Exception as e:
@@ -366,7 +366,8 @@ class OnuGemPort(object):
         failed_mask = omci_msg.get('failed_attributes_mask', 'n/a')
         unsupported_mask = omci_msg.get('unsupported_attributes_mask', 'n/a')
 
-        self.log.debug("OMCI Result:", operation, omci_msg=omci_msg, status=status, error_mask=error_mask,
+        self.log.debug("OMCI Result: %s", operation, omci_msg=omci_msg,
+                       status=status, error_mask=error_mask,
                        failed_mask=failed_mask, unsupported_mask=unsupported_mask)
 
         if status == RC.Success:
