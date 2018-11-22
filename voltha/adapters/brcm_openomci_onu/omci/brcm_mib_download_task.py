@@ -151,8 +151,10 @@ class BrcmMibDownloadTask(Task):
         failed_mask = omci_msg.get('failed_attributes_mask', 'n/a')
         unsupported_mask = omci_msg.get('unsupported_attributes_mask', 'n/a')
 
-        self.log.debug("OMCI Result:", operation, omci_msg=omci_msg, status=status, error_mask=error_mask,
-                       failed_mask=failed_mask, unsupported_mask=unsupported_mask)
+        self.log.debug("OMCI Result: %s", operation,
+                       omci_msg=omci_msg, status=status,
+                       error_mask=error_mask, failed_mask=failed_mask,
+                       unsupported_mask=unsupported_mask)
 
         if status == RC.Success:
             self.strobe_watchdog()
@@ -234,7 +236,7 @@ class BrcmMibDownloadTask(Task):
                 max_gem_payload_size=self._max_gem_payload
             )
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-gal-ethernet-profile')
 
@@ -263,7 +265,7 @@ class BrcmMibDownloadTask(Task):
                 attributes
             )
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-mac-bridge-service-profile')
 
@@ -280,7 +282,7 @@ class BrcmMibDownloadTask(Task):
 
             msg = Ieee8021pMapperServiceProfileFrame(self._ieee_mapper_service_profile_entity_id)
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-8021p-mapper-service-profile')
 
@@ -308,7 +310,7 @@ class BrcmMibDownloadTask(Task):
                 tp_pointer=self._ieee_mapper_service_profile_entity_id  # TP ID, 8021p mapper ID
             )
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-mac-bridge-port-configuration-data-part-1')
 
@@ -329,7 +331,7 @@ class BrcmMibDownloadTask(Task):
                 forward_operation=0x10
             )
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-vlan-tagging-filter-data')
 
@@ -365,7 +367,7 @@ class BrcmMibDownloadTask(Task):
                 tp_pointer=self._uni_port.entity_id            # Ethernet UNI ID
             )
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-mac-bridge-port-configuration-data-part-2')
 
@@ -475,7 +477,7 @@ class BrcmMibDownloadTask(Task):
                 interwork_tp_pointers=gem_entity_ids          # Interworking TP IDs
             )
             frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'set-8021p-mapper-service-profile')
 
@@ -536,7 +538,7 @@ class BrcmMibDownloadTask(Task):
             )
 
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-extended-vlan-tagging-operation-configuration-data')
 
@@ -583,7 +585,7 @@ class BrcmMibDownloadTask(Task):
             )
 
             frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data')
 
@@ -631,7 +633,7 @@ class BrcmMibDownloadTask(Task):
 
             if msg:
                frame = msg.set()
-               self.log.debug('openomci-msg', msg=msg)
+               self.log.debug('openomci-msg', omci_msg=msg)
                results = yield omci_cc.send(frame)
                self.check_status_and_state(results, 'set-pptp-ethernet-uni-lock-restore')
 

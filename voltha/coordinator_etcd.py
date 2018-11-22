@@ -612,7 +612,7 @@ class CoordinatorEtcd(object):
                 log.debug('result-received', result=result)
                 returnValue((False, result))
             except TimeOutError as e:
-                log.debug('timeout-or-no-data-change', key=key)
+                log.debug('timeout-or-no-data-change', etcd_key=key)
             except Exception as e:
                 log.exception('exception', e=e)
         except Exception as e:
