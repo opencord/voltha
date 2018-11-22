@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "eebe0f34_c2e7a373",
+        "filename": "tests/atests/build/Makefile",
+        "patchSetId": 5
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-11-22T16:12:33Z",
+      "side": 1,
+      "message": "I assume that this was reverted in the next patch because it was merged by then",
+      "revId": "3f4e1c0483e0ad75849ca1bdc6df236ad6249fb8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4732eabe_534a399b",
+        "filename": "tests/atests/build/Makefile",
+        "patchSetId": 5
+      },
+      "lineNbr": 97,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-11-22T16:12:33Z",
+      "side": 1,
+      "message": "This change to use Docker Hub images instead of locally built images was never reverted I don\u0027t think.\n\nAny reason we a sticking with this?",
+      "revId": "3f4e1c0483e0ad75849ca1bdc6df236ad6249fb8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
