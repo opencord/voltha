@@ -19,6 +19,23 @@
     },
     {
       "key": {
+        "uuid": "17e3600d_e752d94d",
+        "filename": "tests/atests/build/Makefile",
+        "patchSetId": 5
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-11-22T17:59:35Z",
+      "side": 1,
+      "message": "This dependency change means that onos pod is no longer being deployed\nThis explains the Curl errors we are seeing.",
+      "revId": "3f4e1c0483e0ad75849ca1bdc6df236ad6249fb8",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4732eabe_534a399b",
         "filename": "tests/atests/build/Makefile",
         "patchSetId": 5
