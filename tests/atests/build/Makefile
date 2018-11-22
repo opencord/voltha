@@ -91,9 +91,9 @@ $(M)/onos: | $(M)/kafka-running
 	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/onos.yaml -f configs/seba-ponsim.yaml --set images.onos.repository=voltha-onos,images.onos.tag=latest,images.onos.pullPolicy=Never
 	touch $@
 
-$(M)/voltha: | $(M)/kafka-running $(M)/etcd-operator-ready
+$(M)/voltha: | $(M)/kafka-running $(M)/etcd-operator-ready $(M)/onos
 	cd $(HOME)/cord/helm-charts; helm dep up voltha
-	cd $(HOME)/cord/helm-charts; helm upgrade --install voltha voltha -f configs/seba-ponsim.yaml --set images.vcore.repository=voltha/voltha-voltha,images.vcore.tag=latest,images.vcore.pullPolicy=Never,images.envoy_for_etcd.repository=voltha/voltha-envoy,images.envoy_for_etcd.tag=latest,images.envoy_for_etcd.pullPolicy=Never,images.netconf.repository=voltha/voltha-netconf,images.netconf.tag=latest,images.netconf.pullPolicy=Never,images.ofagent.repository=voltha/voltha-ofagent,images.ofagent.tag=latest,images.ofagent.pullPolicy=Never,images.vcli.repository=voltha/voltha-cli,images.vcli.tag=latest,images.vcli.pullPolicy=Never
+	cd $(HOME)/cord/helm-charts; helm upgrade --install voltha voltha -f configs/seba-ponsim.yaml --set images.vcore.repository=voltha-voltha,images.vcore.tag=latest,images.vcore.pullPolicy=Never,images.envoy_for_etcd.repository=voltha-envoy,images.envoy_for_etcd.tag=latest,images.envoy_for_etcd.pullPolicy=Never,images.netconf.repository=voltha-netconf,images.netconf.tag=latest,images.netconf.pullPolicy=Never,images.ofagent.repository=voltha-ofagent,images.ofagent.tag=latest,images.ofagent.pullPolicy=Never,images.vcli.repository=voltha-cli,images.vcli.tag=latest,images.vcli.pullPolicy=Never
 	touch $@
 
 $(M)/etcd-operator-ready: | $(HOME)/cord/helm-charts $(M)/helm-init
