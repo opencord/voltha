@@ -180,7 +180,7 @@ class OnuGemPort(object):
                     #upstream_tm=0x100
             )
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci.send(frame)
             self.check_status_and_state(results, 'create-gem-port-network-ctp')
 
@@ -200,7 +200,7 @@ class OnuGemPort(object):
                 gal_profile_pointer=gal_enet_profile_entity_id
             )
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci.send(frame)
             self.check_status_and_state(results, 'create-gem-interworking-tp')
 
@@ -218,7 +218,7 @@ class OnuGemPort(object):
         try:
             msg = GemInterworkingTpFrame(self.entity_id)
             frame = msg.delete()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci.send(frame)
             self.check_status_and_state(results, 'delete-gem-port-network-ctp')
         except Exception as e:
@@ -228,7 +228,7 @@ class OnuGemPort(object):
         try:
             msg = GemPortNetworkCtpFrame(self.entity_id)
             frame = msg.delete()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci.send(frame)
             self.check_status_and_state(results, 'delete-gem-interworking-tp')
         except Exception as e:
