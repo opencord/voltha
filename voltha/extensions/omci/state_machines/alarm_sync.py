@@ -457,16 +457,20 @@ class AlarmSynchronizer(object):
                 self._deferred = reactor.callLater(0, self.audit_alarm)
 
         key = AlarmDbExternal.ALARM_BITMAP_KEY
-        prev_entry = self._database.query(class_id, entity_id)
-        prev_bitmap = 0 if len(prev_entry) == 0 else long(prev_entry(key, '0'))
-
+        prev_entry = self._database.query(self._device_id, class_id, entity_id)
+        try:
+            # Need to access the bit map structure which is nested in dict attributes
+            prev_bitmap = 0 if len(prev_entry) == 0 else long(prev_entry['attributes'][key])
+        except Exception as e:
+            self.log.exception('alarm-prev-entry-collection-failure', class_id=class_id,
+                               device_id=self._device_id, entity_id=entity_id, value=bitmap, e=e)
         # Save current entry before going on
         try:
             self._database.set(self._device_id, class_id, entity_id, {key: bitmap})
 
         except Exception as e:
             self.log.exception('alarm-save-failure', class_id=class_id,
-                               entity_id=entity_id, value=bitmap, e=e)
+                               device_id=self._device_id, entity_id=entity_id, value=bitmap, e=e)
 
         if self._alarm_manager is not None:
             # Generate a set of alarm number that are raised in current and previous
