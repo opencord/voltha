@@ -1,0 +1,136 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "737be6f3_5bf3e480",
+        "filename": "common/tech_profile/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-26T14:37:02Z",
+      "side": 1,
+      "message": "which is currently etcd\".\"",
+      "range": {
+        "startLine": 3,
+        "startChar": 137,
+        "endLine": 3,
+        "endChar": 138
+      },
+      "revId": "e2363aed5b818ee33f3b0b4bfee87f905309dac7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "68faae03_9fc20657",
+        "filename": "common/tech_profile/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 155,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-26T14:37:02Z",
+      "side": 1,
+      "message": "\"T\"echnology",
+      "range": {
+        "startLine": 155,
+        "startChar": 0,
+        "endLine": 155,
+        "endChar": 9
+      },
+      "revId": "e2363aed5b818ee33f3b0b4bfee87f905309dac7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "531d78ef_a1625d91",
+        "filename": "common/tech_profile/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-26T14:37:02Z",
+      "side": 1,
+      "message": "Extra whitespace.. In several locations",
+      "revId": "e2363aed5b818ee33f3b0b4bfee87f905309dac7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "23d115f9_d1dcf95f",
+        "filename": "common/tech_profile/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 189,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-26T14:37:02Z",
+      "side": 1,
+      "message": "Consul example?",
+      "range": {
+        "startLine": 189,
+        "startChar": 0,
+        "endLine": 189,
+        "endChar": 0
+      },
+      "revId": "e2363aed5b818ee33f3b0b4bfee87f905309dac7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "00e5d632_c841788d",
+        "filename": "common/tech_profile/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 338,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-26T14:37:02Z",
+      "side": 1,
+      "message": "Consul example?",
+      "range": {
+        "startLine": 338,
+        "startChar": 0,
+        "endLine": 338,
+        "endChar": 0
+      },
+      "revId": "e2363aed5b818ee33f3b0b4bfee87f905309dac7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "dcf1c457_4a92ca60",
+        "filename": "common/tech_profile/README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 349,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-11-26T14:37:02Z",
+      "side": 1,
+      "message": "Consul example?",
+      "range": {
+        "startLine": 349,
+        "startChar": 0,
+        "endLine": 349,
+        "endChar": 0
+      },
+      "revId": "e2363aed5b818ee33f3b0b4bfee87f905309dac7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
