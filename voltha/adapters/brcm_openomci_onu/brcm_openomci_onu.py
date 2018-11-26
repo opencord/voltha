@@ -54,7 +54,7 @@ class BrcmOpenomciOnuAdapter(object):
     supported_device_types = [
         DeviceType(
             id=name,
-            vendor_ids=['OPEN', 'ALCL', 'BRCM', 'TWSH', 'ALPH', 'ISKT', 'SFAA'],
+            vendor_ids=['OPEN', 'ALCL', 'BRCM', 'TWSH', 'ALPH', 'ISKT', 'SFAA', 'BBSM'],
             adapter=name,
             accepts_bulk_flow_update=True
         )

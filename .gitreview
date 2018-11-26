@@ -3,3 +3,4 @@ host=gerrit.opencord.org
 port=29418
 project=voltha.git
 defaultremote=origin
+defaultbranch=voltha-1.6
