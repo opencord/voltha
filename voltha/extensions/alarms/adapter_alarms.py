@@ -16,7 +16,9 @@
 import structlog
 import arrow
 from voltha.protos.events_pb2 import AlarmEventType, AlarmEventSeverity,\
-    AlarmEventState
+    AlarmEventState, AlarmEventCategory
+log = structlog.get_logger()
+
 
 # TODO: In the device adapter, the following alarms are still TBD
 #       (Taken from openolt_alarms)
@@ -86,11 +88,20 @@ class AdapterAlarms:
         """
         try:
             current_context = {}
-
             if isinstance(context_data, dict):
                 for key, value in context_data.iteritems():
                     current_context[key] = str(value)
+            ser_num = None
+            device = self.adapter_agent.get_device(device_id=self.device_id)
+            ser_num = device.serial_number
 
+
+            """
+            Only put in the onu serial numbers since the OLT does not currently have a serial number and the
+            value is the ip:port address.
+            """
+            if isinstance(context_data, dict) and '_onu' in device.type.lower():
+                current_context["onu_serial_number"] = ser_num
             alarm_event = self.adapter_agent.create_alarm(
                 id=alarm_data.get('id', 'voltha.{}.{}.olt'.format(self.adapter_name,
                                                                   self.device_id)),
