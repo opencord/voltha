@@ -70,7 +70,6 @@ POP_VLAN = 'pop_vlan'
 PUSH_VLAN = 'push_vlan'
 TRAP_TO_HOST = 'trap_to_host'
 
-KV_STORE_TECH_PROFILE_PATH_PREFIX = 'voltha/technology_profiles'
 
 
 class OpenOltFlowMgr(object):
@@ -386,8 +385,10 @@ class OpenOltFlowMgr(object):
 
                     # FIXME Should get Table id form the flow, as of now hardcoded to
                     # DEFAULT_TECH_PROFILE_TABLE_ID (64)
-                    tp_path = KV_STORE_TECH_PROFILE_PATH_PREFIX + '/' + \
-                              self.tech_profile[intf_id]. \
+                    # 'tp_path' contains the suffix part of the tech_profile_instance path.
+                    # The prefix to the 'tp_path' should be set to \
+                    # TechProfile.KV_STORE_TECH_PROFILE_PATH_PREFIX by the ONU adapter.
+                    tp_path = self.tech_profile[intf_id]. \
                                   get_tp_path(DEFAULT_TECH_PROFILE_TABLE_ID,
                                               ofp_port_name)
 

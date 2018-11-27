@@ -146,7 +146,7 @@ class BrcmTpServiceSpecificTask(Task):
         failed_mask = omci_msg.get('failed_attributes_mask', 'n/a')
         unsupported_mask = omci_msg.get('unsupported_attributes_mask', 'n/a')
 
-        self.log.debug("OMCI Result:", operation, omci_msg=omci_msg, status=status, error_mask=error_mask,
+        self.log.debug("OMCI Result: %s", operation, omci_msg=omci_msg, status=status, error_mask=error_mask,
                        failed_mask=failed_mask, unsupported_mask=unsupported_mask)
 
         if status == RC.Success:
@@ -344,7 +344,7 @@ class BrcmTpServiceSpecificTask(Task):
                 interwork_tp_pointers=gem_entity_ids  # Interworking TP IDs
             )
             frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'set-8021p-mapper-service-profile-ul')
 
@@ -386,7 +386,7 @@ class BrcmTpServiceSpecificTask(Task):
             )
 
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-extended-vlan-tagging-operation-configuration-data')
 
@@ -404,7 +404,7 @@ class BrcmTpServiceSpecificTask(Task):
             )
 
             frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data')
 
@@ -445,7 +445,7 @@ class BrcmTpServiceSpecificTask(Task):
             )
 
             frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data-table')
 
