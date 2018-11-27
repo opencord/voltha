@@ -16,6 +16,24 @@
       "revId": "300e172e8db1f0c0d0da2f86170d0662ed5f885f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fff68639_015fa1d7",
+        "filename": "voltha/core/config/config_backend.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-11-27T15:14:02Z",
+      "side": 1,
+      "message": "Another option I tested was setting the prefix when the kv_client is created in the onu handler:\n\n  self.kv_client \u003d EtcdStore(host, port,\n             KV_STORE_TECH_PROFILE_PATH_PREFIX)\n\n\nAnd in openolt_flow_mgr not setting it when tp_path is created.  basically just event the last half of the path:\n\n  tp_path \u003d self.tech_profile[intf_id]. \\                        \n            get_tp_path(DEFAULT_TECH_PROFILE_TABLE_ID,\n                        ofp_port_name)",
+      "parentUuid": "75d47780_32914330",
+      "revId": "300e172e8db1f0c0d0da2f86170d0662ed5f885f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
