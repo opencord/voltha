@@ -51,6 +51,7 @@ from voltha.adapters.brcm_openomci_onu.onu_tcont import *
 from voltha.adapters.brcm_openomci_onu.pon_port import *
 from voltha.adapters.brcm_openomci_onu.uni_port import *
 from voltha.adapters.brcm_openomci_onu.onu_traffic_descriptor import *
+from common.tech_profile.tech_profile import TechProfile
 
 OP = EntityOperations
 RC = ReasonCodes
@@ -113,10 +114,12 @@ class BrcmOpenomciOnuHandler(object):
         self.args = registry('main').get_args()
         if self.args.backend == 'etcd':
             host, port = self.args.etcd.split(':', 1)
-            self.kv_client = EtcdStore(host, port, '.')
+            self.kv_client = EtcdStore(host, port,
+                                       TechProfile.KV_STORE_TECH_PROFILE_PATH_PREFIX)
         elif self.args.backend == 'consul':
             host, port = self.args.consul.split(':', 1)
-            self.kv_client = ConsulStore(host, port, '.')
+            self.kv_client = ConsulStore(host, port,
+                                         TechProfile.KV_STORE_TECH_PROFILE_PATH_PREFIX)
         else:
             self.log.error('Invalid-backend')
             raise Exception("Invalid-backend-for-kv-store")
