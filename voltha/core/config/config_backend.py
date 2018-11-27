@@ -46,7 +46,8 @@ class ConsulStore(object):
         self.retries = 0
 
     def make_path(self, key):
-        return '{}/{}'.format(self._path_prefix, key)
+        return '{}'.format(key) if not self._path_prefix else \
+            '{}/{}'.format(self._path_prefix, key)
 
     def __getitem__(self, key):
         if key in self._cache:
@@ -167,7 +168,8 @@ class EtcdStore(object):
         self.retries = 0
 
     def make_path(self, key):
-        return '{}/{}'.format(self._path_prefix, key)
+        return '{}'.format(key) if not self._path_prefix else \
+            '{}/{}'.format(self._path_prefix, key)
 
     def __getitem__(self, key):
         if key in self._cache:

@@ -113,10 +113,10 @@ class BrcmOpenomciOnuHandler(object):
         self.args = registry('main').get_args()
         if self.args.backend == 'etcd':
             host, port = self.args.etcd.split(':', 1)
-            self.kv_client = EtcdStore(host, port, '.')
+            self.kv_client = EtcdStore(host, port, '')
         elif self.args.backend == 'consul':
             host, port = self.args.consul.split(':', 1)
-            self.kv_client = ConsulStore(host, port, '.')
+            self.kv_client = ConsulStore(host, port, '')
         else:
             self.log.error('Invalid-backend')
             raise Exception("Invalid-backend-for-kv-store")
