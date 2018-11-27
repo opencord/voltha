@@ -34,6 +34,42 @@
       "revId": "300e172e8db1f0c0d0da2f86170d0662ed5f885f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "dcdb82fa_f6b7c471",
+        "filename": "voltha/core/config/config_backend.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-27T15:20:43Z",
+      "side": 1,
+      "message": "I partly agree to this. There are some use cases (for instance in Tech-Profile) where path-prefix may not know to begin with when the KV client is being set. So, it is really tricky situation and it is to cater to that scenarios this change was needed.",
+      "parentUuid": "75d47780_32914330",
+      "revId": "300e172e8db1f0c0d0da2f86170d0662ed5f885f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0049ab08_68d1b3b3",
+        "filename": "voltha/core/config/config_backend.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-27T15:20:43Z",
+      "side": 1,
+      "message": "I thought about this, but then it means that somehow the OLT and ONU adapters are aware of KV_STORE_TECH_PROFILE_PATH_PREFIX. I could may be place this in tech_profile library and the OLT and ONU adapter import this definition?\nThis could be a plausible solution to Richard\u0027s concern.",
+      "parentUuid": "fff68639_015fa1d7",
+      "revId": "300e172e8db1f0c0d0da2f86170d0662ed5f885f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
