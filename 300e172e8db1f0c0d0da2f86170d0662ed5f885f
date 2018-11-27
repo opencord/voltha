@@ -88,6 +88,24 @@
       "revId": "300e172e8db1f0c0d0da2f86170d0662ed5f885f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bbff31e4_88652c43",
+        "filename": "voltha/core/config/config_backend.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000196
+      },
+      "writtenOn": "2018-11-27T15:56:04Z",
+      "side": 1,
+      "message": "Actually there may be no need to change the KV client defined in, and used by, the voltha core.  Have you looked at the KV clients defined under common/kvstore? Please use those and undo the changes to voltha/core/config/config/config_backend.py.",
+      "parentUuid": "c64afea4_5cce5e87",
+      "revId": "300e172e8db1f0c0d0da2f86170d0662ed5f885f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
