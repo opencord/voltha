@@ -21,7 +21,7 @@ from voltha.core.config.config_backend import ConsulStore
 from voltha.core.config.config_backend import EtcdStore
 
 # KV store uses this prefix to store resource info
-PATH_PREFIX = 'resource_manager/{}'
+PATH_PREFIX = 'service/voltha/resource_manager/{}'
 
 
 class ResourceKvStore(object):

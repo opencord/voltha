@@ -24,7 +24,6 @@ from voltha.core.config.config_backend import EtcdStore
 from voltha.registry import registry
 from voltha.adapters.openolt.protos import openolt_pb2
 
-
 # logger
 log = structlog.get_logger()
 
@@ -126,7 +125,7 @@ class TechProfile(object):
     pbits = ['0b11111111']
 
     # Tech profile path prefix in kv store
-    KV_STORE_TECH_PROFILE_PATH_PREFIX = 'voltha/technology_profiles'
+    KV_STORE_TECH_PROFILE_PATH_PREFIX = 'service/voltha/technology_profiles'
 
     # Tech profile path in kv store
     TECH_PROFILE_PATH = '{}/{}'  # <technology>/<table_id>
@@ -174,13 +173,13 @@ class TechProfile(object):
                 host, port = self.args.etcd.split(':', 1)
                 self._kv_store = EtcdStore(
                     host, port, TechProfile.
-                        KV_STORE_TECH_PROFILE_PATH_PREFIX)
+                    KV_STORE_TECH_PROFILE_PATH_PREFIX)
             elif self.args.backend == 'consul':
                 # KV store's IP Address and PORT
                 host, port = self.args.consul.split(':', 1)
                 self._kv_store = ConsulStore(
                     host, port, TechProfile.
-                        KV_STORE_TECH_PROFILE_PATH_PREFIX)
+                    KV_STORE_TECH_PROFILE_PATH_PREFIX)
 
             # self.tech_profile_instance_store = dict()
         except Exception as e:
@@ -257,17 +256,14 @@ class TechProfile(object):
                       path=path, tech_profile_instance=None, exception=e)
             return None
 
-    def delete_tech_profile_instance(self, table_id, uni_port_name):
-        # path to delete tech profile instance json from kv store
-        path = TechProfile.TECH_PROFILE_INSTANCE_PATH.format(
-            self.resource_mgr.technology, table_id, uni_port_name)
+    def delete_tech_profile_instance(self, tp_path):
 
         try:
-            del self._kv_store[path]
-            log.debug("Delete-tech-profile-instance-success", path=path)
+            del self._kv_store[tp_path]
+            log.debug("Delete-tech-profile-instance-success", path=tp_path)
             return True
         except Exception as e:
-            log.debug("Delete-tech-profile-instance-failed", path=path,
+            log.debug("Delete-tech-profile-instance-failed", path=tp_path,
                       exception=e)
             return False
 
@@ -537,7 +533,7 @@ class TechProfileInstance(object):
 
             gemport_list = list()
             if isinstance(gem_ports, int):
-               gemport_list.append(gem_ports)
+                gemport_list.append(gem_ports)
             elif isinstance(gem_ports, list):
                 for gem in gem_ports:
                     gemport_list.append(gem)
