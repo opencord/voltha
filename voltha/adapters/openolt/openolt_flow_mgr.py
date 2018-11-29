@@ -71,7 +71,6 @@ PUSH_VLAN = 'push_vlan'
 TRAP_TO_HOST = 'trap_to_host'
 
 
-
 class OpenOltFlowMgr(object):
 
     def __init__(self, adapter_agent, log, stub, device_id, logical_device_id,
@@ -333,6 +332,22 @@ class OpenOltFlowMgr(object):
         ofp_port_name = logical_port.ofp_port.name
         return ofp_port_name
 
+    def get_tp_path(self, intf_id, ofp_port_name):
+        # FIXME Should get Table id form the flow, as of now hardcoded to
+        # DEFAULT_TECH_PROFILE_TABLE_ID (64)
+        # 'tp_path' contains the suffix part of the tech_profile_instance path.
+        # The prefix to the 'tp_path' should be set to \
+        # TechProfile.KV_STORE_TECH_PROFILE_PATH_PREFIX by the ONU adapter.
+        return self.tech_profile[intf_id]. \
+            get_tp_path(DEFAULT_TECH_PROFILE_TABLE_ID,
+                        ofp_port_name)
+
+    def delete_tech_profile_instance(self, intf_id, onu_id):
+        # Remove the TP instance associated with the ONU
+        ofp_port_name = self._get_ofp_port_name(intf_id, onu_id)
+        tp_path = self.get_tp_path(intf_id, ofp_port_name)
+        return self.tech_profile[intf_id].delete_tech_profile_instance(tp_path)
+
     def divide_and_add_flow(self, intf_id, onu_id, classifier,
                             action, flow):
 
@@ -383,14 +398,7 @@ class OpenOltFlowMgr(object):
                         self.log.error("port-name-not-found")
                         return
 
-                    # FIXME Should get Table id form the flow, as of now hardcoded to
-                    # DEFAULT_TECH_PROFILE_TABLE_ID (64)
-                    # 'tp_path' contains the suffix part of the tech_profile_instance path.
-                    # The prefix to the 'tp_path' should be set to \
-                    # TechProfile.KV_STORE_TECH_PROFILE_PATH_PREFIX by the ONU adapter.
-                    tp_path = self.tech_profile[intf_id]. \
-                                  get_tp_path(DEFAULT_TECH_PROFILE_TABLE_ID,
-                                              ofp_port_name)
+                    tp_path = self.get_tp_path(intf_id, ofp_port_name)
 
                     self.log.debug('Load-tech-profile-request-to-brcm-handler',
                                    tp_path=tp_path)
@@ -418,6 +426,16 @@ class OpenOltFlowMgr(object):
 
     def create_tcont_gemport(self, intf_id, onu_id, table_id):
         alloc_id, gem_port_ids = None, None
+        pon_intf_onu_id = (intf_id, onu_id)
+
+        # If we already have allocated alloc_id and gem_ports earlier, render them
+        alloc_id = \
+            self.resource_mgr.get_current_alloc_ids_for_onu(pon_intf_onu_id)
+        gem_port_ids = \
+            self.resource_mgr.get_current_gemport_ids_for_onu(pon_intf_onu_id)
+        if alloc_id is not None and gem_port_ids is not None:
+            return alloc_id, gem_port_ids
+
         try:
             ofp_port_name = self._get_ofp_port_name(intf_id, onu_id)
             if ofp_port_name is None:
@@ -437,28 +455,27 @@ class OpenOltFlowMgr(object):
                 tech_profile_instance = self.tech_profile[intf_id]. \
                     create_tech_profile_instance(table_id, ofp_port_name,
                                                  intf_id)
-                if tech_profile_instance is not None:
-
-                    # upstream scheduler
-                    us_scheduler = self.tech_profile[intf_id].get_us_scheduler(
-                        tech_profile_instance)
-                    # downstream scheduler
-                    ds_scheduler = self.tech_profile[intf_id].get_ds_scheduler(
-                        tech_profile_instance)
-                    # create Tcont
-                    tconts = self.tech_profile[intf_id].get_tconts(tech_profile_instance,
-                                                                   us_scheduler,
-                                                                   ds_scheduler)
-
-                    self.stub.CreateTconts(openolt_pb2.Tconts(intf_id=intf_id,
-                                                              onu_id=onu_id,
-                                                              tconts=tconts))
-                else:
+                if tech_profile_instance is None:
                     raise Exception('Tech-profile-instance-creation-failed')
             else:
                 self.log.debug(
                     'Tech-profile-instance-already-exist-for-given port-name',
                     ofp_port_name=ofp_port_name)
+
+            # upstream scheduler
+            us_scheduler = self.tech_profile[intf_id].get_us_scheduler(
+                tech_profile_instance)
+            # downstream scheduler
+            ds_scheduler = self.tech_profile[intf_id].get_ds_scheduler(
+                tech_profile_instance)
+            # create Tcont
+            tconts = self.tech_profile[intf_id].get_tconts(tech_profile_instance,
+                                                           us_scheduler,
+                                                           ds_scheduler)
+
+            self.stub.CreateTconts(openolt_pb2.Tconts(intf_id=intf_id,
+                                                      onu_id=onu_id,
+                                                      tconts=tconts))
 
             # Fetch alloc id and gemports from tech profile instance
             alloc_id = tech_profile_instance.us_scheduler.alloc_id
@@ -467,7 +484,7 @@ class OpenOltFlowMgr(object):
                     tech_profile_instance.upstream_gem_port_attribute_list)):
                 gem_port_ids.append(
                     tech_profile_instance.upstream_gem_port_attribute_list[i].
-                        gemport_id)
+                    gemport_id)
         except BaseException as e:
             self.log.exception(exception=e)
 
@@ -519,7 +536,7 @@ class OpenOltFlowMgr(object):
     def add_hsia_flow(self, intf_id, onu_id, classifier, action,
                       direction, logical_flow, alloc_id, gemport_id):
 
-        flow_id = self.resource_mgr.get_hsia_flow_for_onu(intf_id, onu_id, gemport_id)
+        flow_id = self.resource_mgr.get_hsia_flow_id_for_onu(intf_id, onu_id, gemport_id)
         if flow_id is None:
             self.log.error("hsia-flow-unavailable")
             return
@@ -550,8 +567,9 @@ class OpenOltFlowMgr(object):
         classifier[PACKET_TAG_TYPE] = SINGLE_TAG
         classifier.pop(VLAN_VID, None)
 
-        pon_intf_onu_id = (intf_id, onu_id)
-        flow_id = self.resource_mgr.get_flow_id(pon_intf_onu_id)
+        flow_id = self.resource_mgr.get_dhcp_flow_id_for_onu(
+            intf_id, onu_id, gemport_id, UPSTREAM
+        )
 
         dhcp_flow = openolt_pb2.Flow(
             onu_id=onu_id, flow_id=flow_id, flow_type=UPSTREAM,
@@ -580,12 +598,10 @@ class OpenOltFlowMgr(object):
         uplink_action = dict()
         uplink_action[TRAP_TO_HOST] = True
 
-        pon_intf_onu_id = (intf_id, onu_id)
         # Add Upstream EAPOL Flow.
-        if eapol_flow_category == EAPOL_PRIMARY_FLOW:
-            uplink_flow_id = self.resource_mgr.get_flow_id(pon_intf_onu_id)
-        else:
-            uplink_flow_id = self.resource_mgr.get_flow_id(pon_intf_onu_id)
+        uplink_flow_id = self.resource_mgr.get_eapol_flow_id_for_onu(
+            intf_id, onu_id, gemport_id, eapol_flow_category, UPSTREAM
+        )
 
         upstream_flow = openolt_pb2.Flow(
             access_intf_id=intf_id, onu_id=onu_id, flow_id=uplink_flow_id,
@@ -629,8 +645,9 @@ class OpenOltFlowMgr(object):
             downlink_action[PUSH_VLAN] = True
             downlink_action[VLAN_VID] = vlan_id
 
-            pon_intf_onu_id = (intf_id, onu_id)
-            downlink_flow_id = self.resource_mgr.get_flow_id(pon_intf_onu_id)
+            downlink_flow_id = self.resource_mgr.get_eapol_flow_id_for_onu(
+                intf_id, onu_id, gemport_id, eapol_flow_category, DOWNSTREAM
+            )
 
             downstream_flow = openolt_pb2.Flow(
                 access_intf_id=intf_id, onu_id=onu_id, flow_id=downlink_flow_id,

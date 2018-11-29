@@ -993,14 +993,12 @@ class OpenoltDevice(object):
             child_device.serial_number)
         pon_intf_id_onu_id = (child_device.proxy_address.channel_id,
                               child_device.proxy_address.onu_id)
-        alloc_id = self.resource_mgr.get_alloc_id(pon_intf_id_onu_id)
         # Free any PON resources that were reserved for the ONU
         self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
 
         onu = openolt_pb2.Onu(intf_id=child_device.proxy_address.channel_id,
                               onu_id=child_device.proxy_address.onu_id,
-                              serial_number=serial_number,
-                              alloc_id=alloc_id)
+                              serial_number=serial_number)
         self.stub.DeleteOnu(onu)
 
     def reboot(self):

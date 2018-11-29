@@ -26,7 +26,7 @@ from voltha.adapters.openolt.protos import openolt_pb2
 
 
 class OpenOltResourceMgr(object):
-    BASE_PATH_KV_STORE = "openolt/{}"  # openolt/<device_id>
+    BASE_PATH_KV_STORE = "service/voltha/openolt/{}"  # service/voltha/openolt/<device_id>
 
     def __init__(self, device_id, host_and_port, extra_args, device_info):
         self.log = structlog.get_logger(id=device_id,
@@ -146,7 +146,7 @@ class OpenOltResourceMgr(object):
         return self.resource_mgrs[pon_intf_id].update_flow_id_info_for_onu(
             pon_intf_onu_id, flow_id, flow_data)
 
-    def get_hsia_flow_for_onu(self, pon_intf_id, onu_id, gemport_id):
+    def get_hsia_flow_id_for_onu(self, pon_intf_id, onu_id, gemport_id):
         pon_intf_onu_id = (pon_intf_id, onu_id)
         try:
             flow_ids = self.resource_mgrs[pon_intf_id]. \
@@ -158,6 +158,47 @@ class OpenOltResourceMgr(object):
                     for flow in flows:
                         if flow['flow_category'] == HSIA_FLOW and \
                                 flow['gemport_id'] == gemport_id:
+                            return flow_id
+        except Exception as e:
+            self.log.error("error-retrieving-flow-info", e=e)
+
+        return self.get_flow_id(pon_intf_onu_id)
+
+    def get_eapol_flow_id_for_onu(self, pon_intf_id, onu_id,
+                                  gemport_id, eapol_flow_category,
+                                  flow_type):
+        pon_intf_onu_id = (pon_intf_id, onu_id)
+        try:
+            flow_ids = self.resource_mgrs[pon_intf_id]. \
+                get_current_flow_ids_for_onu(pon_intf_onu_id)
+            if flow_ids is not None:
+                for flow_id in flow_ids:
+                    flows = self.get_flow_id_info(pon_intf_id, onu_id, flow_id)
+                    assert (isinstance(flows, list))
+                    for flow in flows:
+                        if flow['flow_category'] == eapol_flow_category and \
+                                flow['gemport_id'] == gemport_id and \
+                                flow['flow_type'] == flow_type:
+                            return flow_id
+        except Exception as e:
+            self.log.error("error-retrieving-flow-info", e=e)
+
+        return self.get_flow_id(pon_intf_onu_id)
+
+    def get_dhcp_flow_id_for_onu(self, pon_intf_id, onu_id,
+                                  gemport_id, flow_type):
+        pon_intf_onu_id = (pon_intf_id, onu_id)
+        try:
+            flow_ids = self.resource_mgrs[pon_intf_id]. \
+                get_current_flow_ids_for_onu(pon_intf_onu_id)
+            if flow_ids is not None:
+                for flow_id in flow_ids:
+                    flows = self.get_flow_id_info(pon_intf_id, onu_id, flow_id)
+                    assert (isinstance(flows, list))
+                    for flow in flows:
+                        if flow['flow_category'] == DHCP_FLOW and \
+                                flow['gemport_id'] == gemport_id and \
+                                flow['flow_type'] == flow_type:
                             return flow_id
         except Exception as e:
             self.log.error("error-retrieving-flow-info", e=e)
@@ -195,6 +236,14 @@ class OpenOltResourceMgr(object):
     def get_current_gemport_ids_for_onu(self, pon_intf_onu_id):
         pon_intf_id = pon_intf_onu_id[0]
         return self.resource_mgrs[pon_intf_id].get_current_gemport_ids_for_onu(pon_intf_onu_id)
+
+    def get_current_alloc_ids_for_onu(self, pon_intf_onu_id):
+        pon_intf_id = pon_intf_onu_id[0]
+        alloc_ids = self.resource_mgrs[pon_intf_id].get_current_alloc_ids_for_onu(pon_intf_onu_id)
+        if alloc_ids is None:
+            return None
+        # We support only one tcont at the moment
+        return alloc_ids[0]
 
     def update_gemports_ponport_to_onu_map_on_kv_store(self, gemport_list, pon_port, onu_id):
         for gemport in gemport_list:
@@ -265,6 +314,12 @@ class OpenOltResourceMgr(object):
         self.resource_mgrs[pon_intf_id].free_resource_id(pon_intf_id,
                                                          PONResourceManager.GEMPORT_ID,
                                                          gemport_ids)
+
+        flow_ids = \
+            self.resource_mgrs[pon_intf_id].get_current_flow_ids_for_onu(pon_intf_id_onu_id)
+        self.resource_mgrs[pon_intf_id].free_resource_id(pon_intf_id,
+                                                         PONResourceManager.FLOW_ID,
+                                                         flow_ids)
 
         self.resource_mgrs[pon_intf_id].free_resource_id(pon_intf_id,
                                                          PONResourceManager.ONU_ID,
