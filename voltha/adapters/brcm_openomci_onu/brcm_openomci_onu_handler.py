@@ -664,8 +664,10 @@ class BrcmOpenomciOnuHandler(object):
             reactor.callLater(0, self._onu_omci_device.stop)
 
             # Let TP download happen again
-            for i in self._tp_service_specific_task: i.clear()
-            for i in self._tech_profile_download_done: i.clear()
+            for uni_id in self._tp_service_specific_task:
+                self._tp_service_specific_task[uni_id].clear()
+            for uni_id in self._tech_profile_download_done:
+                self._tech_profile_download_done[uni_id].clear()
 
             self.disable_ports(onu_device)
             onu_device.reason = "stopping-openomci"
@@ -685,8 +687,10 @@ class BrcmOpenomciOnuHandler(object):
         reactor.callLater(0, self._onu_omci_device.stop)
 
         # Let TP download happen again
-        for i in self._tp_service_specific_task: i.clear()
-        for i in self._tech_profile_download_done: i.clear()
+        for uni_id in self._tp_service_specific_task:
+            self._tp_service_specific_task[uni_id].clear()
+        for uni_id in self._tech_profile_download_done:
+            self._tech_profile_download_done[uni_id].clear()
 
         self.disable_ports(onu_device)
         onu_device.reason = "stopping-openomci"
@@ -731,8 +735,10 @@ class BrcmOpenomciOnuHandler(object):
                 reactor.callLater(0, self._onu_omci_device.stop)
 
                 # Let TP download happen again
-                for i in self._tp_service_specific_task: i.clear()
-                for i in self._tech_profile_download_done: i.clear()
+                for uni_id in self._tp_service_specific_task:
+                    self._tp_service_specific_task[uni_id].clear()
+                for uni_id in self._tech_profile_download_done:
+                    self._tech_profile_download_done[uni_id].clear()
 
                 self.disable_ports(device)
                 device.oper_status = OperStatus.UNKNOWN

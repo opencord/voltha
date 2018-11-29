@@ -1007,17 +1007,20 @@ class OpenoltDevice(object):
         # TODO FIXME - For each uni.
         # TODO FIXME - Flows are not deleted
         uni_id = 0  # FIXME
+        self.flow_mgr.delete_tech_profile_instance(
+                    child_device.proxy_address.channel_id,
+                    child_device.proxy_address.onu_id,
+                    uni_id
+        )
         pon_intf_id_onu_id = (child_device.proxy_address.channel_id,
                               child_device.proxy_address.onu_id,
                               uni_id)
-        alloc_id = self.resource_mgr.get_alloc_id(pon_intf_id_onu_id)
         # Free any PON resources that were reserved for the ONU
         self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
 
         onu = openolt_pb2.Onu(intf_id=child_device.proxy_address.channel_id,
                               onu_id=child_device.proxy_address.onu_id,
-                              serial_number=serial_number,
-                              alloc_id=alloc_id)
+                              serial_number=serial_number)
         self.stub.DeleteOnu(onu)
 
     def reboot(self):
