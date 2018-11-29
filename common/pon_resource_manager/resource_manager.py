@@ -578,7 +578,17 @@ class PONResourceManager(object):
                          else False
         """
         status = False
-
+        known_resource_types = [PONResourceManager.ONU_ID,
+                                PONResourceManager.ALLOC_ID,
+                                PONResourceManager.GEMPORT_ID,
+                                PONResourceManager.FLOW_ID]
+        if resource_type not in known_resource_types:
+            self._log.error("unknown-resource-type",
+                            resource_type=resource_type)
+            return status
+        if release_content is None:
+            self._log.debug("nothing-to-release")
+            return status
         # delegate to the master instance if sharing enabled across instances
         shared_resource_mgr = self.shared_resource_mgrs[self.shared_idx_by_type[resource_type]]
         if shared_resource_mgr is not None and shared_resource_mgr is not self:
@@ -590,17 +600,13 @@ class PONResourceManager(object):
 
         try:
             resource = self._get_resource(path)
-            if resource is not None and (
-                    resource_type == PONResourceManager.ONU_ID or
-                    resource_type == PONResourceManager.FLOW_ID):
-                self._release_id(resource, release_content)
-            elif resource is not None and (
-                    resource_type == PONResourceManager.ALLOC_ID or
-                    resource_type == PONResourceManager.GEMPORT_ID):
+            if resource is None:
+                raise Exception("get-resource-failed")
+            if isinstance(release_content, list):
                 for content in release_content:
                     self._release_id(resource, content)
             else:
-                raise Exception("get-resource-failed")
+                self._release_id(resource, release_content)
 
             self._log.debug("Free-" + resource_type + "-success", path=path)
 
@@ -673,16 +679,40 @@ class PONResourceManager(object):
         :param pon_intf_onu_id: reference of PON interface id and onu id
         """
         # remove pon_intf_onu_id tuple to alloc_ids map
-        alloc_id_path = PONResourceManager.ALLOC_ID_RESOURCE_MAP_PATH.format(
-            self.device_id, str(pon_intf_onu_id)
-        )
-        self._kv_store.remove_from_kv_store(alloc_id_path)
+        try:
+            alloc_id_path = PONResourceManager.ALLOC_ID_RESOURCE_MAP_PATH.format(
+                self.device_id, str(pon_intf_onu_id)
+            )
+            self._kv_store.remove_from_kv_store(alloc_id_path)
+        except Exception as e:
+            self._log.error("error-removing-alloc-id", e=e)
 
-        # remove pon_intf_onu_id tuple to gemport_ids map
-        gemport_id_path = PONResourceManager.GEMPORT_ID_RESOURCE_MAP_PATH.format(
-            self.device_id, str(pon_intf_onu_id)
-        )
-        self._kv_store.remove_from_kv_store(gemport_id_path)
+        try:
+            # remove pon_intf_onu_id tuple to gemport_ids map
+            gemport_id_path = PONResourceManager.GEMPORT_ID_RESOURCE_MAP_PATH.format(
+                self.device_id, str(pon_intf_onu_id)
+            )
+            self._kv_store.remove_from_kv_store(gemport_id_path)
+        except Exception as e:
+            self._log.error("error-removing-gem-ports", e=e)
+
+        flow_id_path = PONResourceManager.FLOW_ID_RESOURCE_MAP_PATH.format(
+            self.device_id, str(pon_intf_onu_id))
+        flow_ids = self._kv_store.get_from_kv_store(flow_id_path)
+
+        if flow_ids and isinstance(flow_ids, list):
+            for flow_id in flow_ids:
+                try:
+                    flow_id_info_path = PONResourceManager.FLOW_ID_INFO_PATH.format(
+                                        self.device_id, str(pon_intf_onu_id), flow_id)
+                    self._kv_store.remove_from_kv_store(flow_id_info_path)
+                except Exception as e:
+                    self._log.error("error-removing-flow-info", flow_id=flow_id, e=e)
+                    continue
+        try:
+            self._kv_store.remove_from_kv_store(flow_id_path)
+        except Exception as e:
+            self._log.error("error-removing-flow-ids", e=e)
 
     def get_current_alloc_ids_for_onu(self, pon_intf_onu_id):
         """
