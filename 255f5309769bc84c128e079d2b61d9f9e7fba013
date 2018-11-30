@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bea1575d_bd098e21",
+        "filename": "common/pon_resource_manager/resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-30T05:45:30Z",
+      "side": 1,
+      "message": "Dont we need to update various utility function for this resource type. For ex: init_device_resource_pool, clear_device_resource_pool, free_resource_id etc.",
+      "revId": "255f5309769bc84c128e079d2b61d9f9e7fba013",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2c20775e_ec4be098",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 566,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-11-30T05:45:30Z",
+      "side": 1,
+      "message": "How is the port_no as cookie a unique identifier for the flow? There could be multiple flows on the same port no. Not sure how this gets exactly used, I will check more.",
+      "revId": "255f5309769bc84c128e079d2b61d9f9e7fba013",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
