@@ -46,7 +46,7 @@ class OnuTCont(TCont):
         return OnuTCont(handler, tcont['alloc-id'], td, name=tcont['name'])
 
     @inlineCallbacks
-    def add_to_hardware(self, omci, tcont_entity_id, prev_alloc_id=OnuTCont.free_tcont_alloc_id):
+    def add_to_hardware(self, omci, tcont_entity_id, prev_alloc_id=free_tcont_alloc_id):
         self.log.debug('add-to-hardware', tcont_entity_id=tcont_entity_id)
 
         if self._entity_id == tcont_entity_id:

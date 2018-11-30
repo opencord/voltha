@@ -221,8 +221,10 @@ class EVC(object):
 
     def add_evc_map(self, evc_map):
         if self._evc_maps is None:
-            self._evc_maps = {}
-        self._evc_maps[evc_map.name] = evc_map
+            self._evc_maps = dict()
+
+        if evc_map.name not in self._evc_maps:
+            self._evc_maps[evc_map.name] = evc_map
 
     def remove_evc_map(self, evc_map):
         if self._evc_maps is not None and evc_map.name in self._evc_maps:

@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, failure
+from twisted.internet.defer import inlineCallbacks, failure, returnValue
 from voltha.extensions.omci.omci_me import *
 from voltha.extensions.omci.tasks.task import Task
 from voltha.extensions.omci.omci_defs import *
@@ -57,6 +57,7 @@ class AdtnInstallFlowTask(Task):
         self._onu_device = omci_agent.get_device(handler.device_id)
         self._local_deferred = None
         self._flow_entry = flow_entry
+        self._install_by_delete = True
 
         # TODO: Cleanup below that is not needed
         is_upstream = flow_entry.flow_direction in FlowEntry.upstream_flow_types
@@ -71,6 +72,7 @@ class AdtnInstallFlowTask(Task):
         #
         # TODO: Probably need to store many of these in the appropriate object (UNI, PON,...)
         #
+        self._ethernet_uni_entity_id = self._handler.uni_ports[0].entity_id
         self._ieee_mapper_service_profile_entity_id = self._pon.hsi_8021p_mapper_entity_id
         # self._hsi_mac_bridge_port_ani_entity_id = self._pon.hsi_mac_bridge_port_ani_entity_id
 
@@ -128,15 +130,24 @@ class AdtnInstallFlowTask(Task):
         elif status == RC.InstanceExists:
             return False
 
+        elif status == RC.UnknownInstance and operation == 'delete':
+            return True
+
         raise ServiceInstallFailure('{} failed with a status of {}, error_mask: {}, failed_mask: {}, unsupported_mask: {}'
                                     .format(operation, status, error_mask, failed_mask, unsupported_mask))
 
     @inlineCallbacks
     def perform_flow_install(self):
         """
-        Send the commands to configure the flow
+        Send the commands to configure the flow.
+
+        Currently this task uses the pre-installed default TCONT and GEM Port.  This will
+        change when Technology Profiles are supported.
         """
         self.log.info('perform-flow-install', vlan_vid=self._flow_entry.vlan_vid)
+
+        if self._flow_entry.vlan_vid == 0:
+            return
 
         def resources_available():
             # TODO: Rework for non-xpon mode
@@ -145,33 +156,63 @@ class AdtnInstallFlowTask(Task):
                     len(self._pon.gem_ports))
 
         if self._handler.enabled and resources_available():
+
             omci = self._onu_device.omci_cc
+            brg_id = self._mac_bridge_service_profile_entity_id
+            vlan_vid = self._flow_entry.vlan_vid
+
+            if self._install_by_delete:
+                # Delete any existing flow before adding this new one
+
+                msg = ExtendedVlanTaggingOperationConfigurationDataFrame(brg_id, attributes=None)
+                frame = msg.delete()
+
+                try:
+                    results = yield omci.send(frame)
+                    self.check_status_and_state(results, operation='delete')
+
+                    attributes = dict(
+                        association_type=2,  # Assoc Type, PPTP Ethernet UNI
+                        associated_me_pointer=self._ethernet_uni_entity_id  # Assoc ME, PPTP Entity Id
+                    )
+
+                    frame = ExtendedVlanTaggingOperationConfigurationDataFrame(
+                        self._mac_bridge_service_profile_entity_id,
+                        attributes=attributes
+                    ).create()
+                    results = yield omci.send(frame)
+                    self.check_status_and_state(results, 'flow-recreate-before-set')
+
+                    # TODO: Any of the following needed as well
+
+                    # # Delete bridge ani side vlan filter
+                    # msg = VlanTaggingFilterDataFrame(self._hsi_mac_bridge_port_ani_entity_id)
+                    # frame = msg.delete()
+                    #
+                    # results = yield omci.send(frame)
+                    # self.check_status_and_state(results, 'flow-delete-vlan-tagging-filter-data')
+                    #
+                    # # Re-Create bridge ani side vlan filter
+                    # msg = VlanTaggingFilterDataFrame(
+                    #         self._hsi_mac_bridge_port_ani_entity_id,  # Entity ID
+                    #         vlan_tcis=[vlan_vid],             # VLAN IDs
+                    #         forward_operation=0x10
+                    # )
+                    # frame = msg.create()
+                    #
+                    # results = yield omci.send(frame)
+                    # self.check_status_and_state(results, 'flow-create-vlan-tagging-filter-data')
+
+                except Exception as e:
+                    self.log.exception('flow-delete-before-install-failure', e=e)
+                    self.deferred.errback(failure.Failure(e))
+                    returnValue(None)
+
             try:
-                # TODO: make this a member of the onu gem port or the uni port
-                vlan_vid = self._flow_entry.vlan_vid
-
-                # # Delete bridge ani side vlan filter
-                # msg = VlanTaggingFilterDataFrame(self._hsi_mac_bridge_port_ani_entity_id)
-                # frame = msg.delete()
-                #
-                # results = yield omci.send(frame)
-                # self.check_status_and_state(results, 'flow-delete-vlan-tagging-filter-data')
-                #
-                # # Re-Create bridge ani side vlan filter
-                # msg = VlanTaggingFilterDataFrame(
-                #         self._hsi_mac_bridge_port_ani_entity_id,  # Entity ID
-                #         vlan_tcis=[vlan_vid],             # VLAN IDs
-                #         forward_operation=0x10
-                # )
-                # frame = msg.create()
-                #
-                # results = yield omci.send(frame)
-                # self.check_status_and_state(results, 'flow-create-vlan-tagging-filter-data')
-
+                # Now set the VLAN Tagging Operation up as we want it
                 # Update uni side extended vlan filter
                 # filter for untagged
                 # probably for eapol
-                # TODO: magic 0x1000 / 4096?
                 # TODO: lots of magic
                 # attributes = dict(
                 #         # This table filters and tags upstream frames
@@ -211,29 +252,55 @@ class AdtnInstallFlowTask(Task):
                 # filter for vlan 0
                 # TODO: lots of magic
 
+                ################################################################################
+                # Update Extended VLAN Tagging Operation Config Data
+                #
+                # Specifies the TPIDs in use and that operations in the downstream direction are
+                # inverse to the operations in the upstream direction
+                # TODO: Downstream mode may need to be modified once we work more on the flow rules
+
                 attributes = dict(
-                        # This table filters and tags upstream frames
-                        received_frame_vlan_tagging_operation_table=
-                        VlanTaggingOperation(
-                                filter_outer_priority=15,   # This entry is not a double-tag rule
-                                filter_outer_vid=4096,      # Do not filter on the outer VID value
-                                filter_outer_tpid_de=0,     # Do not filter on the outer TPID field
-
-                                filter_inner_priority=8,    # Filter on inner vlan
-                                filter_inner_vid=0x0,       # Look for vlan 0
-                                filter_inner_tpid_de=0,     # Do not filter on inner TPID field
-                                filter_ether_type=0,        # Do not filter on EtherType
-
-                                treatment_tags_to_remove=1,   # Remove 1 tags
-                                treatment_outer_priority=15,  # Do not add an outer tag
-                                treatment_outer_vid=0,        # n/a
-                                treatment_outer_tpid_de=0,    # n/a
-
-                                treatment_inner_priority=8,    # Add an inner tag and insert this value as the priority
-                                treatment_inner_vid=vlan_vid,  # use this value as the VID in the inner VLAN tag
-                                treatment_inner_tpid_de=4,     # set TPID to 0x8100
-                        )
+                    input_tpid=0x8100,  # input TPID
+                    output_tpid=0x8100,  # output TPID
+                    downstream_mode=0,  # inverse of upstream
                 )
+
+                msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
+                        self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                        attributes=attributes  # See above
+                )
+                frame = msg.set()
+
+                results = yield omci.send(frame)
+                self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data')
+
+
+                attributes = dict(
+
+
+                    received_frame_vlan_tagging_operation_table=
+                    VlanTaggingOperation(
+                        filter_outer_priority=15,  # This entry is not a double-tag rule
+                        filter_outer_vid=4096,     # Do not filter on the outer VID value
+                        filter_outer_tpid_de=0,    # Do not filter on the outer TPID field
+
+                        filter_inner_priority=15,  # This is a no-tag rule, ignore all other VLAN tag filter fields
+                        filter_inner_vid=0x1000,   # Do not filter on the inner VID
+                        filter_inner_tpid_de=0,    # Do not filter on inner TPID field
+
+                        filter_ether_type=0,         # Do not filter on EtherType
+                        treatment_tags_to_remove=0,  # Remove 0 tags
+
+                        treatment_outer_priority=15,  # Do not add an outer tag
+                        treatment_outer_vid=0,        # n/a
+                        treatment_outer_tpid_de=0,    # n/a
+
+                        treatment_inner_priority=0,    # Add an inner tag and insert this value as the priority
+                        treatment_inner_vid=vlan_vid,  # use this value as the VID in the inner VLAN tag
+                        treatment_inner_tpid_de=4,     # set TPID
+                    )
+                )
+
                 msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
                         self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
                         attributes=attributes  # See above
@@ -242,7 +309,7 @@ class AdtnInstallFlowTask(Task):
 
                 results = yield omci.send(frame)
                 self.check_status_and_state(results,
-                                            'flow-set-ext-vlan-tagging-op-config-data-zero-tagged')
+                                            'flow-set-ext-vlan-tagging-op-config-data-untagged')
                 self.deferred.callback('flow-install-success')
 
             except Exception as e:

@@ -157,7 +157,7 @@ class AdtnServiceDownloadTask(Task):
         and other characteristics are done once resources (gem-ports, tconts, ...)
         have been defined.
         """
-        self.log.info('perform-service-download')
+        self.log.debug('perform-service-download')
         device = self._handler.adapter_agent.get_device(self.device_id)
 
         def resources_available():
@@ -210,7 +210,7 @@ class AdtnServiceDownloadTask(Task):
             #            - ONU created TCONT (created on ONU startup)
 
             tcont_idents = self._onu_device.query_mib(Tcont.class_id)
-            self.log.info('tcont-idents', tcont_idents=tcont_idents)
+            self.log.debug('tcont-idents', tcont_idents=tcont_idents)
 
             for tcont in self._pon.tconts.itervalues():
                 if tcont.entity_id is None:

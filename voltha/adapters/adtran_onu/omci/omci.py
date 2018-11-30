@@ -134,7 +134,7 @@ class OMCI(object):
         self._handler = None
 
         if agent is not None:
-            agent(device_id, cleanup=True)
+            agent.remove_device(device_id, cleanup=True)
 
     @property
     def enabled(self):

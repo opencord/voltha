@@ -210,7 +210,8 @@ class AdtnMibDownloadTask(Task):
             #  References:
             #            - Nothing
             attributes = {
-                'spanning_tree_ind': False
+                'spanning_tree_ind': False,
+                'learning_ind': True
             }
             frame = MacBridgeServiceProfileFrame(
                 self._mac_bridge_service_profile_entity_id,

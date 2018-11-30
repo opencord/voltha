@@ -854,8 +854,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             priority=200,
             match_fields=[
                 in_port(nni_port),
-                vlan_vid(ofp.OFPVID_PRESENT + self.utility_vlan),
-                # eth_type(FlowEntry.EtherType.EAPOL)       ?? TODO: is this needed
+                vlan_vid(ofp.OFPVID_PRESENT + self.utility_vlan)
             ],
             actions=[output(pon_port)]
         )
