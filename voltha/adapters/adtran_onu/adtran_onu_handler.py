@@ -183,18 +183,16 @@ class AdtranOnuHandler(AdtranXPON):
 
     def stop(self):
         assert not self._enabled, 'Stop should only be called if disabled'
-
         self._cancel_deferred()
 
         # Drop registration for adapter messages
         #self.adapter_agent.unregister_for_inter_adapter_messages()
 
         # Heartbeat
-        self._heartbeat.stop()
+        self._heartbeat.enabled = False
 
-        # OMCI Communications
+        # OMCI subscriptions
         self._unsubscribe_to_events()
-        self._openomci.enabled = False
 
         # Port shutdown
         for port in self.uni_ports:
@@ -202,6 +200,9 @@ class AdtranOnuHandler(AdtranXPON):
 
         if self._pon is not None:
             self._pon.enabled = False
+
+        # OMCI Communications
+        self._openomci.enabled = False
 
     def receive_message(self, msg):
         if self.enabled:
@@ -335,8 +336,8 @@ class AdtranOnuHandler(AdtranXPON):
             if flow_entry.flow_id in self._flows:
                 valid_flows.add(flow_entry.flow_id)
 
-            if flow_entry is None or flow_entry.flow_direction not in {FlowEntry.upstream_flow_types,
-                                                                       FlowEntry.downstream_flow_types}:
+            if flow_entry is None or flow_entry.flow_direction not in \
+                    FlowEntry.upstream_flow_types | FlowEntry.downstream_flow_types:
                 continue
 
             is_upstream = flow_entry.flow_direction in FlowEntry.upstream_flow_types
@@ -467,50 +468,51 @@ class AdtranOnuHandler(AdtranXPON):
 
     def disable(self):
         self.log.info('disabling', device_id=self.device_id)
+        try:
+            # Get the latest device reference (If deleted by OLT, it will
+            # throw an exception
+
+            device = self.adapter_agent.get_device(self.device_id)
+
+            # Disable all ports on that device
+            self.adapter_agent.disable_all_ports(self.device_id)
+
+            # Update the device operational status to UNKNOWN
+            device.oper_status = OperStatus.UNKNOWN
+            device.connect_status = ConnectStatus.UNREACHABLE
+            device.reason = 'Disabled'
+            self.adapter_agent.update_device(device)
+
+            # Remove the uni logical port from the OLT, if still present
+            parent_device = self.adapter_agent.get_device(device.parent_id)
+            assert parent_device
+
+            for uni in self.uni_ports:
+                # port_id = 'uni-{}'.format(uni.port_number)
+                port_id = uni.port_id_name()
+                try:
+                    logical_device_id = parent_device.parent_id
+                    assert logical_device_id
+                    port = self.adapter_agent.get_logical_port(logical_device_id,port_id)
+                    self.adapter_agent.delete_logical_port(logical_device_id, port)
+                except KeyError:
+                    self.log.info('logical-port-not-found', device_id=self.device_id,
+                                  portid=port_id)
+
+            # Remove pon port from parent and disable
+            if self._pon is not None:
+                self.adapter_agent.delete_port_reference_from_parent(self.device_id,
+                                                                     self._pon.get_port())
+                self._pon.enabled = False
+
+            # Unregister for proxied message
+            self.adapter_agent.unregister_for_proxied_messages(device.proxy_address)
+
+        except Exception as _e:
+            pass    # This is expected if OLT has deleted the ONU device handler
+
+        # And disable OMCI as well
         self.enabled = False
-
-        # Get the latest device reference
-        device = self.adapter_agent.get_device(self.device_id)
-
-        # Disable all ports on that device
-        self.adapter_agent.disable_all_ports(self.device_id)
-
-        # Update the device operational status to UNKNOWN
-        device.oper_status = OperStatus.UNKNOWN
-        device.connect_status = ConnectStatus.UNREACHABLE
-        device.reason = 'Disabled'
-        self.adapter_agent.update_device(device)
-
-        # Remove the uni logical port from the OLT, if still present
-        parent_device = self.adapter_agent.get_device(device.parent_id)
-        assert parent_device
-
-        for uni in self.uni_ports:
-            # port_id = 'uni-{}'.format(uni.port_number)
-            port_id = uni.port_id_name()
-
-            try:
-                #TODO: there is no logical device if olt disables first
-                logical_device_id = parent_device.parent_id
-                assert logical_device_id
-                port = self.adapter_agent.get_logical_port(logical_device_id,
-                                                           port_id)
-                self.adapter_agent.delete_logical_port(logical_device_id, port)
-            except KeyError:
-                self.log.info('logical-port-not-found', device_id=self.device_id,
-                              portid=port_id)
-
-        # Remove pon port from parent and disable
-        if self._pon is not None:
-            self.adapter_agent.delete_port_reference_from_parent(self.device_id,
-                                                                 self._pon.get_port())
-            self._pon.enabled = False
-
-        # Unregister for proxied message
-        self.adapter_agent.unregister_for_proxied_messages(device.proxy_address)
-
-        # TODO:
-        # 1) Remove all flows from the device? or is it done before we are called
         self.log.info('disabled', device_id=device.id)
 
     def reenable(self):
@@ -568,15 +570,20 @@ class AdtranOnuHandler(AdtranXPON):
     def delete(self):
         self.log.info('deleting', device_id=self.device_id)
 
-        for uni in self._unis.values():
-            uni.stop()
-            uni.delete()
+        try:
+            for uni in self._unis.values():
+                uni.stop()
+                uni.delete()
 
-        self._pon.stop()
-        self._pon.delete()
+            self._pon.stop()
+            self._pon.delete()
+
+        except Exception as _e:
+            pass    # Expected if the OLT deleted us from the device handler
 
         # OpenOMCI cleanup
-        self._openomci.delete()
+        omci, self._openomci = self._openomci, None
+        omci.delete()
 
     def add_uni_ports(self):
         """ Called after in-sync achieved and not in xPON mode"""

@@ -202,7 +202,7 @@ class EVCMap(object):
         return '</evc-map></evc-maps>'
 
     def get_evcmap_name(self, onu_id, gem_id):
-        return'{}.{}.{}'.format(self.name, onu_id, gem_id)
+        return'{}.{}.{}.{}'.format(self.name, self.pon_id, onu_id, gem_id)
 
     def _common_install_xml(self):
         xml = '<enabled>{}</enabled>'.format('true' if self._enabled else 'false')
@@ -258,10 +258,11 @@ class EVCMap(object):
                 xml += '<ce-vlan-id>{}</ce-vlan-id>'.format(Onu.gem_id_to_gvid(gem_id))
 
                 # GEM-IDs are a sorted list (ascending). First gemport handles downstream traffic
-                if first_gem_id and vid is not None:
+                if first_gem_id and (self._c_tag is not None or vid is not None):
                     first_gem_id = False
+                    vlan = vid or self._c_tag
                     xml += '<network-ingress-filter>'
-                    xml += '<men-ctag>{}</men-ctag>'.format(vid)  # Added in August 2017 model
+                    xml += '<men-ctag>{}</men-ctag>'.format(vlan)  # Added in August 2017 model
                     xml += '</network-ingress-filter>'
 
                 if len(acl_list):
@@ -319,6 +320,7 @@ class EVCMap(object):
             work_acls = self._new_acls.copy()
             self._new_acls = dict()
 
+            log.debug('install-evc-map-acls', install_acls=len(work_acls))
             for acl in work_acls.itervalues():
                 try:
                     yield acl.install()
@@ -327,6 +329,13 @@ class EVCMap(object):
                     log.exception('acl-install-failed', name=self.name, e=e)
                     self._new_acls.update(work_acls)
                     raise
+
+            # Any user-data flows attached to this map ?
+            c_tag = None
+            for flow_id, flow in self._flows.items():
+                c_tag = flow.inner_vid or flow.vlan_id or c_tag
+
+            self._c_tag = c_tag
 
             # Now EVC-MAP
             if not self._installed or self._needs_update:
@@ -493,7 +502,7 @@ class EVCMap(object):
     def add_flow(self, flow, evc):
         """
         Add a new flow to an existing EVC-MAP. This can be called to add:
-          o an ACL flow to an existing utility/untagged EVC, or
+          o an ACL flow to an existing utility EVC, or
           o an ACL flow to an existing User Data Flow, or
           o a User Data Flow to an existing ACL flow (and this needs the EVC updated
             as well.
@@ -522,6 +531,7 @@ class EVCMap(object):
         self._flows[flow.flow_id] = flow
         self._needs_update = True
 
+        # Are there ACLs to add to any existing (or empty) ACLs
         if len(tmp_map._new_acls) > 0:
             self._new_acls.update(tmp_map._new_acls)        # New ACL flow
             log.debug('add-acl-flows', map=str(self), new=tmp_map._new_acls)
@@ -533,6 +543,7 @@ class EVCMap(object):
             self._evc.remove_evc_map(self)
             evc.add_evc_map(self)
             self._evc = evc
+
         return self
 
     @inlineCallbacks
@@ -571,7 +582,7 @@ class EVCMap(object):
                     # or Untagged EVC from a user data EVC
                     if self._evc and not self._evc.service_evc and\
                         len(self._flows) > 0 and\
-                        all(f.is_acl_flow for f in self._flows.itervalues()):
+                            all(f.is_acl_flow for f in self._flows.itervalues()):
 
                         self._evc.remove_evc_map(self)
                         first_flow = self._flows.itervalues().next()
@@ -615,7 +626,7 @@ class EVCMap(object):
         # Note: When actually installed into the OLT, the .onu_id.gem_port is
         #       appended to the name
         return {'ingress-port': items[1],
-                'flow-id': items[2].split('.')[0]} if len(items) == 3 else dict()
+                'flow-id': items[2].split('.')[0]} if len(items) > 2 else dict()
 
     def add_gem_port(self, gem_port, reflow=False):
         # TODO: Refactor

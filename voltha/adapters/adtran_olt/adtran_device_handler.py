@@ -1280,8 +1280,28 @@ class AdtranDeviceHandler(object):
             self._netconf_client = None
 
         self._rest_client = None
+        mgr, self.resource_mgr = self.resource_mgr, None
+        if mgr is not None:
+            del mgr
 
         self.log.info('deleted', device_id=self.device_id)
+
+    def delete_child_device(self, proxy_address):
+        self.log.debug('sending-deactivate-onu',
+                       olt_device_id=self.device_id,
+                       proxy_address=proxy_address)
+        try:
+            children = self.adapter_agent.get_child_devices(self.device_id)
+            for child in children:
+                if child.proxy_address.onu_id == proxy_address.onu_id and \
+                        child.proxy_address.channel_id == proxy_address.channel_id:
+                    self.adapter_agent.delete_child_device(self.device_id,
+                                                           child.id,
+                                                           onu_device=child)
+                    break
+
+        except Exception as e:
+            self.log.error('adapter_agent error', error=e)
 
     def packet_out(self, egress_port, msg):
         raise NotImplementedError('Overload in a derived class')

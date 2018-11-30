@@ -137,7 +137,7 @@ class AdtranOltResourceMgr(object):
             resource_type=PONResourceManager.GEMPORT_ID,
             num_of_id=1
         )
-        if gemport_id_list and len(gemport_id_list) == 0:
+        if gemport_id_list is None or len(gemport_id_list) == 0:
             self.log.error("no-gemport-id-available")
             return None
 
@@ -145,44 +145,57 @@ class AdtranOltResourceMgr(object):
         # allocated for the pon_intf_onu_id tuple
         self.resource_mgr.update_gemport_ids_for_onu(pon_intf_onu_id,
                                                      gemport_id_list)
-
         # We currently use only one gemport
         gemport = gemport_id_list[0]
 
         pon_intf_gemport = (pon_intf, gemport)
+
         # This information is used when packet_indication is received and
         # we need to derive the ONU Id for which the packet arrived based
         # on the pon_intf and gemport available in the packet_indication
         self.kv_store[str(pon_intf_gemport)] = str(onu_id)
-
         return gemport
 
     def free_pon_resources_for_onu(self, pon_intf_id_onu_id):
+        """ Typically called on ONU delete """
 
-        alloc_ids = \
-            self.resource_mgr.get_current_alloc_ids_for_onu(pon_intf_id_onu_id)
         pon_intf_id = pon_intf_id_onu_id[0]
         onu_id = pon_intf_id_onu_id[1]
-        self.resource_mgr.free_resource_id(pon_intf_id,
-                                           PONResourceManager.ALLOC_ID,
-                                           alloc_ids)
+        try:
+            alloc_ids = self.resource_mgr.get_current_alloc_ids_for_onu(pon_intf_id_onu_id)
+            if alloc_ids is not None:
+                self.resource_mgr.free_resource_id(pon_intf_id,
+                                                   PONResourceManager.ALLOC_ID,
+                                                   alloc_ids, onu_id=onu_id)
+        except:
+            pass
 
-        gemport_ids = \
-            self.resource_mgr.get_current_gemport_ids_for_onu(pon_intf_id_onu_id)
-        self.resource_mgr.free_resource_id(pon_intf_id,
-                                           PONResourceManager.GEMPORT_ID,
-                                           gemport_ids)
+        try:
+            gemport_ids = self.resource_mgr.get_current_gemport_ids_for_onu(pon_intf_id_onu_id)
+            if gemport_ids is not None:
+                self.resource_mgr.free_resource_id(pon_intf_id,
+                                                   PONResourceManager.GEMPORT_ID,
+                                                   gemport_ids)
+        except:
+            pass
 
-        self.resource_mgr.free_resource_id(pon_intf_id,
-                                           PONResourceManager.ONU_ID,
-                                           onu_id)
+        try:
+            self.resource_mgr.free_resource_id(pon_intf_id,
+                                               PONResourceManager.ONU_ID,
+                                               onu_id)
+        except:
+            pass
 
         # Clear resource map associated with (pon_intf_id, gemport_id) tuple.
         self.resource_mgr.remove_resource_map(pon_intf_id_onu_id)
 
         # Clear the ONU Id associated with the (pon_intf_id, gemport_id) tuple.
-        for gemport_id in gemport_ids:
-            del self.kv_store[str((pon_intf_id, gemport_id))]
+        if gemport_ids is not None:
+            for gemport_id in gemport_ids:
+                try:
+                    del self.kv_store[str((pon_intf_id, gemport_id))]
+                except:
+                    pass
 
     def initialize_device_resource_range_and_pool(self):
         if not self.use_device_info:

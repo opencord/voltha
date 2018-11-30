@@ -25,6 +25,7 @@ from net.adtran_rest import RestInvalidResponseCode
 from codec.olt_config import OltConfig
 from onu import Onu
 from voltha.extensions.alarms.onu.onu_los_alarm import OnuLosAlarm
+from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
 from voltha.protos.common_pb2 import AdminState
 from voltha.protos.device_pb2 import Port
 from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
@@ -32,12 +33,6 @@ from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import TrafficD
 from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
 from xpon.olt_traffic_descriptor import OltTrafficDescriptor
 import resources.adtranolt_platform as platform
-
-
-try:
-    from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
-except ImportError:
-    from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
 
 
 class PonPort(AdtnPort):
@@ -434,7 +429,7 @@ class PonPort(AdtnPort):
         self._admin_state = AdminState.ENABLED if enable else AdminState.DISABLED
 
         try:
-            # Walk the provisioned ONU list and disable any exiting ONUs
+            # Walk the provisioned ONU list and disable any existing ONUs
             results = yield self._get_onu_config()
 
             if isinstance(results, list) and len(results) > 0:
@@ -574,17 +569,16 @@ class PonPort(AdtnPort):
 
                     # ONU's have their own sync task, extra (should be deleted) are
                     # handled here.
-
                     hw_onu_ids = frozenset(hw_onus.keys())
                     my_onu_ids = frozenset(self._onu_by_id.keys())
 
                     extra_onus = hw_onu_ids - my_onu_ids
-                    dl = [self.delete_onu(onu_id) for onu_id in extra_onus]
+                    dl = [self.delete_onu(onu_id, hw_only=True) for onu_id in extra_onus]
 
                     if self.activation_method == "autoactivate":
                         # Autoactivation of ONUs requires missing ONU detection. If
-                        # not found, create them here but let TCont/GEM-Port restore be
-                        # handle by ONU H/w sync logic.
+                        # not found, create them here but let the TCont/GEM-Port restore
+                        # be handle by ONU H/w sync logic.
                         for onu in [self._onu_by_id[onu_id] for onu_id in my_onu_ids - hw_onu_ids
                                     if self._onu_by_id.get(onu_id) is not None]:
                             dl.append(onu.create(dict(), dict(), reflow=True))
@@ -699,12 +693,12 @@ class PonPort(AdtnPort):
 
         for onu_id in cleared_alarms:
             self._active_los_alarms.remove(onu_id)
-            OnuLosAlarm(self.olt.alarms, onu_id).clear_alarm()
+            OnuLosAlarm(self.olt.alarms, onu_id, self.port_no).clear_alarm()
 
         for onu_id in new_alarms:
             self._active_los_alarms.add(onu_id)
-            OnuLosAlarm(self.olt.alarms, onu_id).raise_alarm()
-            self.delete_onu(onu_id)
+            OnuLosAlarm(self.olt.alarms, onu_id, self.port_no).raise_alarm()
+            reactor.callLater(0, self.delete_onu, onu_id)
 
     def _process_status_onu_discovered_list(self, discovered_onus):
         """
@@ -903,20 +897,23 @@ class PonPort(AdtnPort):
             self.log.exception('onu-hw-delete', onu_id=onu_id, e=e)
 
     @inlineCallbacks
-    def delete_onu(self, onu_id):
+    def delete_onu(self, onu_id, hw_only=False):
         onu = self._onu_by_id.get(onu_id)
 
         # Remove from any local dictionary
         if onu_id in self._onu_by_id:
             del self._onu_by_id[onu_id]
-            self.release_onu_id(onu.onu_id)
 
         for sn_64 in [onu.serial_number_64 for onu in self.onus if onu.onu_id == onu_id]:
             del self._onus[sn_64]
 
         if onu is not None:
-            proxy = onu.proxy_address
             try:
+                # And removal from VOLTHA adapter agent
+                if not hw_only:
+                    self._parent.delete_child_device(onu.proxy_address)
+
+                # Remove from hardware
                 onu.delete()
 
             except Exception as e:
@@ -927,7 +924,7 @@ class PonPort(AdtnPort):
                 yield self._remove_from_hardware(onu_id)
 
             except Exception as e:
-                self.log.exception('onu-remove', serial_number=onu.serial_number, e=e)
+                self.log.debug('onu-remove', serial_number=onu.serial_number, e=e)
 
         # Remove from LOS list if needed
         if onu.id in self._active_los_alarms:
@@ -1011,7 +1008,7 @@ class PonPort(AdtnPort):
                 gem_port, gp = self.create_xpon_gem_port(onu_id, index, tcont)
 
                 from xpon.olt_gem_port import OltGemPort
-                gp['object'] = OltGemPort.create(self, gp, self.pon_id, onu_id)
+                gp['object'] = OltGemPort.create(self, gp, tcont.alloc_id, self.pon_id, onu_id)
                 self._gem_ports[gem_port.name] = gp['object']
                 gem_ports.append(gp)
 
@@ -1020,8 +1017,10 @@ class PonPort(AdtnPort):
     def create_xpon_gem_port(self, onu_id, index, tcont):
         # gem port creation (this initial one is for untagged ONU data support / EAPOL)
         gem_port = GemportsConfigData()
-        gem_port.gemport_id = platform.mk_gemport_id(self.pon_id, onu_id, idx=index)
         gem_port.name = 'gem-{}-{}-{}'.format(self.pon_id, onu_id, gem_port.gemport_id)
+        pon_intf_onu_id = (self.pon_id, onu_id)
+        gem_port.gemport_id = self._parent.resource_mgr.get_gemport_id(pon_intf_onu_id)
+        # TODO: Add release of alloc_id on ONU delete and/or TCONT delete
 
         gem_port.tcont_ref = tcont.name
         gp = {

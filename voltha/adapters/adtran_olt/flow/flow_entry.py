@@ -52,7 +52,7 @@ class FlowEntry(object):
         UPSTREAM = 0          # UNI port to NNI Port
         DOWNSTREAM = 1        # NNI port to UNI Port
         CONTROLLER_UNI = 2    # Trap packet on UNI and send to controller
-        NNI_PON = 3           # NNI port to PON Port (all UNIs) - perhaps multicast?
+        NNI_PON = 3           # NNI port to PON Port (all UNIs) - Utility VLAN & multicast
 
         # The following are not yet supported
         CONTROLLER_NNI = 4    # Trap packet on NNI and send to controller
@@ -585,6 +585,11 @@ class FlowEntry(object):
         if self.vlan_id == FlowEntry.LEGACY_CONTROL_VLAN and self.eth_type is None and self.pcp == 0:
             return False    # Do not install this flow.  Utility VLAN is in charge
 
+        elif self.flow_direction == FlowEntry.FlowDirection.NNI_PON and \
+                self.vlan_id == self.handler.utility_vlan:
+            # Utility VLAN downstream flow/EVC
+            self._is_acl_flow = True
+
         elif self.vlan_id in self._handler.multicast_vlans:
             #  multicast (ethType = IP)                         # TODO: May need to be an NNI_PON flow
             self._is_multicast = True
@@ -800,7 +805,7 @@ class FlowEntry(object):
                         if len(gem_ids_with_vid) > 0:
                             gem_ids = gem_ids_with_vid[0]
                             ctag = gem_ids_with_vid[1]
-                            gem_id = gem_ids[0]     # TODO: always grab fist in list
+                            gem_id = gem_ids[0]     # TODO: always grab first in list
                             return flow_entry.in_port, ctag, Onu.gem_id_to_gvid(gem_id), \
                                 evc_map.get_evcmap_name(onu_id, gem_id)
         return None, None, None, None

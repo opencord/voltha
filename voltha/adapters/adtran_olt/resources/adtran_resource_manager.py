@@ -52,21 +52,11 @@ class AdtranPONResourceManager(PONResourceManager):
                                        resource_type=PONResourceManager.ALLOC_ID,
                                        resource_map=alloc_id_map)
 
-            # TODO: I believe that only alloc_id's are constrained to ONU ID.  If so, use
-            #       the generic pool approach
-            # gemport_id_map = dict()
-            # for onu_id in range(platform.MAX_GEM_PORTS_PER_ONU):
-            #     gemport_id_map[onu_id] = [platform.mk_gemport_id(pon_id, onu_id, idx)
-            #                               for idx in xrange(platform.MAX_TCONTS_PER_ONU)]
-            #
-            # self.init_resource_id_pool(pon_intf_id=pon_id,
-            #                            resource_type=PONResourceManager.GEMPORT_ID,
-            #                            resource_map=gemport_id_map)
             self.init_resource_id_pool(
                 pon_intf_id=pon_id,
                 resource_type=PONResourceManager.GEMPORT_ID,
                 start_idx=self.pon_resource_ranges[PONResourceManager.GEMPORT_ID_START_IDX],
-                end_idx=self.pon_resource_ranges[PONResourceManager.GEMPORT_ID_START_IDX])
+                end_idx=self.pon_resource_ranges[PONResourceManager.GEMPORT_ID_END_IDX])
 
     def clear_device_resource_pool(self):
         """

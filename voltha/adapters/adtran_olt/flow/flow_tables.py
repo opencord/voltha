@@ -52,7 +52,8 @@ class DeviceFlows(object):
 
     def add(self, flow):
         assert isinstance(flow, FlowEntry)
-        self._flow_table[flow.flow_id] = flow
+        if flow.flow_id not in self._flow_table:
+            self._flow_table[flow.flow_id] = flow
         return flow
 
     def get(self, item):

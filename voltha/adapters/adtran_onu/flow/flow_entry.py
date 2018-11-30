@@ -50,6 +50,9 @@ class FlowEntry(object):
         (FlowDirection.ANI, FlowDirection.UNI): FlowDirection.DOWNSTREAM
     }
 
+    upstream_flow_types = {FlowDirection.UPSTREAM}
+    downstream_flow_types = {FlowDirection.DOWNSTREAM}
+
     # Well known EtherTypes
     class EtherType(IntEnum):
         EAPOL = 0x888E

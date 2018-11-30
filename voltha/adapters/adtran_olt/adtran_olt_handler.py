@@ -617,6 +617,17 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         super(AdtranOltHandler, self).delete()
 
+    def delete_child_device(self, proxy_address):
+        super(AdtranOltHandler, self).delete_child_device(proxy_address)
+
+        # TODO: Verify that ONU object cleanup of ONU will also clean
+        #       up logical id and physical port
+        pon_intf_id_onu_id = (proxy_address.channel_id,
+                              proxy_address.onu_id)
+
+        # Free any PON resources that were reserved for the ONU
+        self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
+
     def rx_pa_packet(self, packets):
         if self._pon_agent is not None:
             for packet in packets:
@@ -744,6 +755,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 exceptiontype = None
                 if pkt.type == FlowEntry.EtherType.EAPOL:
                     exceptiontype = 'eapol'
+                    ctag = 4091
                 elif pkt.type == 2:
                     exceptiontype = 'igmp'
                 elif pkt.type == FlowEntry.EtherType.IPv4:
@@ -843,8 +855,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             priority=200,
             match_fields=[
                 in_port(nni_port),
-                vlan_vid(ofp.OFPVID_PRESENT + self.utility_vlan),
-                # eth_type(FlowEntry.EtherType.EAPOL)       ?? TODO: is this needed
+                vlan_vid(ofp.OFPVID_PRESENT + self.utility_vlan)
             ],
             actions=[output(pon_port)]
         )
