@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8f36539e_a46f0d7e",
+        "filename": "voltha/adapters/adtran_olt/flow/evc_map.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1000397
+      },
+      "writtenOn": "2018-12-01T01:01:00Z",
+      "side": 1,
+      "message": "Need to swap the order of \"onu_id\" and \"self.pon_id\".",
+      "range": {
+        "startLine": 204,
+        "startChar": 0,
+        "endLine": 205,
+        "endChar": 74
+      },
+      "revId": "8b79a9b0499ec76c0324120152f085375ebf8903",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
