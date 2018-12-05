@@ -25,7 +25,7 @@ import structlog
 
 from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
-
+from common.tech_profile import tech_profile
 _ = third_party
 log = structlog.get_logger()
 
@@ -284,9 +284,12 @@ def get_actions(flow):
     """Extract list of ofp_action objects from flow spec object"""
     assert isinstance(flow, ofp.ofp_flow_stats)
     # we have the following hard assumptions for now
+    actions = []
     for instruction in flow.instructions:
-        if instruction.type == ofp.OFPIT_APPLY_ACTIONS:
-            return instruction.actions.actions
+        if instruction.type == ofp.OFPIT_APPLY_ACTIONS or instruction.type == ofp.OFPIT_WRITE_ACTIONS:
+            actions.extend(instruction.actions.actions)
+    return actions
+
 
 def get_ofb_fields(flow):
     assert isinstance(flow, ofp.ofp_flow_stats)
@@ -381,11 +384,18 @@ def get_group(flow):
             return action.group.group_id
     return None
 
+def get_meter_ids_from_flow(flow):
+    meter_ids = list()
+    for instruction in flow.instructions:
+        if instruction.type == ofp.OFPIT_METER:
+            meter_ids.append(instruction.meter.meter_id)
+    return meter_ids
+
 def has_group(flow):
     return get_group(flow) is not None
 
 def mk_oxm_fields(match_fields):
-    oxm_fields=[
+    oxm_fields = [
         ofp.ofp_oxm_field(
             oxm_class=ofp.OFPXMC_OPENFLOW_BASIC,
             ofb_field=field
@@ -402,7 +412,7 @@ def mk_instructions_from_actions(actions):
     return [instruction]
 
 def mk_simple_flow_mod(match_fields, actions, command=ofp.OFPFC_ADD,
-                       next_table_id=None, **kw):
+                       next_table_id=None, meters=None, **kw):
     """
     Convenience function to generare ofp_flow_mod message with OXM BASIC match
     composed from the match_fields, and single APPLY_ACTIONS instruction with
@@ -419,6 +429,14 @@ def mk_simple_flow_mod(match_fields, actions, command=ofp.OFPFC_ADD,
             actions=ofp.ofp_instruction_actions(actions=actions)
         )
     ]
+
+    if meters is not None:
+        for meter_id in meters:
+            instructions.append(ofp.ofp_instruction(
+                type=ofp.OFPIT_METER,
+                meter=ofp.ofp_instruction_meter(meter_id=meter_id)
+            ))
+
     if next_table_id is not None:
         instructions.append(ofp.ofp_instruction(
             type=ofp.OFPIT_GOTO_TABLE,
@@ -596,6 +614,67 @@ class FlowDecomposer(object):
         def is_upstream():
             return not is_downstream()
 
+        def update_devices_rules(flow, curr_device_rules, meter_ids=None, table_id=None):
+            actions = [action.type for action in get_actions(flow)]
+            if len(actions) == 1 and OUTPUT in actions:
+                # Transparent ONU and OLT case (No-L2-Modification flow)
+                child_device_flow_lst, _ = curr_device_rules.setdefault(
+                    ingress_hop.device.id, ([], []))
+                parent_device_flow_lst, _ = curr_device_rules.setdefault(
+                    egress_hop.device.id, ([], []))
+
+                child_device_flow_lst.append(mk_flow_stat(
+                    priority=flow.priority,
+                    cookie=flow.cookie,
+                    match_fields=[
+                                     in_port(ingress_hop.ingress_port.port_no)
+                                 ] + [
+                                     field for field in get_ofb_fields(flow)
+                                     if field.type not in (IN_PORT,)
+                                 ],
+                    actions=[
+                        output(ingress_hop.egress_port.port_no)
+                    ]
+                ))
+
+                parent_device_flow_lst.append(mk_flow_stat(
+                    priority=flow.priority,
+                    cookie=flow.cookie,
+                    match_fields=[
+                                     in_port(egress_hop.ingress_port.port_no),
+                                 ] + [
+                                     field for field in get_ofb_fields(flow)
+                                     if field.type not in (IN_PORT,)
+                                 ],
+                    actions=[
+                        output(egress_hop.egress_port.port_no)
+                    ],
+                    table_id=table_id,
+                    meters=meter_ids
+                ))
+
+            else:
+                fl_lst, _ = curr_device_rules.setdefault(
+                    egress_hop.device.id, ([], []))
+                fl_lst.append(mk_flow_stat(
+                    priority=flow.priority,
+                    cookie=flow.cookie,
+                    match_fields=[
+                                     in_port(egress_hop.ingress_port.port_no)
+                                 ] + [
+                                     field for field in get_ofb_fields(flow)
+                                     if field.type not in (IN_PORT,)
+                                 ],
+                    actions=[
+                                action for action in get_actions(flow)
+                                if action.type != OUTPUT
+                            ] + [
+                                output(egress_hop.egress_port.port_no)
+                            ],
+                    table_id=table_id,
+                    meters=meter_ids
+                ))
+
         if out_port_no is not None and \
                 (out_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
 
@@ -681,7 +760,8 @@ class FlowDecomposer(object):
                 # the first using the goto-statement. We also assume that the
                 # inner tag is applied at the ONU, while the outer tag is
                 # applied at the OLT
-                if has_next_table(flow):
+                next_table_id = get_goto_table_id(flow)
+                if next_table_id is not None and next_table_id < tech_profile.DEFAULT_TECH_PROFILE_TABLE_ID:
                     assert out_port_no is None
                     fl_lst, _ = device_rules.setdefault(
                         ingress_hop.device.id, ([], []))
@@ -701,66 +781,16 @@ class FlowDecomposer(object):
                         ]
                     ))
 
+                elif next_table_id is not None and next_table_id >= tech_profile.DEFAULT_TECH_PROFILE_TABLE_ID:
+                    assert out_port_no is not None
+                    meter_ids = get_meter_ids_from_flow(flow)
+                    update_devices_rules(flow, device_rules, meter_ids, next_table_id)
                 else:
-
-                    actions = [action.type for action in get_actions(flow)]
-                    # Transparent ONU and OLT case (No-L2-Modification flow)
-                    if len(actions) == 1 and OUTPUT in actions:
-                        child_device_flow_lst, _ = device_rules.setdefault(
-                            ingress_hop.device.id, ([], []))
-                        parent_device_flow_lst, _ = device_rules.setdefault(
-                            egress_hop.device.id, ([], []))
-
-                        child_device_flow_lst.append(mk_flow_stat(
-                                            priority = flow.priority,
-                                            cookie = flow.cookie,
-                                            match_fields=[
-                                                in_port(ingress_hop.ingress_port.port_no)
-                                            ] + [
-                                                field for field in get_ofb_fields(flow)
-                                                if field.type not in (IN_PORT,)
-                                            ],
-                                            actions=[
-                                                output(ingress_hop.egress_port.port_no)
-                                            ]
-                        ))
-
-                        parent_device_flow_lst.append(mk_flow_stat(
-                                            priority = flow.priority,
-                                            cookie=flow.cookie,
-                                            match_fields=[
-                                                in_port(egress_hop.ingress_port.port_no),
-                                            ] + [
-                                                field for field in get_ofb_fields(flow)
-                                                if field.type not in (IN_PORT,)
-                                            ],
-                                            actions=[
-                                                output(egress_hop.egress_port.port_no)
-                                            ]
-                        ))
-                    else:
-                        assert out_port_no is not None
-                        fl_lst, _ = device_rules.setdefault(
-                            egress_hop.device.id, ([], []))
-                        fl_lst.append(mk_flow_stat(
-                            priority=flow.priority,
-                            cookie=flow.cookie,
-                            match_fields=[
-                                in_port(egress_hop.ingress_port.port_no),
-                            ] + [
-                                field for field in get_ofb_fields(flow)
-                                if field.type not in (IN_PORT, )
-                            ],
-                            actions=[
-                                action for action in get_actions(flow)
-                                if action.type != OUTPUT
-                            ] + [
-                                output(egress_hop.egress_port.port_no)
-                            ]
-                        ))
+                    update_devices_rules(flow, device_rules)
 
             else:  # downstream
-                if has_next_table(flow):
+                next_table_id = get_goto_table_id(flow)
+                if next_table_id is not None and next_table_id < tech_profile.DEFAULT_TECH_PROFILE_TABLE_ID:
                     assert out_port_no is None
 
                     if get_metadata(flow) is not None:
@@ -880,18 +910,16 @@ class FlowDecomposer(object):
                                 if action.type not in (OUTPUT,)
                             ] + [
                                 output(egress_hop.egress_port.port_no)
-                            ]
-
+                            ],
+                            #table_id=flow.table_id,
+                            #meters=None if len(get_meter_ids_from_flow(flow)) == 0 else get_meter_ids_from_flow(flow)
                         ))
-
                 else:
                     grp_id = get_group(flow)
-                    
-                    if grp_id is not None: # multicast case
 
+                    if grp_id is not None: # multicast case
                         fl_lst_olt, _ = device_rules.setdefault(
                             ingress_hop.device.id, ([], []))
-
                         # having no group yet is the same as having a group with
                         # no buckets
                         group = group_map.get(grp_id, ofp.ofp_group_entry())
@@ -962,8 +990,6 @@ class FlowDecomposer(object):
                             ))
                     else:
                         raise NotImplementedError('undefined downstream case for flows')
-                        
-
         return device_rules
 
     # ~~~~~~~~~~~~ methods expected to be provided by derived class ~~~~~~~~~~~

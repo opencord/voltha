@@ -139,7 +139,7 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
 
         for instruction in flow['instructions']:
             itype = instruction['type']
-            if itype == 4:
+            if itype == 4 or itype == 3:
                 for action in instruction['actions']['actions']:
                     atype = action['type'][len('OFPAT_'):]
                     table.add_cell(i, *action_printers[atype](action))

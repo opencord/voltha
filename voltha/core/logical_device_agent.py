@@ -34,7 +34,7 @@ from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos.device_pb2 import Port
 from voltha.protos.logical_device_pb2 import LogicalPort
-from voltha.protos.openflow_13_pb2 import Flows, FlowGroups
+from voltha.protos.openflow_13_pb2 import Flows, Meters, FlowGroups, ofp_meter_config
 
 _ = third_party
 
@@ -53,6 +53,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.root_proxy = core.get_proxy('/')
             self.flows_proxy = core.get_proxy(
                 '/logical_devices/{}/flows'.format(logical_device.id))
+            self.meters_proxy = core.get_proxy(
+                '/logical_devices/{}/meters'.format(logical_device.id))
             self.groups_proxy = core.get_proxy(
                 '/logical_devices/{}/flow_groups'.format(logical_device.id))
             self.self_proxy = core.get_proxy(
@@ -176,8 +178,21 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.flow_modify_strict(flow_mod)
 
         else:
-            self.log.warn('unhandled-flow-mod',
-                          command=command, flow_mod=flow_mod)
+            self.log.warn('unhandled-flow-mod', command=command, flow_mod=flow_mod)
+
+    def update_meter_table(self, meter_mod):
+        command = meter_mod.command
+
+        if command == ofp.OFPMC_ADD:
+            self.meter_add(meter_mod)
+
+        elif command == ofp.OFPMC_MODIFY:
+            self.meter_modify(meter_mod)
+
+        elif command == ofp.OFPMC_DELETE:
+            self.meter_delete(meter_mod)
+        else:
+            self.log.warn('unhandled-meter-mod', command=command, flow_mod=meter_mod)
 
     def update_group_table(self, group_mod):
 
@@ -195,6 +210,64 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         else:
             self.log.warn('unhandled-group-mod',
                           command=command, group_mod=group_mod)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~ LOW LEVEL METER HANDLERS ~~~~~~~~~~~~~~~~~~~~~~~
+
+    def meter_add(self, meter_mod):
+        assert isinstance(meter_mod, ofp.ofp_meter_mod)
+        # read from model
+        meters = list(self.meters_proxy.get('/').items)
+        if not self.check_meter_id_overlapping(meters, meter_mod):
+            meters.append(ofp_meter_config(flags=meter_mod.flags, \
+                                           meter_id=meter_mod.meter_id, \
+                                           bands=meter_mod.bands))
+
+            self.meters_proxy.update('/', Meters(items=meters))
+        else:
+            self.signal_meter_mod_error(ofp.OFPMMFC_METER_EXISTS, meter_mod)
+
+    def meter_modify(self, meter_mod):
+        assert isinstance(meter_mod, ofp.ofp_meter_mod)
+        meters = list(self.meters_proxy.get('/').items)
+        existing_meter = self.check_meter_id_overlapping(meters, meter_mod)
+        if existing_meter:
+            existing_meter.flags = meter_mod.flags
+            existing_meter.bands = meter_mod.bands
+            self.meters_proxy.update('/', Meters(items=meters))
+        else:
+            self.signal_meter_mod_error(ofp.OFPMMFC_UNKNOWN_METER, meter_mod)
+
+    def meter_delete(self, meter_mod):
+        assert isinstance(meter_mod, ofp.ofp_meter_mod)
+        meters = list(self.meters_proxy.get('/').items)
+        to_keep = list()
+        to_delete = 0
+
+        for meter in meters:
+            if meter.meter_id != meter_mod.meter_id:
+                to_keep.append(meter)
+            else:
+                to_delete += 1
+
+        if to_delete == 1:
+            self.meters_proxy.update('/', Meters(items=to_keep))
+        if to_delete == 0:
+            self.signal_meter_mod_error(ofp.OFPMMFC_UNKNOWN_METER, meter_mod)
+        elif to_delete > 1:
+            raise Exception('More than one meter_config sharing the same meter_id cannot exist')
+
+    @staticmethod
+    def check_meter_id_overlapping(meters, meter_mod):
+        for meter in meters:
+            if meter.meter_id == meter_mod.meter_id:
+                return meter
+        return False
+
+    def signal_meter_mod_error(self, error_code, meter_mod):
+        pass  # TODO
+
+
+
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~ LOW LEVEL FLOW HANDLERS ~~~~~~~~~~~~~~~~~~~~~~~
 
