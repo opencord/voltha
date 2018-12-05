@@ -20,7 +20,7 @@ ifeq ($(VOLTHA_BASE)_set,_set)
   $(error To get started, please source the env.sh file from Voltha top level directory)
 endif
 
-default: third_party build
+default: openolt third_party build
 
 PROTO_FILES := $(wildcard *.proto)
 PROTO_GOOGLE_API := $(wildcard third_party/google/api/*.proto)
@@ -79,6 +79,10 @@ clean:
 		$(PROTO_All_PB2_C_FILES) \
 		$(PROTO_PB2_GOOGLE_API)
 
+openolt:
+	@echo "Building OpenOlt Proto Files"
+	cd ../adapters/openolt/protos; make
+
 $(PROTOC):
 	@echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	@echo "It looks like you don't have protocol buffer tools installed."
@@ -104,4 +108,3 @@ install-protoc: $(PROTOC)
 uninstall-protoc:
 	cd $(PROTOC_BUILD_TMP_DIR)/$(PROTOC_DIR); \
 	    sudo make uninstall
-
