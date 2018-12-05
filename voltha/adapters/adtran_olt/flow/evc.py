@@ -17,7 +17,8 @@ import re
 from enum import IntEnum
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
-from voltha.core.flow_decomposer import *
+import structlog
+#from voltha.core.flow_decomposer import *
 
 log = structlog.get_logger()
 
@@ -105,7 +106,7 @@ class EVC(object):
             self._valid = False
 
     def __str__(self):
-        return "EVC-{}: MEN: {}, S-Tag: {}".format(self._name, self._men_ports, self._s_tag)
+        return "EVC-{}: MEN: {}, S-Tag: {}".format(self.name, self._men_ports, self.s_tag)
 
     def _create_name(self):
         #
@@ -242,7 +243,7 @@ class EVC(object):
         self._cancel_deferred()
 
         self._deferred = reactor.callLater(delay, self._do_install) \
-            if self._valid else succeed('Not VALID')
+            if self.valid else succeed('Not VALID')
 
         return self._deferred
 
@@ -258,9 +259,9 @@ class EVC(object):
     @inlineCallbacks
     def _do_install(self):
         # Install the EVC if needed
-        log.debug('do-install', valid=self._valid, installed=self._installed)
+        log.debug('do-install', valid=self.valid, installed=self.installed)
 
-        if self._valid and not self._installed:
+        if self.valid and not self.installed:
             # TODO: Currently install EVC and then MAPs. Can do it all in a single edit-config operation
 
             xml = EVC._xml_header()
@@ -272,7 +273,7 @@ class EVC(object):
 
             if self._s_tag is not None:
                 xml += '<stag>{}</stag>'.format(self._s_tag)
-                xml += '<stag-tpid>{}</stag-tpid>'.format(self._stpid or DEFAULT_STPID)
+                xml += '<stag-tpid>{}</stag-tpid>'.format(self.stpid or DEFAULT_STPID)
             else:
                 xml += 'no-stag/'
 
@@ -297,7 +298,7 @@ class EVC(object):
 
         # Install any associated EVC Maps
 
-        if self._installed:
+        if self.installed:
             for evc_map in self.evc_maps:
                 try:
                     yield evc_map.install()
@@ -306,7 +307,7 @@ class EVC(object):
                     evc_map.status = 'Exception during EVC-MAP Install: {}'.format(e.message)
                     log.exception('evc-map-install-failed', e=e)
 
-        returnValue(self._installed and self._valid)
+        returnValue(self.installed and self.valid)
 
     def remove(self, remove_maps=True):
         """
@@ -394,13 +395,13 @@ class EVC(object):
         self._s_tag = self._flow.vlan_id
 
         if self._flow.inner_vid is not None:
-           self._switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED
+            self._switching_method = EVC.SwitchingMethod.DOUBLE_TAGGED
 
         # For the Utility VLAN, multiple ingress ACLs (different GEMs) will need to
         # be trapped on this EVC. Since these are usually untagged, we have to force
         # the EVC to preserve CE VLAN tags.
 
-        if self._s_tag == self._flow.handler.utility_vlan:
+        if self.s_tag == self._flow.handler.utility_vlan:
             self._ce_vlan_preservation = True
 
         # Note: The following fields may get set when the first EVC-MAP
@@ -424,12 +425,11 @@ class EVC(object):
         """
         # Do a 'get' on the evc config an you should get the names
         get_xml = """
-        <filter xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
-          <evcs xmlns="http://www.adtran.com/ns/yang/adtran-evcs">
-            <evc><name/></evc>
-          </evcs>
-        </filter>
-        """
+<filter xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+<evcs xmlns="http://www.adtran.com/ns/yang/adtran-evcs">
+<evc><name/></evc>
+</evcs>
+</filter>""".strip().replace('\n', '')
         log.debug('query', xml=get_xml, regex=regex_)
 
         def request_failed(results, operation):
@@ -460,9 +460,9 @@ class EVC(object):
                                 break
 
                     if len(names) > 0:
-                        del_xml = '<evcs xmlns="http://www.adtran.com/ns/yang/adtran-evcs"' + \
-                                 ' xc:operation = "delete">'
-                        for name in names:
+                        del_xml = ('<evcs xmlns="http://www.adtran.com/ns/yang/adtran-evcs" '
+                                   'xc:operation="delete">')
+                        for name in sorted(names):
                             del_xml += '<evc>'
                             del_xml += '<name>{}</name>'.format(name)
                             del_xml += '</evc>'
