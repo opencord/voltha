@@ -52,8 +52,11 @@ message LogicalDevice {
     // flows configured on the logical device
     openflow_13.Flows flows = 129 [(child_node) = {}];
 
+    // meters configured on the logical device
+    openflow_13.Meters meters = 130 [(child_node) = {}];
+
     // flow groups configured on the logical device
-    openflow_13.FlowGroups flow_groups = 130 [(child_node) = {}];
+    openflow_13.FlowGroups flow_groups = 131 [(child_node) = {}];
 
 }
 
