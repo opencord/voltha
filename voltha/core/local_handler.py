@@ -1392,14 +1392,23 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_code(StatusCode.NOT_FOUND)
             return AlarmDeviceData()
 
-
     @twisted_async
     def UpdateLogicalDeviceMeterTable(self, request, context):
-        log.error("logical-device-meter-update-service not implemented yet")
-        context.set_code(StatusCode.UNIMPLEMENTED)
-        context.set_details("UpdateLogicalDeviceMeterTable service has not been implemented yet")
-        return Empty()
+        log.info('meter-table-update-grpc-request', request=request)
 
+        if '/' in request.id:
+            context.set_details('Malformed logical device id \'{}\''.format(request.id))
+            context.set_code(StatusCode.INVALID_ARGUMENT)
+            return Empty()
+
+        try:
+            agent = self.core.get_logical_device_agent(request.id)
+            agent.update_meter_table(request.meter_mod)
+            return Empty()
+        except KeyError:
+            context.set_details('Logical device \'{}\' not found'.format(request.id))
+            context.set_code(StatusCode.NOT_FOUND)
+            return Empty()
 
     @twisted_async
     def GetMeterStatsOfLogicalDevice(self, request, context):
