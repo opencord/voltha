@@ -300,6 +300,48 @@ class GlobalHandler(VolthaGlobalServiceServicer):
 
     @twisted_async
     @inlineCallbacks
+    def UpdateLogicalDeviceMeterTable(self, request, context):
+        log.info('meter-table-update-grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
+            'UpdateLogicalDeviceMeterTable',
+            request,
+            context,
+            id= request.id)
+        log.info("meter-table-update-grpc-response", response=response)
+
+        if isinstance(response, DispatchError):
+            log.warn('grpc-error-response', error=response.error_code)
+            context.set_details(
+                'Logical device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
+    def GetMeterStatsOfLogicalDevice(self, request, context):
+        log.info('meter-stats-request-grpc-request', request=request)
+        response = yield self.dispatcher.dispatch(
+            'GetMeterStatsOfLogicalDevice',
+            request,
+            context,
+            id=request.id)
+        log.info("meter-stats-request-grpc-response", response=response)
+
+        if isinstance(response, DispatchError):
+            log.warn('grpc-error-response', error=response.error_code)
+            context.set_details(
+                'Logical device \'{}\' error'.format(request.id))
+            context.set_code(response.error_code)
+            returnValue(Empty())
+        else:
+            log.info('grpc-success-response', response=response)
+            returnValue(response)
+
+    @twisted_async
+    @inlineCallbacks
     def UpdateLogicalDeviceFlowTable(self, request, context):
         log.debug('grpc-request', request=request)
         response = yield self.dispatcher.dispatch(
