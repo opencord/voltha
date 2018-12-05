@@ -2267,6 +2267,10 @@ message Flows {
     repeated ofp_flow_stats items = 1;
 }
 
+message Meters {
+    repeated ofp_meter_config items = 1;
+}
+
 message FlowGroups {
     repeated ofp_group_entry items = 1;
 }
