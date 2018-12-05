@@ -646,6 +646,75 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
             ]
         ))
 
+    def test_unicast_upstream_rule_including_meter_band_decomposition(self):
+        flow1 = mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 0),
+                vlan_pcp(0)
+            ],
+            actions=[
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
+            ],
+            next_table_id=1,
+        )
+        flow2 = mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 101),
+                vlan_pcp(0)
+            ],
+            actions=[
+                push_vlan(0x8100),
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 1000)),
+                set_field(vlan_pcp(0)),
+                output(0)
+            ],
+            next_table_id=64,
+            meters=[1, 2]
+        )
+        device_rules = self.decompose_rules([flow1, flow2], [])
+        onu1_flows, onu1_groups = device_rules['onu1']
+        olt_flows, olt_groups = device_rules['olt']
+        self.assertEqual(len(onu1_flows), 2)
+        self.assertEqual(len(onu1_groups), 0)
+        self.assertEqual(len(olt_flows), 1)
+        self.assertEqual(len(olt_groups), 0)
+        self.assertFlowsEqual(onu1_flows.values()[1], mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(2),
+                vlan_vid(ofp.OFPVID_PRESENT | 0),
+                vlan_pcp(0)
+            ],
+            actions=[
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
+                output(1)
+            ]
+        ))
+
+        check_flow = mk_flow_stat(
+            priority=500,
+            match_fields=[
+                in_port(1),
+                vlan_vid(ofp.OFPVID_PRESENT | 101),
+                vlan_pcp(0)
+            ],
+            actions=[
+                push_vlan(0x8100),
+                set_field(vlan_vid(ofp.OFPVID_PRESENT | 1000)),
+                set_field(vlan_pcp(0)),
+                output(2)
+            ],
+            table_id=64,
+            meters=[1, 2]
+        )
+
+        self.assertFlowsEqual(olt_flows.values()[0], check_flow)
+
+
     def test_unicast_downstream_rule_decomposition(self):
         flow1 = mk_flow_stat(
             match_fields=[
