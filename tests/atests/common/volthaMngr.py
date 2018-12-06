@@ -23,7 +23,7 @@ import os
 import time
 import subprocess
 import testCaseUtils
-import urlparse
+import logging
 
 class VolthaMngr(object):
 
@@ -70,17 +70,20 @@ class VolthaMngr(object):
     One is to add to device list and the other is to add the missing Sadis section
     """        
     def alterOnosNetCfg(self):
-        print ('Altering the Onos NetCfg to suit Voltha\'s needs')
-        time.sleep(30)
-        onosIp = testCaseUtils.extractIpAddr("onos-ui")
-        netloc = onosIp.rstrip() + ":8181"
-        devUrl = urlparse.urlunparse(('http', netloc, '/onos/v1/network/configuration/devices/', '', '', ''))
-        sadisUrl = urlparse.urlunparse(('http', netloc, '/onos/v1/network/configuration/apps/', '', '', ''))
+        logging.info ('Altering the Onos NetCfg to suit Voltha\'s needs')
+        logging.debug ('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
+            'http://localhost:30120/onos/v1/network/configuration/devices/ -d @%s/tests/atests/build/devices_json'
+            % testCaseUtils.getDir(self, 'voltha'))
         os.system('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
-            '%s -d @%s/tests/atests/build/devices_json' % (devUrl, testCaseUtils.getDir(self, 'voltha')))
+            'http://localhost:30120/onos/v1/network/configuration/devices/ -d @%s/tests/atests/build/devices_json'
+            % testCaseUtils.getDir(self, 'voltha'))
+        logging.debug ('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
+            'http://localhost:30120/onos/v1/network/configuration/apps/ -d @%s/tests/atests/build/sadis_json'
+            % testCaseUtils.getDir(self, 'voltha'))
         os.system('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
-            '%s -d @%s/tests/atests/build/sadis_json' % (sadisUrl, testCaseUtils.getDir(self, 'voltha')))
-            
+            'http://localhost:30120/onos/v1/network/configuration/apps/ -d @%s/tests/atests/build/sadis_json'
+            % testCaseUtils.getDir(self, 'voltha'))
+                    
     def getAllRunningPods(self):
         allRunningPods = []
         proc1 = subprocess.Popen(['/usr/bin/kubectl', 'get', 'pods', '--all-namespaces'],
@@ -91,7 +94,7 @@ class VolthaMngr(object):
                                  stderr=subprocess.PIPE)
         proc1.stdout.close
         out, err = proc2.communicate()
-        print (out)
+        print(out)
         if out:
             for line in out.split('\n'):
                 items = line.split()
@@ -104,7 +107,7 @@ class VolthaMngr(object):
         return allRunningPods
  
     def collectPodLogs(self):
-        print('Collect logs from all Pods')
+        logging.info('Collect logs from all Pods')
         allRunningPods = self.getAllRunningPods()
         for nsName in allRunningPods:
             Namespace = nsName.get('NS')

@@ -18,11 +18,13 @@ Library           OperatingSystem
 Library           ../common/auto_test.py
 Library           ../common/volthaMngr.py
 Library           ../common/preprovisioning.py
+Library           ../common/discovery.py
 Library           volthaMngr.VolthaMngr
 Library           preprovisioning.Preprovisioning
+Library           discovery.Discovery
 
-Test Setup        Start Voltha      
-Test Teardown     Stop Voltha
+Suite Setup        Start Voltha      
+Suite Teardown     Stop Voltha
 
 *** Variables ***
 ${LOG_DIR}        /tmp/voltha_test_results
@@ -35,14 +37,14 @@ ${OLT_TYPE}       ponsim_olt
 ${ONU_TYPE}       ponsim_onu
 
 *** Test Cases ***
-Provisioning
-    [Documentation]     VOLTHA Pre-provisioning
+Olt Pre Provisioning
+    [Documentation]     Olt Pre Provisioning
     ...                 This test preprovisions a ponsim-OLT with given IP address and TCP port 
     ...                 and then enables both it and a number of ponsim-ONUs with predefined IP/port
     ...                 information. It then verifies that all the physical and logical devices are ACTIVE
     ...                 and REACHEABLE
     PSet Log Dirs    ${LOG_DIR}
-    Configure   ${OLT_IP_ADDR}    ${OLT_PORT_ID}    ${OLT_TYPE}    ${ONU_TYPE} 
+    PConfigure   ${OLT_IP_ADDR}    ${OLT_PORT_ID}    ${OLT_TYPE}    ${ONU_TYPE} 
     Preprovision Olt
     Wait Until Keyword Succeeds    60s    2s    Query Devices Before Enabling
     Status Should Be Success After Preprovision Command
@@ -52,7 +54,23 @@ Provisioning
     Status Should Be Success After Enable Command
     Check Olt Fields After Enabling
     Check Onu Fields After Enabling
-
+    
+Olt Onu Discovery
+    [Documentation]     Olt Onu Discovery
+    ...                 This test covers both Onu Discovery and yet to be developped Olt Discovery
+    ...                 It aims to verify the integrity of all port fields under each discrete device.
+    ...                 It also insures that the peers fields contains device Id entries for the corresponding 
+    ...                 Olt or Onu device. Functionality to support multiple ONU accomodated
+    ...                 The extent of the flow validation is limited to checking whether number of Flows is > 0
+    DSet Log Dirs    ${LOG_DIR}
+    DConfigure      ${OLT_TYPE}    ${ONU_TYPE}
+    Olt Discovery
+    Onu Discovery
+    Olt Ports Should Be Enabled and Active
+    Onu Ports Should Be Enabled and Active
+    Olt Should Have At Least One Flow
+    Onu Should Have At Least One Flow
+    
 *** Keywords ***
 Start Voltha
     [Documentation]     Start Voltha infrastructure to run test(s). This includes starting all 

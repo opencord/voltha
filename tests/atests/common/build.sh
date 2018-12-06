@@ -33,6 +33,7 @@ if [ $1 == "clear" ]
     sudo make reset-kubeadm
 elif [ $1 == "start" ]
   then
+    sudo service docker restart
     sudo make -f Makefile
 elif [ $1 == "stop" ]
   then

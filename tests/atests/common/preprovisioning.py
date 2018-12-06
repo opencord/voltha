@@ -15,13 +15,14 @@
 #
 
 """
-vOLT-HA Pre-provisioning Test module
+vOLT-HA Pre-provisioning Test Case module
 """
 
 import time
 import os
 import commands
 import testCaseUtils
+import logging
 
 class Preprovisioning(object):
 
@@ -39,48 +40,41 @@ class Preprovisioning(object):
         self.__oltPort = None
         self.__oltType = None
         self.__onuType = None
-        self.__statusLines = ""
         self.__fields = []
         self.__oltDeviceId = None
         
     def pSetLogDirs(self, logDir):
         testCaseUtils.configDirs(self, logDir)
 
-    def configure(self, oltIpAddress, oltPort, oltType, onuType):
+    def pConfigure(self, oltIpAddress, oltPort, oltType, onuType):
         self.__oltIpAddress = oltIpAddress       
         self.__oltPort = oltPort
         self.__oltType = oltType
         self.__onuType = onuType
 
-    def get_fields_from_grep_command(self, searchWord, logFile):
-        grepCommand =\
-            "grep %s %s/%s" % (searchWord, testCaseUtils.getDir(self, 'log'), logFile)  
-        self.__statusLines = commands.getstatusoutput(grepCommand)[1]
-        
     def preprovisionOlt(self):
-        print('Do PROVISIONING')
+        logging.info('Do PROVISIONING')
         testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'),
-            'preprovision_olt -t ponsim_olt -H %s:%s' %
-            (self.__oltIpAddress, self.__oltPort),
-            'voltha_preprovision_olt.log')
+            'voltha_preprovision_olt.log', 'preprovision_olt -t ponsim_olt -H %s:%s' %
+            (self.__oltIpAddress, self.__oltPort))
         time.sleep(5)
         
     def status_should_be_success_after_preprovision_command(self):
-        self.get_fields_from_grep_command('success', 'voltha_preprovision_olt.log')
-        assert self.__statusLines, 'Preprovision Olt command should have returned success but did not'
+        statusLines = testCaseUtils.get_fields_from_grep_command(self, 'success', 'voltha_preprovision_olt.log')
+        assert statusLines, 'Preprovision Olt command should have returned success but did not'
         
     def query_devices_before_enabling(self):
-        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'), 'devices',
-                                        'voltha_devices_before_enable.log')
+        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'), 
+                    'voltha_devices_before_enable.log', 'devices')
+        testCaseUtils.printLogFile (self, 'voltha_devices_before_enable.log')
         time.sleep(5)
         
     def check_olt_fields_before_enabling(self):
-        result = True
-        self.get_fields_from_grep_command(self.__oltType, 'voltha_devices_before_enable.log')
-        assert self.__statusLines, 'No Olt listed under devices'
-        self.__fields = testCaseUtils.parseFields(self.__statusLines)
+        statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__oltType, 'voltha_devices_before_enable.log')
+        assert statusLines, 'No Olt listed under devices'
+        self.__fields = testCaseUtils.parseFields(statusLines)
         self.__oltDeviceId = self.__fields[1].strip()
-        print ("OLT device id = %s" % self.__oltDeviceId)
+        logging.debug("OLT device id = %s" % self.__oltDeviceId)
         adminState = self.__fields[3].strip()
         assert adminState == 'PREPROVISIONED', 'Admin State not PREPROVISIONED'
         hostPort = self.__fields[4].strip()
@@ -100,9 +94,9 @@ class Preprovisioning(object):
         return result
 
     def check_olt_fields_after_enabling(self):
-        self.get_fields_from_grep_command(self.__oltType, 'voltha_devices_after_enable.log')
-        assert self.__statusLines, 'No Olt listed under devices'
-        self.__fields = testCaseUtils.parseFields(self.__statusLines)
+        statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__oltType, 'voltha_devices_after_enable.log')
+        assert statusLines, 'No Olt listed under devices'
+        self.__fields = testCaseUtils.parseFields(statusLines)
         assert self.check_states(self.__oltType), 'States of %s does match expected' % self.__oltType
         hostPort = self.__fields[11].strip()
         assert hostPort, 'hostPort field is empty'
@@ -111,9 +105,9 @@ class Preprovisioning(object):
             'Olt IP or Port does not match'
                       
     def check_onu_fields_after_enabling(self):        
-        self.get_fields_from_grep_command(self.__onuType, 'voltha_devices_after_enable.log')
-        assert self.__statusLines, 'No Onu listed under devices'
-        lines = self.__statusLines.splitlines()
+        statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__onuType, 'voltha_devices_after_enable.log')
+        assert statusLines, 'No Onu listed under devices'
+        lines = statusLines.splitlines()
         lenLines = len(lines)
         assert lenLines == 1, 'Fixed single onu does not match, ONU Count was %d' % lenLines
         for line in lines:
@@ -121,22 +115,23 @@ class Preprovisioning(object):
             assert self.check_states(self.__onuType) == True, 'States of %s does match expected' % self.__onuType
         
     def enable(self):
-        print('Enable %s OLT device' % self.__oltDeviceId)
-        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'), 'enable ' + self.__oltDeviceId,
-                                        'voltha_enable.log')
+        logging.info('Enable %s OLT device' % self.__oltDeviceId)
+        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'),
+              'voltha_enable.log', 'enable ' + self.__oltDeviceId)
 
     def status_should_be_success_after_enable_command(self):
-        self.get_fields_from_grep_command('success', 'voltha_enable.log')
-        assert self.__statusLines, 'Enable command should have returned success but did not'
+        statusLines = testCaseUtils.get_fields_from_grep_command(self, 'success', 'voltha_enable.log')
+        assert statusLines, 'Enable command should have returned success but did not'
               
     def query_devices_after_enabling(self):
-        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'), 'devices',
-                                        'voltha_devices_after_enable.log')
+        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'),
+              'voltha_devices_after_enable.log', 'devices')
+        testCaseUtils.printLogFile (self, 'voltha_devices_after_enable.log')
 
 def runTest(oltIpAddress, oltPort, oltType, onuType, logDir):
     preprovisioning = Preprovisioning()
     preprovisioning.pSetLogDirs(logDir)
-    preprovisioning.configure(oltIpAddress, oltPort, oltType, onuType)
+    preprovisioning.pConfigure(oltIpAddress, oltPort, oltType, onuType)
     preprovisioning.preprovisionOlt()
     preprovisioning.status_should_be_success_after_preprovision_command()
     preprovisioning.query_devices_before_enabling()

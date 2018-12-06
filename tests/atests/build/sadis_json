@@ -10,10 +10,10 @@
          },
          "entries":[  
             {  
-               "id":"00:26:F2:F3:17:B0",
+               "id":"PSMO12345678",
                "cTag":33,
                "sTag":44,
-               "nasPortId":"uni-128"
+               "nasPortId":"PSMO12345678"
             },
             {  
                "id":"1d1d1d1d1d1d11",
@@ -23,7 +23,7 @@
             },
             {  
                "id":"olt.voltha.svc:50060",
-	       "uplinkPort":2
+               "uplinkPort":2
             }
          ]
       }
