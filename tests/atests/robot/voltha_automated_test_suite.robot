@@ -18,11 +18,13 @@ Library           OperatingSystem
 Library           ../common/auto_test.py
 Library           ../common/volthaMngr.py
 Library           ../common/preprovisioning.py
+Library           ../common/discovery.py
 Library           volthaMngr.VolthaMngr
 Library           preprovisioning.Preprovisioning
+Library           discovery.Discovery
 
-Test Setup        Start Voltha      
-Test Teardown     Stop Voltha
+Suite Setup        Start Voltha      
+Suite Teardown     Stop Voltha
 
 *** Variables ***
 ${LOG_DIR}        /tmp/voltha_test_results
@@ -42,7 +44,7 @@ Provisioning
     ...                 information. It then verifies that all the physical and logical devices are ACTIVE
     ...                 and REACHEABLE
     PSet Log Dirs    ${LOG_DIR}
-    Configure   ${OLT_IP_ADDR}    ${OLT_PORT_ID}    ${OLT_TYPE}    ${ONU_TYPE} 
+    PConfigure   ${OLT_IP_ADDR}    ${OLT_PORT_ID}    ${OLT_TYPE}    ${ONU_TYPE} 
     Preprovision Olt
     Wait Until Keyword Succeeds    60s    2s    Query Devices Before Enabling
     Status Should Be Success After Preprovision Command
@@ -52,7 +54,22 @@ Provisioning
     Status Should Be Success After Enable Command
     Check Olt Fields After Enabling
     Check Onu Fields After Enabling
-
+    
+Discovery
+    [Documentation]     VOLTHA Discovery
+    ...                 This test verifies the integrity of all port fields under each discrete device.
+    ...                 It also assures that the peers fields contains device Id entries for the corresponding 
+    ...                 Olt or Onu device. Functionality to support multiple ONU built in
+    ...                 The number of Flows is validated to be > 0
+    DSet Log Dirs    ${LOG_DIR}
+    DConfigure      ${OLT_TYPE}    ${ONU_TYPE}
+    Olt Discovery
+    Onu Discovery
+    Check Olt Port Fields
+    Check Onu Port Fields
+    Check Olt Flows
+    Check Onu Flows
+    
 *** Keywords ***
 Start Voltha
     [Documentation]     Start Voltha infrastructure to run test(s). This includes starting all 
