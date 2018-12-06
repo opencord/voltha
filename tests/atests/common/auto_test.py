@@ -24,12 +24,15 @@ import time
 import argparse
 import volthaMngr
 import preprovisioning
+import discovery
+import logging
 
 DEFAULT_LOG_DIR = '/tmp/voltha_test_results'
+logging.basicConfig(level=logging.INFO)
 
 def dirInit(logDir=DEFAULT_LOG_DIR,
          volthaDir=os.environ['VOLTHA_BASE']):
-    print(__file__)
+    logging.info(__file__)
     """
     Init automated testing environment and return three directories: root dir,
     voltha sources dir and log dir
@@ -45,7 +48,7 @@ def dirInit(logDir=DEFAULT_LOG_DIR,
     
     os.system('mkdir -p ' + logDir + ' > /dev/null 2>&1')
     os.system('rm -rf %s/*' % logDir)
-    print('Start Provisioning Test at: %s\nRoot Directory: %s\n'
+    logging.info('Start Provisioning Test at: %s\nRoot Directory: %s\n'
           'VOLTHA Directory: %s\nLog Directory: %s' %
           (currentTime, rootDir, volthaDir, logDir))
 
@@ -70,5 +73,7 @@ if __name__ == "__main__":
     volthaMngr.voltha_Initialize(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
     preprovisioning.runTest('olt.voltha.svc', 50060, 'ponsim_olt', 'ponsim_onu', LOG_DIR)
+    
+    discovery.runTest('ponsim_olt', 'ponsim_onu', LOG_DIR)
 
     time.sleep(5)
