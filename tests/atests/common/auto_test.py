@@ -24,6 +24,7 @@ import time
 import argparse
 import volthaMngr
 import preprovisioning
+import discovery
 
 DEFAULT_LOG_DIR = '/tmp/voltha_test_results'
 
@@ -70,5 +71,7 @@ if __name__ == "__main__":
     volthaMngr.voltha_Initialize(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
     preprovisioning.runTest('olt.voltha.svc', 50060, 'ponsim_olt', 'ponsim_onu', LOG_DIR)
+    
+    discovery.runTest('ponsim_olt', 'ponsim_onu', LOG_DIR)
 
     time.sleep(5)

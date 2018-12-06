@@ -88,7 +88,7 @@ $(M)/kafka-running: | $(M)/kafka
 	touch $@
 
 $(M)/onos: | $(M)/kafka-running
-	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/onos.yaml -f configs/seba-ponsim.yaml --set images.onos.repository=voltha-onos,images.onos.tag=latest,images.onos.pullPolicy=Never
+	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/seba-ponsim.yaml --set images.onos.repository=voltha-onos,images.onos.tag=latest,images.onos.pullPolicy=Never
 	touch $@
 
 $(M)/voltha: | $(M)/kafka-running $(M)/etcd-operator-ready $(M)/onos
@@ -128,6 +128,13 @@ $(M)/pon0_fwd: | $(M)/ponsim
 
 $(M)/voltha_ponsim_running: | $(M)/pon0_fwd
 	$(HOME)/cord/helm-charts/scripts/wait_for_pods.sh
+	until http -a karaf:karaf --ignore-stdin --check-status GET http://127.0.0.1:30120/onos/v1/configuration/org.opencord.olt.impl.Olt; \
+	do \
+		sleep 5; \
+	done
+	http -a karaf:karaf --ignore-stdin POST http://127.0.0.1:30120/onos/v1/configuration/org.opencord.olt.impl.Olt defaultVlan=65535
+	timeout 1m bash -c "until http GET http://127.0.0.1:30125/health|jq '.state'|grep -q HEALTHY; do echo 'Waiting for VOLTHA to be HEALTHY'; sleep 10; done"
+	echo "[passed] VOLTHA is HEALTHY"
 	touch $@
 	echo "Voltha Test Framework Ready!"
 
