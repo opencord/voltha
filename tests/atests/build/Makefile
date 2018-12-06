@@ -88,7 +88,7 @@ $(M)/kafka-running: | $(M)/kafka
 	touch $@
 
 $(M)/onos: | $(M)/kafka-running
-	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/seba-ponsim.yaml --set images.onos.repository=voltha-onos,images.onos.tag=latest,images.onos.pullPolicy=Never
+	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/seba-ponsim.yaml
 	touch $@
 
 $(M)/voltha: | $(M)/kafka-running $(M)/etcd-operator-ready $(M)/onos
@@ -125,9 +125,23 @@ $(M)/pon0_fwd: | $(M)/ponsim
 	done
 	rm /tmp/pon0_group_fwd_mask
 	touch $@
+	
+$(M)/onos_apps: | $(M)/pon0_fwd
+	cd $(HOME)/cord/helm-charts; helm dep update xos-core
+	cd $(HOME)/cord/helm-charts; helm upgrade --install xos-core xos-core
+	cd $(HOME)/cord/helm-charts; helm dep update xos-profiles/voltha-apps
+	cd $(HOME)/cord/helm-charts; helm upgrade --install voltha-apps xos-profiles/voltha-apps
+	touch $@
 
-$(M)/voltha_ponsim_running: | $(M)/pon0_fwd
+$(M)/voltha_ponsim_running: | $(M)/onos_apps
 	$(HOME)/cord/helm-charts/scripts/wait_for_pods.sh
+	until http -a karaf:karaf --ignore-stdin --check-status GET http://127.0.0.1:30120/onos/v1/configuration/org.opencord.olt.impl.Olt; \
+	do \
+		sleep 5; \
+	done
+	http -a karaf:karaf --ignore-stdin POST http://127.0.0.1:30120/onos/v1/configuration/org.opencord.olt.impl.Olt defaultVlan=65535
+	timeout 1m bash -c "until http GET http://127.0.0.1:30125/health|jq '.state'|grep -q HEALTHY; do echo 'Waiting for VOLTHA to be HEALTHY'; sleep 10; done"
+	echo "[passed] VOLTHA is HEALTHY"
 	touch $@
 	echo "Voltha Test Framework Ready!"
 
@@ -153,7 +167,7 @@ run-tests: $(M)/pingtest
 
 remove-chart-milestones:
 	cd $(M); sudo rm -f setup kafka kafka-running onos voltha etcd-operator-ready etcd-cluster \
-		pon0_fwd voltha-running ponsim voltha_ponsim_running
+		voltha-running ponsim pon0_fwd onos_apps voltha_ponsim_running
 remove-kube-milestones:
 	cd $(M); sudo rm -f kubeadm helm-init
 
