@@ -71,16 +71,19 @@ class VolthaMngr(object):
     """        
     def alterOnosNetCfg(self):
         print ('Altering the Onos NetCfg to suit Voltha\'s needs')
-        time.sleep(30)
-        onosIp = testCaseUtils.extractIpAddr("onos-ui")
-        netloc = onosIp.rstrip() + ":8181"
-        devUrl = urlparse.urlunparse(('http', netloc, '/onos/v1/network/configuration/devices/', '', '', ''))
-        sadisUrl = urlparse.urlunparse(('http', netloc, '/onos/v1/network/configuration/apps/', '', '', ''))
+        print ('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
+            'http://localhost:30120/onos/v1/network/configuration/devices/ -d @%s/tests/atests/build/devices_json'
+            % testCaseUtils.getDir(self, 'voltha'))
         os.system('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
-            '%s -d @%s/tests/atests/build/devices_json' % (devUrl, testCaseUtils.getDir(self, 'voltha')))
+            'http://localhost:30120/onos/v1/network/configuration/devices/ -d @%s/tests/atests/build/devices_json'
+            % testCaseUtils.getDir(self, 'voltha'))
+        print ('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
+            'http://localhost:30120/onos/v1/network/configuration/apps/ -d @%s/tests/atests/build/sadis_json'
+            % testCaseUtils.getDir(self, 'voltha'))
         os.system('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
-            '%s -d @%s/tests/atests/build/sadis_json' % (sadisUrl, testCaseUtils.getDir(self, 'voltha')))
-            
+            'http://localhost:30120/onos/v1/network/configuration/apps/ -d @%s/tests/atests/build/sadis_json'
+            % testCaseUtils.getDir(self, 'voltha'))
+                    
     def getAllRunningPods(self):
         allRunningPods = []
         proc1 = subprocess.Popen(['/usr/bin/kubectl', 'get', 'pods', '--all-namespaces'],
