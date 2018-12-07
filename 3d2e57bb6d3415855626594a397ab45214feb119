@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "1fd61e6c_7dfa3a13",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 720,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-07T11:37:35Z",
+      "side": 1,
+      "message": "As far as I know, the current implementation of defining a PON level service flow per direction(e.g. upstream and downstream) requires 2 flows each of which is directed to the OLT and ONT device adapters. Currently, determining which flow is going to be redirected to the ingress device or egress device is handled by looking at whether next table id  exists or not. However, with the technology profile feature coming in, this assumption is not sufficient any more due to some updates inside the service flows. What I mean in other words is, if a flow (let\u0027s say for upstream direction)  includes a table id which is smaller that TECH_PROF_ID(64), then we should say that this flow is going to be directed to the ONT adapter (ingress port), otherwise it should be directed to OLT adapter (egress port). That\u0027s why basically I added such an extra control to the corresponding if-else statement.",
+      "parentUuid": "eadc20d9_2b04d5d4",
+      "range": {
+        "startLine": 720,
+        "startChar": 16,
+        "endLine": 720,
+        "endChar": 20
+      },
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6737fff1_93f81329",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 7
@@ -36,6 +60,30 @@
       "writtenOn": "2018-12-07T03:27:12Z",
       "side": 1,
       "message": "Is this correct to change to egress_hop? The original flows above use ingress_hop.",
+      "range": {
+        "startLine": 726,
+        "startChar": 24,
+        "endLine": 726,
+        "endChar": 34
+      },
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "826008d1_4068a1bc",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 726,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-07T11:37:35Z",
+      "side": 1,
+      "message": "I tried to answer this question in my comment above. Please let me know if further explanation is required.",
+      "parentUuid": "6737fff1_93f81329",
       "range": {
         "startLine": 726,
         "startChar": 24,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "3b5e1e22_9a13bc13",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 805,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-07T11:37:35Z",
+      "side": 1,
+      "message": "For the downstream case, if the next_table_id is greater than TECH_PROF_ID(64), then we can for sure say that(for the unicast case), this flow will be redirected to the ONT device\u0027s corresponding adapter, therefore it must must include out_port_no as well. Therefore, the code flow will continue from the \u003celif out_port_no is not None:  # unicast case\u003e line.",
+      "parentUuid": "0aa6e8e1_9a9df8c2",
+      "range": {
+        "startLine": 805,
+        "startChar": 16,
+        "endLine": 805,
+        "endChar": 18
+      },
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1355549b_61780094",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 7
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "2018026b_0be21c7c",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 926,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-07T11:37:35Z",
+      "side": 1,
+      "message": "I am not sure whether these lines should be here uncommented or not, yet. Girish will come up with some architectural details (maybe updates) for passing the downstream TECH_PROF_ID as well as meter_config information. After that I hope I will be able to finalize that point as well.",
+      "parentUuid": "1355549b_61780094",
+      "range": {
+        "startLine": 926,
+        "startChar": 28,
+        "endLine": 926,
+        "endChar": 29
+      },
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0db1d20b_d4cc78f4",
         "filename": "voltha/core/logical_device_agent.py",
         "patchSetId": 7
@@ -105,6 +201,24 @@
       "writtenOn": "2018-12-07T08:54:05Z",
       "side": 1,
       "message": "Where do we register for callbacks related to meter_proxy additions and updates..",
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ad783c91_bf54f173",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-07T11:37:35Z",
+      "side": 1,
+      "message": "Concerning with meter_config addition, I imagine the the workflow as follows.\n1) Meter mod message is received from the controller and then stored under the corresponding logical_devices\u0027s meters directory, in kv store. \n2) Having the meter_config info stored in kv store, a service flow that is referencing one or more meter_configs is passed unchanged, to the device adapter(e.g. OpenOltAdapter) and the device adapter is going to get the corresponding meter_config components from the kv store in order to calculate the TrafficDescriptorInfo entity\u0027s related parameters.\n\n\nI would like to ask wheterher the meter_config update is a possible scenario or not? If it is, then I need to find the related flow in which the corresponding meter_id is referenced, and then trigger flow update procedure?",
+      "parentUuid": "0db1d20b_d4cc78f4",
       "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
