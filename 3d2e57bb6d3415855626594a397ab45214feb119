@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "eadc20d9_2b04d5d4",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 720,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-07T03:27:12Z",
+      "side": 1,
+      "message": "Can you explain why there is a different case for flows with tech profile vs non-tech-profile?",
+      "range": {
+        "startLine": 720,
+        "startChar": 16,
+        "endLine": 720,
+        "endChar": 20
+      },
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6737fff1_93f81329",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 726,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-07T03:27:12Z",
+      "side": 1,
+      "message": "Is this correct to change to egress_hop? The original flows above use ingress_hop.",
+      "range": {
+        "startLine": 726,
+        "startChar": 24,
+        "endLine": 726,
+        "endChar": 34
+      },
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0aa6e8e1_9a9df8c2",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 805,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-07T03:27:12Z",
+      "side": 1,
+      "message": "What if next_table \u003e 64?",
+      "range": {
+        "startLine": 805,
+        "startChar": 16,
+        "endLine": 805,
+        "endChar": 18
+      },
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1355549b_61780094",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 926,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-07T03:27:12Z",
+      "side": 1,
+      "message": "Does this need uncommented to passing table ID to downstream flows to adapter?",
+      "range": {
+        "startLine": 926,
+        "startChar": 28,
+        "endLine": 926,
+        "endChar": 29
+      },
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
