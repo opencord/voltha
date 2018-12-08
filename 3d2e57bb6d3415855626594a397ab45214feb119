@@ -222,6 +222,24 @@
       "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "db346cb3_6ec68622",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-08T08:16:29Z",
+      "side": 1,
+      "message": "Ok. I get what you are saying. So, the adapters have to pull the meter-band info from the DB when they are referenced in the flow. \nBut, meter-band updates should also be supported when we need to dynamically change the subscriber QoS dynamically.\nI would like @craig @shaun also to comment on this and share their opinion.",
+      "parentUuid": "ad783c91_bf54f173",
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
