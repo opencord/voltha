@@ -240,6 +240,24 @@
       "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "022cc68a_118a2951",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-09T20:48:12Z",
+      "side": 1,
+      "message": "Girish,\nI am going to have some code review regarding to updating the meter_band info.\nWill let you know about the way I will code it.",
+      "parentUuid": "db346cb3_6ec68622",
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
