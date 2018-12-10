@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9547de48_1be99687",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 723,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-10T17:50:34Z",
+      "side": 1,
+      "message": "Koray,\n\nThank you for the explanation. I understand you are using tbl ID \u003e 64 to be the equivalent to what used to be a flow without table ID that implied a OLT flow for the Q-in-Q case. Please take a look though, the case of Transparent \"No-L2-Modifcation\" in the else case below is lost in the new implementation. There are two cases below in the legacy code for when table-id is absent (which maps to new design with table ID \u003e 64). You covered the second case for Q-in-Q in which case the flow is directed to Egress Hop (OLT). But, the transparent case for a single flow copied to both OLT and ONU is not supported with the new table ID \u003e 64 design.",
+      "range": {
+        "startLine": 723,
+        "startChar": 16,
+        "endLine": 723,
+        "endChar": 20
+      },
+      "revId": "9c30477bd7d684533d86840fcf9135e688e61524",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "95857c2b_d76805de",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 933,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-10T17:50:34Z",
+      "side": 1,
+      "message": "Downstream flows with table\u003e64 also need the table id sent to OLT adapter so that the downstream flow can have access to the correct Tech Profile instance.",
+      "range": {
+        "startLine": 933,
+        "startChar": 16,
+        "endLine": 933,
+        "endChar": 20
+      },
+      "revId": "9c30477bd7d684533d86840fcf9135e688e61524",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
