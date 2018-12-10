@@ -258,6 +258,24 @@
       "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1c33fb8f_c8fb08cb",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-10T18:02:52Z",
+      "side": 1,
+      "message": "If meter bands can be updated independently of the flows that reference them, then I would agree with Girish that this needs to be dynamically notified to the adapters. It could be via callback as Girish suggests. But, I think it could also be handled by a repush/update of the flows that use the meters.",
+      "parentUuid": "db346cb3_6ec68622",
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
