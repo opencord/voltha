@@ -70,6 +70,24 @@
     },
     {
       "key": {
+        "uuid": "50449505_9349551c",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-12-11T15:21:52Z",
+      "side": 1,
+      "message": "This comment is not valid given the fact that OLT discovery is in the roadmap",
+      "parentUuid": "2c0b8199_a6719ecf",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "36eec64f_6302145c",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 1
@@ -81,6 +99,24 @@
       "writtenOn": "2018-12-10T15:47:08Z",
       "side": 1,
       "message": "There is no such a term \"VOLTHA Discovery\". Better to switch to ONU Discovery only and the OLT (port and flow) status check should be done in the previous test case",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "81b2109a_3419b2b0",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-12-11T15:21:52Z",
+      "side": 1,
+      "message": "Given the fact that OLT discovery is in the roadmap, better to change the test case name to \"OltOnuDiscovery\", and mention about Olt Discovery to be developed in the test case documentation",
+      "parentUuid": "36eec64f_6302145c",
       "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -104,6 +140,24 @@
     },
     {
       "key": {
+        "uuid": "ff245604_41aa4aee",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-12-11T15:21:52Z",
+      "side": 1,
+      "message": "This comment is not valid anymore, because OLT discovery in the roadmap",
+      "parentUuid": "9ad67ec5_925776b2",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6491dfc4_086d9b26",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 1
@@ -115,6 +169,24 @@
       "writtenOn": "2018-12-10T15:47:08Z",
       "side": 1,
       "message": "This should be moved to previous test case. \"Check Olt Port Fields\" should be changed to some thing specific, such as \"Olt Ports should be enabled and active\"",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "66e34ae9_07daf01f",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-12-11T15:21:52Z",
+      "side": 1,
+      "message": "The suggestion to move to the previous testcase is not valid anymore, because OLT discovery in the roadmap",
+      "parentUuid": "6491dfc4_086d9b26",
       "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -149,6 +221,24 @@
       "writtenOn": "2018-12-10T15:47:08Z",
       "side": 1,
       "message": "This should be moved to previous test case. \"Check Olt Flows\" should be changed to some thing specific such as \"Olt should have at least one flow\"",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9e293b53_b4f51cc0",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2018-12-11T15:21:52Z",
+      "side": 1,
+      "message": "The suggestion to move to the previous testcase is not valid anymore, because OLT discovery in the roadmap",
+      "parentUuid": "0bfee34f_50b80e7c",
       "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
