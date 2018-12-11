@@ -6,7 +6,7 @@ VOLTHA_DIR         := $(dir $(patsubst %/,%,$(ADAPTERS_DIR)))
 VENVDIR=$(WORKING_DIR)venv
 TESTDIR=$(WORKING_DIR)test
 
-ADD_TO_PYTHONPATH := export PYTHONPATH=$(PYTHONPATH):$(VOLTHA_DIR)protos/third_party;
+PYTHONPATH := $(PYTHONPATH):$(VOLTHA_DIR)protos/third_party;
 IN_VENV=. '$(VENVDIR)/bin/activate';
 
 PROFILING=--profile-svg
@@ -16,7 +16,7 @@ $(warning "dot is not available please install graphviz")
 PROFILING=
 endif
 
-RUN_PYTEST=$(IN_VENV) $(ADD_TO_PYTHONPATH) python -m pytest -vvlx $(PROFILING) --cov=$(WORKING_DIR) --cov-report term-missing --cov-report html
+RUN_PYTEST=$(IN_VENV) PYTHONPATH=$(PYTHONPATH) python -m pytest -vvlx $(PROFILING) --cov=$(WORKING_DIR) --cov-report term-missing --cov-report html
 
 $(VENVDIR):
 	@virtualenv -p python2 $(VENVDIR)
