@@ -1,0 +1,165 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "77da4767_dce21a11",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-11T17:11:38Z",
+      "side": 1,
+      "message": "These global flow defines: DHCP_FLOW, EAPOL_PRIMARY_FLOW, EAPOL_SECONDARY_FLOW, IGMP_FLOW, LLDP_FLOW can be removed as we have effectively removed the flow-specific artifacts.",
+      "range": {
+        "startLine": 35,
+        "startChar": 0,
+        "endLine": 35,
+        "endChar": 9
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f8c52c4d_d77f620b",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 381,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-11T17:11:38Z",
+      "side": 1,
+      "message": "Can this be removed?",
+      "range": {
+        "startLine": 381,
+        "startChar": 28,
+        "endLine": 381,
+        "endChar": 47
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "638d1652_8bc2b6bd",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 513,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-11T17:11:38Z",
+      "side": 1,
+      "message": "I think this parameter can be deprecated as I don\u0027t see it referenced in the add_eapol_flow() anymore",
+      "range": {
+        "startLine": 513,
+        "startChar": 44,
+        "endLine": 513,
+        "endChar": 63
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e611e1b3_b2d1c63f",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 535,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-11T17:11:38Z",
+      "side": 1,
+      "message": "Can you clarify what situation occurs that requires the HSIA flow_category to be specified that the flow_store_cookie is insufficient?",
+      "range": {
+        "startLine": 535,
+        "startChar": 57,
+        "endLine": 535,
+        "endChar": 58
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f9e6e534_1c644de9",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 592,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-11T17:11:38Z",
+      "side": 1,
+      "message": "Can eapol_flow_category be deprecated? It doesn\u0027t look like it is referenced anymore.",
+      "range": {
+        "startLine": 592,
+        "startChar": 35,
+        "endLine": 592,
+        "endChar": 54
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "693312fa_5683a36d",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 721,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-11T17:11:38Z",
+      "side": 1,
+      "message": "get_flow_id() has changed to (intf_id, onu_id, cookie)",
+      "range": {
+        "startLine": 721,
+        "startChar": 36,
+        "endLine": 721,
+        "endChar": 48
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1ebc593e_667ffa64",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 1004,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-11T17:11:38Z",
+      "side": 1,
+      "message": "Please confirm that we don\u0027t have multiple actions with the same classifier/gem that might overlap with the hashing for flow_store_cookie.",
+      "range": {
+        "startLine": 1004,
+        "startChar": 43,
+        "endLine": 1004,
+        "endChar": 51
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
