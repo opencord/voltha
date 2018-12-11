@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8cd35bfa_7638d1a2",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 405,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-12-11T18:08:46Z",
+      "side": 1,
+      "message": "given tech profile work, i don\u0027t think this gets called anymore at all.  i think this is all done in the tp task now.",
+      "range": {
+        "startLine": 405,
+        "startChar": 8,
+        "endLine": 405,
+        "endChar": 42
+      },
+      "revId": "70a3c31b1b4161836705513e3da4747f2fbb4d57",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "977f44b4_386b81dc",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 537,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-12-11T18:08:46Z",
+      "side": 1,
+      "message": "I recall adding this to the original create caused my nokia onu some grief.  We had tested back and forth on having this here.  Maybe it sneaked back in?",
+      "range": {
+        "startLine": 537,
+        "startChar": 16,
+        "endLine": 537,
+        "endChar": 36
+      },
+      "revId": "70a3c31b1b4161836705513e3da4747f2fbb4d57",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "692f24ac_89de1f17",
+        "filename": "voltha/extensions/omci/tasks/omci_get_request.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2018-12-11T18:08:46Z",
+      "side": 1,
+      "message": "Minor nitpick.  Default is now True.",
+      "range": {
+        "startLine": 60,
+        "startChar": 56,
+        "endLine": 60,
+        "endChar": 70
+      },
+      "revId": "70a3c31b1b4161836705513e3da4747f2fbb4d57",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
