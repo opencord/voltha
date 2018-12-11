@@ -86,7 +86,6 @@ class OpenoltDevice(object):
         self.adapter_agent = kwargs['adapter_agent']
         self.device_num = kwargs['device_num']
         device = kwargs['device']
-        dpid = kwargs.get('dp_id')
 
         self.platform_class = kwargs['support_classes']['platform']
         self.resource_mgr_class = kwargs['support_classes']['resource_mgr']
@@ -105,52 +104,22 @@ class OpenoltDevice(object):
 
         self.log.info('openolt-device-init')
 
+        # default device id and device serial number. If device_info provides better results, they will be updated
+        self.dpid = kwargs.get('dp_id')
+        self.serial_number = self.host_and_port  # FIXME
+
         # Device already set in the event of reconciliation
         if not is_reconciliation:
             self.log.info('updating-device')
             # It is a new device
             # Update device
             device.root = True
-            device.serial_number = self.host_and_port  # FIXME
             device.connect_status = ConnectStatus.UNREACHABLE
             device.oper_status = OperStatus.ACTIVATING
             self.adapter_agent.update_device(device)
 
-        # If logical device does not exist create it
-        if not device.parent_id:
-            if dpid == None:
-                uri = self.host_and_port.split(":")[0]
-                try:
-                    socket.inet_pton(socket.AF_INET, uri)
-                    dpid = '00:00:' + self.ip_hex(uri)
-                except socket.error:
-                    # this is not an IP
-                    dpid = self.stringToMacAddr(uri)
-
-            self.log.info('creating-openolt-logical-device', dp_id=dpid)
-            # Create logical OF device
-            ld = LogicalDevice(
-                root_device_id=self.device_id,
-                switch_features=ofp_switch_features(
-                    n_buffers=256,  # TODO fake for now
-                    n_tables=2,  # TODO ditto
-                    capabilities=(  # TODO and ditto
-                            OFPC_FLOW_STATS
-                            | OFPC_TABLE_STATS
-                            | OFPC_PORT_STATS
-                            | OFPC_GROUP_STATS
-                    )
-                ),
-                desc=ofp_desc(
-                    serial_num=device.serial_number
-                )
-            )
-            ld_init = self.adapter_agent.create_logical_device(ld,
-                                                               dpid=dpid)
-            self.logical_device_id = ld_init.id
-
-            self.log.info('created-openolt-logical-device', logical_device_id=ld_init.id)
-        else:
+        # If logical device does exist use it, else create one after connecting to device
+        if device.parent_id:
             # logical device already exists
             self.logical_device_id = device.parent_id
             if is_reconciliation:
@@ -162,6 +131,63 @@ class OpenoltDevice(object):
                                transitions=OpenoltDevice.transitions,
                                send_event=True, initial='state_null')
         self.go_state_init()
+
+    def create_logical_device(self, device_info):
+        dpid = device_info.device_id
+        serial_number = device_info.device_serial_number
+
+        if dpid is None: dpid = self.dpid
+        if serial_number is None: serial_number = self.serial_number
+
+        if dpid == None:
+            uri = self.host_and_port.split(":")[0]
+            try:
+                socket.inet_pton(socket.AF_INET, uri)
+                dpid = '00:00:' + self.ip_hex(uri)
+            except socket.error:
+                # this is not an IP
+                dpid = self.stringToMacAddr(uri)
+
+        self.log.info('creating-openolt-logical-device', dp_id=dpid, serial_number=serial_number)
+
+        mfr_desc = device_info.vendor
+        sw_desc = device_info.firmware_version
+        hw_desc = device_info.model
+        if device_info.hardware_version: hw_desc += '-' + device_info.hardware_version
+
+        # Create logical OF device
+        ld = LogicalDevice(
+            root_device_id=self.device_id,
+            switch_features=ofp_switch_features(
+                n_buffers=256,  # TODO fake for now
+                n_tables=2,  # TODO ditto
+                capabilities=(  # TODO and ditto
+                        OFPC_FLOW_STATS
+                        | OFPC_TABLE_STATS
+                        | OFPC_PORT_STATS
+                        | OFPC_GROUP_STATS
+                )
+            ),
+            desc=ofp_desc(
+                mfr_desc=mfr_desc,
+                hw_desc=hw_desc,
+                sw_desc=sw_desc,
+                serial_num=serial_number
+            )
+        )
+        ld_init = self.adapter_agent.create_logical_device(ld,
+                                                           dpid=dpid)
+
+        self.logical_device_id = ld_init.id
+
+        device = self.adapter_agent.get_device(self.device_id)
+        device.serial_number = serial_number
+        self.adapter_agent.update_device(device)
+
+        self.dpid = dpid
+        self.serial_number = serial_number
+
+        self.log.info('created-openolt-logical-device', logical_device_id=ld_init.id)
 
     def stringToMacAddr(self, uri):
         regex = re.compile('[^a-zA-Z]')
@@ -212,6 +238,10 @@ class OpenoltDevice(object):
 
         device_info = self.stub.GetDeviceInfo(openolt_pb2.Empty())
         self.log.info('Device connected', device_info=device_info)
+
+        self.create_logical_device(device_info)
+
+        device.serial_number = self.serial_number
 
         self.resource_mgr = self.resource_mgr_class(self.device_id,
                                                     self.host_and_port,
