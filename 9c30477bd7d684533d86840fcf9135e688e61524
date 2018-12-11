@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "66e98254_b18c6ef4",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 723,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-11T06:53:46Z",
+      "side": 1,
+      "message": "Thanks Craig for your comment. I believe I roughly understood what is your concern about my update, but for just in case please let me double check it. First of all, what I got from your comment is, all of the flows will have next_table_id (either TECH_PROF_ID or real transition table), and that\u0027s why my patch is missing the \"No-L2 Modification case\". Is that correct? If so, I am going to try to fix it under this assumption.\n\nBy the way, is there really a flow coming down to the flow_decomposer which maps to this transparent ONU/OLT case, in current worfkflows?",
+      "parentUuid": "9547de48_1be99687",
+      "range": {
+        "startLine": 723,
+        "startChar": 16,
+        "endLine": 723,
+        "endChar": 20
+      },
+      "revId": "9c30477bd7d684533d86840fcf9135e688e61524",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "95857c2b_d76805de",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 9
