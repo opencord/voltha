@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "f8f6e656_03fa0c2d",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 405,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-11T22:45:31Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7816aae9_b20e380a",
+      "range": {
+        "startLine": 405,
+        "startChar": 8,
+        "endLine": 405,
+        "endChar": 42
+      },
+      "revId": "70a3c31b1b4161836705513e3da4747f2fbb4d57",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "977f44b4_386b81dc",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
         "patchSetId": 5
@@ -96,6 +120,30 @@
     },
     {
       "key": {
+        "uuid": "96b891f8_a3bcaf7e",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_mib_download_task.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 537,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-11T22:45:31Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1c4475e7_b0b6704e",
+      "range": {
+        "startLine": 537,
+        "startChar": 16,
+        "endLine": 537,
+        "endChar": 36
+      },
+      "revId": "70a3c31b1b4161836705513e3da4747f2fbb4d57",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "692f24ac_89de1f17",
         "filename": "voltha/extensions/omci/tasks/omci_get_request.py",
         "patchSetId": 5
@@ -131,6 +179,30 @@
       "side": 1,
       "message": "Waiting on stop-and-wait to be completed. Changing to exclusive has helped me in my tests. I can revert back to False when stop-and-wait is complete.",
       "parentUuid": "692f24ac_89de1f17",
+      "range": {
+        "startLine": 60,
+        "startChar": 56,
+        "endLine": 60,
+        "endChar": 70
+      },
+      "revId": "70a3c31b1b4161836705513e3da4747f2fbb4d57",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "884cfa8f_31f60fa7",
+        "filename": "voltha/extensions/omci/tasks/omci_get_request.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-11T22:45:31Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1d1b15d9_e6b341c0",
       "range": {
         "startLine": 60,
         "startChar": 56,
