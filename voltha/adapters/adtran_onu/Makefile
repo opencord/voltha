@@ -16,7 +16,7 @@ $(warning "dot is not available please install graphviz")
 PROFILING=
 endif
 
-RUN_PYTEST=$(IN_VENV) $(ADD_TO_PYTHONPATH) python -m pytest -vvlx $(PROFILING) --cov=$(WORKING_DIR) --cov-report term-missing --cov-report html
+RUN_PYTEST=$(IN_VENV) $(ADD_TO_PYTHONPATH) py.test -vvlx $(PROFILING) --cov=$(WORKING_DIR) --cov-report term-missing --cov-report html
 
 $(VENVDIR):
 	@virtualenv -p python2 $(VENVDIR)
