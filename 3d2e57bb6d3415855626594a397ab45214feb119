@@ -276,6 +276,24 @@
       "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "af8bdd14_2accc924",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-11T02:55:23Z",
+      "side": 1,
+      "message": "Traffic Shaping is required for DT and that means to allow meter band updates. Now would you like to achieve this is the question?",
+      "parentUuid": "1c33fb8f_c8fb08cb",
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
