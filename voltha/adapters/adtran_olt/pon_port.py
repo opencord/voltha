@@ -92,7 +92,6 @@ class PonPort(AdtnPort):
         self._v_ont_anis = {}             # Name -> dict
         self._ont_anis = {}               # Name -> dict
         self._tconts = {}                 # Name -> dict
-        self._traffic_descriptors = {}    # Name -> dict
         self._gem_ports = {}              # Name -> dict
 
     def __str__(self):
@@ -385,6 +384,7 @@ class PonPort(AdtnPort):
         super(PonPort, self).finish_startup()
         returnValue('Enabled')
 
+    @inlineCallbacks
     def finish_stop(self):
         # Remove all existing ONUs. They will need to be re-discovered
         dl = []
@@ -397,7 +397,8 @@ class PonPort(AdtnPort):
                 self.log.exception('onu-cleanup', onu_id=onu_id, e=e)
 
         dl.append(self._set_pon_config("enabled", False))
-        return defer.gatherResults(dl, consumeErrors=True)
+        results = yield defer.gatherResults(dl, consumeErrors=True)
+        returnValue(results)
 
     @inlineCallbacks
     def reset(self):
@@ -909,12 +910,29 @@ class PonPort(AdtnPort):
 
         if onu is not None:
             try:
+                # Remove from xPON config    (TODO: Deprecate this by refactoring ONU add steps)
+                name = 'customer-{}-{}'.format(self.pon_id, onu_id)
+                self._v_ont_anis.pop(name, None)
+                self._ont_anis.pop(name, None)
+
+                tcont_name = 'tcont-{}-{}-data'.format(self.pon_id, onu_id)
+                self._tconts.pop(tcont_name, None)
+
+                gem_ids = {gem_port.gem_id for gem_port in onu.gem_ports}
+                for gem_id in gem_ids:
+                    gem_port_name = 'gem-{}-{}-{}'.format(self.pon_id, onu_id, gem_id)
+                    self._gem_ports.pop(gem_port_name, None)
+
+            except Exception as e:
+                self.log.exception('onu-delete-cleanup', serial_number=onu.serial_number, e=e)
+
+            try:
+                # Remove from hardware
+                onu.delete()
+
                 # And removal from VOLTHA adapter agent
                 if not hw_only:
                     self._parent.delete_child_device(onu.proxy_address)
-
-                # Remove from hardware
-                onu.delete()
 
             except Exception as e:
                 self.log.exception('onu-delete', serial_number=onu.serial_number, e=e)
@@ -927,7 +945,7 @@ class PonPort(AdtnPort):
                 self.log.debug('onu-remove', serial_number=onu.serial_number, e=e)
 
         # Remove from LOS list if needed
-        if onu.id in self._active_los_alarms:
+        if onu is not None and onu.id in self._active_los_alarms:
             self._active_los_alarms.remove(onu.id)
 
     def add_mcast_gem_port(self, mcast_gem, vlan):
@@ -951,10 +969,6 @@ class PonPort(AdtnPort):
     @property
     def tconts(self):
         return self._tconts
-
-    @property
-    def traffic_descriptors(self):
-        return self._traffic_descriptors
 
     @property
     def gem_ports(self):

@@ -150,7 +150,9 @@ class UniPort(object):
             # adapter_agent add_port also does an update of existing port
             self._handler.adapter_agent.add_port(self._handler.device_id,
                                                  self.get_port())
-        except Exception as e:
+        except KeyError:  # Expected exception during ONU disabling
+            pass
+        except Exception as e:  # Expected exception during ONU disabling
             self.log.exception('update-port', e=e)
 
     def get_port(self):

@@ -54,13 +54,14 @@ class AdtranRestClient(object):
     HTTP_NO_CONTENT = 204
     HTTP_RESET_CONTENT = 205
     HTTP_PARTIAL_CONTENT = 206
+    HTTP_NOT_FOUND = 404
 
     _valid_methods = {'GET', 'POST', 'PATCH', 'DELETE'}
     _valid_results = {'GET': [HTTP_OK, HTTP_NO_CONTENT],
                       'POST': [HTTP_OK, HTTP_CREATED, HTTP_NO_CONTENT],
                       'PUT': [HTTP_OK, HTTP_CREATED, HTTP_NO_CONTENT],
                       'PATCH': [HTTP_OK],
-                      'DELETE': [HTTP_OK, HTTP_ACCEPTED, HTTP_NO_CONTENT]
+                      'DELETE': [HTTP_OK, HTTP_ACCEPTED, HTTP_NO_CONTENT, HTTP_NOT_FOUND]
                       }
 
     for _method in _valid_methods:
@@ -162,7 +163,7 @@ class AdtranRestClient(object):
                 log.error(message)
             raise RestInvalidResponseCode(message, url, response.code)
 
-        if response.code == self.HTTP_NO_CONTENT:
+        if response.code in {self.HTTP_NO_CONTENT, self.HTTP_NOT_FOUND}:
             returnValue(None)
 
         else:

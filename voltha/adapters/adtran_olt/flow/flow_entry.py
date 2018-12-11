@@ -18,7 +18,7 @@ from enum import IntEnum
 from utility_evc import UtilityEVC
 import voltha.core.flow_decomposer as fd
 from voltha.core.flow_decomposer import *
-from voltha.protos.openflow_13_pb2 import OFPP_MAX, OFPP_CONTROLLER
+from voltha.protos.openflow_13_pb2 import OFPP_MAX, OFPP_CONTROLLER, OFPVID_PRESENT, OFPXMC_OPENFLOW_BASIC
 from twisted.internet.defer import returnValue, inlineCallbacks, gatherResults
 
 log = structlog.get_logger()
@@ -443,7 +443,7 @@ class FlowEntry(object):
                     self._logical_port = self.in_port
 
             elif field.type == VLAN_VID:
-                if field.vlan_vid >= ofp.OFPVID_PRESENT + 4095:
+                if field.vlan_vid >= OFPVID_PRESENT + 4095:
                     self.vlan_id = None             # pre-ONOS v1.13.5 or old EAPOL Rule
                 else:
                     self.vlan_id = field.vlan_vid & 0xfff
@@ -479,22 +479,23 @@ class FlowEntry(object):
                 self.udp_src = field.udp_src
 
             elif field.type == METADATA:
-                log.debug('*** field.type == METADATA', value=field.table_metadata)
+                if self._handler.is_nni_port(self.in_port):
+                    # Downstream flow
+                    log.debug('*** field.type == METADATA', value=field.table_metadata)
 
-                if 0xFFFFFFFF >= field.table_metadata > ofp.OFPVID_PRESENT + 4095:
-                    # Default flows for old-style controller flows
-                    self.inner_vid = None
+                    if 0xFFFFFFFF >= field.table_metadata > OFPVID_PRESENT + 4095:
+                        # Default flows for old-style controller flows
+                        self.inner_vid = None
 
-                elif field.table_metadata > 0xFFFFFFFF:
-                    # ONOS v1.13.5 or later. c-vid in upper 32-bits
-                    self.inner_vid = field.table_metadata >> 32
+                    elif field.table_metadata > 0xFFFFFFFF:
+                        # ONOS v1.13.5 or later. c-vid in upper 32-bits
+                        self.inner_vid = field.table_metadata >> 32
 
+                    log.debug('*** field.type == METADATA', value=field.table_metadata,
+                              inner_vid=self.inner_vid)
                 else:
-                    # Pre- ONOS v1.13.5
-                    self.inner_vid = field.table_metadata
-
-                log.debug('*** field.type == METADATA', value=field.table_metadata,
-                          inner_vid=self.inner_vid)
+                    # Upstream flow
+                    pass   # Not used upstream at this time
             else:
                 log.warn('unsupported-selection-field', type=field.type)
                 self._status_message = 'Unsupported field.type={}'.format(field.type)
@@ -519,7 +520,7 @@ class FlowEntry(object):
 
             elif act.type == SET_FIELD:
                 log.debug('*** action.type == SET_FIELD', value=act.set_field.field)
-                assert (act.set_field.field.oxm_class == ofp.OFPXMC_OPENFLOW_BASIC)
+                assert (act.set_field.field.oxm_class == OFPXMC_OPENFLOW_BASIC)
                 field = act.set_field.field.ofb_field
 
                 if field.type == VLAN_VID:

@@ -755,6 +755,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
                 exceptiontype = None
                 if pkt.type == FlowEntry.EtherType.EAPOL:
                     exceptiontype = 'eapol'
+                    ctag = self.utility_vlan
                 elif pkt.type == 2:
                     exceptiontype = 'igmp'
                 elif pkt.type == FlowEntry.EtherType.IPv4:
