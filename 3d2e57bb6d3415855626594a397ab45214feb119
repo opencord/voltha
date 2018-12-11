@@ -294,6 +294,24 @@
       "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7f670366_85124166",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 7
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-11T03:19:36Z",
+      "side": 1,
+      "message": "Typo above... Now how do you plan to achieve this.",
+      "parentUuid": "af8bdd14_2accc924",
+      "revId": "3d2e57bb6d3415855626594a397ab45214feb119",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
