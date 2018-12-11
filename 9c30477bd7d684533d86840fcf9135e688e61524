@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "ccda7c40_bbbf9bd8",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 723,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-11T15:49:05Z",
+      "side": 1,
+      "message": "I think there are 2 cases for the is_upstream()\n\nCase 1) Two flows for Q-in-Q tagging. The first flow has a real next table (\u003c64) that is handled by ingress hop(ONU). The second flow (referenced by first) may (or may not) also have a pseudo-table for the tech profile (\u003e64) and directed to egress (OLT) as you have done.\n\nCase 2) A single flow for Q tagging with a single output action. This may (or may not) also have a pseudo-table for tech profile (\u003e64) and should be split and sent to both ONU and OLT as before with the tech profile if present.\n\nCase 2 is not the AT\u0026T workflow and has not been a focus. But, there have been discussions about fixing the ctag solution and it would fall in this realm. You might not be able to test Case 2. But, we should code it to handle Case 2 with and without a tech profile.",
+      "parentUuid": "66e98254_b18c6ef4",
+      "range": {
+        "startLine": 723,
+        "startChar": 16,
+        "endLine": 723,
+        "endChar": 20
+      },
+      "revId": "9c30477bd7d684533d86840fcf9135e688e61524",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "95857c2b_d76805de",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 9
