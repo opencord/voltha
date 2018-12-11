@@ -42,12 +42,15 @@ class AdtranOnuAdapter(OnuAdapter):
                                                device_handler_class=AdtranOnuHandler,
                                                name='adtran_onu',
                                                vendor='ADTRAN, Inc.',
-                                               version='1.22',
+                                               version='1.23',
                                                device_type='adtran_onu',
                                                vendor_id='ADTN',
                                                accepts_add_remove_flow_updates=False),  # TODO: Support flow-mods
         # Customize OpenOMCI for Adtran ONUs
         self.adtran_omci = deepcopy(OpenOmciAgentDefaults)
+
+        from voltha.extensions.omci.database.mib_db_dict import MibDbVolatileDict
+        self.adtran_omci['mib-synchronizer']['database'] = MibDbVolatileDict
 
         self.adtran_omci['mib-synchronizer']['state-machine'] = AdtnMibSynchronizer
         self.adtran_omci['mib-synchronizer']['tasks']['get-mds'] = AdtnGetMdsTask

@@ -216,20 +216,18 @@ class AdtnPort(object):
 
             self.state = AdtnPort.State.STOPPED
 
-            self.sync_deferred = reactor.callLater(self.sync_tick,
-                                                   self.sync_hardware)
-
             self.deferred = self.finish_stop()
             yield self.deferred
 
         except Exception as e:
             self.log.exception('stop-failed', e=e)
-            raise
 
         returnValue('Stopped')
 
+    @inlineCallbacks
     def finish_stop(self):
         pass   # Add to your derived class if needed
+        returnValue(None)
 
     def restart(self):
         if self.state == AdtnPort.State.RUNNING or self.state == AdtnPort.State.STOPPED:

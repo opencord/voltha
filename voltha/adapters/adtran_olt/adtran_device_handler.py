@@ -873,6 +873,7 @@ class AdtranDeviceHandler(object):
         # NOTE: Override this in your derived class for any device startup completion
         return defer.succeed('NOP')
 
+    @inlineCallbacks
     def disable(self):
         """
         This is called when a previously enabled device needs to be disabled based on a NBI call.
@@ -894,7 +895,6 @@ class AdtranDeviceHandler(object):
 
         # Drop registration for ONU detection
         # self.adapter_agent.unregister_for_onu_detect_state(self.device.id)
-
         # Suspend any active healthchecks / pings
 
         h, self.heartbeat = self.heartbeat, None
@@ -933,23 +933,18 @@ class AdtranDeviceHandler(object):
         # Wait for completion
 
         self.startup = defer.gatherResults(dl, consumeErrors=True)
+        yield self.startup
 
-        def _drop_netconf():
-            return self.netconf_client.close() if \
-                self.netconf_client is not None else defer.succeed('NOP')
+        if self.netconf_client:
+            self.netconf_client.close()
 
-        def _null_clients():
-            self._netconf_client = None
-            self._rest_client = None
-
-        # Shutdown communications with OLT
-        self.startup.addCallbacks(_drop_netconf, _null_clients)
-        self.startup.addCallbacks(_null_clients, _null_clients)
+        self._netconf_client = None
+        self._rest_client = None
 
         device.reason = ''
         self.adapter_agent.update_device(device)
         self.log.info('disabled', device_id=device.id)
-        return self.startup
+        returnValue(None)
 
     @inlineCallbacks
     def reenable(self, done_deferred=None):
@@ -982,19 +977,8 @@ class AdtranDeviceHandler(object):
 
         # Reenable any previously configured southbound ports
         for port in self.southbound_ports.itervalues():
-            self.log.debug('reenable-checking-pon-port', pon_id=port.pon_id)
-
-            # TODO: Need to implement this now that XPON is deprecated
-            #gpon_info = self.get_xpon_info(port.pon_id)         # SEBA
-            gpon_info = None
-            if gpon_info is not None and \
-                gpon_info['channel-terminations'] is not None and \
-                len(gpon_info['channel-terminations']) > 0:
-
-                cterms = gpon_info['channel-terminations']
-                if any(term.get('enabled') for term in cterms.itervalues()):
-                    self.log.info('reenable', pon_id=port.pon_id)
-                    port.enabled = True
+            self.log.debug('reenable-pon-port', pon_id=port.pon_id)
+            port.enabled = True
 
         # Flows should not exist on re-enable. They are re-pushed
         if len(self._evcs):

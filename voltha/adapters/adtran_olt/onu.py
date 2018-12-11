@@ -396,7 +396,6 @@ class Onu(object):
 
     def stop(self):
         self._cancel_deferred()
-        self._sync_deferred = reactor.callLater(0, self._sync_hardware)
 
     def restart(self):
         if not self._valid:

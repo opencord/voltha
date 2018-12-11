@@ -268,8 +268,7 @@ class EVC(object):
             xml += '<enabled>{}</enabled>'.format('true' if self._enabled else 'false')
 
             if self._ce_vlan_preservation is not None:
-                xml += '<ce-vlan-preservation>{}</ce-vlan-preservation>'.\
-                    format('true' if self._ce_vlan_preservation else 'false')
+                xml += '<ce-vlan-preservation>{}</ce-vlan-preservation>'.format('false')
 
             if self._s_tag is not None:
                 xml += '<stag>{}</stag>'.format(self._s_tag)

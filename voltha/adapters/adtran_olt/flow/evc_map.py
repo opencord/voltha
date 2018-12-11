@@ -202,7 +202,7 @@ class EVCMap(object):
         return '</evc-map></evc-maps>'
 
     def get_evcmap_name(self, onu_id, gem_id):
-        return'{}.{}.{}.{}'.format(self.name, onu_id, self.pon_id, gem_id)
+        return'{}.{}.{}.{}'.format(self.name, self.pon_id, onu_id, gem_id)
 
     def _common_install_xml(self):
         xml = '<enabled>{}</enabled>'.format('true' if self._enabled else 'false')
