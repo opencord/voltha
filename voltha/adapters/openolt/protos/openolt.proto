@@ -260,6 +260,8 @@ message DeviceInfo {
     string model = 2;
     string hardware_version = 3;
     string firmware_version = 4;
+    string device_id = 16;
+    string device_serial_number = 17;
 
     // Total number of pon intf ports on the device
     fixed32 pon_ports = 12;
