@@ -73,6 +73,30 @@
     },
     {
       "key": {
+        "uuid": "8e384b13_13899012",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 723,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-12T08:34:00Z",
+      "side": 1,
+      "message": "Craig,\nI made some more changes according to your further explanations.Thanks",
+      "parentUuid": "ccda7c40_bbbf9bd8",
+      "range": {
+        "startLine": 723,
+        "startChar": 16,
+        "endLine": 723,
+        "endChar": 20
+      },
+      "revId": "9c30477bd7d684533d86840fcf9135e688e61524",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "95857c2b_d76805de",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 9
