@@ -30,8 +30,6 @@ create-venv: $(VENVDIR)/.built
 
 $(VENVDIR)/.built:
 	cd $(PROJ_DIR); make venv
-#	@virtualenv -p python2 $(VENVDIR)
-#	@virtualenv -p python2 --relocatable $(VENVDIR)
 
 .PHONY: requirements
 requirements: create-venv
