@@ -1,0 +1,280 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "082e8b6c_9d256877",
+        "filename": "cli/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 318,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "Change to --onu_registration_id_authentication",
+      "range": {
+        "startLine": 318,
+        "startChar": 8,
+        "endLine": 318,
+        "endChar": 19
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b7ee5569_d5afde2c",
+        "filename": "cli/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 320,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "This doesn\u0027t make sense to force auto-enable of OLT.",
+      "range": {
+        "startLine": 320,
+        "startChar": 8,
+        "endLine": 320,
+        "endChar": 19
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7d2dbffe_1b89787b",
+        "filename": "cli/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 348,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "Printing out devices during preprovision???",
+      "range": {
+        "startLine": 348,
+        "startChar": 8,
+        "endLine": 348,
+        "endChar": 12
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a68f7709_e760c0a3",
+        "filename": "cli/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 350,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "Should not auto enable OLT during preprovision",
+      "range": {
+        "startLine": 350,
+        "startChar": 12,
+        "endLine": 350,
+        "endChar": 16
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5c04edcd_b34a0304",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 144,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "This is OLT ofp_desc.",
+      "range": {
+        "startLine": 144,
+        "startChar": 0,
+        "endLine": 144,
+        "endChar": 52
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "01db00c9_18c98e91",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 398,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "Use non-null reg-id instead of a separate parameter",
+      "range": {
+        "startLine": 398,
+        "startChar": 8,
+        "endLine": 398,
+        "endChar": 26
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d2d0b160_57723fda",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 442,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "Same",
+      "range": {
+        "startLine": 442,
+        "startChar": 34,
+        "endLine": 442,
+        "endChar": 52
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f66e0131_6b89ce82",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 808,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "same",
+      "range": {
+        "startLine": 808,
+        "startChar": 12,
+        "endLine": 808,
+        "endChar": 30
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d68b3ce5_9ad8baa6",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 1072,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "same",
+      "range": {
+        "startLine": 1072,
+        "startChar": 30,
+        "endLine": 1072,
+        "endChar": 48
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fbb0c90e_1c46060d",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 179,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "auto-discovery is not need in indication.",
+      "range": {
+        "startLine": 179,
+        "startChar": 8,
+        "endLine": 179,
+        "endChar": 9
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "85cce4f7_cfb92315",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 225,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "Can be inferred by a non-null registration_id. Do not need two parameters",
+      "range": {
+        "startLine": 225,
+        "startChar": 4,
+        "endLine": 225,
+        "endChar": 8
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a3d397dc_1a890d7e",
+        "filename": "voltha/protos/openflow_13.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 1789,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T17:50:13Z",
+      "side": 1,
+      "message": "1) We should not report auto-discovery to ONOS\n2) This ofp_desc is used only for OLT. It is not used for ONU.",
+      "range": {
+        "startLine": 1789,
+        "startChar": 4,
+        "endLine": 1789,
+        "endChar": 8
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
