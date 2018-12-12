@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c8fb1a9e_a9df2776",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 725,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T15:51:39Z",
+      "side": 1,
+      "message": "I realize it is probably an unusual case. But, we could have a TechProfile with no meters defined. Can we handle this rather than asserting failure?",
+      "range": {
+        "startLine": 725,
+        "startChar": 20,
+        "endLine": 725,
+        "endChar": 29
+      },
+      "revId": "6aa1bb2ff71b2ea00ac6d649c47e4daff6ecc8df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "10940a29_063e43ea",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 788,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T15:51:39Z",
+      "side": 1,
+      "message": "This is logically correct. But, I notice there is significant overlap in behavior between the if-case above and this else-case. The only difference is the table_id/meters in the flow. Would it be possible to refactor and collapse into a common inner method to handle the cases with and without table_id/meter_id in common code.",
+      "range": {
+        "startLine": 788,
+        "startChar": 20,
+        "endLine": 788,
+        "endChar": 27
+      },
+      "revId": "6aa1bb2ff71b2ea00ac6d649c47e4daff6ecc8df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f2303c41_389b218e",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 844,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T15:51:39Z",
+      "side": 1,
+      "message": "Downstream flows need the tech profile table ID sent to OLT Adapter also. I don\u0027t know how this will be solved as the profile table is in a different flow.",
+      "range": {
+        "startLine": 844,
+        "startChar": 12,
+        "endLine": 844,
+        "endChar": 16
+      },
+      "revId": "6aa1bb2ff71b2ea00ac6d649c47e4daff6ecc8df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "481e1a14_7adc7308",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 922,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T15:51:39Z",
+      "side": 1,
+      "message": "This case is not handling passing table_id \u003e 64 down to adapter for downstream flows. Both transparent and non-transparent cases should probably have the conditionally assigned table/meter ids like what is commented out below.",
+      "range": {
+        "startLine": 922,
+        "startChar": 24,
+        "endLine": 922,
+        "endChar": 46
+      },
+      "revId": "6aa1bb2ff71b2ea00ac6d649c47e4daff6ecc8df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9e88d84b_c63426fa",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 973,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T15:51:39Z",
+      "side": 1,
+      "message": "Can you remove this extraneous whitespace?",
+      "range": {
+        "startLine": 973,
+        "startChar": 0,
+        "endLine": 973,
+        "endChar": 20
+      },
+      "revId": "6aa1bb2ff71b2ea00ac6d649c47e4daff6ecc8df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a73ac66e_82427a0d",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 1049,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-12T15:51:39Z",
+      "side": 1,
+      "message": "Can you remove this extraneous whitespace?",
+      "range": {
+        "startLine": 1049,
+        "startChar": 0,
+        "endLine": 1049,
+        "endChar": 24
+      },
+      "revId": "6aa1bb2ff71b2ea00ac6d649c47e4daff6ecc8df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
