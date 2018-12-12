@@ -392,8 +392,7 @@ class FlowEntry(object):
             # basic rules are:
             #
             # 1 - Port numbers in increasing order
-            ports = [self.in_port, self.output]
-            ports.sort()
+            ports = sorted([self.in_port, self.output])
             assert len(ports) == 2, 'Invalid port count: {}'.format(len(ports))
 
             # 3 - The outer VID

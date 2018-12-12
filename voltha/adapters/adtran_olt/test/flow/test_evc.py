@@ -1,5 +1,5 @@
-from nose.twistedtools import deferred
 from collections import namedtuple
+import pytest_twisted
 from voltha.adapters.adtran_olt.flow.evc import EVC
 from mock import MagicMock
 from twisted.internet import reactor, defer
@@ -12,7 +12,7 @@ def test_evc_create():
     assert str(evc) == "EVC-VOLTHA-1: MEN: [], S-Tag: None"
 
 
-@deferred()
+@pytest_twisted.inlineCallbacks
 def test_evc_do_simple_install():
     flow = MagicMock()
     flow.flow_id = 1
@@ -42,10 +42,10 @@ def test_evc_do_simple_install():
         flow.handler.netconf_client.edit_config.assert_called_with(xml)
         assert evc.installed
     d.addCallback(callback)
-    return d
+    yield d
 
 
-@deferred()
+@pytest_twisted.inlineCallbacks
 def test_evc_do_remove():
     def get_evc_response():
         d = defer.Deferred()
@@ -74,4 +74,4 @@ def test_evc_do_remove():
         client.get.assert_called_with(get_xml)
         client.edit_config.assert_called_with(delete_xml)
     d.addCallback(callback)
-    return d
+    yield d
