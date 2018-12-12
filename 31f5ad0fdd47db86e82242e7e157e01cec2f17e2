@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9af8677b_4d92708d",
+        "filename": "tests/atests/common/testCaseUtils.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-12-12T18:27:38Z",
+      "side": 1,
+      "message": "All three print lines were removed for voltha_cli and the one was also removed for onos_cli",
+      "parentUuid": "3fed80fd_c5329dd4",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0a7f1212_ddafb5eb",
         "filename": "tests/atests/common/testCaseUtils.py",
         "patchSetId": 1
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "8912abe6_332209f7",
+        "filename": "tests/atests/common/testCaseUtils.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-12-12T18:27:38Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0a7f1212_ddafb5eb",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ce17fa2b_9347139b",
         "filename": "tests/atests/common/testCaseUtils.py",
         "patchSetId": 1
@@ -47,6 +83,24 @@
       "writtenOn": "2018-12-10T15:47:08Z",
       "side": 1,
       "message": "same comment as above!",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ce4872d6_bea10beb",
+        "filename": "tests/atests/common/testCaseUtils.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-12-12T18:27:38Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ce17fa2b_9347139b",
       "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
