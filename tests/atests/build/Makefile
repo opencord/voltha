@@ -88,7 +88,7 @@ $(M)/kafka-running: | $(M)/kafka
 	touch $@
 
 $(M)/onos: | $(M)/kafka-running
-	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/onos.yaml -f configs/seba-ponsim.yaml --set images.onos.repository=voltha-onos,images.onos.tag=latest,images.onos.pullPolicy=Never
+	cd $(HOME)/cord/helm-charts; helm upgrade --install onos onos -f configs/seba-ponsim.yaml --set images.onos.repository=voltha-onos,images.onos.tag=latest,images.onos.pullPolicy=Never
 	touch $@
 
 $(M)/voltha: | $(M)/kafka-running $(M)/etcd-operator-ready $(M)/onos
