@@ -18,7 +18,6 @@ from datetime import datetime, timedelta
 from transitions import Machine
 from twisted.internet import reactor
 from voltha.extensions.omci.omci_frame import OmciFrame
-from voltha.extensions.omci.database.mib_db_api import MDS_KEY
 from voltha.extensions.omci.omci_defs import EntityOperations, ReasonCodes, \
     AttributeAccess
 from voltha.extensions.omci.omci_cc import OmciCCRxEvents, OMCI_CC, TX_REQUEST_KEY, \
@@ -50,30 +49,29 @@ class MibSynchronizer(object):
         {'trigger': 'examine_mds', 'source': 'starting', 'dest': 'examining_mds'},
 
         {'trigger': 'success', 'source': 'uploading', 'dest': 'in_sync'},
+        {'trigger': 'timeout', 'source': 'uploading', 'dest': 'starting'},
 
         {'trigger': 'success', 'source': 'examining_mds', 'dest': 'in_sync'},
-        {'trigger': 'mismatch', 'source': 'examining_mds', 'dest': 'resynchronizing'},
+        {'trigger': 'timeout', 'source': 'examining_mds', 'dest': 'starting'},
+        {'trigger': 'mismatch', 'source': 'examining_mds', 'dest': 'uploading'},
 
         {'trigger': 'audit_mib', 'source': 'in_sync', 'dest': 'auditing'},
-
-        {'trigger': 'success', 'source': 'out_of_sync', 'dest': 'in_sync'},
         {'trigger': 'audit_mib', 'source': 'out_of_sync', 'dest': 'auditing'},
 
         {'trigger': 'success', 'source': 'auditing', 'dest': 'in_sync'},
+        {'trigger': 'timeout', 'source': 'auditing', 'dest': 'starting'},
         {'trigger': 'mismatch', 'source': 'auditing', 'dest': 'resynchronizing'},
         {'trigger': 'force_resync', 'source': 'auditing', 'dest': 'resynchronizing'},
 
         {'trigger': 'success', 'source': 'resynchronizing', 'dest': 'in_sync'},
         {'trigger': 'diffs_found', 'source': 'resynchronizing', 'dest': 'out_of_sync'},
-
-        # Do wildcard 'timeout' trigger that sends us back to start
-        {'trigger': 'timeout', 'source': '*', 'dest': 'starting'},
+        {'trigger': 'timeout', 'source': 'resynchronizing', 'dest': 'out_of_sync'},
 
         # Do wildcard 'stop' trigger last so it covers all previous states
         {'trigger': 'stop', 'source': '*', 'dest': 'disabled'},
     ]
     DEFAULT_TIMEOUT_RETRY = 5      # Seconds to delay after task failure/timeout
-    DEFAULT_AUDIT_DELAY = 60       # Periodic tick to audit the MIB Data Sync
+    DEFAULT_AUDIT_DELAY = 15       # Periodic tick to audit the MIB Data Sync
     DEFAULT_RESYNC_DELAY = 300     # Periodically force a resync
 
     def __init__(self, agent, device_id, mib_sync_tasks, db,
@@ -117,7 +115,6 @@ class MibSynchronizer(object):
         self._get_mds_task = mib_sync_tasks['get-mds']
         self._audit_task = mib_sync_tasks['mib-audit']
         self._resync_task = mib_sync_tasks['mib-resync']
-        self._reconcile_task = mib_sync_tasks['mib-reconcile']
         self._advertise_events = advertise_events
 
         self._deferred = None
@@ -126,13 +123,10 @@ class MibSynchronizer(object):
         self._mib_data_sync = 0
         self._last_mib_db_sync_value = None
         self._device_in_db = False
-        self._next_resync = None
 
         self._on_olt_only_diffs = None
         self._on_onu_only_diffs = None
         self._attr_diffs = None
-        self._audited_olt_db = None
-        self._audited_onu_db = None
 
         self._event_bus = EventBusClient()
         self._omci_cc_subscriptions = {               # RxEvent.enum -> Subscription Object
@@ -304,7 +298,7 @@ class MibSynchronizer(object):
 
     def on_enter_starting(self):
         """
-        Determine ONU status and start/re-start MIB Synchronization tasks
+        Determine ONU status and start MIB Synchronization tasks
         """
         self._device = self._agent.get_device(self._device_id)
         self.advertise(OpenOmciEventType.state_change, self.state)
@@ -336,13 +330,6 @@ class MibSynchronizer(object):
         except Exception as e:
             self.log.exception('dev-subscription-setup', e=e)
 
-        # Clear any previous audit results
-        self._on_olt_only_diffs = None
-        self._on_onu_only_diffs = None
-        self._attr_diffs = None
-        self._audited_olt_db = None
-        self._audited_onu_db = None
-
         # Determine if this ONU has ever synchronized
         if self.is_new_onu:
             # Start full MIB upload
@@ -354,14 +341,13 @@ class MibSynchronizer(object):
 
     def on_enter_uploading(self):
         """
-        Begin full MIB data upload, starting with a MIB RESET
+        Begin full MIB data sync, starting with a MIB RESET
         """
         self.advertise(OpenOmciEventType.state_change, self.state)
 
         def success(results):
             self.log.debug('mib-upload-success', results=results)
             self._current_task = None
-            self._next_resync = datetime.utcnow() + timedelta(seconds=self._resync_delay)
             self._deferred = reactor.callLater(0, self.success)
 
         def failure(reason):
@@ -390,7 +376,6 @@ class MibSynchronizer(object):
 
             # Examine MDS value
             if self.mib_data_sync == onu_mds_value:
-                self._next_resync = datetime.utcnow() + timedelta(seconds=self._resync_delay)
                 self._deferred = reactor.callLater(0, self.success)
             else:
                 self._deferred = reactor.callLater(0, self.mismatch)
@@ -408,7 +393,7 @@ class MibSynchronizer(object):
 
     def on_enter_in_sync(self):
         """
-        The OLT/OpenOMCI MIB Database is in sync with the ONU MIB Database.
+        Schedule a tick to occur to in the future to request an audit
         """
         self.advertise(OpenOmciEventType.state_change, self.state)
         self.last_mib_db_sync = datetime.utcnow()
@@ -424,59 +409,75 @@ class MibSynchronizer(object):
            o the MIB_Data_Sync values are not equal, or
            o the MIBs were compared and differences were found.
 
-        Schedule a task to reconcile the differences
+        If all of the *_diff properties are allNone, then we are here after initial
+        startup and MDS did not match, or the MIB Audit/Resync state failed.
+
+        In the second case, one or more of our *_diff properties will be non-None.
+        If that is true, we need to update the ONU accordingly.
+
+        Schedule a tick to occur to in the future to request an audit
         """
         self.advertise(OpenOmciEventType.state_change, self.state)
+        self._device.mib_db_in_sync = False
 
-        # We are only out-of-sync if there were differences.  If here due to MDS
-        # value differences, still run the reconcile so we up date the ONU's MDS
-        # value to match ours.
+        if all(diff is None for diff in [self._on_olt_only_diffs,
+                                         self._on_onu_only_diffs,
+                                         self._attr_diffs]):
+            # Retry the Audit process
+            self._deferred = reactor.callLater(1, self.audit_mib)
 
-        self._device.mib_db_in_sync = self._attr_diffs is None and \
-                                      self._on_onu_only_diffs is None and \
-                                      self._on_olt_only_diffs is None
+        else:
+            step = 'Nothing'
+            class_id = 0
+            instance_id = 0
+            attribute = ''
 
-        def success(onu_mds_value):
-            self.log.debug('examine-mds-success', mds_value=onu_mds_value)
-            self._current_task = None
-            self._next_resync = datetime.utcnow() + timedelta(seconds=self._resync_delay)
-            self._deferred = reactor.callLater(0, self.success)
+            try:
+                # Need to update the ONU accordingly
+                if self._attr_diffs is not None:
+                    step = 'attribute-update'
+                    pass    # TODO: Perform the 'set' commands needed
 
-        def failure(reason):
-            self.log.info('examine-mds-failure', reason=reason)
-            self._current_task = None
-            self._deferred = reactor.callLater(self._timeout_delay, self.timeout)
+                if self._on_onu_only_diffs is not None:
+                    step = 'onu-cleanup'
+                    #
+                    # TODO: May want to watch for ONU only attributes
+                    #    It is possible that if they are the 'default' value or
+                    #    are not used if another attribute is set a specific way.
+                    #
+                    #    For instance, no one may set the gal_loopback_configuration
+                    #    in the GEM Interworking Termination point since its default
+                    #    values is '0' disable, but when we audit, the ONU will report zero.
+                    #
+                    #    A good way to perhaps fix this is to update our database with the
+                    #    default.  Or perhaps set all defaults in the database in the first
+                    #    place when we do the initial create/set.
+                    #
+                    pass  # TODO: Perform 'delete' commands as needed, see 'default' note above
 
-        diff_collection = {
-            'onu-only': self._on_onu_only_diffs,
-            'olt-only': self._on_olt_only_diffs,
-            'attributes': self._attr_diffs,
-            'olt-db': self._audited_olt_db,
-            'onu-db': self._audited_onu_db
-        }
-        # Clear out results since reconciliation task will be handling them
-        self._on_olt_only_diffs = None
-        self._on_onu_only_diffs = None
-        self._attr_diffs = None
-        self._audited_olt_db = None
-        self._audited_onu_db = None
+                if self._on_olt_only_diffs is not None:
+                    step = 'olt-push'
+                    pass    # TODO: Perform 'create' commands as needed
 
-        self._current_task = self._reconcile_task(self._agent, self._device_id, diff_collection)
-        self._task_deferred = self._device.task_runner.queue_task(self._current_task)
-        self._task_deferred.addCallbacks(success, failure)
+                self._deferred = reactor.callLater(1, self.audit_mib)
+
+            except Exception as e:
+                self.log.exception('onu-update', e=e, step=step, class_id=class_id,
+                                   instance_id=instance_id, attribute=attribute)
+                # Retry the Audit process
+                self._deferred = reactor.callLater(1, self.audit_mib)
 
     def on_enter_auditing(self):
         """
         Perform a MIB Audit.  If our last MIB resync was too long in the
         past, perform a resynchronization anyway
         """
+        next_resync = self.last_mib_db_sync + timedelta(seconds=self._resync_delay)\
+            if self.last_mib_db_sync is not None else datetime.utcnow()
+
         self.advertise(OpenOmciEventType.state_change, self.state)
 
-        if self._next_resync is None:
-            self.log.error('next-forced-resync-error', msg='Next Resync should always be valid at this point')
-            self._deferred = reactor.callLater(self._timeout_delay, self.timeout)
-
-        if datetime.utcnow() >= self._next_resync:
+        if datetime.utcnow() >= next_resync:
             self._deferred = reactor.callLater(0, self.force_resync)
         else:
             def success(onu_mds_value):
@@ -513,22 +514,25 @@ class MibSynchronizer(object):
             on_olt_only = results.get('on-olt-only')
             on_onu_only = results.get('on-onu-only')
             attr_diffs = results.get('attr-diffs')
-            olt_db = results.get('olt-db')
-            onu_db = results.get('onu-db')
 
             self._current_task = None
             self._on_olt_only_diffs = on_olt_only if on_olt_only and len(on_olt_only) else None
             self._on_onu_only_diffs = on_onu_only if on_onu_only and len(on_onu_only) else None
             self._attr_diffs = attr_diffs if attr_diffs and len(attr_diffs) else None
-            self._audited_olt_db = olt_db
-            self._audited_onu_db = onu_db
 
-            mds_equal = self.mib_data_sync == self._audited_onu_db[MDS_KEY]
+            if all(diff is None for diff in [self._on_olt_only_diffs,
+                                             self._on_onu_only_diffs,
+                                             self._attr_diffs]):
+                # TODO: If here, do we need to make sure OpenOMCI mib_data_sync matches
+                #       the ONU.  Remember we compared against an ONU snapshot, it may
+                #       be different now.  Best thing to do is perhaps set it to our
+                #       MDS value if different. Also remember that setting the MDS on
+                #       the ONU to 'n' is a set command and it will be 'n+1' after the
+                #       set.
+                #
+                # TODO: Also look into attributes covered by AVC and treat appropriately
+                #       since may have missed the AVC
 
-            if mds_equal and all(diff is None for diff in [self._on_olt_only_diffs,
-                                                           self._on_onu_only_diffs,
-                                                           self._attr_diffs]):
-                self._next_resync = datetime.utcnow() + timedelta(seconds=self._resync_delay)
                 self._deferred = reactor.callLater(0, self.success)
             else:
                 self._deferred = reactor.callLater(0, self.diffs_found)
@@ -536,6 +540,9 @@ class MibSynchronizer(object):
         def failure(reason):
             self.log.info('resync-failure', reason=reason)
             self._current_task = None
+            self._on_olt_only_diffs = None
+            self._on_onu_only_diffs = None
+            self._attr_diffs = None
             self._deferred = reactor.callLater(self._timeout_delay, self.timeout)
 
         self._current_task = self._resync_task(self._agent, self._device_id)
@@ -593,29 +600,29 @@ class MibSynchronizer(object):
                 if self.state == 'disabled':
                     self.log.error('rx-in-invalid-state', state=self.state)
 
-                # Inspect the notification
-                omci_msg = notification.fields['omci_message'].fields
-                class_id = omci_msg['entity_class']
-                instance_id = omci_msg['entity_id']
-                data = omci_msg['data']
-                attributes = [data.keys()]
+                elif self.state != 'uploading':
+                    # Inspect the notification
+                    omci_msg = notification.fields['omci_message'].fields
+                    class_id = omci_msg['entity_class']
+                    instance_id = omci_msg['entity_id']
+                    data = omci_msg['data']
+                    attributes = [data.keys()]
 
-                # Look up ME Instance in Database. Not-found can occur if a MIB
-                # reset has occurred
-                info = self._database.query(self.device_id, class_id, instance_id, attributes)
-                # TODO: Add old/new info to log message
-                self.log.debug('avc-change', class_id=class_id, instance_id=instance_id)
+                    # Look up ME Instance in Database. Not-found can occur if a MIB
+                    # reset has occurred
+                    info = self._database.query(self.device_id, class_id, instance_id, attributes)
+                    # TODO: Add old/new info to log message
+                    self.log.debug('avc-change', class_id=class_id, instance_id=instance_id)
 
-                # Save the changed data to the MIB.
-                self._database.set(self.device_id, class_id, instance_id, data)
+                    # Save the changed data to the MIB.
+                    changed = self._database.set(self.device_id, class_id, instance_id, data)
 
-                # Autonomous creation and deletion of managed entities do not
-                # result in an increment of the MIB data sync value. However,
-                # AVC's in response to a change by the Operator do incur an
-                # increment of the MIB Data Sync.  If here during uploading,
-                # we issued a MIB-Reset which may generate AVC.  (TODO: Focus testing during hardening)
-                if self.state == 'uploading':
-                    self.increment_mib_data_sync()
+                    if changed:
+                        # Autonomous creation and deletion of managed entities do not
+                        # result in an increment of the MIB data sync value. However,
+                        # AVC's in response to a change by the Operator do incur an
+                        # increment of the MIB Data Sync
+                        pass
 
             except KeyError:
                 pass            # NOP
@@ -842,11 +849,11 @@ class MibSynchronizer(object):
                     entity_id = omci_msg['entity_id']
                     attributes = {k: v for k, v in omci_msg['data'].items()}
 
-                    # Save to the database (Do not save 'sets' of the mib-data-sync however)
-                    if class_id != OntData.class_id:
-                        modified = self._database.set(self._device_id, class_id, entity_id, attributes)
-                        if modified:
-                            self.increment_mib_data_sync()
+                    # Save to the database
+                    modified = self._database.set(self._device_id, class_id, entity_id, attributes)
+
+                    if modified:
+                        self.increment_mib_data_sync()
 
             except KeyError as _e:
                 pass            # NOP
@@ -917,18 +924,3 @@ class MibSynchronizer(object):
         if isinstance(attributes, dict) and len(attributes) and\
                 self.query_mib(class_id, entity_id) is not None:
             self._database.set(self._device_id, class_id, entity_id, attributes)
-
-    def mib_delete(self, class_id, entity_id):
-        """
-        Delete an existing ME Class instance
-
-        This method is primarily used by other state machines to delete an ME
-        from the MIB database
-
-        :param class_id: (int) ME Class ID
-        :param entity_id: (int) ME Class entity ID
-
-        :raises KeyError: If device does not exist
-        :raises DatabaseStateError: If the database is not enabled
-        """
-        self._database.delete(self._device_id, class_id, entity_id)

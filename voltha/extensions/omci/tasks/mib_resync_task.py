@@ -19,10 +19,9 @@ from twisted.internet import reactor
 from common.utils.asleep import asleep
 from voltha.extensions.omci.database.mib_db_dict import *
 from voltha.extensions.omci.omci_entities import OntData
-from voltha.extensions.omci.omci_defs import AttributeAccess, EntityOperations
-
+from voltha.extensions.omci.omci_defs import AttributeAccess
 AA = AttributeAccess
-OP = EntityOperations
+
 
 class MibCopyException(Exception):
     pass
@@ -60,7 +59,7 @@ class MibResyncTask(Task):
         """
         Class initialization
 
-        :param omci_agent: (OpenOMCIAgent) OMCI Adapter agent
+        :param omci_agent: (OmciAdapterAgent) OMCI Adapter agent
         :param device_id: (str) ONU Device ID
         """
         super(MibResyncTask, self).__init__(MibResyncTask.name,
@@ -145,17 +144,14 @@ class MibResyncTask(Task):
                     self.deferred.errback(failure.Failure(e))
                 else:
                     # Compare the databases
-                    active_copy = self._db_active.query(self.device_id)
                     on_olt_only, on_onu_only, attr_diffs = \
-                        self.compare_mibs(db_copy, active_copy)
+                        self.compare_mibs(db_copy, self._db_active.query(self.device_id))
 
                     self.deferred.callback(
                             {
                                 'on-olt-only': on_olt_only if len(on_olt_only) else None,
                                 'on-onu-only': on_onu_only if len(on_onu_only) else None,
-                                'attr-diffs': attr_diffs if len(attr_diffs) else None,
-                                'olt-db': db_copy,
-                                'onu-db': active_copy
+                                'attr-diffs': attr_diffs if len(attr_diffs) else None
                             })
 
         except Exception as e:
@@ -257,13 +253,8 @@ class MibResyncTask(Task):
                     # Filter out the 'mib_data_sync' from the database. We save that at
                     # the device level and do not want it showing up during a re-sync
                     # during data comparison
-                    from binascii import hexlify
-                    if class_id == OntData.class_id:
-                        break
 
-                    # The T&W ONU reports an ME with class ID 0 but only on audit. Perhaps others do as well.
-                    if class_id == 0 or class_id > 0xFFFF:
-                        self.log.warn('invalid-class-id', class_id=class_id)
+                    if class_id == OntData.class_id:
                         break
 
                     attributes = {k: v for k, v in omci_msg['object_data'].items()}
@@ -294,34 +285,21 @@ class MibResyncTask(Task):
 
         :param db_copy: (dict) OpenOMCI's copy of the database
         :param db_active: (dict) ONU's database snapshot
-        :return: (dict), (dict), (list)  Differences
+        :return: (dict), (dict), dict()  Differences
         """
         self.strobe_watchdog()
-        me_map = self.omci_agent.get_device(self.device_id).me_map
 
         # Class & Entities only in local copy (OpenOMCI)
-        on_olt_temp = self.get_lhs_only_dict(db_copy, db_active)
-
-        # Remove any entries that are not reported during an upload (but could
-        # be in our database copy. Retain undecodable class IDs.
-        on_olt_only = [(cid, eid) for cid, eid in on_olt_temp
-                       if cid not in me_map or not me_map[cid].hidden]
-
-        # Further reduce the on_olt_only MEs reported in an audit to not
-        # include missed MEs that are ONU created. Not all ONUs report MEs
-        # that are ONU created unless we are doing the initial MIB upload.
-        # Adtran does report them, T&W may not as well as a few others
-        on_olt_only = [(cid, eid) for cid, eid in on_olt_only if cid in me_map and
-                       (OP.Create in me_map[cid].mandatory_operations or
-                        OP.Create in me_map[cid].optional_operations)]
+        on_olt_only = self.get_lsh_only_dict(db_copy, db_active)
 
         # Class & Entities only on remote (ONU)
-        on_onu_only = self.get_lhs_only_dict(db_active, db_copy)
+        on_onu_only = self.get_lsh_only_dict(db_active, db_copy)
 
         # Class & Entities on both local & remote, but one or more attributes
         # are different on the ONU.  This is the value that the local (OpenOMCI)
         # thinks should be on the remote (ONU)
 
+        me_map = self.omci_agent.get_device(self.device_id).me_map
         attr_diffs = self.get_attribute_diffs(db_copy, db_active, me_map)
 
         # TODO: Note that certain MEs are excluded from the MIB upload.  In particular,
@@ -332,7 +310,7 @@ class MibResyncTask(Task):
 
         return on_olt_only, on_onu_only, attr_diffs
 
-    def get_lhs_only_dict(self, lhs, rhs):
+    def get_lsh_only_dict(self, lhs, rhs):
         """
         Compare two MIB database dictionaries and return the ME Class ID and
         instances that are unique to the lhs dictionary. Both parameters
@@ -398,7 +376,7 @@ class MibResyncTask(Task):
             # Weed out read-only attributes. Attributes on onu may be read-only. These
             # will only show up it the OpenOMCI (OLT-side) database if it changed and
             # an AVC Notification was sourced by the ONU
-            # TODO: These class IDs could be calculated once at ONU startup (at device add)
+            # TODO: These could be calculated once at ONU startup (device add)
             if cls_id in me_map:
                 ro_attrs = {attr.field.name for attr in me_map[cls_id].attributes
                             if attr.access == ro_set}

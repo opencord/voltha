@@ -88,20 +88,15 @@ class GetMdsTask(Task):
 
             omci_msg = results.fields['omci_message'].fields
             status = omci_msg['success_code']
-
-            # Note: Currently the data reported by the Scapy decode is 16-bits since we need
-            #       the data field that large in order to support MIB and Alarm Upload Next
-            #       commands.  Select only the first 8-bits since that is the size of the MIB
-            #       Data Sync attribute
-            mds = (omci_msg['data']['mib_data_sync'] >> 8) & 0xFF \
-                if 'data' in omci_msg and 'mib_data_sync' in omci_msg['data'] else -1
-
-            self.log.debug('ont-data-mds', status=status, mib_data_sync=mds)
+            self.log.debug('ont-data-mds', status=status,
+                           mib_data_sync=omci_msg['data']['mib_data_sync']
+                           if 'data' in omci_msg and 'mib_data_sync' in omci_msg['data']
+                           else None)
 
             assert status == RC.Success, 'Unexpected Response Status: {}'.format(status)
 
             # Successful if here
-            self.deferred.callback(mds)
+            self.deferred.callback(omci_msg['data']['mib_data_sync'])
 
         except TimeoutError as e:
             self.log.warn('get-mds-timeout', e=e)

@@ -764,7 +764,7 @@ class MibDbExternal(MibDbApi):
 
             except KeyError:
                 # Here if the class-id does not yet exist in the database
-                self.log.debug("adding-key-not-found", class_id=class_id)
+                self.log.info("adding-key-not-found", class_id=class_id)
                 return self._add_new_class(device_id, class_id, instance_id,
                                            attributes)
             finally:
@@ -837,7 +837,7 @@ class MibDbExternal(MibDbApi):
             diff = datetime.utcnow() - start_time
             # NOTE: Change to 'debug' when checked in, manually change to 'info'
             #       for development testing.
-            self.log.debug('db-delete-time', milliseconds=diff.microseconds/1000)
+            self.log.info('db-delete-time', milliseconds=diff.microseconds/1000)
             self._statistics['delete'].increment(diff.microseconds/1000)
 
     def query(self, device_id, class_id=None, instance_id=None, attributes=None):
@@ -920,8 +920,8 @@ class MibDbExternal(MibDbApi):
                 diff = end_time.utcnow() - start_time
                 # NOTE: Change to 'debug' when checked in, manually change to 'info'
                 #       for development testing.
-                self.log.debug('db-get-time', milliseconds=diff.microseconds/1000, class_id=class_id,
-                               instance_id=instance_id)
+                self.log.info('db-get-time', milliseconds=diff.microseconds/1000, class_id=class_id,
+                              instance_id=instance_id)
                 self._statistics['get'].increment(diff.microseconds/1000)
 
     def _instance_to_dict(self, device_id, class_id, instance):
