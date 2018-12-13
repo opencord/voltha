@@ -36,7 +36,6 @@ class OpenOltResourceMgr(object):
         self.host_and_port = host_and_port
         self.extra_args = extra_args
         self.device_info = device_info
-        self.max_uni_id_per_onu = 0 #OpenOltPlatform.MAX_UNIS_PER_ONU, Uncomment or override to make default multi-uni
         self.args = registry('main').get_args()
 
         # KV store's IP Address and PORT
@@ -122,7 +121,13 @@ class OpenOltResourceMgr(object):
         self.assert_pon_id_limit(pon_intf_id)
         self.resource_mgrs[pon_intf_id].assert_resource_limits(onu_id, PONResourceManager.ONU_ID)
 
+    @property
+    def max_uni_id_per_onu(self):
+        return 0 #OpenOltPlatform.MAX_UNIS_PER_ONU-1, zero-based indexing Uncomment or override to make default multi-uni
+
     def assert_uni_id_limit(self, pon_intf_id, onu_id, uni_id):
+        self.log.error('assert_uni_id_limit', max_uni_id_per_onu=self.max_uni_id_per_onu)
+
         self.assert_onu_id_limit(pon_intf_id, onu_id)
         self.resource_mgrs[pon_intf_id].assert_resource_limits(uni_id, PONResourceManager.UNI_ID)
 
@@ -382,7 +387,9 @@ class OpenOltResourceMgr(object):
                       flow_id_start_idx=flow_id_start,
                       flow_id_end_idx=flow_id_end,
                       flow_id_shared_pool_id=flow_id_shared_pool_id,
-                      intf_ids=arange.intf_ids)
+                      intf_ids=arange.intf_ids,
+                      uni_id_start_idx=0,
+                      uni_id_end_idx=self.max_uni_id_per_onu)
 
         resource_mgr.init_default_pon_resource_ranges(
             onu_id_start_idx=onu_id_start,
