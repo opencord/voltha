@@ -234,14 +234,13 @@ class MibDbVolatileDict(MibDbApi):
         try:
             device_db = self._data[device_id]
             class_db = device_db.get(class_id)
-            created = False
 
             if class_db is None:
-                device_db[class_id] = {CLASS_ID_KEY: class_id}
-
+                device_db[class_id] = {
+                    CLASS_ID_KEY: class_id
+                }
                 class_db = device_db[class_id]
                 self._modified = now
-                created = True
 
             instance_db = class_db.get(instance_id)
             if instance_db is None:
@@ -253,7 +252,6 @@ class MibDbVolatileDict(MibDbApi):
                 }
                 instance_db = class_db[instance_id]
                 self._modified = now
-                created = True
 
             changed = False
 
@@ -292,7 +290,7 @@ class MibDbVolatileDict(MibDbApi):
                     if ATTRIBUTES_KEY in instance_db else None
 
                 assert db_value is None or isinstance(value, type(db_value)), \
-                    "New value type for attribute '{}' type is changing from '{}' to '{}'".\
+                    "New value for attribute '{}' type is changing from '{}' to '{}'".\
                     format(attribute, type(db_value), type(value))
 
                 if db_value is None or db_value != value:
@@ -303,11 +301,10 @@ class MibDbVolatileDict(MibDbApi):
                 instance_db[MODIFIED_KEY] = now
                 self._modified = now
 
-            return changed or created
+            return changed
 
         except Exception as e:
-            self.log.error('set-failure', e, class_id=class_id,
-                           instance_id=instance_id, attributes=attributes)
+            self.log.error('set-failure', e=e)
             raise
 
     def delete(self, device_id, class_id, instance_id):
