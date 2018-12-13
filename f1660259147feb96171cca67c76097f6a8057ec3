@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9cf86c61_55e4ae9a",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 126,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-13T16:33:54Z",
+      "side": 1,
+      "message": "Why is this 0? Shouldn\u0027t the default be at least 1 as we have at least 1 ONU.",
+      "revId": "f1660259147feb96171cca67c76097f6a8057ec3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
