@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "b8fe0524_0936203a",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-13T03:34:19Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "77da4767_dce21a11",
+      "range": {
+        "startLine": 35,
+        "startChar": 0,
+        "endLine": 35,
+        "endChar": 9
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f8c52c4d_d77f620b",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
@@ -36,6 +60,30 @@
       "writtenOn": "2018-12-11T17:11:38Z",
       "side": 1,
       "message": "Can this be removed?",
+      "range": {
+        "startLine": 381,
+        "startChar": 28,
+        "endLine": 381,
+        "endChar": 47
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3bc80ebb_a7de460c",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 381,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-13T03:34:19Z",
+      "side": 1,
+      "message": "ok",
+      "parentUuid": "f8c52c4d_d77f620b",
       "range": {
         "startLine": 381,
         "startChar": 28,
@@ -94,6 +142,30 @@
     },
     {
       "key": {
+        "uuid": "5432ea76_f9420822",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 535,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-13T03:34:19Z",
+      "side": 1,
+      "message": "Ok, let me clarify",
+      "parentUuid": "e611e1b3_b2d1c63f",
+      "range": {
+        "startLine": 535,
+        "startChar": 57,
+        "endLine": 535,
+        "endChar": 58
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f9e6e534_1c644de9",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
@@ -140,6 +212,30 @@
     },
     {
       "key": {
+        "uuid": "445b7610_fd9aa1d7",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 721,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-13T03:34:19Z",
+      "side": 1,
+      "message": "ok",
+      "parentUuid": "693312fa_5683a36d",
+      "range": {
+        "startLine": 721,
+        "startChar": 36,
+        "endLine": 721,
+        "endChar": 48
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1ebc593e_667ffa64",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 2
@@ -151,6 +247,30 @@
       "writtenOn": "2018-12-11T17:11:38Z",
       "side": 1,
       "message": "Please confirm that we don\u0027t have multiple actions with the same classifier/gem that might overlap with the hashing for flow_store_cookie.",
+      "range": {
+        "startLine": 1004,
+        "startChar": 43,
+        "endLine": 1004,
+        "endChar": 51
+      },
+      "revId": "dc8d8a850b15eeccd7c27b095f107a069e4374a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bf7b2a0f_24379684",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 1004,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-13T03:34:19Z",
+      "side": 1,
+      "message": "No, they dont overlap, at least in all the scenarios I have envisaged.",
+      "parentUuid": "1ebc593e_667ffa64",
       "range": {
         "startLine": 1004,
         "startChar": 43,
