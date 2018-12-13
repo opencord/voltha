@@ -49,3 +49,4 @@ $(VOLTHA_PB2): %_pb2.py : %.proto
 .PHONY: requirements
 requirements: create-venv $(OPENOLT_PB2) $(VOLTHA_PB2)
 	@$(IN_VENV) pip install --upgrade -r $(WORKING_DIR)test_requirements.txt
+	@ virtualenv --relocatable ${VENVDIR}
