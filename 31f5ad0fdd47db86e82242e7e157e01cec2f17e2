@@ -177,6 +177,24 @@
     },
     {
       "key": {
+        "uuid": "9a7b6b43_edbf4252",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-12-13T18:29:58Z",
+      "side": 1,
+      "message": "Renamed this test to \"Olt Onu Discovery\"\nAdjusted documentation to mention that Olt Discovery is in the works\nAlso took the opportunity to rename first test case to \"Olt Pre Provisioning\"",
+      "parentUuid": "81b2109a_3419b2b0",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9ad67ec5_925776b2",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 1
@@ -247,6 +265,24 @@
     },
     {
       "key": {
+        "uuid": "8b0cb4fc_242c0533",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-12-13T18:29:58Z",
+      "side": 1,
+      "message": "Renamed to \"Olt Ports Should Be Enabled and Active\"",
+      "parentUuid": "66e34ae9_07daf01f",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a0a83a8_94ddb0c1",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 1
@@ -258,6 +294,24 @@
       "writtenOn": "2018-12-10T15:47:08Z",
       "side": 1,
       "message": "\"Check Onu Port Fields\" should be changed to some thing specific, such as \"Onu Ports should be enabled and active\"",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "298afe9e_f7d1e87f",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-12-13T18:29:58Z",
+      "side": 1,
+      "message": "Renamed to \"Onu Ports Should Be Enabled and Active\"",
+      "parentUuid": "9a0a83a8_94ddb0c1",
       "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -299,6 +353,24 @@
     },
     {
       "key": {
+        "uuid": "eb2ca628_7838aa33",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-12-13T18:29:58Z",
+      "side": 1,
+      "message": "Renamed to \"Olt Should Have At Least One Flow\"",
+      "parentUuid": "9e293b53_b4f51cc0",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cd96d997_f73baaf1",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 1
@@ -310,6 +382,24 @@
       "writtenOn": "2018-12-10T15:47:08Z",
       "side": 1,
       "message": "\"Check Onu Flows\" should be changed to some thing specific, such as \"Onu should have at least one flow\"",
+      "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "84896a85_d69508ed",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2018-12-13T18:29:58Z",
+      "side": 1,
+      "message": "Renamed to \"Onu Should Have At Least One Flow\"",
+      "parentUuid": "cd96d997_f73baaf1",
       "revId": "31f5ad0fdd47db86e82242e7e157e01cec2f17e2",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
