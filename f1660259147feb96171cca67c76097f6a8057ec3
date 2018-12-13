@@ -16,6 +16,24 @@
       "revId": "f1660259147feb96171cca67c76097f6a8057ec3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "22858c9c_b77aa62f",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 126,
+      "author": {
+        "id": 1000480
+      },
+      "writtenOn": "2018-12-13T16:36:31Z",
+      "side": 1,
+      "message": "These are index limits (0-based). Not quantity. So, 0 is the maximum index. This limits it to a single UNI per ONU, i.e. index 0.",
+      "parentUuid": "9cf86c61_55e4ae9a",
+      "revId": "f1660259147feb96171cca67c76097f6a8057ec3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
