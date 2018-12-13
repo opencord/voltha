@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "0153a305_73ec1c0d",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 725,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-13T07:39:53Z",
+      "side": 1,
+      "message": "Basically, bandwidth profile description document defines a possible case where no meter_band exists. Just realized that. So, I removed that line. Thanks Craig.",
+      "parentUuid": "c8fb1a9e_a9df2776",
+      "range": {
+        "startLine": 725,
+        "startChar": 20,
+        "endLine": 725,
+        "endChar": 29
+      },
+      "revId": "6aa1bb2ff71b2ea00ac6d649c47e4daff6ecc8df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "10940a29_063e43ea",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 10
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "ca092d37_8cd2c3eb",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 788,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-13T07:39:53Z",
+      "side": 1,
+      "message": "This part has been moved to a different sub method.",
+      "parentUuid": "10940a29_063e43ea",
+      "range": {
+        "startLine": 788,
+        "startChar": 20,
+        "endLine": 788,
+        "endChar": 27
+      },
+      "revId": "6aa1bb2ff71b2ea00ac6d649c47e4daff6ecc8df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f2303c41_389b218e",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 10
@@ -59,6 +107,30 @@
       "writtenOn": "2018-12-12T15:51:39Z",
       "side": 1,
       "message": "Downstream flows need the tech profile table ID sent to OLT Adapter also. I don\u0027t know how this will be solved as the profile table is in a different flow.",
+      "range": {
+        "startLine": 844,
+        "startChar": 12,
+        "endLine": 844,
+        "endChar": 16
+      },
+      "revId": "6aa1bb2ff71b2ea00ac6d649c47e4daff6ecc8df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "891f716a_d9d9fb42",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 844,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-13T07:39:53Z",
+      "side": 1,
+      "message": "Waiting for an update from Girish, for the downstream case.",
+      "parentUuid": "f2303c41_389b218e",
       "range": {
         "startLine": 844,
         "startChar": 12,
@@ -117,6 +189,30 @@
     },
     {
       "key": {
+        "uuid": "9ccac215_d7654977",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 973,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-13T07:39:53Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9e88d84b_c63426fa",
+      "range": {
+        "startLine": 973,
+        "startChar": 0,
+        "endLine": 973,
+        "endChar": 20
+      },
+      "revId": "6aa1bb2ff71b2ea00ac6d649c47e4daff6ecc8df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a73ac66e_82427a0d",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 10
@@ -128,6 +224,30 @@
       "writtenOn": "2018-12-12T15:51:39Z",
       "side": 1,
       "message": "Can you remove this extraneous whitespace?",
+      "range": {
+        "startLine": 1049,
+        "startChar": 0,
+        "endLine": 1049,
+        "endChar": 24
+      },
+      "revId": "6aa1bb2ff71b2ea00ac6d649c47e4daff6ecc8df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d998572a_b9553c0a",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 10
+      },
+      "lineNbr": 1049,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-13T07:39:53Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a73ac66e_82427a0d",
       "range": {
         "startLine": 1049,
         "startChar": 0,
