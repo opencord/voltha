@@ -25,6 +25,7 @@ from voltha.protos.adapter_pb2 import Adapter
 from voltha.protos.common_pb2 import LogLevel
 from voltha.adapters.openolt.openolt import OpenoltAdapter, OpenOltDefaults
 from voltha.adapters.openolt.openolt_device import OpenoltDevice
+from voltha.adapters.tellabs_olt.tellabs_resource_manager import TellabsResourceManager
 
 log = structlog.get_logger()
 
@@ -57,6 +58,9 @@ class TellabsAdapter(OpenoltAdapter):
         log.info('adopt-device', device=device)
 
         support_classes = deepcopy(OpenOltDefaults)['support_classes']
+
+        # Customize resource_mgr
+        support_classes['resource_mgr'] = TellabsResourceManager
 
         kwargs = {
             'support_classes': support_classes,
