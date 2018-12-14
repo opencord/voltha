@@ -1,8 +1,9 @@
 import pytest
+import pytest_twisted
 import mock
-import time
 
 from voltha.adapters.adtran_olt.net.adtran_rest import AdtranRestClient
+from twisted.internet.error import ConnectionClosed, ConnectionDone, ConnectionLost
 
 POST_LIKE_ARGS = {
     "data": {"some": "json"},
@@ -24,6 +25,14 @@ def test_client():
 def mock_treq():
     with mock.patch("voltha.adapters.adtran_olt.net.adtran_rest.treq") as mock_obj:
         yield mock_obj
+
+
+@pytest_twisted.inlineCallbacks
+def assert_ouput(deffered, expected_value):
+    def assert_equals(resolved):
+        assert resolved == expected_value
+    deffered.addCallback(assert_equals)
+    yield deffered
 
 
 def test_adtran_rest_str(test_client):
@@ -49,3 +58,8 @@ def test_post_request(test_client, mock_treq):
 def test_patch_request(test_client, mock_treq):
     test_client.request("PATCH", "/test/uri", {"some": "json"})
     mock_treq.patch.assert_called_once_with("http://1.2.3.4:80/test/uri", **POST_LIKE_ARGS)
+
+
+def test_connection_closed(test_client, mock_treq):
+    mock_treq.post.side_effect = ConnectionClosed()
+    return assert_ouput(test_client.request("POST", "/test/uri", {"some": "json"}), ConnectionClosed)
