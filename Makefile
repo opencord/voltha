@@ -429,8 +429,8 @@ venv:
 endif
 
 ${VENVDIR}/.built:
-	@ virtualenv ${VENVDIR}
-	@ virtualenv --relocatable ${VENVDIR}
+	@ virtualenv -p python2 ${VENVDIR}
+	@ virtualenv -p python2 --relocatable ${VENVDIR}
 	@ . ${VENVDIR}/bin/activate && \
 	    pip install --upgrade pip; \
 	    if ! pip install -r requirements.txt; \
@@ -440,7 +440,7 @@ ${VENVDIR}/.built:
 	    else \
 	        uname -s > ${VENVDIR}/.built; \
 	    fi
-	@ virtualenv --relocatable ${VENVDIR}
+	@ virtualenv -p python2 --relocatable ${VENVDIR}
 
 ifneq ($(VOLTHA_BUILD),docker)
 test: venv protos run-as-root-tests
