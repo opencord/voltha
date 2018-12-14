@@ -11,7 +11,6 @@ OPENOLT_PB2        := $(patsubst %.proto,%_pb2.py,$(OPENOLT_PROTO))
 VOLTHA_PROTO      := $(wildcard $(VOLTHA_DIR)protos/*.proto)
 VOLTHA_PB2        := $(patsubst %.proto,%_pb2.py,$(VOLTHA_PROTO))
 
-
 VENVDIR=$(PROJ_DIR)venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')
 TESTDIR=$(WORKING_DIR)test
 PYTHONPATH := $(PYTHONPATH):$(VOLTHA_DIR)protos/third_party;
