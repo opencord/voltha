@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "12718728_8a000aae",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 12
+      },
+      "lineNbr": 619,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-16T12:20:45Z",
+      "side": 1,
+      "message": "Please retain the comment from earlier for clarity.\n\n\"# Transparent ONU and OLT case (No-L2-Modification flow)\"",
+      "revId": "81c89ade1586d2fd5987793f52611595fe47572c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "169e2209_d16a8865",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 12
+      },
+      "lineNbr": 763,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-16T12:20:45Z",
+      "side": 1,
+      "message": "Why is 64 hard-coded? As you have mentioned in the comments can you import the constant and use it.",
+      "revId": "81c89ade1586d2fd5987793f52611595fe47572c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ad4152e7_3f9c6216",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 12
+      },
+      "lineNbr": 914,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-16T12:20:45Z",
+      "side": 1,
+      "message": "How does the meters for the downstream get carried to the adapters ?",
+      "revId": "81c89ade1586d2fd5987793f52611595fe47572c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
