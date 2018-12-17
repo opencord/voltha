@@ -104,6 +104,24 @@
       "revId": "81c89ade1586d2fd5987793f52611595fe47572c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c4098954_259adf21",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 12
+      },
+      "lineNbr": 914,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2018-12-17T11:51:39Z",
+      "side": 1,
+      "message": "I have shared some proposal and you are in the mail chain. Lets wait to here from others.",
+      "parentUuid": "0d3b27dd_536e81ff",
+      "revId": "81c89ade1586d2fd5987793f52611595fe47572c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
