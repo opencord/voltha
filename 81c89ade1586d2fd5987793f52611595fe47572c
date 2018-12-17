@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "a356da71_ab879a08",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 12
+      },
+      "lineNbr": 619,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-17T10:31:06Z",
+      "side": 1,
+      "message": "Done.",
+      "parentUuid": "12718728_8a000aae",
+      "revId": "81c89ade1586d2fd5987793f52611595fe47572c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "169e2209_d16a8865",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 12
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "b1a78298_0124327f",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 12
+      },
+      "lineNbr": 763,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-17T10:31:06Z",
+      "side": 1,
+      "message": "Jenkins pipeline was raising an error regarding to the usage of DEFAULT_TECH_PROFILE_TABLE_ID enumeration, since the python module in which that enum is defined has some dependency to the protobuf based python module like openolt_pb2.py, I noticed that, it was not generated before it is imported in flow_decomposer. I\u0027ve done some modifications to handle with it in one of the related Makefile. Seems OK right now.",
+      "parentUuid": "169e2209_d16a8865",
+      "revId": "81c89ade1586d2fd5987793f52611595fe47572c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ad4152e7_3f9c6216",
         "filename": "voltha/core/flow_decomposer.py",
         "patchSetId": 12
@@ -47,6 +83,24 @@
       "writtenOn": "2018-12-16T12:20:45Z",
       "side": 1,
       "message": "How does the meters for the downstream get carried to the adapters ?",
+      "revId": "81c89ade1586d2fd5987793f52611595fe47572c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0d3b27dd_536e81ff",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 12
+      },
+      "lineNbr": 914,
+      "author": {
+        "id": 1000462
+      },
+      "writtenOn": "2018-12-17T10:31:06Z",
+      "side": 1,
+      "message": "This is one of the question that I am seeking for an answer basically. It is not clear for me as well. I think it requires some architectural decisions that need to be agreed on.",
+      "parentUuid": "ad4152e7_3f9c6216",
       "revId": "81c89ade1586d2fd5987793f52611595fe47572c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
