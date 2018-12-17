@@ -362,30 +362,15 @@ class OMCI_CC(object):
                                 seq_no += 1
 
                                 max_retries = 3
-                                retries = max_retries
-                                while True:
-                                    try:
-                                        results = yield self.send(frame,
-                                            min(timeout / max_retries,
-                                                secs * 2 * (max_retries - retries + 1)))
+                                results = yield self.send(frame, min(timeout / max_retries, secs * 3), max_retries)
 
-                                        omci_getnext_msg = results.fields['omci_message']
-                                        status = omci_getnext_msg.fields['success_code']
+                                omci_getnext_msg = results.fields['omci_message']
+                                status = omci_getnext_msg.fields['success_code']
 
-                                        if status != ReasonCodes.Success.value:
-                                            raise Exception('get-next-failure table=' + eca.field.name +
-                                                            ' entity_id=' + str(entity_id) +
-                                                            ' sqn=' + str(seq_no) + ' omci-status ' + str(status))
-
-                                        break
-                                    except Exception as e:
-                                        retries -= 1
-                                        if retries <= 0:
-                                            self.log.exception('get-next-error-abort', e=e)
-                                            raise e
-                                        else:
-                                            self.log.error('get-next-error-retry', e=e, retries_remaining=retries)
-
+                                if status != ReasonCodes.Success.value:
+                                    raise Exception('get-next-failure table=' + eca.field.name +
+                                                    ' entity_id=' + str(entity_id) +
+                                                    ' sqn=' + str(seq_no) + ' omci-status ' + str(status))
                                 # Extract the data
                                 num_octets = count - offset
                                 if num_octets > OmciTableField.PDU_SIZE:
@@ -590,7 +575,8 @@ class OMCI_CC(object):
         """
         self.flush(max_age=MAX_OMCI_REQUEST_AGE)
 
-        assert timeout <= MAX_OMCI_REQUEST_AGE, \
+        timeout = float(timeout)
+        assert timeout <= float(MAX_OMCI_REQUEST_AGE), \
             'Maximum timeout is {} seconds'.format(MAX_OMCI_REQUEST_AGE)
         assert isinstance(frame, OmciFrame), \
             "Invalid frame class '{}'".format(type(frame))
@@ -638,10 +624,10 @@ class OMCI_CC(object):
             
             if timeout > 0:
                 dc  = self.reactor.callLater(timeout, self._request_timeout, tx_tid)
-                req = self._requests[tx_tid] = (ts, d, frame, timeout, retry, dc)
+                self._requests[tx_tid] = (ts, d, frame, timeout, retry, dc)
                 d.addCallbacks(self._request_success, self._request_failure, errbackArgs=(tx_tid,))
-                # d.addTimeout(timeout, reactor)
             else:
+                self.log.debug("send-timeout-zero", tx_tid=tx_tid)
                 self.reactor.callLater(0, d.callback, tx_tid)    # no response needed to trigger the defer; just fire it.
 
         except Exception as e:
