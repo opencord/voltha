@@ -18,7 +18,6 @@ from enum import IntEnum
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 import structlog
-#from voltha.core.flow_decomposer import *
 
 log = structlog.get_logger()
 
@@ -446,20 +445,14 @@ class EVC(object):
                 result_dict = xmltodict.parse(rpc_reply.data_xml)
                 entries = result_dict['data']['evcs'] if 'evcs' in result_dict['data'] else {}
 
-                if 'evc' in entries:
+                evcs = entries.get('evc') or None
+                if evcs:
                     p = re.compile(regexpr)
+                    if isinstance(evcs, dict):
+                        evcs = [evcs]
+                    names = {entry.get('name') for entry in evcs if p.match(entry.get('name', ''))}
 
-                    if isinstance(entries['evc'], list):
-                        names = {entry['name'] for entry in entries['evc'] if 'name' in entry
-                                 and p.match(entry['name'])}
-                    else:
-                        names = set()
-                        for item in entries['evc'].items():
-                            if isinstance(item, tuple) and item[0] == 'name':
-                                names.add(item[1])
-                                break
-
-                    if len(names) > 0:
+                    if names:
                         del_xml = ('<evcs xmlns="http://www.adtran.com/ns/yang/adtran-evcs" '
                                    'xc:operation="delete">')
                         for name in sorted(names):
