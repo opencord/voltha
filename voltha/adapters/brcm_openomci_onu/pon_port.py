@@ -29,7 +29,7 @@ class PonPort(object):
     """Wraps northbound-port/ANI support for ONU"""
     # TODO: possibly get from olt
     MIN_GEM_ENTITY_ID = 0x408
-    MAX_GEM_ENTITY_ID = 0x40F
+    MAX_GEM_ENTITY_ID = 0x4FF  # TODO: This limits is internal to specific ONU. It should be more "discoverable"?
 
     def __init__(self, handler, port_no):
         self.log = structlog.get_logger(device_id=handler.device_id, port_no=port_no)
@@ -184,7 +184,7 @@ class PonPort(object):
         :param reflow: (boolean) If true, force add (used during h/w resync)
         :return: (deferred)
         """
-        self.log.debug('function-entry')
+        self.log.debug('function-entry', tcont=tcont.alloc_id)
 
         if not self._valid:
             return      # Deleting
@@ -192,7 +192,7 @@ class PonPort(object):
         if not reflow and tcont.alloc_id in self._tconts:
             return      # already created
 
-        self.log.info('add', tcont=tcont, reflow=reflow)
+        self.log.info('add-tcont', tcont=tcont.alloc_id, reflow=reflow)
         self._tconts[tcont.alloc_id] = tcont
 
     def update_tcont_td(self, alloc_id, new_td):
@@ -251,7 +251,7 @@ class PonPort(object):
         :param reflow: (boolean) If true, force add (used during h/w resync)
         :return: (deferred)
         """
-        self.log.debug('function-entry', gem_port=gem_port)
+        self.log.debug('function-entry', gem_port=gem_port.gem_id)
 
         if not self._valid:
             return  # Deleting
@@ -259,7 +259,7 @@ class PonPort(object):
         if not reflow and gem_port.gem_id in self._gem_ports:
             return  # nop
 
-        self.log.info('add', gem_port=gem_port, reflow=reflow)
+        self.log.info('add-gem-port', gem_port=gem_port.gem_id, reflow=reflow)
         self._gem_ports[(gem_port.gem_id, gem_port.direction)] = gem_port
 
     @inlineCallbacks

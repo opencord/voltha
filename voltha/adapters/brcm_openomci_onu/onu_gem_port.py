@@ -280,7 +280,7 @@ class OnuGemPort(object):
                         dl_prior_q_entity_id):
         self.log.debug('function-entry')
 
-        self.log.debug('add-to-hardware', gem_id=self.gem_id,
+        self.log.debug('add-to-hardware', entity_id=self.entity_id, gem_id=self.gem_id,
                        tcont_entity_id=tcont_entity_id,
                        ieee_mapper_service_profile_entity_id=ieee_mapper_service_profile_entity_id,
                        gal_enet_profile_entity_id=gal_enet_profile_entity_id,
