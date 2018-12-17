@@ -22,4 +22,4 @@ class TellabsResourceManager(OpenOltResourceMgr):
 
     @property
     def max_uni_id_per_onu(self):
-        return OpenOltPlatform.MAX_UNIS_PER_ONU-1
+        return 3 # OpenOltPlatform.MAX_UNIS_PER_ONU-1
