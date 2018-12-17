@@ -29,7 +29,6 @@ RUN_PYTEST=$(IN_VENV) PYTHONPATH=$(PYTHONPATH) py.test -vvlx $(PROFILING)
 
 .PHONY: test
 test: requirements
-	@$(IN_VENV) command -v py.test > /dev/null 2>&1 || `echo >&2 "'make requirements' first. Aborting."; exit 1;`
 	@rm -rf $(TESTDIR)/__pycache__
 	@cd $(WORKING_DIR) && $(RUN_PYTEST) $(TESTDIR)
 
@@ -43,7 +42,7 @@ clean:
 
 .PHONY: lint
 lint: requirements
-	@-$(IN_VENV) pylint `pwd`>
+	@-$(IN_VENV) pylint `pwd`
 
 .PHONY: create-venv
 create-venv: $(VENVDIR)/.built
