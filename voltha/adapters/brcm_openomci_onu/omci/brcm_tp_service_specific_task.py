@@ -55,27 +55,25 @@ class BrcmTpServiceSpecificTask(Task):
         :param omci_agent: (OmciAdapterAgent) OMCI Adapter agent
         :param device_id: (str) ONU Device ID
         """
-
-        self.log = structlog.get_logger(device_id=handler.device_id)
-        self.log.debug('function-entry')
+        log = structlog.get_logger(device_id=handler.device_id, uni_id=uni_id)
+        log.debug('function-entry')
 
         super(BrcmTpServiceSpecificTask, self).__init__(BrcmTpServiceSpecificTask.name,
                                                         omci_agent,
                                                         handler.device_id,
-                                                        priority=TASK_PRIORITY)
-        self._handler = handler
+                                                        priority=TASK_PRIORITY,
+                                                        exclusive=True)
+
+        self.log = log
+
         self._onu_device = omci_agent.get_device(handler.device_id)
         self._local_deferred = None
 
         # Frame size
         self._max_gem_payload = DEFAULT_GEM_PAYLOAD
 
-        # TODO: only using a single UNI/ethernet port
-        self._uni_port = self._handler.uni_ports[uni_id]
-        self._uni_port_num = self._uni_port.mac_bridge_port_num
-        self._ethernet_uni_entity_id = self._uni_port.entity_id
-
-        self._pon = handler.pon_port
+        self._uni_port = handler.uni_ports[uni_id]
+        assert self._uni_port.uni_id == uni_id
 
         # Port numbers
         self._input_tpid = DEFAULT_TPID
@@ -89,13 +87,27 @@ class BrcmTpServiceSpecificTask(Task):
         #             IDs set to None are discovered/set
 
         self._mac_bridge_service_profile_entity_id = \
-            self._handler.mac_bridge_service_profile_entity_id
+            handler.mac_bridge_service_profile_entity_id
         self._ieee_mapper_service_profile_entity_id = \
-            self._pon.ieee_mapper_service_profile_entity_id
+            handler.pon_port.ieee_mapper_service_profile_entity_id
         self._mac_bridge_port_ani_entity_id = \
-            self._pon.mac_bridge_port_ani_entity_id
+            handler.pon_port.mac_bridge_port_ani_entity_id
         self._gal_enet_profile_entity_id = \
-            self._handler.gal_enet_profile_entity_id
+            handler.gal_enet_profile_entity_id
+
+        # Extract the current set of TCONT and GEM Ports from the Handler's pon_port that are
+        # relevant to this task's UNI. It won't change. But, the underlying pon_port may change
+        # due to additional tasks on different UNIs. So, it we cannot use the pon_port affter
+        # this initializer
+        self._tconts = []
+        for tcont in handler.pon_port.tconts.itervalues():
+            if tcont.uni_id is not None and tcont.uni_id != self._uni_port.uni_id: continue
+            self._tconts.append(tcont);
+
+        self._gem_ports = []
+        for gem_port in handler.pon_port.gem_ports.itervalues():
+            if gem_port.uni_id is not None and gem_port.uni_id != self._uni_port.uni_id: continue
+            self._gem_ports.append(gem_port);
 
         self.tcont_me_to_queue_map = dict()
         self.uni_port_to_queue_map = dict()
@@ -178,8 +190,7 @@ class BrcmTpServiceSpecificTask(Task):
             tcont_idents = self._onu_device.query_mib(Tcont.class_id)
             self.log.debug('tcont-idents', tcont_idents=tcont_idents)
 
-            for tcont in self._handler.pon_port.tconts.itervalues():
-                if tcont.uni_id is not None and  tcont.uni_id != self._uni_port.uni_id: continue
+            for tcont in self._tconts:
                 free_entity_id = None
                 for k, v in tcont_idents.items():
                     alloc_check = v.get('attributes', {}).get('alloc_id', 0)
@@ -272,9 +283,7 @@ class BrcmTpServiceSpecificTask(Task):
             self.log.debug("ul-prior-q", ul_prior_q=self.tcont_me_to_queue_map)
             self.log.debug("dl-prior-q", dl_prior_q=self.uni_port_to_queue_map)
 
-            for gem_port in self._handler.pon_port.gem_ports.itervalues():
-                if gem_port.uni_id is not None and gem_port.uni_id != self._uni_port.uni_id: continue
-
+            for gem_port in self._gem_ports:
                 # TODO: Traffic descriptor will be available after meter bands are available
                 tcont = gem_port.tcont
                 if tcont is None:
@@ -333,8 +342,8 @@ class BrcmTpServiceSpecificTask(Task):
             #
 
             gem_entity_ids = [OmciNullPointer] * 8
-            for gem_port in self._handler.pon_port.gem_ports.itervalues():
-                if gem_port.uni_id is not None and gem_port.uni_id != self._uni_port.uni_id: continue
+            for gem_port in self._gem_ports:
+                self.log.debug("tp-gem-port", entity_id=gem_port.entity_id, uni_id=gem_port.uni_id)
 
                 if gem_port.direction == "upstream" or \
                         gem_port.direction == "bi-directional":

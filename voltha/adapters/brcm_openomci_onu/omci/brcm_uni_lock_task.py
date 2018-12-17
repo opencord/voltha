@@ -48,7 +48,7 @@ class BrcmUniLockTask(Task):
                                                 omci_agent,
                                                 device_id,
                                                 priority=priority,
-                                                exclusive=False)
+                                                exclusive=True)
         self._device = omci_agent.get_device(device_id)
         self._lock = lock
         self._results = None

@@ -50,7 +50,7 @@ class BrcmVlanFilterTask(Task):
                                                  omci_agent,
                                                  device_id,
                                                  priority=priority,
-                                                 exclusive=False)
+                                                 exclusive=True)
         self._device = omci_agent.get_device(device_id)
         self._uni_port = uni_port
         self._set_vlan_id = set_vlan_id

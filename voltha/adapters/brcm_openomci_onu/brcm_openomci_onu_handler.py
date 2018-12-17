@@ -392,7 +392,7 @@ class BrcmOpenomciOnuHandler(object):
         self._create_gemports(uni_id, downstream_gem_port_attribute_list, alloc_id, "DOWNSTREAM")
 
     def load_and_configure_tech_profile(self, uni_id, tp_path):
-        self.log.debug("loading-tech-profile-configuration")
+        self.log.debug("loading-tech-profile-configuration", uni_id=uni_id, tp_path=tp_path)
 
         if uni_id not in self._tp_service_specific_task:
             self._tp_service_specific_task[uni_id] = dict()

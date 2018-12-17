@@ -202,7 +202,7 @@ class BrcmMibDownloadTask(Task):
                     # And re-enable the UNIs if needed
                     yield self.enable_uni(uni_port, False)
 
-                    self.deferred.callback('initial-download-success')
+                self.deferred.callback('initial-download-success')
 
             except TimeoutError as e:
                 self.log.error('initial-download-failure', e=e)
