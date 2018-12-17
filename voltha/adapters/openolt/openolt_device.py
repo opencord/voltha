@@ -139,7 +139,7 @@ class OpenoltDevice(object):
         if dpid is None: dpid = self.dpid
         if serial_number is None: serial_number = self.serial_number
 
-        if dpid == None:
+        if dpid == None or dpid == '':
             uri = self.host_and_port.split(":")[0]
             try:
                 socket.inet_pton(socket.AF_INET, uri)
@@ -147,6 +147,9 @@ class OpenoltDevice(object):
             except socket.error:
                 # this is not an IP
                 dpid = self.stringToMacAddr(uri)
+
+        if serial_number == None or serial_number == '':
+            serial_number = self.host_and_port
 
         self.log.info('creating-openolt-logical-device', dp_id=dpid, serial_number=serial_number)
 
