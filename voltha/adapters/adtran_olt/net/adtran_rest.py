@@ -137,13 +137,11 @@ class AdtranRestClient(object):
                                              auth=(self._username, self._password),
                                              timeout=timeout,
                                              headers=self.REST_DELETE_REQUEST_HEADER)
-            else:
-                raise NotImplementedError("REST method '{}' is not supported".format(method))
 
         except NotImplementedError:
             raise
 
-        except (ConnectionDone, ConnectionLost) as e:
+        except (ConnectionDone, ConnectionLost):
             if is_retry:
                 raise
             returnValue(self.request(method, uri, data=data, name=name,
