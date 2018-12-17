@@ -27,6 +27,11 @@ endif
 
 RUN_PYTEST=$(IN_VENV) PYTHONPATH=$(PYTHONPATH) py.test -vvlx $(PROFILING)
 
+.PHONY: test
+test: requirements
+	@rm -rf $(TESTDIR)/__pycache__
+	@cd $(WORKING_DIR) && $(RUN_PYTEST) $(TESTDIR)
+
 .PHONY: clean
 clean:
 	@-rm -rf .coverage
@@ -34,11 +39,6 @@ clean:
 	@-rm -rf coverage.xml
 	@-rm -rf .pytest_cache
 	@-find $(WORKING_DIR) -type f -name '*.pyc' -delete
-
-.PHONY: test
-test: requirements
-	@rm -rf $(TESTDIR)/__pycache__
-	@cd $(WORKING_DIR) && $(RUN_PYTEST) $(TESTDIR)
 
 .PHONY: lint
 lint: requirements
