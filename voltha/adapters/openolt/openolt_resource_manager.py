@@ -126,8 +126,6 @@ class OpenOltResourceMgr(object):
         return 0 #OpenOltPlatform.MAX_UNIS_PER_ONU-1, zero-based indexing Uncomment or override to make default multi-uni
 
     def assert_uni_id_limit(self, pon_intf_id, onu_id, uni_id):
-        self.log.error('assert_uni_id_limit', max_uni_id_per_onu=self.max_uni_id_per_onu)
-
         self.assert_onu_id_limit(pon_intf_id, onu_id)
         self.resource_mgrs[pon_intf_id].assert_resource_limits(uni_id, PONResourceManager.UNI_ID)
 
