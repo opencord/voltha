@@ -8,3 +8,7 @@ venv-linux
 
 # npm
 **/node_modules
+
+# OpenOLT driver agent
+voltha/adapters/openolt/core/**/*
+#voltha/adapters/openolt/core
