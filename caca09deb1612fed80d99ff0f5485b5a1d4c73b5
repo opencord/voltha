@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "dc935403_da072c72",
+        "filename": "cli/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 318,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "Is it adding the registration_id here? I think that is some bother when you typing 36 bytes string.  Do we have another way to input registration_id ?",
+      "parentUuid": "082e8b6c_9d256877",
+      "range": {
+        "startLine": 318,
+        "startChar": 8,
+        "endLine": 318,
+        "endChar": 19
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b7ee5569_d5afde2c",
         "filename": "cli/main.py",
         "patchSetId": 2
@@ -36,6 +60,30 @@
       "writtenOn": "2018-12-12T17:50:13Z",
       "side": 1,
       "message": "This doesn\u0027t make sense to force auto-enable of OLT.",
+      "range": {
+        "startLine": 320,
+        "startChar": 8,
+        "endLine": 320,
+        "endChar": 19
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c9794bbf_1850c765",
+        "filename": "cli/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 320,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "Agree, I just used the convention option for enabling OLT/ONU here.",
+      "parentUuid": "b7ee5569_d5afde2c",
       "range": {
         "startLine": 320,
         "startChar": 8,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "a6afcfb6_3767207d",
+        "filename": "cli/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 348,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "Removed it. Agreed.",
+      "parentUuid": "7d2dbffe_1b89787b",
+      "range": {
+        "startLine": 348,
+        "startChar": 8,
+        "endLine": 348,
+        "endChar": 12
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a68f7709_e760c0a3",
         "filename": "cli/main.py",
         "patchSetId": 2
@@ -82,6 +154,30 @@
       "writtenOn": "2018-12-12T17:50:13Z",
       "side": 1,
       "message": "Should not auto enable OLT during preprovision",
+      "range": {
+        "startLine": 350,
+        "startChar": 12,
+        "endLine": 350,
+        "endChar": 16
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d5c03921_416ee9ab",
+        "filename": "cli/main.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 350,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "Agree.",
+      "parentUuid": "a68f7709_e760c0a3",
       "range": {
         "startLine": 350,
         "startChar": 12,
@@ -117,6 +213,30 @@
     },
     {
       "key": {
+        "uuid": "2a8f9185_e58a8b33",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 144,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "Agree, Need to store in somewhere. ONOS or KV ?",
+      "parentUuid": "5c04edcd_b34a0304",
+      "range": {
+        "startLine": 144,
+        "startChar": 0,
+        "endLine": 144,
+        "endChar": 52
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "01db00c9_18c98e91",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 2
@@ -128,6 +248,30 @@
       "writtenOn": "2018-12-12T17:50:13Z",
       "side": 1,
       "message": "Use non-null reg-id instead of a separate parameter",
+      "range": {
+        "startLine": 398,
+        "startChar": 8,
+        "endLine": 398,
+        "endChar": 26
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f37e9d4e_968f5166",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 398,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "We could have these parameters from CLI. OpenOLT agent could update these value too or Just only update by adapter.",
+      "parentUuid": "01db00c9_18c98e91",
       "range": {
         "startLine": 398,
         "startChar": 8,
@@ -163,6 +307,30 @@
     },
     {
       "key": {
+        "uuid": "62a76a15_625dbd61",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 442,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "Agreed.",
+      "parentUuid": "d2d0b160_57723fda",
+      "range": {
+        "startLine": 442,
+        "startChar": 34,
+        "endLine": 442,
+        "endChar": 52
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f66e0131_6b89ce82",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 2
@@ -174,6 +342,30 @@
       "writtenOn": "2018-12-12T17:50:13Z",
       "side": 1,
       "message": "same",
+      "range": {
+        "startLine": 808,
+        "startChar": 12,
+        "endLine": 808,
+        "endChar": 30
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a458d2b6_b987f8b3",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 808,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "Agreed.",
+      "parentUuid": "f66e0131_6b89ce82",
       "range": {
         "startLine": 808,
         "startChar": 12,
@@ -209,6 +401,30 @@
     },
     {
       "key": {
+        "uuid": "803140c0_35280e25",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 1072,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "Agreed.",
+      "parentUuid": "d68b3ce5_9ad8baa6",
+      "range": {
+        "startLine": 1072,
+        "startChar": 30,
+        "endLine": 1072,
+        "endChar": 48
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fbb0c90e_1c46060d",
         "filename": "voltha/adapters/openolt/protos/openolt.proto",
         "patchSetId": 2
@@ -220,6 +436,30 @@
       "writtenOn": "2018-12-12T17:50:13Z",
       "side": 1,
       "message": "auto-discovery is not need in indication.",
+      "range": {
+        "startLine": 179,
+        "startChar": 8,
+        "endLine": 179,
+        "endChar": 9
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0e4c6edd_fe4800a8",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 179,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "Agreed, changing a different way to provide the discovery behavior.",
+      "parentUuid": "fbb0c90e_1c46060d",
       "range": {
         "startLine": 179,
         "startChar": 8,
@@ -255,6 +495,30 @@
     },
     {
       "key": {
+        "uuid": "04b889ae_19f03563",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 225,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "Agreed, The same above comments. changing a different way to provide the discovery behavior.",
+      "parentUuid": "85cce4f7_cfb92315",
+      "range": {
+        "startLine": 225,
+        "startChar": 4,
+        "endLine": 225,
+        "endChar": 8
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a3d397dc_1a890d7e",
         "filename": "voltha/protos/openflow_13.proto",
         "patchSetId": 2
@@ -266,6 +530,30 @@
       "writtenOn": "2018-12-12T17:50:13Z",
       "side": 1,
       "message": "1) We should not report auto-discovery to ONOS\n2) This ofp_desc is used only for OLT. It is not used for ONU.",
+      "range": {
+        "startLine": 1789,
+        "startChar": 4,
+        "endLine": 1789,
+        "endChar": 8
+      },
+      "revId": "caca09deb1612fed80d99ff0f5485b5a1d4c73b5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "27267578_1da4bdfe",
+        "filename": "voltha/protos/openflow_13.proto",
+        "patchSetId": 2
+      },
+      "lineNbr": 1789,
+      "author": {
+        "id": 1000417
+      },
+      "writtenOn": "2018-12-18T08:13:08Z",
+      "side": 1,
+      "message": "Agreed, Maybe experimenter could support this in ONOS. but the experimenter usually used in the action/match table in controller. I could not find somewhere to store the registration_id in ONOS.",
+      "parentUuid": "a3d397dc_1a890d7e",
       "range": {
         "startLine": 1789,
         "startChar": 4,
