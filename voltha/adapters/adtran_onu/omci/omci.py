@@ -51,7 +51,7 @@ class OMCI(object):
         self._connectivity_subscription = None
         self._capabilities_subscription = None
 
-        self._service_downloaded = False
+        # self._service_downloaded = False
         self._mib_downloaded = False
         self._mib_download_task = None
         self._mib_download_deferred = None
@@ -310,28 +310,20 @@ class OMCI(object):
         """
         if self._capabilities_subscription is not None:
             from adtn_mib_download_task import AdtnMibDownloadTask
-            from adtn_service_download_task import AdtnServiceDownloadTask
             self._mib_download_task = None
 
             def success(_results):
-                device = self._handler.adapter_agent.get_device(self._handler.device_id)
-                device.reason = ''
-                self._handler.adapter_agent.update_device(device)
-
-                if self._mib_downloaded:
-                    self._service_downloaded = True
-                else:
-                    # Now try the services (HSI, ...) specific download
-                    self._mib_downloaded = True
-                    reactor.callLater(0, self.capabilities_handler, None, None)
-
+                dev = self._handler.adapter_agent.get_device(self._handler.device_id)
+                dev.reason = ''
+                self._handler.adapter_agent.update_device(dev)
+                self._mib_downloaded = True
                 self._mib_download_task = None
 
             def failure(reason):
                 self.log.error('mib-download-failure', reason=reason)
                 self._mib_download_task = None
-                device = self._handler.adapter_agent.get_device(self._handler.device_id)
-                self._handler.adapter_agent.update_device(device)
+                dev = self._handler.adapter_agent.get_device(self._handler.device_id)
+                self._handler.adapter_agent.update_device(dev)
                 self._mib_download_deferred = reactor.callLater(_STARTUP_RETRY_WAIT,
                                                                 self.capabilities_handler,
                                                                 None, None)
@@ -341,12 +333,15 @@ class OMCI(object):
                 self._handler.adapter_agent.update_device(device)
                 self._mib_download_task = AdtnMibDownloadTask(self.omci_agent,
                                                               self._handler)
-            elif not self._service_downloaded:
-                device = self._handler.adapter_agent.get_device(self._handler.device_id)
-                device.reason = 'Initial Service Download'
-                self._handler.adapter_agent.update_device(device)
-                self._mib_download_task = AdtnServiceDownloadTask(self.omci_agent,
-                                                                  self._handler)
+
+            # TODO: Remove later.  Service specific ME download is now done as part of the
+            #                      Technology Profile setup
+            # elif not self._service_downloaded:
+            #     device = self._handler.adapter_agent.get_device(self._handler.device_id)
+            #     device.reason = 'Initial Service Download'
+            #     self._handler.adapter_agent.update_device(device)
+            #     self._mib_download_task = AdtnServiceDownloadTask(self.omci_agent,
+            #                                                       self._handler)
             if self._mib_download_task is not None:
                 self._mib_download_deferred = \
                     self._onu_omci_device.task_runner.queue_task(self._mib_download_task)

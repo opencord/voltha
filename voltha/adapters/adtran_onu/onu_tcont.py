@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import structlog
-from twisted.internet.defer import  inlineCallbacks, returnValue, succeed
+from twisted.internet.defer import  inlineCallbacks, returnValue
 
 from voltha.adapters.adtran_olt.xpon.tcont import TCont
 from voltha.adapters.adtran_olt.xpon.traffic_descriptor import TrafficDescriptor
@@ -25,18 +25,17 @@ class OnuTCont(TCont):
     """
     Adtran ONU specific implementation
     """
-    free_tcont_alloc_id = 0xFFFF
-    free_gpon_tcont_alloc_id = 0xFF     # SFU may use this to indicate a free TCONT
+    FREE_TCONT_ALLOC_ID = 0xFFFF
+    FREE_GPON_TCONT_ALLOC_ID = 0xFF     # SFU may use this to indicate a free TCONT
 
     def __init__(self, handler, alloc_id, sched_policy, tech_profile_id, uni_id, traffic_descriptor, is_mock=False):
-        super(OnuTCont, self).__init__(alloc_id, tech_profile_id, traffic_descriptor, is_mock=is_mock)
+        super(OnuTCont, self).__init__(alloc_id, tech_profile_id, traffic_descriptor, uni_id, is_mock=is_mock)
         self.log = structlog.get_logger(device_id=handler.device_id, alloc_id=alloc_id)
 
         self._handler = handler
         self.sched_policy = sched_policy
-        self.uni_id = uni_id
         self._entity_id = None
-        self._free_alloc_id = OnuTCont.free_tcont_alloc_id
+        self._free_alloc_id = OnuTCont.FREE_TCONT_ALLOC_ID
 
     @property
     def entity_id(self):
@@ -54,7 +53,7 @@ class OnuTCont(TCont):
                         td)
 
     @inlineCallbacks
-    def add_to_hardware(self, omci, tcont_entity_id, prev_alloc_id=free_tcont_alloc_id):
+    def add_to_hardware(self, omci, tcont_entity_id, prev_alloc_id=FREE_TCONT_ALLOC_ID):
         self.log.debug('add-to-hardware', tcont_entity_id=tcont_entity_id)
         if self._is_mock:
             returnValue('mock')
@@ -67,7 +66,7 @@ class OnuTCont(TCont):
 
         try:
             # TODO: Look up ONU2-G QoS flexibility attribute and only set this
-            #       if it can be supported
+            #       if q-sched-policy  can be supported
 
             self._free_alloc_id = prev_alloc_id
             frame = TcontFrame(tcont_entity_id, self.alloc_id).set()

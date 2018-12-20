@@ -14,15 +14,15 @@
 # limitations under the License.
 
 import structlog
-from common.frameio.frameio import hexify
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks, returnValue, TimeoutError, failure
+from twisted.internet.defer import inlineCallbacks, TimeoutError, failure, returnValue
 from voltha.extensions.omci.omci_me import *
 from voltha.extensions.omci.tasks.task import Task
 from voltha.extensions.omci.omci_defs import *
-from voltha.adapters.brcm_openomci_onu.uni_port import *
-from voltha.adapters.brcm_openomci_onu.pon_port \
-    import BRDCM_DEFAULT_VLAN, TASK_PRIORITY, DEFAULT_TPID, DEFAULT_GEM_PAYLOAD
+from voltha.adapters.adtran_onu.omci.omci import OMCI
+from voltha.adapters.adtran_onu.uni_port import *
+from voltha.adapters.adtran_onu.onu_tcont import OnuTCont
+from voltha.adapters.adtran_onu.onu_gem_port import OnuGemPort
 
 OP = EntityOperations
 RC = ReasonCodes
@@ -45,6 +45,9 @@ class AdtnTpServiceSpecificTask(Task):
     Adtran OpenOMCI Tech-Profile Download Task
     """
     name = "Adtran Tech-Profile Download Task"
+    task_priority = Task.DEFAULT_PRIORITY + 10
+    default_tpid = 0x8100                       # TODO: Move to a better location
+    default_gem_payload = 48
 
     def __init__(self, omci_agent, handler, uni_id):
         """
@@ -53,15 +56,13 @@ class AdtnTpServiceSpecificTask(Task):
         :param omci_agent: (OmciAdapterAgent) OMCI Adapter agent
         :param device_id: (str) ONU Device ID
         """
-        log = structlog.get_logger(device_id=handler.device_id, uni_id=uni_id)
-        log.debug('function-entry')
+        self.log = structlog.get_logger(device_id=handler.device_id, uni_id=uni_id)
 
         super(AdtnTpServiceSpecificTask, self).__init__(AdtnTpServiceSpecificTask.name,
                                                         omci_agent,
                                                         handler.device_id,
-                                                        priority=TASK_PRIORITY,
+                                                        priority=AdtnTpServiceSpecificTask.task_priority,
                                                         exclusive=False)
-        self.log = log
 
         self._onu_device = omci_agent.get_device(handler.device_id)
         self._local_deferred = None
@@ -70,21 +71,20 @@ class AdtnTpServiceSpecificTask(Task):
         self._uni_port = handler.uni_ports[uni_id]
         assert self._uni_port.uni_id == uni_id
 
-        # Port numbers
-        self._input_tpid = DEFAULT_TPID
-        self._output_tpid = DEFAULT_TPID
+        self._input_tpid = AdtnTpServiceSpecificTask.default_tpid
+        self._output_tpid = AdtnTpServiceSpecificTask.default_tpid
 
-        self._vlan_tcis_1 = BRDCM_DEFAULT_VLAN
-        self._cvid = BRDCM_DEFAULT_VLAN
+        self._vlan_tcis_1 = OMCI.DEFAULT_UNTAGGED_VLAN
+        self._cvid = OMCI.DEFAULT_UNTAGGED_VLAN
         self._vlan_config_entity_id = self._vlan_tcis_1
-        self._max_gem_payload = DEFAULT_GEM_PAYLOAD
+        self._max_gem_payload = AdtnTpServiceSpecificTask.default_gem_payload
 
         # Entity IDs. IDs with values can probably be most anything for most ONUs,
         #             IDs set to None are discovered/set
 
         self._mac_bridge_service_profile_entity_id = handler.mac_bridge_service_profile_entity_id
-        self._ieee_mapper_service_profile_entity_id = pon_port.ieee_mapper_service_profile_entity_id
-        self._mac_bridge_port_ani_entity_id = pon_port.mac_bridge_port_ani_entity_id
+        self._ieee_mapper_service_profile_entity_id = pon_port.hsi_8021p_mapper_entity_id
+        self._mac_bridge_port_ani_entity_id = pon_port.hsi_mac_bridge_port_ani_entity_id
         self._gal_enet_profile_entity_id = handler.gal_enet_profile_entity_id
 
         # Extract the current set of TCONT and GEM Ports from the Handler's pon_port that are
@@ -154,7 +154,7 @@ class AdtnTpServiceSpecificTask(Task):
             return True
 
         elif status == RC.InstanceExists:
-            return False
+            return False           # For Creates issued during task retries
 
         raise TechProfileDownloadFailure(
             '{} failed with a status of {}, error_mask: {}, failed_mask: {}, unsupported_mask: {}'
@@ -162,9 +162,25 @@ class AdtnTpServiceSpecificTask(Task):
 
     @inlineCallbacks
     def perform_service_specific_steps(self):
-        self.log.debug('function-entry')
+        """
+        Install the Technology Profile specific ME instances into the ONU. The
+        initial bridge setup was performed after the capabilities were discovered.
+
+        This task is called near the end of the ONU Tech profile setup when the
+        ONU receives technology profile info from the OLT over the inter-adapter channel
+        """
+        self.log.debug('setting-up-tech-profile-me-instances')
+
+        if len(self._tconts) == 0:
+            self.deferred.errback(failure.Failure(TechProfileResourcesFailure('No TCONTs assigned')))
+            returnValue('no-resources')
+
+        if len(self._gem_ports) == 0:
+            self.deferred.errback(failure.Failure(TechProfileResourcesFailure('No GEM Ports assigned')))
+            returnValue('no-resources')
 
         omci_cc = self._onu_device.omci_cc
+        self.strobe_watchdog()
 
         try:
             ################################################################################
@@ -173,31 +189,35 @@ class AdtnTpServiceSpecificTask(Task):
             #  EntityID will be referenced by:
             #            - GemPortNetworkCtp
             #  References:
-            #            - ONU created TCONT (created on ONU startup)
+            #            - ONU created TCONT (created on ONU tech profile startup)
 
             tcont_idents = self._onu_device.query_mib(Tcont.class_id)
             self.log.debug('tcont-idents', tcont_idents=tcont_idents)
 
             for tcont in self._tconts:
-                free_entity_id = None
-                for k, v in tcont_idents.items():
-                    alloc_check = v.get('attributes', {}).get('alloc_id', 0)
-                    # Some onu report both to indicate an available tcont
-                    if alloc_check == 0xFF or alloc_check == 0xFFFF:
-                        free_entity_id = k
-                        break
-                    else:
-                        free_entity_id = None
+                if tcont.entity_id is not None:
+                    continue             # Already installed
 
-                self.log.debug('tcont-loop', free_entity_id=free_entity_id, alloc_id=tcont.alloc_id)
+                free_alloc_ids = {OnuTCont.FREE_TCONT_ALLOC_ID,
+                                  OnuTCont.FREE_GPON_TCONT_ALLOC_ID}
+
+                free_entity_id = next((k for k, v in tcont_idents.items()
+                                       if isinstance(k, int) and
+                                       v.get('attributes', {}).get('alloc_id', 0) in
+                                       free_alloc_ids), None)
 
                 if free_entity_id is None:
                     self.log.error('no-available-tconts')
-                    break
+                    raise TechProfileResourcesFailure('No Available TConts')
 
-                # TODO: Need to restore on failure.  Need to check status/results
-                results = yield tcont.add_to_hardware(omci_cc, free_entity_id)
-                self.check_status_and_state(results, 'create-tcont')
+                try:
+                    prev_alloc_id = tcont_idents[free_entity_id].get('attributes').get('alloc_id')
+                    results = yield tcont.add_to_hardware(omci_cc, free_entity_id, prev_alloc_id=prev_alloc_id)
+                    self.check_status_and_state(results, 'create-tcont')
+
+                except Exception as e:
+                    self.log.exception('tcont-set', e=e, eid=free_entity_id)
+                    raise
 
             ################################################################################
             # GEMS  (GemPortNetworkCtp and GemInterworkingTp)
@@ -224,21 +244,23 @@ class AdtnTpServiceSpecificTask(Task):
             #              - Ieee8021pMapperServiceProfile
             #              - GalEthernetProfile
             #
-
             onu_g = self._onu_device.query_mib(OntG.class_id)
+
             # If the traffic management option attribute in the ONU-G ME is 0
             # (priority controlled) or 2 (priority and rate controlled), this
             # pointer specifies the priority queue ME serving this GEM port
             # network CTP. If the traffic management option attribute is 1
             # (rate controlled), this attribute redundantly points to the
             # T-CONT serving this GEM port network CTP.
-            traffic_mgmt_opt = \
-                onu_g.get('attributes', {}).get('traffic_management_options', 0)
+
+            traffic_mgmt_opt = onu_g.get('attributes', {}).get('traffic_management_options', 0)
             self.log.debug("traffic-mgmt-option", traffic_mgmt_opt=traffic_mgmt_opt)
 
             prior_q = self._onu_device.query_mib(PriorityQueueG.class_id)
+
             for k, v in prior_q.items():
                 self.log.debug("prior-q", k=k, v=v)
+                self.strobe_watchdog()
 
                 try:
                     _ = iter(v)
@@ -249,29 +271,34 @@ class AdtnTpServiceSpecificTask(Task):
                     related_port = v['attributes']['related_port']
                     if v['instance_id'] & 0b1000000000000000:
                         tcont_me = (related_port & 0xffff0000) >> 16
+
                         if tcont_me not in self.tcont_me_to_queue_map:
                             self.log.debug("prior-q-related-port-and-tcont-me",
-                                            related_port=related_port,
-                                            tcont_me=tcont_me)
+                                           related_port=related_port,
+                                           tcont_me=tcont_me)
                             self.tcont_me_to_queue_map[tcont_me] = list()
 
                         self.tcont_me_to_queue_map[tcont_me].append(k)
                     else:
                         uni_port = (related_port & 0xffff0000) >> 16
-                        if uni_port ==  self._uni_port.entity_id:
+
+                        if uni_port == self._uni_port.entity_id:
                             if uni_port not in self.uni_port_to_queue_map:
                                 self.log.debug("prior-q-related-port-and-uni-port-me",
-                                                related_port=related_port,
-                                                uni_port_me=uni_port)
+                                               related_port=related_port,
+                                               uni_port_me=uni_port)
                                 self.uni_port_to_queue_map[uni_port] = list()
 
                             self.uni_port_to_queue_map[uni_port].append(k)
-
 
             self.log.debug("ul-prior-q", ul_prior_q=self.tcont_me_to_queue_map)
             self.log.debug("dl-prior-q", dl_prior_q=self.uni_port_to_queue_map)
 
             for gem_port in self._gem_ports:
+                self.strobe_watchdog()
+                if gem_port.entity_id is not None:
+                    continue                        # Already installed
+
                 # TODO: Traffic descriptor will be available after meter bands are available
                 tcont = gem_port.tcont
                 if tcont is None:
@@ -280,13 +307,14 @@ class AdtnTpServiceSpecificTask(Task):
 
                 ul_prior_q_entity_id = None
                 dl_prior_q_entity_id = None
-                if gem_port.direction == "upstream" or \
-                        gem_port.direction == "bi-directional":
+
+                if gem_port.direction in {OnuGemPort.UPSTREAM, OnuGemPort.BIDIRECTIONAL}:
 
                     # Sort the priority queue list in order of priority.
                     # 0 is highest priority and 0x0fff is lowest.
                     self.tcont_me_to_queue_map[tcont.entity_id].sort()
                     self.uni_port_to_queue_map[self._uni_port.entity_id].sort()
+
                     # Get the priority queue associated with p-bit that is
                     # mapped to the gem port.
                     # p-bit-7 is highest priority and p-bit-0 is lowest
@@ -298,24 +326,22 @@ class AdtnTpServiceSpecificTask(Task):
                     # of priority
                     for i, p in enumerate(gem_port.pbit_map):
                         if p == '1':
-                            ul_prior_q_entity_id = \
-                                self.tcont_me_to_queue_map[tcont.entity_id][i]
-                            dl_prior_q_entity_id = \
-                                self.uni_port_to_queue_map[self._uni_port.entity_id][i]
+                            ul_prior_q_entity_id = self.tcont_me_to_queue_map[tcont.entity_id][i]
+                            dl_prior_q_entity_id = self.uni_port_to_queue_map[self._uni_port.entity_id][i]
                             break
 
-                    assert ul_prior_q_entity_id is not None and \
-                           dl_prior_q_entity_id is not None
+                    assert ul_prior_q_entity_id is not None and dl_prior_q_entity_id is not None
 
                     # TODO: Need to restore on failure.  Need to check status/results
                     results = yield gem_port.add_to_hardware(omci_cc,
-                                                   tcont.entity_id,
-                                                   self._ieee_mapper_service_profile_entity_id +
+                                                             tcont.entity_id,
+                                                             self._ieee_mapper_service_profile_entity_id +
                                                              self._uni_port.mac_bridge_port_num,
-                                                   self._gal_enet_profile_entity_id,
-                                                   ul_prior_q_entity_id, dl_prior_q_entity_id)
+                                                             self._gal_enet_profile_entity_id,
+                                                             ul_prior_q_entity_id, dl_prior_q_entity_id)
                     self.check_status_and_state(results, 'create-gem-port')
-                elif gem_port.direction == "downstream":
+
+                elif gem_port.direction == OnuGemPort.DOWNSTREAM:
                     # Downstream is inverse of upstream
                     # TODO: could also be a case of multicast. Not supported for now
                     pass
@@ -328,17 +354,18 @@ class AdtnTpServiceSpecificTask(Task):
             #  References:
             #            - Gem Interwork TPs are set here
             #
-
             gem_entity_ids = [OmciNullPointer] * 8
+
             for gem_port in self._gem_ports:
+                self.strobe_watchdog()
                 self.log.debug("tp-gem-port", entity_id=gem_port.entity_id, uni_id=gem_port.uni_id)
 
-                if gem_port.direction == "upstream" or \
-                        gem_port.direction == "bi-directional":
+                if gem_port.direction in {OnuGemPort.UPSTREAM, OnuGemPort.BIDIRECTIONAL}:
                     for i, p in enumerate(gem_port.pbit_map):
                         if p == '1':
                             gem_entity_ids[i] = gem_port.entity_id
-                elif gem_port.direction == "downstream":
+
+                elif gem_port.direction == OnuGemPort.DOWNSTREAM:
                     # Downstream gem port p-bit mapper is inverse of upstream
                     # TODO: Could also be a case of multicast. Not supported for now
                     pass
@@ -360,35 +387,31 @@ class AdtnTpServiceSpecificTask(Task):
             #            - VLAN TCIS from previously created VLAN Tagging filter data
             #            - PPTP Ethernet or VEIP UNI
             #
-
             # TODO: do this for all uni/ports...
             # TODO: magic.  static variable for assoc_type
-
             # default to PPTP
-            if self._uni_port.type is UniType.VEIP:
-                association_type = 10
-            elif self._uni_port.type is UniType.PPTP:
-                association_type = 2
-            else:
-                association_type = 2
+            # if self._uni_port.type is UniType.VEIP:
+            #     association_type = 10
+            # elif self._uni_port.type is UniType.PPTP:
+            #     association_type = 2
+            # else:
+            association_type = 2
 
             attributes = dict(
                 association_type=association_type,                  # Assoc Type, PPTP/VEIP Ethernet UNI
-                associated_me_pointer=self._uni_port.entity_id,      # Assoc ME, PPTP/VEIP Entity Id
+                associated_me_pointer=self._uni_port.entity_id,     # Assoc ME, PPTP/VEIP Entity Id
 
                 # See VOL-1311 - Need to set table during create to avoid exception
                 # trying to read back table during post-create-read-missing-attributes
                 # But, because this is a R/W attribute. Some ONU may not accept the
                 # value during create. It is repeated again in a set below.
-                input_tpid=self._input_tpid,  # input TPID
+                input_tpid=self._input_tpid,    # input TPID
                 output_tpid=self._output_tpid,  # output TPID
             )
-
             msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
                 self._mac_bridge_service_profile_entity_id + self._uni_port.mac_bridge_port_num,  # Bridge Entity ID
                 attributes=attributes
             )
-
             frame = msg.create()
             self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
@@ -401,12 +424,10 @@ class AdtnTpServiceSpecificTask(Task):
                 output_tpid=self._output_tpid,  # output TPID
                 downstream_mode=0,              # inverse of upstream
             )
-
             msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
                 self._mac_bridge_service_profile_entity_id + self._uni_port.mac_bridge_port_num,  # Bridge Entity ID
                 attributes=attributes
             )
-
             frame = msg.set()
             self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)
@@ -420,34 +441,32 @@ class AdtnTpServiceSpecificTask(Task):
                 # filter for untagged
                 # probably for eapol
                 # TODO: lots of magic
-                # TODO: magic 0x1000 / 4096?
                 received_frame_vlan_tagging_operation_table=
                 VlanTaggingOperation(
                     filter_outer_priority=15,  # This entry is not a double-tag rule
                     filter_outer_vid=4096,     # Do not filter on the outer VID value
                     filter_outer_tpid_de=0,    # Do not filter on the outer TPID field
 
-                    filter_inner_priority=15,
-                    filter_inner_vid=4096,
-                    filter_inner_tpid_de=0,
-                    filter_ether_type=0,
+                    filter_inner_priority=15,  # This is a no-tag rule, ignore all other VLAN tag filter fields
+                    filter_inner_vid=0x1000,   # Do not filter on the inner VID
+                    filter_inner_tpid_de=0,    # Do not filter on inner TPID field
 
-                    treatment_tags_to_remove=0,
-                    treatment_outer_priority=15,
-                    treatment_outer_vid=0,
-                    treatment_outer_tpid_de=0,
+                    filter_ether_type=0,         # Do not filter on EtherType
+                    treatment_tags_to_remove=0,  # Remove 0 tags
 
-                    treatment_inner_priority=0,
-                    treatment_inner_vid=self._cvid,
-                    treatment_inner_tpid_de=4,
+                    treatment_outer_priority=15,  # Do not add an outer tag
+                    treatment_outer_vid=0,        # n/a
+                    treatment_outer_tpid_de=0,    # n/a
+
+                    treatment_inner_priority=0,      # Add an inner tag and insert this value as the priority
+                    treatment_inner_vid=self._cvid,  # use this value as the VID in the inner VLAN tag
+                    treatment_inner_tpid_de=4,       # set TPID
                 )
             )
-
             msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
                 self._mac_bridge_service_profile_entity_id + self._uni_port.mac_bridge_port_num,  # Bridge Entity ID
                 attributes=attributes
             )
-
             frame = msg.set()
             self.log.debug('openomci-msg', omci_msg=msg)
             results = yield omci_cc.send(frame)

@@ -1,4 +1,4 @@
-
+#
 # Copyright 2017-present Adtran, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,16 +24,18 @@ class OnuGemPort(GemPort):
     """
     Adtran ONU specific implementation
     """
-    def __init__(self, gem_data, alloc_id, tech_profile_id, entity_id,
-                 multicast=False,
-                 traffic_class=None,
-                 handler=None,
-                 is_mock=False):
+    UPSTREAM = 1
+    DOWNSTREAM = 2
+    BIDIRECTIONAL = 3
+
+    def __init__(self, handler, gem_data, alloc_id, tech_profile_id,
+                 uni_id, entity_id,
+                 multicast=False, traffic_class=None, is_mock=False):
         gem_id = gem_data['gemport-id']
         encryption = gem_data['encryption']
-        super(OnuGemPort, self).__init__(gem_id, alloc_id, tech_profile_id,
+        super(OnuGemPort, self).__init__(gem_id, alloc_id, uni_id,
+                                         tech_profile_id,
                                          encryption=encryption,
-                                         omci_transport=False,
                                          multicast=multicast,
                                          traffic_class=traffic_class,
                                          handler=handler,
@@ -54,15 +56,16 @@ class OnuGemPort(GemPort):
         return self._tcont_entity_id is not None and self._interworking
 
     @staticmethod
-    def create(handler, gem_data, alloc_id, tech_profile_id, entity_id):
+    def create(handler, gem_data, alloc_id, tech_profile_id, uni_id, entity_id):
         # TODO: Only a minimal amount of info from the 'gem_port' dictionary
         #       is currently used to create the GEM ports.
+        return OnuGemPort(handler, gem_data, alloc_id,
+                          tech_profile_id, uni_id, entity_id)
 
-        return OnuGemPort(gem_data,
-                          alloc_id,
-                          tech_profile_id,
-                          entity_id,
-                          handler=handler)
+    @property
+    def tcont(self):
+        """ Get the associated TCONT object """
+        return self._handler.pon_port.tconts.get(self.alloc_id)
 
     @inlineCallbacks
     def add_to_hardware(self, omci,

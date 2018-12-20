@@ -33,7 +33,6 @@ from twisted.internet.defer import returnValue
 from voltha.registry import registry
 from voltha.protos import third_party
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus
-from common.utils.indexpool import IndexPool
 from voltha.extensions.omci.omci_me import *
 from common.tech_profile.tech_profile import TechProfile
 from voltha.core.config.config_backend import ConsulStore
@@ -66,7 +65,6 @@ class AdtranOnuHandler(object):
         self._enabled = False
         self.pm_metrics = None
         self.alarms = None
-        self._mgmt_gemport_aes = False
 
         self._openomci = OMCI(self, adapter.omci_agent)
         self._in_sync_subscription = None
@@ -81,18 +79,16 @@ class AdtranOnuHandler(object):
         # Flow entries
         self._flows = dict()
 
-        # OMCI resources
-        # TODO: Some of these could be dynamically chosen
+        # OMCI resources               # TODO: Some of these could be dynamically chosen
         self.vlan_tcis_1 = 0x900
         self.mac_bridge_service_profile_entity_id = self.vlan_tcis_1
-        self.gal_enet_profile_entity_id = 0     # Was 0x100, but ONU seems to overwrite and use zero
+        self.gal_enet_profile_entity_id = 0
 
         # Technology profile related values
         self.incoming_messages = DeferredQueue()
         self.event_messages = DeferredQueue()
         self._tp_service_specific_task = dict()
         self._tech_profile_download_done = dict()
-        self._upstream_channel_speed = 0                # TODO: Deprecate
 
         # Initialize KV store client
         self.args = registry('main').get_args()
@@ -135,26 +131,6 @@ class AdtranOnuHandler(object):
                 self.start()
             else:
                 self.stop()
-
-    @property
-    def mgmt_gemport_aes(self):
-        return self._mgmt_gemport_aes
-
-    @mgmt_gemport_aes.setter
-    def mgmt_gemport_aes(self, value):
-        if self._mgmt_gemport_aes != value:
-            self._mgmt_gemport_aes = value
-            # TODO: Anything else
-
-    @property
-    def upstream_channel_speed(self):
-        return self._upstream_channel_speed
-
-    @upstream_channel_speed.setter
-    def upstream_channel_speed(self, value):
-        if self._upstream_channel_speed != value:
-            self._upstream_channel_speed = value
-            # TODO: Anything else
 
     @property
     def openomci(self):
@@ -438,9 +414,8 @@ class AdtranOnuHandler(object):
                         'min-threshold': gem['discard_config']['min_threshold'],
                     },
                 }
-                gem_port = OnuGemPort.create(self, gem_data,
-                                             tcont.alloc_id,
-                                             tech_profile_id,
+                gem_port = OnuGemPort.create(self, gem_data, tcont.alloc_id,
+                                             tech_profile_id, uni_id,
                                              self._pon.next_gem_entity_id)
                 self._pon.add_gem_port(gem_port)
 
@@ -481,35 +456,40 @@ class AdtranOnuHandler(object):
                 def success(_results):
                     self.log.info("tech-profile-config-done-successfully")
                     device = self.adapter_agent.get_device(self.device_id)
-                    device.reason = 'tech-profile-config-download-success'
+                    device.reason = 'Tech Profile config Success'
                     self.adapter_agent.update_device(device)
+
                     if tp_path in self._tp_service_specific_task[uni_id]:
                         del self._tp_service_specific_task[uni_id][tp_path]
+
                     self._tech_profile_download_done[uni_id][tp_path] = True
 
                 def failure(_reason):
                     self.log.warn('tech-profile-config-failure-retrying', reason=_reason)
                     device = self.adapter_agent.get_device(self.device_id)
-                    device.reason = 'tech-profile-config-download-failure-retrying'
+                    device.reason = 'Tech Profile config failed-retrying'
                     self.adapter_agent.update_device(device)
+
                     if tp_path in self._tp_service_specific_task[uni_id]:
                         del self._tp_service_specific_task[uni_id][tp_path]
-                    self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT, self.load_and_configure_tech_profile,
+
+                    self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT,
+                                                       self.load_and_configure_tech_profile,
                                                        uni_id, tp_path)
 
                 self.log.info('downloading-tech-profile-configuration')
                 tp_task = AdtnTpServiceSpecificTask(self.openomci.omci_agent, self, uni_id)
 
                 self._tp_service_specific_task[uni_id][tp_path] = tp_task
-                # self._deferred = self.openomci.onu_omci_device.task_runner.queue_task(tp_task)
-                # self._deferred.addCallbacks(success, failure)
+                self._deferred = self.openomci.onu_omci_device.task_runner.queue_task(tp_task)
+                self._deferred.addCallbacks(success, failure)
 
             except Exception as e:
                 self.log.exception("error-loading-tech-profile", e=e)
         else:
             self.log.info("tech-profile-config-already-done")
 
-    def update_pm_config(self, device, pm_config):
+    def update_pm_config(self, _device, pm_config):
         # TODO: This has not been tested
         self.log.info('update_pm_config', pm_config=pm_config)
         self.pm_metrics.update(pm_config)
@@ -644,8 +624,8 @@ class AdtranOnuHandler(object):
         device.reason = ''
         self.adapter_agent.update_device(device)
 
-        # if reregister:
-        #     self.adapter_agent.register_for_inter_adapter_messages()
+        if reregister:
+            self.adapter_agent.register_for_inter_adapter_messages()
 
         self.log.info('reboot-complete', device_id=self.device_id)
 
@@ -663,8 +643,7 @@ class AdtranOnuHandler(object):
     def disable(self):
         self.log.info('disabling', device_id=self.device_id)
         try:
-        # Get the latest device reference
-
+            # Get the latest device reference
             device = self.adapter_agent.get_device(self.device_id)
 
             # Disable all ports on that device
@@ -706,7 +685,7 @@ class AdtranOnuHandler(object):
 
         # And disable OMCI as well
         self.enabled = False
-        self.log.info('disabled', device_id=device.id)
+        self.log.info('disabled')
 
     def reenable(self):
         self.log.info('re-enabling', device_id=self.device_id)
@@ -756,10 +735,10 @@ class AdtranOnuHandler(object):
             self.enabled = True
             self.adapter_agent.update_device(device)
 
-            self.log.info('re-enabled', device_id=device.id)
+            self.log.info('re-enabled')
 
         except Exception, e:
-            self.log.exception('error-reenabling', e=e)
+            self.log.exception('error-re-enabling', e=e)
 
     def delete(self):
         self.log.info('deleting', device_id=self.device_id)
