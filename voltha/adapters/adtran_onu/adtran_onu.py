@@ -42,7 +42,7 @@ class AdtranOnuAdapter(OnuAdapter):
                                                device_handler_class=AdtranOnuHandler,
                                                name='adtran_onu',
                                                vendor='ADTRAN, Inc.',
-                                               version='1.23',
+                                               version='1.24',
                                                device_type='adtran_onu',
                                                vendor_id='ADTN',
                                                accepts_add_remove_flow_updates=False),  # TODO: Support flow-mods
@@ -117,16 +117,14 @@ class AdtranOnuAdapter(OnuAdapter):
         self.log.info('receive_inter_adapter_message', msg=msg)
         proxy_address = msg['proxy_address']
         assert proxy_address is not None
-
         # Device_id from the proxy_address is the olt device id. We need to
         # get the onu device id using the port number in the proxy_address
-
         device = self.adapter_agent.get_child_device_with_proxy_address(proxy_address)
-
         if device is not None:
-            handler = self.devices_handlers.get(device.id)
-            if handler is not None:
-                handler.rx_inter_adapter_message(msg)
+            handler = self.devices_handlers[device.id]
+            handler.event_messages.put(msg)
+        else:
+            self.log.error("device-not-found")
 
     def abandon_device(self, device):
         raise NotImplementedError('TODO: Not currently supported')

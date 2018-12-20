@@ -110,6 +110,7 @@ class AdtranDeviceHandler(object):
         self._rest_support = None
         self._initial_enable_complete = False
         self.resource_mgr = None
+        self.tech_profiles = None       # dict():  intf_id -> ResourceMgr.TechProfile
 
         # Northbound and Southbound ports
         self.northbound_ports = {}  # port number -> Port
@@ -1138,7 +1139,7 @@ class AdtranDeviceHandler(object):
             current_time = time.time()
             if current_time < timeout:
                 self.startup = reactor.callLater(5, self._finish_reboot, timeout,
-                                                previous_oper_status,
+                                                 previous_oper_status,
                                                  previous_conn_status)
                 returnValue(self.startup)
 

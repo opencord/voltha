@@ -41,7 +41,6 @@ class OMCI(object):
         self._enabled = False
         self._connected = False
         self._deferred = None
-        self._resync_deferred = None    # For TCont/GEM use
         self._bridge_initialized = False
         self._in_sync_reached = False
         self._omcc_version = OMCCVersion.Unknown
@@ -107,23 +106,14 @@ class OMCI(object):
 
     def _cancel_deferred(self):
         d1, self._deferred = self._deferred, None
-        d2, self._resync_deferred = self._resync_deferred, None
-        d3, self._mib_download_deferred = self._mib_download_deferred, None
+        d2, self._mib_download_deferred = self._mib_download_deferred, None
 
-        for d in [d1, d2, d3]:
+        for d in [d1, d2]:
             try:
                 if d is not None and not d.called:
                     d.cancel()
             except:
                 pass
-
-    def _cancel_resync_deferred(self):
-        d, self._resync_deferred = self._resync_deferred, None
-        try:
-            if d is not None and not d.called:
-                d.cancel()
-        except:
-            pass
 
     def delete(self):
         self.enabled = False
@@ -246,11 +236,6 @@ class OMCI(object):
         except Exception as e:
             self.log.exception('device-info-load', e=e)
             self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT, self._mib_in_sync)
-
-    def gem_or_tcont_added(self):
-        if self._in_sync_reached:
-            self._cancel_resync_deferred()
-            # TODO: Need to configure service here
 
     def _subscribe_to_events(self):
         from voltha.extensions.omci.onu_device_entry import OnuDeviceEvents, \

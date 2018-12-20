@@ -13,11 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from voltha.adapters.adtran_olt.xpon.adtran_xpon import AdtranXPON
+import ast
 from pon_port import PonPort
 from uni_port import UniPort
 from heartbeat import HeartBeat
 from omci.omci import OMCI
+from onu_traffic_descriptor import OnuTrafficDescriptor
+from onu_tcont import OnuTCont
+from onu_gem_port import OnuGemPort
 
 from voltha.extensions.alarms.adapter_alarms import AdapterAlarms
 from voltha.extensions.kpi.onu.onu_pm_metrics import OnuPmMetrics
@@ -32,19 +35,25 @@ from voltha.protos import third_party
 from voltha.protos.common_pb2 import OperStatus, ConnectStatus
 from common.utils.indexpool import IndexPool
 from voltha.extensions.omci.omci_me import *
+from common.tech_profile.tech_profile import TechProfile
+from voltha.core.config.config_backend import ConsulStore
+from voltha.core.config.config_backend import EtcdStore
 
 import voltha.adapters.adtran_olt.resources.adtranolt_platform as platform
 from voltha.adapters.adtran_onu.flow.flow_entry import FlowEntry
 from omci.adtn_install_flow import AdtnInstallFlowTask
 from omci.adtn_remove_flow import AdtnRemoveFlowTask
+from omci.adtn_tp_service_specific_task import AdtnTpServiceSpecificTask
+from common.tech_profile.tech_profile import DEFAULT_TECH_PROFILE_TABLE_ID
 
 _ = third_party
 _MAXIMUM_PORT = 17        # Only one PON and UNI port at this time
 _ONU_REBOOT_MIN = 90      # IBONT 602 takes about 3 minutes
 _ONU_REBOOT_RETRY = 10
+_STARTUP_RETRY_WAIT = 20
 
 
-class AdtranOnuHandler(AdtranXPON):
+class AdtranOnuHandler(object):
     def __init__(self, adapter, device_id):
         kwargs = dict()
         super(AdtranOnuHandler, self).__init__(**kwargs)
@@ -58,14 +67,11 @@ class AdtranOnuHandler(AdtranXPON):
         self.pm_metrics = None
         self.alarms = None
         self._mgmt_gemport_aes = False
-        self._upstream_channel_speed = 0
 
         self._openomci = OMCI(self, adapter.omci_agent)
         self._in_sync_subscription = None
 
-        self._onu_port_number = 0
         self._pon_port_number = 1
-        self._port_number_pool = IndexPool(_MAXIMUM_PORT, 0)
 
         self._unis = dict()         # Port # -> UniPort
         self._pon = PonPort.create(self, self._pon_port_number)
@@ -80,6 +86,30 @@ class AdtranOnuHandler(AdtranXPON):
         self.vlan_tcis_1 = 0x900
         self.mac_bridge_service_profile_entity_id = self.vlan_tcis_1
         self.gal_enet_profile_entity_id = 0     # Was 0x100, but ONU seems to overwrite and use zero
+
+        # Technology profile related values
+        self.incoming_messages = DeferredQueue()
+        self.event_messages = DeferredQueue()
+        self._tp_service_specific_task = dict()
+        self._tech_profile_download_done = dict()
+        self._upstream_channel_speed = 0                # TODO: Deprecate
+
+        # Initialize KV store client
+        self.args = registry('main').get_args()
+        if self.args.backend == 'etcd':
+            host, port = self.args.etcd.split(':', 1)
+            self.kv_client = EtcdStore(host, port,
+                                       TechProfile.KV_STORE_TECH_PROFILE_PATH_PREFIX)
+        elif self.args.backend == 'consul':
+            host, port = self.args.consul.split(':', 1)
+            self.kv_client = ConsulStore(host, port,
+                                         TechProfile.KV_STORE_TECH_PROFILE_PATH_PREFIX)
+        else:
+            self.log.error('Invalid-backend')
+            raise Exception("Invalid-backend-for-kv-store")
+
+        # Handle received ONU event messages
+        reactor.callLater(0, self.handle_onu_events)
 
     def __str__(self):
         return "AdtranOnuHandler: {}".format(self.device_id)
@@ -153,19 +183,12 @@ class AdtranOnuHandler(AdtranXPON):
     def pon_ports(self):
         return [self._pon]
 
-    @property
-    def _next_port_number(self):
-        return self._port_number_pool.get_next()
-
-    def _release_port_number(self, number):
-        self._port_number_pool.release(number)
-
     def start(self):
         assert self._enabled, 'Start should only be called if enabled'
         self._cancel_deferred()
 
         # Register for adapter messages
-        #self.adapter_agent.register_for_inter_adapter_messages()
+        self.adapter_agent.register_for_inter_adapter_messages()
 
         # OpenOMCI Startup
         self._subscribe_to_events()
@@ -183,11 +206,10 @@ class AdtranOnuHandler(AdtranXPON):
 
     def stop(self):
         assert not self._enabled, 'Stop should only be called if disabled'
-
         self._cancel_deferred()
 
         # Drop registration for adapter messages
-        #self.adapter_agent.unregister_for_inter_adapter_messages()
+        self.adapter_agent.unregister_for_inter_adapter_messages()
 
         # Heartbeat
         self._heartbeat.enabled = False
@@ -221,7 +243,7 @@ class AdtranOnuHandler(AdtranXPON):
             self.adapter_agent.register_for_proxied_messages(device.proxy_address)
 
             # initialize device info
-            device.root = True
+            device.root = False
             device.vendor = 'Adtran Inc.'
             device.model = 'n/a'
             device.hardware_version = 'n/a'
@@ -296,7 +318,7 @@ class AdtranOnuHandler(AdtranXPON):
         self.adapter_agent.register_for_proxied_messages(device.proxy_address)
 
         # Register for adapter messages
-        #self.adapter_agent.register_for_inter_adapter_messages()
+        self.adapter_agent.register_for_inter_adapter_messages()
 
         # Set the connection status to REACHABLE
         device.connect_status = ConnectStatus.REACHABLE
@@ -313,6 +335,179 @@ class AdtranOnuHandler(AdtranXPON):
         self.adapter_agent.update_device(device)
 
         self.log.info('reconciling-ONU-device-ends')
+
+    @inlineCallbacks
+    def handle_onu_events(self):
+        # TODO: Add 'shutdown' message to exit loop
+        event_msg = yield self.event_messages.get()
+        try:
+            if event_msg['event'] == 'download_tech_profile':
+                tp_path = event_msg['event_data']
+                uni_id = event_msg['uni_id']
+                self.load_and_configure_tech_profile(uni_id, tp_path)
+
+        except Exception as e:
+            self.log.error("exception-handling-onu-event", e=e)
+
+        # Handle next event
+        reactor.callLater(0, self.handle_onu_events)
+
+    def _tp_path_to_tp_id(self, tp_path):
+        parts = tp_path.split('/')
+        if len(parts) > 2:
+            try:
+                return int(tp_path[1])
+            except ValueError:
+                return DEFAULT_TECH_PROFILE_TABLE_ID
+
+    def _create_tcont(self, uni_id, us_scheduler, tech_profile_id):
+        """
+        Decode Upstream Scheduler and create appropriate TCONT structures
+
+        :param uni_id: (int) UNI ID on the PON
+        :param us_scheduler: (Scheduler) Upstream Scheduler with TCONT information
+        :param tech_profile_id: (int) Tech Profile ID
+
+        :return (OnuTCont) Created TCONT
+        """
+        self.log.debug('create-tcont', us_scheduler=us_scheduler, profile_id=tech_profile_id)
+
+        q_sched_policy = {
+            'strictpriority': 1,        # Per TCONT (ME #262) values
+            'wrr': 2
+        }.get(us_scheduler.get('q_sched_policy', 'none').lower(), 0)
+
+        tcont_data = {
+            'tech-profile-id': tech_profile_id,
+            'uni-id': uni_id,
+            'alloc-id': us_scheduler['alloc_id'],
+            'q-sched-policy': q_sched_policy
+        }
+        # TODO: Support TD if shaping on ONU is to be performed
+        td = OnuTrafficDescriptor(0, 0, 0)
+        tcont = OnuTCont.create(self, tcont_data, td)
+        self._pon.add_tcont(tcont)
+        return tcont
+
+    # Called when there is an olt up indication, providing the gem port id chosen by the olt handler
+    def _create_gemports(self, upstream_ports, downstream_ports, tcont, uni_id, tech_profile_id):
+        """
+        Create GEM Ports for a specifc tech profile
+
+        The routine will attempt to combine upstream and downstream GEM Ports into bidirectional
+        ports where possible
+
+        :param upstream_ports: (list of IGemPortAttribute) Upstream GEM Port attributes
+        :param downstream_ports: (list of IGemPortAttribute) Downstream GEM Port attributes
+        :param tcont: (OnuTCont) Associated TCONT
+        :param uni_id: (int) UNI Instance ID
+        :param tech_profile_id: (int) Tech Profile ID
+        """
+        self.log.debug('create-gemports', upstream=upstream_ports,
+                       downstream_ports=downstream_ports,
+                       tcont=tcont, tech_id=tech_profile_id)
+        # Convert GEM Port lists to dicts with GEM ID as they key
+        upstream = {gem['gemport_id']: gem for gem in upstream_ports}
+        downstream = {gem['gemport_id']: gem for gem in downstream_ports}
+
+        upstream_ids = set(upstream.keys())
+        downstream_ids = set(downstream.keys())
+        bidirectional_ids = upstream_ids & downstream_ids
+
+        gem_port_types = {     # Keys are the 'direction' attribute value, value is list of GEM attributes
+            1: [upstream[gid] for gid in upstream_ids - bidirectional_ids],
+            2: [downstream[gid] for gid in downstream_ids - bidirectional_ids],
+            3: [upstream[gid] for gid in bidirectional_ids]
+        }
+        for direction, gem_list in gem_port_types.items():
+            for gem in gem_list:
+                gem_data = {
+                    'gemport-id': gem['gemport_id'],
+                    'direction': direction,
+                    'encryption': gem['aes_encryption'].lower() == 'true',
+                    'discard-policy': gem['discard_policy'],
+                    'max-q-size': gem['max_q_size'],
+                    'pbit-map': gem['pbit_map'],
+                    'priority-q': gem['priority_q'],
+                    'scheduling_policy': gem['scheduling_policy'],
+                    'weight': gem['weight'],
+                    'uni-id': uni_id,
+                    'discard_config': {
+                        'max-probability': gem['discard_config']['max_probability'],
+                        'max-threshold': gem['discard_config']['max_threshold'],
+                        'min-threshold': gem['discard_config']['min_threshold'],
+                    },
+                }
+                gem_port = OnuGemPort.create(self, gem_data,
+                                             tcont.alloc_id,
+                                             tech_profile_id,
+                                             self._pon.next_gem_entity_id)
+                self._pon.add_gem_port(gem_port)
+
+    def _do_tech_profile_configuration(self, uni_id, tp, tech_profile_id):
+        us_scheduler = tp['us_scheduler']
+        tcont = self._create_tcont(uni_id, us_scheduler, tech_profile_id)
+
+        upstream = tp['upstream_gem_port_attribute_list']
+        downstream = tp['downstream_gem_port_attribute_list']
+        self._create_gemports(upstream, downstream, tcont, uni_id, tech_profile_id)
+
+    def load_and_configure_tech_profile(self, uni_id, tp_path):
+        self.log.debug("loading-tech-profile-configuration", uni_id=uni_id, tp_path=tp_path)
+
+        if uni_id not in self._tp_service_specific_task:
+            self._tp_service_specific_task[uni_id] = dict()
+
+        if uni_id not in self._tech_profile_download_done:
+            self._tech_profile_download_done[uni_id] = dict()
+
+        if tp_path not in self._tech_profile_download_done[uni_id]:
+            self._tech_profile_download_done[uni_id][tp_path] = False
+
+        if not self._tech_profile_download_done[uni_id][tp_path]:
+            try:
+                if tp_path in self._tp_service_specific_task[uni_id]:
+                    self.log.info("tech-profile-config-already-in-progress",
+                                  tp_path=tp_path)
+                    return
+
+                tp = self.kv_client[tp_path]
+                tp = ast.literal_eval(tp)
+                self.log.debug("tp-instance", tp=tp)
+
+                tech_profile_id = self._tp_path_to_tp_id(tp_path)
+                self._do_tech_profile_configuration(uni_id, tp, tech_profile_id)
+
+                def success(_results):
+                    self.log.info("tech-profile-config-done-successfully")
+                    device = self.adapter_agent.get_device(self.device_id)
+                    device.reason = 'tech-profile-config-download-success'
+                    self.adapter_agent.update_device(device)
+                    if tp_path in self._tp_service_specific_task[uni_id]:
+                        del self._tp_service_specific_task[uni_id][tp_path]
+                    self._tech_profile_download_done[uni_id][tp_path] = True
+
+                def failure(_reason):
+                    self.log.warn('tech-profile-config-failure-retrying', reason=_reason)
+                    device = self.adapter_agent.get_device(self.device_id)
+                    device.reason = 'tech-profile-config-download-failure-retrying'
+                    self.adapter_agent.update_device(device)
+                    if tp_path in self._tp_service_specific_task[uni_id]:
+                        del self._tp_service_specific_task[uni_id][tp_path]
+                    self._deferred = reactor.callLater(_STARTUP_RETRY_WAIT, self.load_and_configure_tech_profile,
+                                                       uni_id, tp_path)
+
+                self.log.info('downloading-tech-profile-configuration')
+                tp_task = AdtnTpServiceSpecificTask(self.openomci.omci_agent, self, uni_id)
+
+                self._tp_service_specific_task[uni_id][tp_path] = tp_task
+                # self._deferred = self.openomci.onu_omci_device.task_runner.queue_task(tp_task)
+                # self._deferred.addCallbacks(success, failure)
+
+            except Exception as e:
+                self.log.exception("error-loading-tech-profile", e=e)
+        else:
+            self.log.info("tech-profile-config-already-done")
 
     def update_pm_config(self, device, pm_config):
         # TODO: This has not been tested
@@ -393,13 +588,13 @@ class AdtranOnuHandler(AdtranXPON):
         self._cancel_deferred()
 
         reregister = False
-        # try:
-        #     # Drop registration for adapter messages
-        #     reregister = True
-        #     self.adapter_agent.unregister_for_inter_adapter_messages()
-        #
-        # except KeyError:
-        #     reregister = False
+        try:
+            # Drop registration for adapter messages
+            reregister = True
+            self.adapter_agent.unregister_for_inter_adapter_messages()
+
+        except KeyError:
+            reregister = False
 
         # Update the operational status to ACTIVATING and connect status to
         # UNREACHABLE
@@ -548,9 +743,10 @@ class AdtranOnuHandler(AdtranXPON):
             assert self.logical_device_id, 'Invalid logical device ID'
 
             # reestablish logical ports for each UNI
+            multi_uni = len(self.uni_ports) > 1
             for uni in self.uni_ports:
                 self.adapter_agent.add_port(device.id, uni.get_port())
-                uni.add_logical_port(uni.logical_port_number)
+                uni.add_logical_port(uni.logical_port_number, multi_uni)
 
             device = self.adapter_agent.get_device(device.id)
             device.oper_status = OperStatus.ACTIVE
@@ -592,23 +788,21 @@ class AdtranOnuHandler(AdtranXPON):
         pptp_entities = self.openomci.onu_omci_device.configuration.pptp_entities
         device = self.adapter_agent.get_device(self.device_id)
 
+        multi_uni = len(pptp_entities) > 1
+        uni_id = 0
+
         for entity_id, pptp in pptp_entities.items():
             intf_id = self.proxy_address.channel_id
             onu_id = self.proxy_address.onu_id
-            uni_no_start = platform.mk_uni_port_num(intf_id, onu_id)
-
-            working_port = self._next_port_number
-            uni_no = uni_no_start + working_port        # OpenFlow port number
+            uni_no = platform.mk_uni_port_num(intf_id, onu_id, uni_id=uni_id)
             uni_name = "uni-{}".format(uni_no)
-            mac_bridge_port_num = working_port + 1
-            self.log.debug('live-port-number-ready', uni_no=uni_no, uni_name=uni_name)
+            mac_bridge_port_num = uni_id + 1
 
             uni_port = UniPort.create(self, uni_name, uni_no, uni_name)
             uni_port.entity_id = entity_id
             uni_port.enabled = True
             uni_port.mac_bridge_port_num = mac_bridge_port_num
-            uni_port.add_logical_port(uni_port.port_number)
-
+            uni_port.add_logical_port(uni_port.port_number, multi_uni)
             self.log.debug("created-uni-port", uni=uni_port)
 
             self.adapter_agent.add_port(device.id, uni_port.get_port())
@@ -637,128 +831,7 @@ class AdtranOnuHandler(AdtranXPON):
                                                                 pon_port)
             self.adapter_agent.update_device(device)
             uni_port.enabled = True
-            # TODO: only one uni/pptp for now. flow bug in openolt
-
-    def on_tcont_create(self, tcont):
-        from onu_tcont import OnuTCont
-
-        self.log.info('create-tcont')
-
-        td = self.traffic_descriptors.get(tcont.get('td-ref'))
-        traffic_descriptor = td['object'] if td is not None else None
-        tcont['object'] = OnuTCont.create(self, tcont, traffic_descriptor)
-
-        if self._pon is not None:
-            self._pon.add_tcont(tcont['object'])
-
-        return tcont
-
-    def on_tcont_modify(self, tcont, update, diffs):
-        valid_keys = ['td-ref']  # Modify of these keys supported
-
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("TCONT leaf '{}' is read-only or write-once".format(invalid_key))
-
-        tc = tcont.get('object')
-        assert tc is not None, 'TCONT not found'
-
-        update['object'] = tc
-
-        if self._pon is not None:
-            keys = [k for k in diffs.keys() if k in valid_keys]
-
-            for k in keys:
-                if k == 'td-ref':
-                    td = self.traffic_descriptors.get(update['td-ref'])
-                    if td is not None:
-                        self._pon.update_tcont_td(tcont['alloc-id'], td)
-
-        return update
-
-    def on_tcont_delete(self, tcont):
-        if self._pon is not None:
-            self._pon.remove_tcont(tcont['alloc-id'])
-
-        return None
-
-    def on_td_create(self, traffic_disc):
-        from onu_traffic_descriptor import OnuTrafficDescriptor
-
-        traffic_disc['object'] = OnuTrafficDescriptor.create(traffic_disc)
-        return traffic_disc
-
-    def on_td_modify(self, traffic_disc, update, diffs):
-        from onu_traffic_descriptor import OnuTrafficDescriptor
-
-        valid_keys = ['fixed-bandwidth',
-                      'assured-bandwidth',
-                      'maximum-bandwidth',
-                      'priority',
-                      'weight',
-                      'additional-bw-eligibility-indicator']
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("traffic-descriptor leaf '{}' is read-only or write-once".format(invalid_key))
-
-        # New traffic descriptor
-        update['object'] = OnuTrafficDescriptor.create(update)
-
-        td_name = traffic_disc['name']
-        tconts = {key: val for key, val in self.tconts.iteritems()
-                  if val['td-ref'] == td_name and td_name is not None}
-
-        for tcont in tconts.itervalues():
-            if self._pon is not None:
-                self._pon.update_tcont_td(tcont['alloc-id'], update['object'])
-
-        return update
-
-    def on_td_delete(self, traffic_desc):
-        # TD may be used by more than one TCONT. Only delete if the last one
-
-        td_name = traffic_desc['name']
-        num_tconts = len([val for val in self.tconts.itervalues()
-                          if val['td-ref'] == td_name and td_name is not None])
-
-        return None if num_tconts <= 1 else traffic_desc
-
-    def on_gemport_create(self, gem_port):
-        from onu_gem_port import OnuGemPort
-        assert self._pon is not None, 'No PON port'
-
-        gem_port['object'] = OnuGemPort.create(self, gem_port,
-                                               self._pon.next_gem_entity_id)
-        self._pon.add_gem_port(gem_port['object'])
-        return gem_port
-
-    def on_gemport_modify(self, gem_port, update, diffs):
-        valid_keys = ['encryption',
-                      'traffic-class']  # Modify of these keys supported
-
-        invalid_key = next((key for key in diffs.keys() if key not in valid_keys), None)
-        if invalid_key is not None:
-            raise KeyError("GEM Port leaf '{}' is read-only or write-once".format(invalid_key))
-
-        port = gem_port.get('object')
-        assert port is not None, 'GemPort not found'
-
-        keys = [k for k in diffs.keys() if k in valid_keys]
-        update['object'] = port
-
-        for k in keys:
-            if k == 'encryption':
-                port.encryption = update[k]
-            elif k == 'traffic-class':
-                pass                    # TODO: Implement
-
-        return update
-
-    def on_gemport_delete(self, gem_port):
-        if self._pon is not None:
-            self._pon.remove_gem_id(gem_port['gemport-id'])
-
-        return None
+            uni_id += 1
 
     def rx_inter_adapter_message(self, msg):
         raise NotImplemented('Not currently supported')

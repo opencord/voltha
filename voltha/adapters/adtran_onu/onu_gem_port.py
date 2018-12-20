@@ -24,25 +24,25 @@ class OnuGemPort(GemPort):
     """
     Adtran ONU specific implementation
     """
-    def __init__(self, gem_id, alloc_id, entity_id,
-                 encryption=False,
-                 omci_transport=False,
+    def __init__(self, gem_data, alloc_id, tech_profile_id, entity_id,
                  multicast=False,
-                 tcont_ref=None,
                  traffic_class=None,
-                 name=None,
-                 handler=None):
-        super(OnuGemPort, self).__init__(gem_id, alloc_id,
+                 handler=None,
+                 is_mock=False):
+        gem_id = gem_data['gemport-id']
+        encryption = gem_data['encryption']
+        super(OnuGemPort, self).__init__(gem_id, alloc_id, tech_profile_id,
                                          encryption=encryption,
-                                         omci_transport=omci_transport,
+                                         omci_transport=False,
                                          multicast=multicast,
-                                         tcont_ref=tcont_ref,
                                          traffic_class=traffic_class,
-                                         name=name,
-                                         handler=handler)
+                                         handler=handler,
+                                         is_mock=is_mock)
+        self._gem_data = gem_data
         self._entity_id = entity_id
         self._tcont_entity_id = None
         self._interworking = False
+        self.uni_id = gem_data['uni-id']
         self.log = structlog.get_logger(device_id=handler.device_id, gem_id=gem_id)
 
     @property
@@ -50,29 +50,18 @@ class OnuGemPort(GemPort):
         return self._entity_id
 
     @property
-    def encryption(self):
-        return self._encryption
-
-    @property
     def in_hardware(self):
         return self._tcont_entity_id is not None and self._interworking
 
-    @encryption.setter
-    def encryption(self, value):
-        assert isinstance(value, bool), 'encryption is a boolean'
-
-        if self._encryption != value:
-            self._encryption = value
-
     @staticmethod
-    def create(handler, gem_port, entity_id):
-        return OnuGemPort(gem_port['gemport-id'],
-                          None,
+    def create(handler, gem_data, alloc_id, tech_profile_id, entity_id):
+        # TODO: Only a minimal amount of info from the 'gem_port' dictionary
+        #       is currently used to create the GEM ports.
+
+        return OnuGemPort(gem_data,
+                          alloc_id,
+                          tech_profile_id,
                           entity_id,
-                          encryption=gem_port['encryption'],  # aes_indicator,
-                          tcont_ref=gem_port['tcont-ref'],
-                          name=gem_port['name'],
-                          traffic_class=gem_port['traffic-class'],
                           handler=handler)
 
     @inlineCallbacks
@@ -80,6 +69,8 @@ class OnuGemPort(GemPort):
                         tcont_entity_id,
                         ieee_mapper_service_profile_entity_id,
                         gal_enet_profile_entity_id):
+        if self._is_mock:
+            returnValue('mock')
 
         self.log.debug('add-to-hardware', gem_id=self.gem_id,
                        gem_entity_id=self.entity_id,
@@ -154,6 +145,9 @@ class OnuGemPort(GemPort):
 
     @inlineCallbacks
     def remove_from_hardware(self, omci):
+        if self._is_mock:
+            returnValue('mock')
+
         self.log.debug('remove-from-hardware',  gem_id=self.gem_id)
 
         results = None

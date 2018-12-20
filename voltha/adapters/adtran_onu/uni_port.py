@@ -20,6 +20,7 @@ from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER
 from voltha.protos.openflow_13_pb2 import ofp_port
+import voltha.adapters.adtran_olt.resources.adtranolt_platform as platform
 
 
 class UniPort(object):
@@ -29,6 +30,7 @@ class UniPort(object):
         self._enabled = False
         self._handler = handler
         self._name = name
+        self.uni_id = platform.uni_id_from_uni_port(port_no)
         self._port = None
         self._port_number = port_no
         self._ofp_port_no = ofp_port_no         # Set at by creator (vENET create)
@@ -162,16 +164,16 @@ class UniPort(object):
         """
         if self._port is None:
             self._port = Port(port_no=self.port_number,
-                              label='vEth-{}'.format(self.port_number),
+                              label=self.port_id_name(),
                               type=Port.ETHERNET_UNI,
                               admin_state=self._admin_state,
                               oper_status=self._oper_status)
         return self._port
 
     def port_id_name(self):
-        return 'uni-{}'.format(self._logical_port_number)
+        return 'uni-{}'.format(self._port_number)
 
-    def add_logical_port(self, openflow_port_no,
+    def add_logical_port(self, openflow_port_no, multi_uni_naming,
                          capabilities=OFPPF_10GB_FD | OFPPF_FIBER,
                          speed=OFPPF_10GB_FD):
 
@@ -202,7 +204,7 @@ class UniPort(object):
                                           device.parent_port_no & 0xff,
                                           (port_no >> 8) & 0xff,
                                           port_no & 0xff)),
-                name=device.serial_number,
+                name=device.serial_number + ['', '-' + str(self._mac_bridge_port_num)][multi_uni_naming],
                 config=0,
                 state=OFPPS_LIVE,
                 curr=capabilities,

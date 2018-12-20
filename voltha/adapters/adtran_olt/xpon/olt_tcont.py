@@ -14,8 +14,11 @@
 
 import structlog
 import json
-from twisted.internet.defer import  inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue
 from tcont import TCont
+from voltha.adapters.openolt.protos import openolt_pb2
+from olt_traffic_descriptor import OltTrafficDescriptor
+from ..adtran_olt_handler import AdtranOltHandler
 
 log = structlog.get_logger()
 
@@ -24,29 +27,25 @@ class OltTCont(TCont):
     """
     Adtran OLT specific implementation
     """
-    def __init__(self, alloc_id, traffic_descriptor, pon_id, onu_id,
-                 name=None, is_mock=False,
-                 pb_data=None):
-        super(OltTCont, self).__init__(alloc_id, traffic_descriptor, name=name)
-        self._is_mock = is_mock
+    def __init__(self, alloc_id, tech_profile_id, traffic_descriptor, pon_id, onu_id, is_mock=False):
+        super(OltTCont, self).__init__(alloc_id, tech_profile_id, traffic_descriptor, is_mock=is_mock)
         self.pon_id = pon_id
         self.onu_id = onu_id
-        self.data = pb_data             # Needed for non-xPON mode
+
+    def __str__(self):
+        return "TCont: {}/{}, alloc-id: {}".format(self.pon_id, self.onu_id, self.alloc_id)
 
     @staticmethod
-    def create(tcont, td, pon_id, onu_id):
-        from olt_traffic_descriptor import OltTrafficDescriptor
+    def create(tcont, pon_id, onu_id, tech_profile_id, uni_id, ofp_port_no):
+        # Only valid information in the upstream tcont of a tech profile
+        if tcont.direction != openolt_pb2.UPSTREAM:
+            return None
 
-        assert isinstance(tcont, dict), 'TCONT should be a dictionary'
-        assert isinstance(td, OltTrafficDescriptor), 'Invalid Traffic Descriptor data type'
-
-        return OltTCont(tcont['alloc-id'], td, pon_id, onu_id,
-                        name=tcont['name'],
-                        pb_data=tcont['data'])
+        td = OltTrafficDescriptor.create(tcont, pon_id, onu_id, uni_id, ofp_port_no)
+        return OltTCont(tcont.alloc_id, tech_profile_id, td, pon_id, onu_id)
 
     @inlineCallbacks
     def add_to_hardware(self, session):
-        from ..adtran_olt_handler import AdtranOltHandler
         if self._is_mock:
             returnValue('mock')
 
@@ -63,9 +62,8 @@ class OltTCont(TCont):
 
         if self.traffic_descriptor is not None:
             try:
-                results = yield self.traffic_descriptor.add_to_hardware(session,
-                                                                        self.pon_id, self.onu_id,
-                                                                        self.alloc_id)
+                results = yield self.traffic_descriptor.add_to_hardware(session)
+
             except Exception as e:
                 log.exception('traffic-descriptor', tcont=self,
                               td=self.traffic_descriptor, e=e)
@@ -74,12 +72,10 @@ class OltTCont(TCont):
         returnValue(results)
 
     def remove_from_hardware(self, session):
-        from ..adtran_olt_handler import AdtranOltHandler
+        if self._is_mock:
+            returnValue('mock')
 
-        pon_id = self.pon_id
-        onu_id = self.onu_id        # TODO: Cleanup parameters
-
-        uri = AdtranOltHandler.GPON_TCONT_CONFIG_URI.format(pon_id, onu_id, self.alloc_id)
+        uri = AdtranOltHandler.GPON_TCONT_CONFIG_URI.format(self.pon_id, self.onu_id, self.alloc_id)
         name = 'tcont-delete-{}-{}: {}'.format(self.pon_id, self.onu_id, self.alloc_id)
         return session.request('DELETE', uri, name=name)
 

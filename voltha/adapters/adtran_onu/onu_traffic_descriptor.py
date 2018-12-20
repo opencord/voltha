@@ -23,12 +23,10 @@ class OnuTrafficDescriptor(TrafficDescriptor):
     """
     def __init__(self, fixed, assured, maximum,
                  additional=TrafficDescriptor.AdditionalBwEligibility.DEFAULT,
-                 best_effort=None,
-                 name=None):
+                 best_effort=None):
         super(OnuTrafficDescriptor, self).__init__(fixed, assured, maximum,
                                                    additional=additional,
-                                                   best_effort=best_effort,
-                                                   name=name)
+                                                   best_effort=best_effort)
 
     @staticmethod
     def create(traffic_disc):
@@ -47,7 +45,6 @@ class OnuTrafficDescriptor(TrafficDescriptor):
         return OnuTrafficDescriptor(traffic_disc['fixed-bandwidth'],
                                     traffic_disc['assured-bandwidth'],
                                     traffic_disc['maximum-bandwidth'],
-                                    name=traffic_disc['name'],
                                     best_effort=best_effort,
                                     additional=additional)
 

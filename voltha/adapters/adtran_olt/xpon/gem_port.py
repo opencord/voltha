@@ -17,23 +17,25 @@ class GemPort(object):
     """
     Class to wrap TCont capabilities
     """
-    def __init__(self, gem_id, alloc_id,
+    def __init__(self, gem_id, alloc_id, tech_profile_id,
                  encryption=False,
                  omci_transport=False,
                  multicast=False,
                  tcont_ref=None,
                  traffic_class=None,
-                 name=None,
-                 handler=None):
-        self.name = name
+                 handler=None,
+                 is_mock=False):
+
         self.gem_id = gem_id
         self._alloc_id = alloc_id
+        self.tech_profile_id = tech_profile_id
         self.tcont_ref = tcont_ref
         self.traffic_class = traffic_class
         self._encryption = encryption
         self._omci_transport = omci_transport
         self.multicast = multicast
         self._handler = handler
+        self._is_mock = is_mock
 
         # TODO: Make this a base class and derive OLT and ONU specific classes from it
         #       The primary thing to change is the PON ID is OLT specific and the add/remove
@@ -42,6 +44,8 @@ class GemPort(object):
         self._onu_id = None
         self._intf_id = None
 
+        self.tech_profile_id = None     # TODO: Make property and clean up object once tech profiles fully supported
+
         # Statistics
         self.rx_packets = 0
         self.rx_bytes = 0
@@ -49,9 +53,7 @@ class GemPort(object):
         self.tx_bytes = 0
 
     def __str__(self):
-        return "GemPort: {}, alloc-id: {}, gem-id: {}".format(self.name,
-                                                              self.alloc_id,
-                                                              self.gem_id)
+        return "GemPort: alloc-id: {}, gem-id: {}".format(self.alloc_id,self.gem_id)
 
     @property
     def pon_id(self):
@@ -95,6 +97,10 @@ class GemPort(object):
     def tcont(self):
         tcont_item = self._handler.tconts.get(self.tcont_ref)
         return tcont_item.get('object') if tcont_item is not None else None
+
+    @property
+    def encryption(self):
+        return self._encryption
 
     @property
     def omci_transport(self):

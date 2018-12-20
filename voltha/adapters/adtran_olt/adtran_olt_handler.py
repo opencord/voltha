@@ -32,6 +32,8 @@ from voltha.extensions.omci.omci import *
 from voltha.protos.common_pb2 import AdminState, OperStatus
 from voltha.protos.device_pb2 import ImageDownload, Image
 from voltha.protos.openflow_13_pb2 import OFPP_MAX
+from common.tech_profile.tech_profile import *
+from voltha.protos.device_pb2 import Port
 
 
 class AdtranOltHandler(AdtranDeviceHandler):
@@ -80,13 +82,16 @@ class AdtranOltHandler(AdtranDeviceHandler):
         self._downloads = {}        # name -> Download obj
         self._pio_exception_map = []
 
+        self.downstream_shapping_supported = True      # 1971320F1-ML-4154 and later
+
         # FIXME:  Remove once we containerize.  Only exists to keep BroadCom OpenOMCI ONU Happy
         #         when it reaches up our rear and tries to yank out a UNI port number
         self.platform_class = None
 
         # To keep broadcom ONU happy
         from voltha.adapters.adtran_olt.resources.adtranolt_platform import adtran_platform
-        self.platform = adtran_platform()
+        self.platform = adtran_platform()           # TODO: Remove once tech-profiles & containerization is done !!!
+
 
     def __del__(self):
         # OLT Specific things here.
@@ -206,6 +211,17 @@ class AdtranOltHandler(AdtranDeviceHandler):
                                                               hash='Not Available')
                                                 device['software-images'].append(image)
 
+                    # Update features based on version
+                    # Format expected to be similar to:  1971320F1-ML-4154
+
+                    running_version = next((image.version for image in device.get('software-images', list())
+                                           if image.is_active), '').split('-')
+                    if len(running_version) > 2:
+                        try:
+                            self.downstream_shapping_supported = int(running_version[-1]) >= 4154
+                        except ValueError:
+                            pass
+
         except Exception as e:
             self.log.exception('dev-info-failure', e=e)
             raise
@@ -213,18 +229,19 @@ class AdtranOltHandler(AdtranDeviceHandler):
         returnValue(device)
 
     def initialize_resource_manager(self):
-        # Initialize the resource manager
+        # Initialize the resource and tech profile managers
         extra_args = '--olt_model {}'.format(self.resource_manager_key)
         self.resource_mgr = AdtranOltResourceMgr(self.device_id,
                                                  self.host_and_port,
                                                  extra_args,
                                                  self.default_resource_mgr_device_info)
+        self._populate_tech_profile_per_pon_port()
 
     @property
     def default_resource_mgr_device_info(self):
         class AdtranOltDevInfo(object):
             def __init__(self, pon_ports):
-                self.technology = "gpon"
+                self.technology = "xgspon"
                 self.onu_id_start = 0
                 self.onu_id_end = platform.MAX_ONUS_PER_PON
                 self.alloc_id_start = platform.MIN_TCONT_ALLOC_ID
@@ -238,6 +255,44 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         return AdtranOltDevInfo(self.southbound_ports)
 
+    def _populate_tech_profile_per_pon_port(self):
+        self.tech_profiles = {intf_id: self.resource_mgr.resource_managers[intf_id].tech_profile
+                              for intf_id in self.resource_mgr.device_info.intf_ids}
+
+        # Make sure we have as many tech_profiles as there are pon ports on
+        # the device
+        assert len(self.tech_profiles) == self.resource_mgr.device_info.pon_ports
+
+    def get_tp_path(self, intf_id, ofp_port_name):
+        # TODO: Should get Table id form the flow, as of now hardcoded to DEFAULT_TECH_PROFILE_TABLE_ID (64)
+        # 'tp_path' contains the suffix part of the tech_profile_instance path.
+        # The prefix to the 'tp_path' should be set to \
+        # TechProfile.KV_STORE_TECH_PROFILE_PATH_PREFIX by the ONU adapter.
+        return self.tech_profiles[intf_id].get_tp_path(DEFAULT_TECH_PROFILE_TABLE_ID,
+                                                       ofp_port_name)
+
+    def delete_tech_profile_instance(self, intf_id, onu_id, logical_port):
+        # Remove the TP instance associated with the ONU
+        ofp_port_name = self.get_ofp_port_name(intf_id, onu_id, logical_port)
+        tp_path = self.get_tp_path(intf_id, ofp_port_name)
+        return self.tech_profiles[intf_id].delete_tech_profile_instance(tp_path)
+
+    def get_ofp_port_name(self, pon_id, onu_id, logical_port_number):
+        parent_port_no = self.pon_id_to_port_number(pon_id)
+        child_device = self.adapter_agent.get_child_device(self.device_id,
+                                                           parent_port_no=parent_port_no, onu_id=onu_id)
+        if child_device is None:
+            self.log.error("could-not-find-child-device", parent_port_no=pon_id, onu_id=onu_id)
+            return None, None
+
+        ports = self.adapter_agent.get_ports(child_device.id, Port.ETHERNET_UNI)
+        port = next((port for port in ports if port.port_no == logical_port_number), None)
+        logical_port = self.adapter_agent.get_logical_port(self.logical_device_id,
+                                                           port.label)
+        ofp_port_name = (logical_port.ofp_port.name, logical_port.ofp_port.port_no)
+
+        return ofp_port_name
+
     @inlineCallbacks
     def enumerate_northbound_ports(self, device):
         """
@@ -250,7 +305,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         from net.rcmd import RCmd
         try:
             # Also get the MAC Address for the OLT
-            command = "ip -o link | grep eth0 | sed -n -e 's/^.*ether //p' | awk '{ print $1 }'"
+            command = "ip link | grep -A1 eth0 | sed -n -e 's/^.*ether //p' | awk '{ print $1 }'"
             rcmd = RCmd(self.ip_address, self.netconf_username, self.netconf_password,
                         command)
             address = yield rcmd.execute()
@@ -392,7 +447,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             pon_id = pon.get('pon-id')
             assert pon_id is not None, 'PON ID not found'
             if pon['ifIndex'] is None:
-                pon['port_no'] = self._pon_id_to_port_number(pon_id)
+                pon['port_no'] = self.pon_id_to_port_number(pon_id)
             else:
                 pass        # Need to adjust ONU numbering !!!!
 
@@ -622,11 +677,11 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         # TODO: Verify that ONU object cleanup of ONU will also clean
         #       up logical id and physical port
-        pon_intf_id_onu_id = (proxy_address.channel_id,
-                              proxy_address.onu_id)
+        # pon_intf_id_onu_id = (proxy_address.channel_id,
+        #                       proxy_address.onu_id)
 
         # Free any PON resources that were reserved for the ONU
-        self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
+        # TODO: Done in onu delete now -> self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
 
     def rx_pa_packet(self, packets):
         if self._pon_agent is not None:
@@ -988,7 +1043,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         return pon_id, onu_id
 
-    def _pon_id_to_port_number(self, pon_id):
+    def pon_id_to_port_number(self, pon_id):
         return pon_id + 1 + 4   # Skip over uninitialized ports
 
     def _port_number_to_pon_id(self, port):
@@ -1232,7 +1287,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         self.adapter_agent.update_device(device)
         return done
 
-    def add_onu_device(self, intf_id, onu_id, serial_number, tconts, gem_ports):
+    def add_onu_device(self, pon_id, onu_id, serial_number):
         onu_device = self.adapter_agent.get_child_device(self.device_id,
                                                          serial_number=serial_number)
         if onu_device is not None:
@@ -1240,84 +1295,51 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         try:
             from voltha.protos.voltha_pb2 import Device
-
-            # NOTE - channel_id of onu is set to intf_id
+            # NOTE - channel_id of onu is set to pon_id
             proxy_address = Device.ProxyAddress(device_id=self.device_id,
-                                                channel_id=intf_id, onu_id=onu_id,
+                                                channel_id=pon_id, onu_id=onu_id,
                                                 onu_session_id=onu_id)
 
-            self.log.debug("added-onu", port_no=intf_id,
+            self.log.debug("added-onu", port_no=pon_id,
                            onu_id=onu_id, serial_number=serial_number,
                            proxy_address=proxy_address)
 
             self.adapter_agent.add_onu_device(
                 parent_device_id=self.device_id,
-                parent_port_no=intf_id,
+                parent_port_no=pon_id,
                 vendor_id=serial_number[:4],
                 proxy_address=proxy_address,
                 root=True,
                 serial_number=serial_number,
                 admin_state=AdminState.ENABLED,
             )
-            assert serial_number is not None, 'ONU does not have a serial number'
-
-            onu_device = self.adapter_agent.get_child_device(self.device_id,
-                                                             serial_number=serial_number)
-
-            reactor.callLater(0, self._seba_xpon_create, onu_device, intf_id, onu_id, tconts, gem_ports)
-            return onu_device
 
         except Exception as e:
             self.log.exception('onu-activation-failed', e=e)
             return None
 
-    def _seba_xpon_create(self, onu_device, intf_id, onu_id, tconts, gem_ports):
-        # For SEBA, send over tcont and gem_port information until tech profiles are ready
-        # tcont creation (onu)
-        from voltha.registry import registry
-        self.log.info('inject-tcont-gem-data-onu-handler', intf_id=intf_id,
-                      onu_id=onu_id, tconts=tconts, gem_ports=gem_ports)
+    def setup_onu_tech_profile(self, pon_id, onu_id, logical_port_number):
+        # Send ONU Adapter related tech profile information.
+        self.log.debug('add-tech-profile-info')
 
-        onu_adapter_agent = registry('adapter_loader').get_agent(onu_device.adapter)
-        if onu_adapter_agent is None:
-            self.log.error('onu_adapter_agent-could-not-be-retrieved',
-                           onu_device=onu_device)
+        uni_id = self.platform.uni_id_from_uni_port(logical_port_number)
+        parent_port_no = self.pon_id_to_port_number(pon_id)
+        onu_device = self.adapter_agent.get_child_device(self.device_id,
+                                                         onu_id=onu_id,
+                                                         parent_port_no=parent_port_no)
 
-        # In the OpenOLT version, this is where they signal the BroadCom ONU
-        # to enable OMCI. It is a call to the create_interface IAdapter method
-        #
-        # For the Adtran ONU, we are already running OpenOMCI.  On the Adtran ONU, a call
-        # to create_interface vectors into the xpon_create call which should not
-        # recognize the type and raise a value assertion
-        try:
-            onu_adapter_agent.create_interface(onu_device,
-                                               OnuIndication(intf_id, onu_id))
-        except Exception as _e:
-            pass
-        try:
-            # TODO: deprecate the xPON TCONT/TD/GEMPort once we do not have to call into ONU
-            last_alloc_id = None
-            for tcont_dict in tconts:
-                tcont = tcont_dict['object']
-                td = tcont.traffic_descriptor.data if tcont.traffic_descriptor is not None else None
-                onu_adapter_agent.create_tcont(onu_device, tcont.data, traffic_descriptor_data=td)
-                last_alloc_id = tcont.alloc_id
+        ofp_port_name, ofp_port_no = self.get_ofp_port_name(pon_id, onu_id,
+                                                            logical_port_number)
+        if ofp_port_name is None:
+            self.log.error("port-name-not-found")
+            return
 
-            for gem_port_dict in gem_ports:
-                gem_port = gem_port_dict['object']
-                if onu_device.adapter.lower() == 'brcm_openomci_onu':
-                    # BroadCom OpenOMCI ONU adapter uses the tcont alloc_id as the tcont_ref and currently
-                    # they only assign one.
-                    gem_port.data.tcont_ref = str(last_alloc_id)
-                onu_adapter_agent.create_gemport(onu_device, gem_port.data)
-        except Exception as _e:
-            pass
+        tp_path = self.get_tp_path(pon_id, ofp_port_name)
 
+        self.log.debug('Load-tech-profile-request-to-onu-handler', tp_path=tp_path)
 
-class OnuIndication(object):
-    def __init__(self, intf_id, onu_id):
-        self.name = 'Dummy ONU Indication'
-        self.intf_id = intf_id
-        self.onu_id = onu_id
-        self.oper_state = 'up'
-        self.admin_state = 'up'
+        msg = {'proxy_address': onu_device.proxy_address, 'uni_id': uni_id,
+               'event': 'download_tech_profile', 'event_data': tp_path}
+
+        # Send the event message to the ONU adapter
+        self.adapter_agent.publish_inter_adapter_message(onu_device.id, msg)

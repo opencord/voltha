@@ -33,21 +33,6 @@ import voltha.protos.device_pb2 as dev_pb2
 Encoding of identifiers
 =======================
 
-GEM port ID
-
-    GEM port id is unique per PON port and ranges 
-
-     9            3 2    0
-    +--------------+------+
-    |     onu id   | GEM  |
-    |              | idx  |
-    +--------------+------+
-
-    GEM port id range (0..1023) is reserved, by standard
-    Minimum GEM Port on Adtran OLT is 2176 (0x880)
-    onu id = 7 bits = 128 ONUs per PON
-    GEM index = 3 bits = 8 GEM ports per ONU
-
 Alloc ID
 
     Uniquely identifies a T-CONT
@@ -110,9 +95,6 @@ PON OLT (OF) port number
 MIN_TCONT_ALLOC_ID = 1024                   # 1024..16383
 MAX_TCONT_ALLOC_ID = 16383
 
-# MIN_GEM_PORT_ID = 1023                    # 1023..65534
-# MAX_GEM_PORT_ID = 65534
-
 MIN_GEM_PORT_ID = 2176                      # 2176..4222
 MAX_GEM_PORT_ID = MIN_GEM_PORT_ID + 2046
 
@@ -125,18 +107,25 @@ class adtran_platform(object):
     def __init__(self):
         pass
 
-    def mk_uni_port_num(self, intf_id, onu_id):
-        return intf_id << 11 | onu_id << 4
+    def mk_uni_port_num(self, intf_id, onu_id, uni_id=0):
+        return intf_id << 11 | onu_id << 4 | uni_id
+
+    def uni_id_from_uni_port(self, uni_port):
+        return uni_port & 0xF
 
 
-def mk_uni_port_num(intf_id, onu_id):
+def mk_uni_port_num(intf_id, onu_id, uni_id=0):
     """
     Create a unique virtual UNI port number based up on PON and ONU ID
     :param intf_id:
     :param onu_id: (int) ONU ID (0..max)
     :return: (int) UNI Port number
     """
-    return intf_id << 11 | onu_id << 4
+    return intf_id << 11 | onu_id << 4 | uni_id
+
+
+def uni_id_from_uni_port(uni_port):
+    return uni_port & 0xF
 
 
 def intf_id_from_uni_port_num(port_num):
@@ -161,33 +150,6 @@ def mk_alloc_id(_, onu_id, idx=0):
     assert 0 <= idx <= MAX_TCONTS_PER_ONU, 'Invalid TCONT instance. Expect 0..{}'.format(MAX_TCONTS_PER_ONU)
     alloc_id = MIN_TCONT_ALLOC_ID + (idx << 8) + onu_id
     return alloc_id
-
-
-# def mk_gemport_id(_, onu_id, idx=0):        #  Deprecated, moved to resource manager
-#     """
-#     Allocate a GEM-PORT ID.    This is only called by the OLT
-#
-#     A 4-bit mask was used since we need a gvid for untagged-EAPOL
-#     traffic and then up to 8 more for user-user data priority
-#     levels.
-#
-#     :param _: (int)         PON ID (0..n) - not used
-#     :param onu_id: (int)    ONU ID (0..MAX_ONUS_PER_PON-1)
-#     :param idx: (int)       GEM_PORT Index (0..15)
-#     """
-#     return MIN_GEM_PORT_ID + (onu_id << 4) + idx
-
-
-def intf_id_to_port_no(intf_id, intf_type):
-    if intf_type is Port.ETHERNET_NNI:
-        # OpenOLT starts at 128.  We start at 1 (one-to-one mapping)
-        return intf_id
-    elif intf_type is Port.PON_OLT:
-        # OpenOLT sets bit 29 + intf_id. We start at 5 for now for PON 0
-        # return 0x2 << 28 | intf_id
-        return intf_id + 5              # see _pon_id_to_port_number
-    else:
-        raise Exception('Invalid port type')
 
 
 def intf_id_from_nni_port_num(port_num):

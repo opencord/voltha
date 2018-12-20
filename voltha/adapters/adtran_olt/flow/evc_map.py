@@ -17,9 +17,11 @@ import re
 import structlog
 from enum import Enum
 from acl import ACL
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 from ncclient.operations.rpc import RPCError
+from voltha.adapters.openolt.protos import openolt_pb2
+
 
 log = structlog.get_logger()
 
@@ -74,9 +76,9 @@ class EVCMap(object):
         self._evc = None
         self._new_acls = dict()           # ACL Name -> ACL Object (To be installed into h/w)
         self._existing_acls = dict()      # ACL Name -> ACL Object (Already in H/w)
-        self._gem_ids_and_vid = None      # { key -> onu-id, value -> tuple(sorted GEM Port IDs, onu_vid) }
         self._is_ingress_map = is_ingress_map
         self._pon_id = None
+        self._onu_id = None               # Remains None if associated with a multicast flow
         self._installed = False
         self._needs_update = False
         self._status_message = None
@@ -99,6 +101,12 @@ class EVCMap(object):
         self._match_multicast = False
         self._match_unicast = False
         self._match_igmp = False
+
+        from common.tech_profile.tech_profile import DEFAULT_TECH_PROFILE_TABLE_ID
+        self._tech_profile_id = DEFAULT_TECH_PROFILE_TABLE_ID
+        self._gem_ids_and_vid = None      # { key -> onu-id, value -> tuple(sorted GEM Port IDs, onu_vid) }
+        self._upstream_bandwidth = None
+        self._shaper_name = None
 
         # ACL logic
         self._eth_type = None
@@ -185,8 +193,12 @@ class EVCMap(object):
         return self._pon_id     # May be None
 
     @property
-    def onu_ids(self):
-        return self._gem_ids_and_vid.keys()
+    def onu_id(self):
+        return self._onu_id     # May be None if associated with a multicast flow
+
+    # @property
+    # def onu_ids(self):
+    #     return self._gem_ids_and_vid.keys()
 
     @property
     def gem_ids_and_vid(self):
@@ -217,8 +229,7 @@ class EVCMap(object):
         xml += '<match-untagged>{}</match-untagged>'.format('true'
                                                             if self._match_untagged
                                                             else 'false')
-        # if self._c_tag is not None:
-        #     xml += '<ctag>{}</ctag>'.format(self._c_tag)
+
         # TODO: The following is not yet supported (and in some cases, not decoded)
         # self._men_priority = EVCMap.PriorityOption.INHERIT_PRIORITY
         # self._men_pri = 0  # If Explicit Priority
@@ -229,11 +240,6 @@ class EVCMap(object):
         # self._match_ce_vlan_id = None
         # self._match_untagged = True
         # self._match_destination_mac_address = None
-        # self._eth_type = None
-        # self._ip_protocol = None
-        # self._ipv4_dst = None
-        # self._udp_dst = None
-        # self._udp_src = None
         return xml
 
     def _ingress_install_xml(self, onu_s_gem_ids_and_vid, acl_list, create):
@@ -344,6 +350,15 @@ class EVCMap(object):
                 self._installed = True
                 try:
                     self._cancel_deferred()
+
+                    log.info('upstream-bandwidth')
+                    try:
+                        yield self.update_upstream_flow_bandwidth()
+
+                    except Exception as e:
+                        log.exception('upstream-bandwidth-failed', name=self.name, e=e)
+                        raise
+
                     map_xml = self._ingress_install_xml(self._gem_ids_and_vid, work_acls.values(),
                                                         not is_installed) \
                         if self._is_ingress_map else self._egress_install_xml()
@@ -359,7 +374,7 @@ class EVCMap(object):
                     else:
                         self._new_acls.update(work_acls)
 
-                except RPCError as rpc_err:             # TODO: Try to catch this before attempting the install
+                except RPCError as rpc_err:
                     if rpc_err.tag == 'data-exists':    # Known race due to bulk-flow operation
                         pass
 
@@ -368,6 +383,15 @@ class EVCMap(object):
                     self._installed = is_installed
                     self._new_acls.update(work_acls)
                     raise
+
+                # Install any needed shapers
+                if self._installed:
+                    try:
+                        yield self.update_downstream_flow_bandwidth()
+
+                    except Exception as e:
+                        log.exception('shaper-install-failed', name=self.name, e=e)
+                        raise
 
         returnValue(self._installed and self._valid)
 
@@ -413,12 +437,17 @@ class EVCMap(object):
             if len(dl) > 0:
                 defer.gatherResults(dl, consumeErrors=True)
 
+        def _remove_shaper(_):
+            if self._shaper_name is not None:
+                self.update_downstream_flow_bandwidth(remove=True)
+
         map_xml = self._ingress_remove_xml(self._gem_ids_and_vid) if self._is_ingress_map \
             else self._egress_remove_xml()
 
         d = self._handler.netconf_client.edit_config(map_xml)
         d.addCallbacks(_success, _failure)
         d.addBoth(_remove_acls)
+        d.addBoth(_remove_shaper)
         return d
 
     @inlineCallbacks
@@ -628,48 +657,101 @@ class EVCMap(object):
         return {'ingress-port': items[1],
                 'flow-id': items[2].split('.')[0]} if len(items) > 2 else dict()
 
-    def add_gem_port(self, gem_port, reflow=False):
-        # TODO: Refactor
-        if self._is_ingress_map:
-            def gem_ports():
-                ports = []
-                for gems_and_vids in self._gem_ids_and_vid.itervalues():
-                    ports.extend(gems_and_vids[0])
-                return ports
+    @inlineCallbacks
+    def update_upstream_flow_bandwidth(self):
+        """
+        Upstream flow bandwidth comes from the flow_entry related to this EVC-MAP
+        and if no bandwidth property is found, allow full bandwidth
+        """
+        # all flows should should be on the same PON
+        flow = self._flows.itervalues().next()
+        is_pon = flow.handler.is_pon_port(flow.in_port)
 
-            before = gem_ports()
-            self._setup_gem_ids()
-            after = gem_ports()
+        if self._is_ingress_map and is_pon:
+            pon_port = flow.handler.get_southbound_port(flow.in_port)
+            if pon_port is None:
+                returnValue('no PON')
 
-            if reflow or len(before) < len(after):
-                self._installed = False
-                return self.install()
+            session = self._handler.rest_client
+            # TODO: Refactor with tech profiles
+            tconts = None               # pon_port.tconts
+            traffic_descriptors = None  # pon_port.traffic_descriptors
 
-        return succeed('nop')
+            if traffic_descriptors is None or tconts is None:
+                returnValue('no TDs on PON')
 
-    def remove_gem_port(self, gem_port):
-        # TODO: Refactor
-        if self._is_ingress_map:
-            def gem_ports():
-                ports = []
-                for gems_and_vids in self._gem_ids_and_vid.itervalues():
-                    ports.extend(gems_and_vids[0])
-                return ports
+            bandwidth = self._upstream_bandwidth or 10000000000
 
-            before = gem_ports()
-            self._setup_gem_ids()
-            after = gem_ports()
+            if self.pon_id is not None and self.onu_id is not None:
+                name = 'tcont-{}-{}-data'.format(self.pon_id, self.onu_id)
+                td = traffic_descriptors.get(name)
+                tcont = tconts.get(name)
 
-            if len(before) > len(after):
-                if len(after) == 0:
-                    return self._remove()
-                else:
-                    self._installed = False
-                    return self.install()
+                if td is not None and tcont is not None:
+                    alloc_id = tcont.alloc_id
+                    td.maximum_bandwidth = bandwidth
+                    try:
+                        results = yield td.add_to_hardware(session)
+                        log.debug('td-modify-results', results=results)
 
-        return succeed('nop')
+                    except Exception as _e:
+                        pass
 
-    def _setup_gem_ids(self):
+    @inlineCallbacks
+    def update_downstream_flow_bandwidth(self, remove=False):
+        """
+        Downstream flow bandwidth is extracted from the related EVC flow_entry
+        bandwidth property. It is written to this EVC-MAP only if it is found
+        """
+        xml = None
+        results = None
+
+        if remove:
+            name, self._shaper_name = self._shaper_name, None
+            if name is not None:
+                xml = self._shaper_remove_xml(name)
+        else:
+            if self._evc is not None and self._evc.flow_entry is not None \
+                    and self._evc.flow_entry.bandwidth is not None:
+                self._shaper_name = self._name
+                xml = self._shaper_install_xml(self._shaper_name,
+                                               self._evc.flow_entry.bandwidth * 1000)  # kbps
+        if xml is not None:
+            try:
+                log.info('downstream-bandwidth', xml=xml, name=self.name, remove=remove)
+                results = yield self._handler.netconf_client.edit_config(xml)
+
+            except RPCError as rpc_err:
+                if rpc_err.tag == 'data-exists':
+                    pass
+
+            except Exception as e:
+                log.exception('downstream-bandwidth', name=self.name, remove=remove, e=e)
+                raise
+
+        returnValue(results)
+
+    def _shaper_install_xml(self, name, bandwidth):
+        xml = '<adtn-shaper:shapers xmlns:adtn-shaper="http://www.adtran.com/ns/yang/adtran-traffic-shapers" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
+              ' <adtn-shaper:shaper nc:operation="create">'
+        xml += '  <adtn-shaper:name>{}</adtn-shaper:name>'.format(name)
+        xml += '  <adtn-shaper:enabled>true</adtn-shaper:enabled>'
+        xml += '  <adtn-shaper:rate>{}</adtn-shaper:rate>'.format(bandwidth)
+        xml += '  <adtn-shaper-evc-map:evc-map xmlns:adtn-shaper-evc-map="http://www.adtran.com/ns/yang/adtran-traffic-shaper-evc-maps">{}</adtn-shaper-evc-map:evc-map>'.format(self.name)
+        xml += ' </adtn-shaper:shaper>'
+        xml += '</adtn-shaper:shapers>'
+        return xml
+
+    def _shaper_remove_xml(self, name):
+        xml = '<adtn-shaper:shapers xmlns:adtn-shaper="http://www.adtran.com/ns/yang/adtran-traffic-shapers" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
+              ' <adtn-shaper:shaper nc:operation="delete">'
+        xml += '  <adtn-shaper:name>{}</adtn-shaper:name>'.format(self.name)
+        xml += ' </adtn-shaper:shaper>'
+        xml += '</adtn-shaper:shapers>'
+        return xml
+
+    def _setup_tech_profiles(self):
+        # Set up the TCONT / GEM Ports for this connection (Downstream only of course)
         # all flows should have same GEM port setup
         flow = self._flows.itervalues().next()
         is_pon = flow.handler.is_pon_port(flow.in_port)
@@ -677,11 +759,116 @@ class EVCMap(object):
         if self._is_ingress_map and is_pon:
             pon_port = flow.handler.get_southbound_port(flow.in_port)
 
-            if pon_port is not None:
-                self._pon_id = pon_port.pon_id
-                self._gem_ids_and_vid = pon_port.gem_ids(flow.logical_port,
-                                                         flow.vlan_id,
-                                                         flow.is_multicast_flow)
+            if pon_port is None:
+                return
+
+            onu = next((onu for onu in pon_port.onus if onu.logical_port == flow.logical_port), None)
+
+            if onu is None:       # TODO: Add multicast support later (self.onu_id == None)
+                return
+
+            self._pon_id = pon_port.pon_id
+            self._onu_id = onu.onu_id
+
+            # Identify or allocate TCONT and GEM Ports.  If the ONU has been informed of the
+            # GEM PORTs that belong to it, the tech profiles were already set up by a previous
+            # flows
+            onu_gems = onu.gem_ids(self._tech_profile_id)
+
+            if len(onu_gems) > 0:
+                self._gem_ids_and_vid[onu.onu_id] = (onu_gems, flow.vlan_id)
+                return
+
+            uni_id = self._handler.platform.uni_id_from_uni_port(flow.logical_port)
+            pon_profile = self._handler.tech_profiles[self.pon_id]
+            alloc_id = None
+
+            try:
+                (ofp_port_name, ofp_port_no) = self._handler.get_ofp_port_name(self.pon_id,
+                                                                               self.onu_id,
+                                                                               flow.logical_port)
+                if ofp_port_name is None:
+                    log.error("port-name-not-found")
+                    return
+
+                # Check tech profile instance already exists for derived port name
+                tech_profile = pon_profile.get_tech_profile_instance(self._tech_profile_id,
+                                                                     ofp_port_name)
+                log.debug('Get-tech-profile-instance-status',
+                          tech_profile_instance=tech_profile)
+
+                if tech_profile is None:
+                    # create tech profile instance
+                    tech_profile = pon_profile.create_tech_profile_instance(self._tech_profile_id,
+                                                                            ofp_port_name,
+                                                                            self.pon_id)
+                    if tech_profile is None:
+                        raise Exception('Tech-profile-instance-creation-failed')
+                else:
+                    log.debug('Tech-profile-instance-already-exist-for-given port-name',
+                              ofp_port_name=ofp_port_name)
+
+                # upstream scheduler
+                us_scheduler = pon_profile.get_us_scheduler(tech_profile)
+
+                # downstream scheduler
+                ds_scheduler = pon_profile.get_ds_scheduler(tech_profile)
+
+                # create Tcont protobuf
+                pb_tconts = pon_profile.get_tconts(tech_profile, us_scheduler, ds_scheduler)
+
+                # create TCONTs & GEM Ports locally
+                for pb_tcont in pb_tconts:
+                    from ..xpon.olt_tcont import OltTCont
+                    tcont = OltTCont.create(pb_tcont,
+                                            self._tech_profile_id,
+                                            self.pon_id,
+                                            self.onu_id,
+                                            uni_id,
+                                            ofp_port_no)
+                    if tcont is not None:
+                        onu.add_tcont(tcont)
+
+                # Fetch alloc id and gemports from tech profile instance
+                alloc_id = tech_profile.us_scheduler.alloc_id
+
+                onu_gems = [gem.gemport_id for gem in tech_profile.upstream_gem_port_attribute_list]
+
+                for gem in tech_profile.upstream_gem_port_attribute_list:
+                    from ..xpon.olt_gem_port import OltGemPort
+                    gem_port = OltGemPort.create(self._handler,
+                                                 gem,
+                                                 tech_profile.us_scheduler.alloc_id,
+                                                 self._tech_profile_id,
+                                                 self.pon_id,
+                                                 self.onu_id,
+                                                 uni_id,
+                                                 ofp_port_no)
+                    if gem_port is not None:
+                        onu.add_gem_port(gem_port)
+                #
+                #
+
+                self._gem_ids_and_vid = {onu.onu_id: (onu_gems, flow.vlan_id)}
+
+                # Send technology profile information to ONU
+                reactor.callLater(0, self._handler.setup_onu_tech_profile, self._pon_id,
+                                  self.onu_id, flow.logical_port)
+
+            except BaseException as e:
+                log.exception(exception=e)
+
+            # Update the allocated alloc_id and gem_port_id for the ONU/UNI to KV store
+            pon_intf_onu_id = (self.pon_id, self.onu_id, uni_id)
+            resource_manager = self._handler.resource_mgr.resource_managers[self.pon_id]
+
+            resource_manager.update_alloc_ids_for_onu(pon_intf_onu_id, list([alloc_id]))
+            resource_manager.update_gemport_ids_for_onu(pon_intf_onu_id, onu_gems)
+
+            self._handler.resource_mgr.update_gemports_ponport_to_onu_map_on_kv_store(onu_gems,
+                                                                                      self.pon_id,
+                                                                                      self.onu_id,
+                                                                                      uni_id)
 
     def _decode(self, evc):
         from evc import EVC
@@ -700,6 +887,9 @@ class EVCMap(object):
 
         is_pon = flow.handler.is_pon_port(flow.in_port)
         is_uni = flow.handler.is_uni_port(flow.in_port)
+
+        if flow.bandwidth is not None:
+            self._upstream_bandwidth = flow.bandwidth * 1000000
 
         if is_pon or is_uni:
             # Preserve CE VLAN tag only if utility VLAN/EVC
@@ -722,7 +912,8 @@ class EVCMap(object):
 
         # If no match of VLAN this may be for untagged traffic or upstream and needs to
         # match the gem-port vid
-        self._setup_gem_ids()
+
+        self._setup_tech_profiles()
 
         # self._match_untagged = flow.vlan_id is None and flow.inner_vid is None
         self._c_tag = flow.inner_vid or flow.vlan_id

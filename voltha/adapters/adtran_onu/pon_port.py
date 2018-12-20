@@ -184,27 +184,6 @@ class PonPort(object):
         self.log.info('add', tcont=tcont, reflow=reflow)
         self._tconts[tcont.alloc_id] = tcont
 
-        # TODO: Refactor once xPON goes away
-        self._handler.openomci.gem_or_tcont_added()
-
-    def update_tcont_td(self, alloc_id, new_td):
-        tcont = self._tconts.get(alloc_id)
-
-        if tcont is None:
-            return  # not-found
-
-        tcont.traffic_descriptor = new_td
-
-        # TODO: Not yet implemented
-        #TODO: How does this affect ONU tcont settings?
-        #try:
-        #    results = yield tcont.add_to_hardware(self._handler.omci)
-        #except Exception as e:
-        #    self.log.exception('tcont', tcont=tcont, e=e)
-        #    # May occur with xPON provisioning, use hw-resync to recover
-        #    results = 'resync needed'
-        # returnValue(results)
-
     @inlineCallbacks
     def remove_tcont(self, alloc_id):
         tcont = self._tconts.get(alloc_id)
@@ -245,9 +224,6 @@ class PonPort(object):
 
         self.log.info('add', gem_port=gem_port, reflow=reflow)
         self._gem_ports[gem_port.gem_id] = gem_port
-
-        # TODO: Refactor once xPON goes away
-        self._handler.openomci.gem_or_tcont_added()
 
     @inlineCallbacks
     def remove_gem_id(self, gem_id):

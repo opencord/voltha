@@ -89,6 +89,7 @@ class FlowEntry(object):
         self._logical_port = None    # Currently ONU VID is logical port if not doing xPON
         self._is_multicast = False
         self._is_acl_flow = False
+        self._bandwidth = None
 
         # A value used to locate possible related flow entries
         self.signature = None
@@ -139,6 +140,11 @@ class FlowEntry(object):
     @property
     def device_id(self):
         return self.handler.device_id
+
+    @property
+    def bandwidth(self):
+        """ Bandwidth in Mbps (if any) """
+        return self._bandwidth
 
     @property
     def flow_direction(self):
@@ -483,19 +489,22 @@ class FlowEntry(object):
                     # Downstream flow
                     log.debug('*** field.type == METADATA', value=field.table_metadata)
 
-                    if 0xFFFFFFFF >= field.table_metadata > OFPVID_PRESENT + 4095:
-                        # Default flows for old-style controller flows
-                        self.inner_vid = None
-
-                    elif field.table_metadata > 0xFFFFFFFF:
+                    if field.table_metadata > 4095:
                         # ONOS v1.13.5 or later. c-vid in upper 32-bits
-                        self.inner_vid = field.table_metadata >> 32
+                        vid = field.table_metadata & 0x0FFF
+                        if vid > 0:
+                            self.inner_vid = vid        # CTag is never '0'
 
-                    log.debug('*** field.type == METADATA', value=field.table_metadata,
-                              inner_vid=self.inner_vid)
+                    elif field.table_metadata > 0:
+                        # Pre-ONOS v1.13.5 (vid without the 4096 offset)
+                        self.inner_vid = field.table_metadata
+
                 else:
                     # Upstream flow
                     pass   # Not used upstream at this time
+
+                log.debug('*** field.type == METADATA', value=field.table_metadata,
+                          inner_vid=self.inner_vid)
             else:
                 log.warn('unsupported-selection-field', type=field.type)
                 self._status_message = 'Unsupported field.type={}'.format(field.type)
@@ -672,7 +681,7 @@ class FlowEntry(object):
             sig_table = self._handler.downstream_flows.get(self.signature)
             flow_table = sig_table.flows if sig_table is not None else None
 
-        if flow_table is None or flow_id not in flow_table:
+        if flow_table is None or flow_id not in flow_table.keys():
             returnValue('NOP')
 
         # Remove from flow table and clean up flow table if empty

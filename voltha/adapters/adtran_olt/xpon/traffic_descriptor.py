@@ -48,9 +48,7 @@ class TrafficDescriptor(object):
 
     def __init__(self, fixed, assured, maximum,
                  additional=AdditionalBwEligibility.DEFAULT,
-                 best_effort=None,
-                 name=None):
-        self.name = name
+                 best_effort=None):
         self.fixed_bandwidth = fixed       # bps
         self.assured_bandwidth = assured   # bps
         self.maximum_bandwidth = maximum   # bps
@@ -60,10 +58,9 @@ class TrafficDescriptor(object):
             else None
 
     def __str__(self):
-        return "TrafficDescriptor: {}, {}/{}/{}".format(self.name,
-                                                        self.fixed_bandwidth,
-                                                        self.assured_bandwidth,
-                                                        self.maximum_bandwidth)
+        return "TrafficDescriptor: {}/{}/{}".format(self.fixed_bandwidth,
+                                                    self.assured_bandwidth,
+                                                    self.maximum_bandwidth)
 
     def to_dict(self):
         val = {

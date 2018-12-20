@@ -23,6 +23,7 @@ uses a KV store in backend to ensure resiliency of the data.
 from bitstring import BitArray
 import json
 from common.pon_resource_manager.resource_manager import PONResourceManager
+from adtran_tech_profile import AdtnTechProfile
 import adtranolt_platform as platform
 
 
@@ -153,12 +154,16 @@ class AdtranPONResourceManager(PONResourceManager):
         :param pon_intf_id: OLT PON interface id
         :param resource_type: String to identify type of resource
         :param num_of_id: required number of ids
-        :param onu_id: ONU ID if unique per ONU
+        :param onu_id: ONU ID if unique per ONU  (Used for Alloc IDs)
         :return list/int/None: list, int or None if resource type is
                                alloc_id/gemport_id, onu_id or invalid type
                                respectively
         """
         result = None
+
+        if num_of_id < 1:
+            self._log.error("invalid-num-of-resources-requested")
+            return result
 
         path = self._get_path(pon_intf_id, resource_type)
         if path is None:
@@ -166,17 +171,26 @@ class AdtranPONResourceManager(PONResourceManager):
 
         try:
             resource = self._get_resource(path, onu_id)
-            if resource is None:
-                raise Exception("get-resource-failed")
-
-            if resource_type == PONResourceManager.ONU_ID:
+            if resource is not None and \
+                    (resource_type == PONResourceManager.ONU_ID or
+                     resource_type == PONResourceManager.FLOW_ID):
                 result = self._generate_next_id(resource)
 
-            elif resource_type == PONResourceManager.GEMPORT_ID:
-                result = [self._generate_next_id(resource) for _ in range(num_of_id)]
+            elif resource is not None and \
+                    resource_type == PONResourceManager.GEMPORT_ID:
+                if num_of_id == 1:
+                    result = self._generate_next_id(resource)
+                else:
+                    result = [self._generate_next_id(resource) for _ in range(num_of_id)]
 
-            elif resource_type == PONResourceManager.ALLOC_ID:
-                result = [self._generate_next_id(resource, onu_id) for _ in range(num_of_id)]
+            elif resource is not None and \
+                    resource_type == PONResourceManager.ALLOC_ID:
+                if num_of_id == 1:
+                    result = self._generate_next_id(resource, onu_id)
+                else:
+                    result = [self._generate_next_id(resource, onu_id) for _ in range(num_of_id)]
+            else:
+                raise Exception("get-resource-failed")
 
             self._log.debug("Get-" + resource_type + "-success", result=result,
                             path=path)
@@ -208,7 +222,7 @@ class AdtranPONResourceManager(PONResourceManager):
         try:
             resource = self._get_resource(path, onu_id=onu_id)
             if resource is None:
-                raise Exception("get-resource-failed")
+                raise Exception("get-resource-for-free-failed")
 
             if resource_type == PONResourceManager.ONU_ID:
                 self._release_id(resource, release_content)
@@ -221,7 +235,7 @@ class AdtranPONResourceManager(PONResourceManager):
                 for content in release_content:
                     self._release_id(resource, content, onu_id)
             else:
-                raise Exception("get-resource-failed")
+                raise Exception("get-resource-for-free-failed")
 
             self._log.debug("Free-" + resource_type + "-success", path=path)
 

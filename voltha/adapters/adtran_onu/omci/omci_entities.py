@@ -15,9 +15,13 @@
 """ Adtran vendor-specific OMCI Entities"""
 
 import inspect
-
 import sys
-from scapy.fields import ShortField, IntField, ByteField, StrFixedLenField
+import json
+from binascii import hexlify
+from bitstring import BitArray
+from scapy.fields import ByteField, ShortField,  BitField
+from scapy.fields import IntField, StrFixedLenField, FieldListField, PacketLenField
+from scapy.packet import Packet
 from voltha.extensions.omci.omci_entities import EntityClassAttribute, \
     AttributeAccess, EntityOperations, EntityClass
 
@@ -126,6 +130,118 @@ class Onu3G(EntityClass):
         ECA(ByteField("reset_action", None), {AA.W}),
     ]
     mandatory_operations = {OP.Get, OP.Set, OP.GetNext}
+
+
+class AdtnVlanTaggingOperation(Packet):
+    name = "VlanTaggingOperation"
+    fields_desc = [
+        BitField("filter_outer_priority", 0, 4),
+        BitField("filter_outer_vid", 0, 13),
+        BitField("filter_outer_tpid_de", 0, 3),
+        BitField("pad1", 0, 12),
+
+        BitField("filter_inner_priority", 0, 4),
+        BitField("filter_inner_vid", 0, 13),
+        BitField("filter_inner_tpid_de", 0, 3),
+        BitField("pad2", 0, 8),
+        BitField("filter_ether_type", 0, 4),
+
+        BitField("treatment_tags_to_remove", 0, 2),
+        BitField("pad3", 0, 10),
+        BitField("treatment_outer_priority", 0, 4),
+        BitField("treatment_outer_vid", 0, 13),
+        BitField("treatment_outer_tpid_de", 0, 3),
+
+        BitField("pad4", 0, 12),
+        BitField("treatment_inner_priority", 0, 4),
+        BitField("treatment_inner_vid", 0, 13),
+        BitField("treatment_inner_tpid_de", 0, 3),
+    ]
+
+    def to_json(self):
+        return json.dumps(self.fields, separators=(',', ':'))
+
+    @staticmethod
+    def json_from_value(value):
+        bits = BitArray(hex=hexlify(value))
+        temp = AdtnVlanTaggingOperation(
+            filter_outer_priority=bits[0:4].uint,         # 4  <-size
+            filter_outer_vid=bits[4:17].uint,             # 13
+            filter_outer_tpid_de=bits[17:20].uint,        # 3
+                                                          # pad 12
+            filter_inner_priority=bits[32:36].uint,       # 4
+            filter_inner_vid=bits[36:49].uint,            # 13
+            filter_inner_tpid_de=bits[49:52].uint,        # 3
+                                                          # pad 8
+            filter_ether_type=bits[60:64].uint,           # 4
+            treatment_tags_to_remove=bits[64:66].uint,    # 2
+                                                          # pad 10
+            treatment_outer_priority=bits[76:80].uint,    # 4
+            treatment_outer_vid=bits[80:93].uint,         # 13
+            treatment_outer_tpid_de=bits[93:96].uint,     # 3
+                                                          # pad 12
+            treatment_inner_priority=bits[108:112].uint,  # 4
+            treatment_inner_vid=bits[112:125].uint,       # 13
+            treatment_inner_tpid_de=bits[125:128].uint,   # 3
+        )
+        return json.dumps(temp.fields, separators=(',', ':'))
+
+    def index(self):
+        return '{:02}'.format(self.fields.get('filter_outer_priority',0)) + \
+               '{:03}'.format(self.fields.get('filter_outer_vid',0)) + \
+               '{:01}'.format(self.fields.get('filter_outer_tpid_de',0)) + \
+               '{:03}'.format(self.fields.get('filter_inner_priority',0)) + \
+               '{:04}'.format(self.fields.get('filter_inner_vid',0)) + \
+               '{:01}'.format(self.fields.get('filter_inner_tpid_de',0)) + \
+               '{:02}'.format(self.fields.get('filter_ether_type',0))
+
+    def is_delete(self):
+        return self.fields.get('treatment_tags_to_remove',0) == 0x3 and \
+            self.fields.get('pad3',0) == 0x3ff and \
+            self.fields.get('treatment_outer_priority',0) == 0xf and \
+            self.fields.get('treatment_outer_vid',0) == 0x1fff and \
+            self.fields.get('treatment_outer_tpid_de',0) == 0x7 and \
+            self.fields.get('pad4',0) == 0xfff and \
+            self.fields.get('treatment_inner_priority',0) == 0xf and \
+            self.fields.get('treatment_inner_vid',0) == 0x1fff and \
+            self.fields.get('treatment_inner_tpid_de',0) == 0x7
+
+    def delete(self):
+        self.fields['treatment_tags_to_remove'] = 0x3
+        self.fields['pad3'] = 0x3ff
+        self.fields['treatment_outer_priority'] = 0xf
+        self.fields['treatment_outer_vid'] = 0x1fff
+        self.fields['treatment_outer_tpid_de'] = 0x7
+        self.fields['pad4'] = 0xfff
+        self.fields['treatment_inner_priority'] = 0xf
+        self.fields['treatment_inner_vid'] = 0x1fff
+        self.fields['treatment_inner_tpid_de'] = 0x7
+        return self
+
+
+class AdtnExtendedVlanTaggingOperationConfigurationData(EntityClass):
+    class_id = 171
+    attributes = [
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.SBC}),
+        ECA(ByteField("association_type", None), {AA.R, AA.W, AA.SBC},
+            range_check=lambda x: 0 <= x <= 11),
+        ECA(ShortField("received_vlan_tagging_operation_table_max_size", None),
+            {AA.R}),
+        ECA(ShortField("input_tpid", None), {AA.R, AA.W}),
+        ECA(ShortField("output_tpid", None), {AA.R, AA.W}),
+        ECA(ByteField("downstream_mode", None), {AA.R, AA.W},
+            range_check=lambda x: 0 <= x <= 8),
+        ECA(StrFixedLenField("received_frame_vlan_tagging_operation_table",
+                             AdtnVlanTaggingOperation, 16), {AA.R, AA.W}),
+        ECA(ShortField("associated_me_pointer", None), {AA.R, AA.W, AA.SBC}),
+        ECA(FieldListField("dscp_to_p_bit_mapping", None,
+                           BitField('',  0, size=3), count_from=lambda _: 64),
+            {AA.R, AA.W}),
+    ]
+    mandatory_operations = {OP.Create, OP.Delete, OP.Set, OP.Get, OP.GetNext}
+    optional_operations = {OP.SetTable}
+
+
 
 
 #################################################################################

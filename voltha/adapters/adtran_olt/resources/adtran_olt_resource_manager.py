@@ -58,6 +58,10 @@ class AdtranOltResourceMgr(object):
             self.device_id, self.args.backend,
             host, port
         )
+        # Tech profiles uses this resource manager to retrieve information on a per-interface
+        # basis
+        self.resource_managers = {intf_id: self.resource_mgr for intf_id in device_info.intf_ids}
+
         # Flag to indicate whether information fetched from device should
         # be used to initialize PON Resource Ranges
         self.use_device_info = False
@@ -71,7 +75,8 @@ class AdtranOltResourceMgr(object):
     def get_onu_id(self, pon_intf_id):
         onu_id = self.resource_mgr.get_resource_id(pon_intf_id,
                                                    PONResourceManager.ONU_ID,
-                                                   1)
+                                                   onu_id=None,
+                                                   num_of_id=1)
         if onu_id is not None:
             pon_intf_onu_id = (pon_intf_id, onu_id)
             self.resource_mgr.init_resource_map(pon_intf_onu_id)
@@ -97,12 +102,10 @@ class AdtranOltResourceMgr(object):
             # ONU.
             return alloc_id_list[0]
 
-        alloc_id_list = self.resource_mgr.get_resource_id(
-            pon_intf_id=pon_intf,
-            onu_id=onu_id,
-            resource_type=PONResourceManager.ALLOC_ID,
-            num_of_id=1
-        )
+        alloc_id_list = self.resource_mgr.get_resource_id(pon_intf,
+                                                          PONResourceManager.ALLOC_ID,
+                                                          onu_id=onu_id,
+                                                          num_of_id=1)
         if alloc_id_list and len(alloc_id_list) == 0:
             self.log.error("no-alloc-id-available")
             return None
@@ -118,43 +121,37 @@ class AdtranOltResourceMgr(object):
 
         return alloc_id
 
-    def get_gemport_id(self, pon_intf_onu_id):
+    def get_gemport_id(self, pon_intf_onu_id, num_of_id=1):
+        # TODO: Remove this if never used
         # Derive the pon_intf and onu_id from the pon_intf_onu_id tuple
         pon_intf = pon_intf_onu_id[0]
         onu_id = pon_intf_onu_id[1]
+        uni_id = pon_intf_onu_id[2]
+        assert False, 'unused function'
 
-        gemport_id_list = self.resource_mgr.get_current_gemport_ids_for_onu(
+        gemport_id_list = self.resource_managers[pon_intf].get_current_gemport_ids_for_onu(
             pon_intf_onu_id)
-
         if gemport_id_list and len(gemport_id_list) > 0:
-            # Since we support only one gemport_id for the ONU at the moment,
-            # return the first gemport_id in the list, if available, for that
-            # ONU.
-            return gemport_id_list[0]
+            return gemport_id_list
 
-        gemport_id_list = self.resource_mgr.get_resource_id(
+        gemport_id_list = self.resource_mgrs[pon_intf].get_resource_id(
             pon_intf_id=pon_intf,
             resource_type=PONResourceManager.GEMPORT_ID,
-            num_of_id=1
+            num_of_id=num_of_id
         )
-        if gemport_id_list is None or len(gemport_id_list) == 0:
+
+        if gemport_id_list and len(gemport_id_list) == 0:
             self.log.error("no-gemport-id-available")
             return None
 
         # update the resource map on KV store with the list of gemport_id
         # allocated for the pon_intf_onu_id tuple
-        self.resource_mgr.update_gemport_ids_for_onu(pon_intf_onu_id,
-                                                     gemport_id_list)
-        # We currently use only one gemport
-        gemport = gemport_id_list[0]
+        self.resource_managers[pon_intf].update_gemport_ids_for_onu(pon_intf_onu_id,
+                                                                    gemport_id_list)
 
-        pon_intf_gemport = (pon_intf, gemport)
-
-        # This information is used when packet_indication is received and
-        # we need to derive the ONU Id for which the packet arrived based
-        # on the pon_intf and gemport available in the packet_indication
-        self.kv_store[str(pon_intf_gemport)] = str(onu_id)
-        return gemport
+        self.update_gemports_ponport_to_onu_map_on_kv_store(gemport_id_list,
+                                                            pon_intf, onu_id, uni_id)
+        return gemport_id_list
 
     def free_pon_resources_for_onu(self, pon_intf_id_onu_id):
         """ Typically called on ONU delete """
@@ -222,3 +219,69 @@ class AdtranOltResourceMgr(object):
         # After we have initialized resource ranges, initialize the
         # resource pools accordingly.
         self.resource_mgr.init_device_resource_pool()
+
+    def get_current_gemport_ids_for_onu(self, pon_intf_onu_id):
+        pon_intf_id = pon_intf_onu_id[0]
+        return self.resource_managers[pon_intf_id].get_current_gemport_ids_for_onu(pon_intf_onu_id)
+
+    def get_current_alloc_ids_for_onu(self, pon_intf_onu_id):
+        pon_intf_id = pon_intf_onu_id[0]
+        alloc_ids = self.resource_managers[pon_intf_id].get_current_alloc_ids_for_onu(pon_intf_onu_id)
+        if alloc_ids is None:
+            return None
+        # We support only one tcont at the moment
+        return alloc_ids[0]
+
+    def update_gemports_ponport_to_onu_map_on_kv_store(self, gemport_list, pon_port, onu_id, uni_id):
+        for gemport in gemport_list:
+            pon_intf_gemport = (pon_port, gemport)
+            # This information is used when packet_indication is received and
+            # we need to derive the ONU Id for which the packet arrived based
+            # on the pon_intf and gemport available in the packet_indication
+            self.kv_store[str(pon_intf_gemport)] = ' '.join(map(str, (onu_id, uni_id)))
+
+    def get_onu_uni_from_ponport_gemport(self, pon_port, gemport):
+        pon_intf_gemport = (pon_port, gemport)
+        return tuple(map(int, self.kv_store[str(pon_intf_gemport)].split(' ')))
+
+    def get_flow_id(self, pon_intf_id, onu_id, uni_id, flow_store_cookie, flow_category=None):
+        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
+        try:
+            flow_ids = self.resource_managers[pon_intf_id]. \
+                get_current_flow_ids_for_onu(pon_intf_onu_id)
+            if flow_ids is not None:
+                for flow_id in flow_ids:
+                    flows = self.get_flow_id_info(pon_intf_id, onu_id, uni_id, flow_id)
+                    assert (isinstance(flows, list))
+                    for flow in flows:
+
+                        if flow_category is not None and \
+                                'flow_category' in flow and \
+                                flow['flow_category'] == flow_category:
+                            return flow_id
+                        if flow['flow_store_cookie'] == flow_store_cookie:
+                            return flow_id
+        except Exception as e:
+            self.log.error("error-retrieving-flow-info", e=e)
+
+        flow_id = self.resource_managers[pon_intf_id].get_resource_id(
+            pon_intf_onu_id[0], PONResourceManager.FLOW_ID)
+        if flow_id is not None:
+            self.resource_managers[pon_intf_id].update_flow_id_for_onu(
+                pon_intf_onu_id, flow_id
+            )
+
+        return flow_id
+
+    def get_flow_id_info(self, pon_intf_id, onu_id, uni_id, flow_id):
+        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
+        return self.resource_managers[pon_intf_id].get_flow_id_info(pon_intf_onu_id, flow_id)
+
+    def get_current_flow_ids_for_uni(self, pon_intf_id, onu_id, uni_id):
+        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
+        return self.resource_managers[pon_intf_id].get_current_flow_ids_for_onu(pon_intf_onu_id)
+
+    def update_flow_id_info_for_uni(self, pon_intf_id, onu_id, uni_id, flow_id, flow_data):
+        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
+        return self.resource_managers[pon_intf_id].update_flow_id_info_for_onu(
+            pon_intf_onu_id, flow_id, flow_data)
