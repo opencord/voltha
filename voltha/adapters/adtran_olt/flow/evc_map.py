@@ -821,9 +821,9 @@ class EVCMap(object):
                 for pb_tcont in pb_tconts:
                     from ..xpon.olt_tcont import OltTCont
                     tcont = OltTCont.create(pb_tcont,
-                                            self._tech_profile_id,
                                             self.pon_id,
                                             self.onu_id,
+                                            self._tech_profile_id,
                                             uni_id,
                                             ofp_port_no)
                     if tcont is not None:
@@ -846,8 +846,6 @@ class EVCMap(object):
                                                  ofp_port_no)
                     if gem_port is not None:
                         onu.add_gem_port(gem_port)
-                #
-                #
 
                 self._gem_ids_and_vid = {onu.onu_id: (onu_gems, flow.vlan_id)}
 

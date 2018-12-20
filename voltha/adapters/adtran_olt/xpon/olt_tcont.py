@@ -27,13 +27,14 @@ class OltTCont(TCont):
     """
     Adtran OLT specific implementation
     """
-    def __init__(self, alloc_id, tech_profile_id, traffic_descriptor, pon_id, onu_id, is_mock=False):
-        super(OltTCont, self).__init__(alloc_id, tech_profile_id, traffic_descriptor, is_mock=is_mock)
+    def __init__(self, alloc_id, tech_profile_id, traffic_descriptor, pon_id, onu_id, uni_id, is_mock=False):
+        super(OltTCont, self).__init__(alloc_id, tech_profile_id, traffic_descriptor, uni_id, is_mock=is_mock)
         self.pon_id = pon_id
         self.onu_id = onu_id
 
     def __str__(self):
-        return "TCont: {}/{}, alloc-id: {}".format(self.pon_id, self.onu_id, self.alloc_id)
+        return "TCont: {}/{}/{}, alloc-id: {}".format(self.pon_id, self.onu_id,
+                                                      self.uni_id, self.alloc_id)
 
     @staticmethod
     def create(tcont, pon_id, onu_id, tech_profile_id, uni_id, ofp_port_no):
@@ -42,7 +43,7 @@ class OltTCont(TCont):
             return None
 
         td = OltTrafficDescriptor.create(tcont, pon_id, onu_id, uni_id, ofp_port_no)
-        return OltTCont(tcont.alloc_id, tech_profile_id, td, pon_id, onu_id)
+        return OltTCont(tcont.alloc_id, tech_profile_id, td, pon_id, onu_id, uni_id)
 
     @inlineCallbacks
     def add_to_hardware(self, session):

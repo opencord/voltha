@@ -576,7 +576,7 @@ class PonPort(AdtnPort):
                         # be handle by ONU H/w sync logic.
                         for onu in [self._onu_by_id[onu_id] for onu_id in my_onu_ids - hw_onu_ids
                                     if self._onu_by_id.get(onu_id) is not None]:
-                            dl.append(onu.create(dict(), dict(), reflow=True))
+                            dl.append(onu.create(reflow=True))
 
                     return defer.gatherResults(dl, consumeErrors=True)
 
@@ -729,7 +729,6 @@ class PonPort(AdtnPort):
             elif self.activation_method == "autoactivate":
                 onu_id = self.get_next_onu_id
                 enabled = True
-                channel_speed = 10000000000
                 upstream_fec_enabled = True
 
             else:
@@ -742,7 +741,6 @@ class PonPort(AdtnPort):
                 'pon': self,
                 'onu-id': onu_id,
                 'enabled': enabled,
-                'upstream-channel-speed': channel_speed,
                 'upstream-fec': upstream_fec_enabled,
                 'password': Onu.DEFAULT_PASSWORD,
             }
@@ -797,13 +795,13 @@ class PonPort(AdtnPort):
         reactor.callLater(0, alarm.raise_alarm)
 
         # Have the core create the ONU device
-        self._parent.add_onu_device(self._port_no, onu_id, serial_number)
-
-        onu = Onu(onu_info)
-        self._onus[serial_number_64] = onu
-        self._onu_by_id[onu.onu_id] = onu
+        self._parent.add_onu_device(self.pon_id, onu_id, serial_number)
 
         try:
+            onu = Onu(onu_info)
+            self._onus[serial_number_64] = onu
+            self._onu_by_id[onu.onu_id] = onu
+
             # Add Multicast to PON on a per-ONU basis
             #
             # for id_or_vid, gem_port in gem_ports.iteritems():
@@ -853,10 +851,9 @@ class PonPort(AdtnPort):
         if onu_id in self._onu_by_id:
             del self._onu_by_id[onu_id]
 
-        for sn_64 in [onu.serial_number_64 for onu in self.onus if onu.onu_id == onu_id]:
-            del self._onus[sn_64]
-
         if onu is not None:
+            if onu.serial_number_64 in self._onus:
+                del self._onus[onu.serial_number_64]
             try:
                 proxy_address = onu.proxy_address
                 onu.delete()                            # Remove from hardware
@@ -867,7 +864,6 @@ class PonPort(AdtnPort):
 
             except Exception as e:
                 self.log.exception('onu-delete', serial_number=onu.serial_number, e=e)
-
         else:
             try:
                 yield self._remove_from_hardware(onu_id)
@@ -875,7 +871,7 @@ class PonPort(AdtnPort):
             except Exception as e:
                 self.log.debug('onu-remove', serial_number=onu.serial_number, e=e)
 
-        # Remove from LOS list if needed
+        # Remove from LOS list if needed  TODO: Should a 'clear' alarm be sent as well ?
         if onu is not None and onu.id in self._active_los_alarms:
             self._active_los_alarms.remove(onu.id)
 

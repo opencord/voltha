@@ -19,6 +19,7 @@ import structlog
 from twisted.internet import reactor, defer
 from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 from common.tech_profile.tech_profile import DEFAULT_TECH_PROFILE_TABLE_ID
+from voltha.protos.device_pb2 import Device
 
 from adtran_olt_handler import AdtranOltHandler
 from net.adtran_rest import RestInvalidResponseCode
@@ -50,9 +51,11 @@ class Onu(object):
         self._serial_number_string = onu_info['serial-number']
         self._device_id = onu_info['device-id']
         self._password = onu_info['password']
-
         self._created = False
-        self._proxy_address = None
+        self._proxy_address = Device.ProxyAddress(device_id=self.olt.device_id,
+                                                  channel_id=self.olt.pon_id_to_port_number(self._pon_id),
+                                                  onu_id=self._onu_id,
+                                                  onu_session_id=self._onu_id)
         self._sync_tick = _HW_SYNC_SECS
         self._expedite_sync = False
         self._expedite_count = 0
@@ -66,8 +69,6 @@ class Onu(object):
         # Provisionable items
         self._enabled = onu_info['enabled']
         self._upstream_fec_enable = onu_info.get('upstream-fec')
-        self._upstream_channel_speed = onu_info['upstream-channel-speed']
-        # TODO: how do we want to enforce upstream channel speed (if at all)?
 
         # KPI related items
         self._rssi = -9999
@@ -134,16 +135,6 @@ class Onu(object):
         self.pon.upstream_fec_enable = self.pon.any_upstream_fec_enabled
 
     @property
-    def upstream_channel_speed(self):
-        return self._upstream_channel_speed
-
-    @upstream_channel_speed.setter
-    def upstream_channel_speed(self, value):
-        assert isinstance(value, (int, float)), 'upstream speed is a numeric value'
-        if self._upstream_channel_speed != value:
-            self._upstream_channel_speed = value
-
-    @property
     def password(self):
         """
         Get password.  Base 64 format
@@ -206,14 +197,6 @@ class Onu(object):
 
     @property
     def proxy_address(self):
-        if self._proxy_address is None:
-            from voltha.protos.device_pb2 import Device
-
-            device_id = self.olt.device_id
-            self._proxy_address = Device.ProxyAddress(device_id=device_id,
-                                                      channel_id=self.pon.port_no,
-                                                      onu_id=self.onu_id,
-                                                      onu_session_id=self.onu_id)
         return self._proxy_address
 
     @property
@@ -311,7 +294,7 @@ class Onu(object):
                     if len(results) == 1 and results[0].get('serial-number', '') != self._serial_number_base64:
                         self._created = True
 
-                except Exception as e:
+                except Exception as _e:
                     self.log.warn('onu-exists-check', pon_id=self.pon_id, onu_id=self.onu_id,
                                   serial_number=self.serial_number)
 
@@ -354,13 +337,13 @@ class Onu(object):
 
         self._gem_ports.clear()
         self._tconts.clear()
+        olt, self._olt = self._olt, None
 
         uri = AdtranOltHandler.GPON_ONU_CONFIG_URI.format(self._pon_id, self._onu_id)
         name = 'onu-delete-{}-{}-{}: {}'.format(self._pon_id, self._onu_id,
                                                 self._serial_number_base64, self._enabled)
         try:
-            yield self.olt.rest_client.request('DELETE', uri, name=name)
-            self._olt = None
+            yield olt.rest_client.request('DELETE', uri, name=name)
 
         except RestInvalidResponseCode as e:
             if e.code != 404:
@@ -371,7 +354,7 @@ class Onu(object):
 
         # Release resource manager resources for this ONU
         pon_intf_id_onu_id = (self.pon_id, self.onu_id)
-        self._olt.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
+        olt.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
 
         returnValue('deleted')
 
@@ -679,12 +662,6 @@ class Onu(object):
         if not reflow and gem_port.gem_id in self._gem_ports:
             returnValue('nop')
 
-        gem_port.pon_id = self.pon_id
-        gem_port.onu_id = self.onu_id if self.onu_id is not None else -1
-        gem_port.intf_id = self.intf_id
-
-        # TODO: Currently only support a single UNI. Need to support multiple and track their GEM Ports
-        #       Probably best done by having a UNI-Port class (keep it simple)
         self.log.info('add', gem_port=gem_port, reflow=reflow)
         self._gem_ports[gem_port.gem_id] = gem_port
 

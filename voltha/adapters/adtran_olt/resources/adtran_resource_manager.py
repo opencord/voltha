@@ -23,7 +23,6 @@ uses a KV store in backend to ensure resiliency of the data.
 from bitstring import BitArray
 import json
 from common.pon_resource_manager.resource_manager import PONResourceManager
-from adtran_tech_profile import AdtnTechProfile
 import adtranolt_platform as platform
 
 

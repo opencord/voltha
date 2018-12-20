@@ -672,17 +672,6 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
         super(AdtranOltHandler, self).delete()
 
-    def delete_child_device(self, proxy_address):
-        super(AdtranOltHandler, self).delete_child_device(proxy_address)
-
-        # TODO: Verify that ONU object cleanup of ONU will also clean
-        #       up logical id and physical port
-        # pon_intf_id_onu_id = (proxy_address.channel_id,
-        #                       proxy_address.onu_id)
-
-        # Free any PON resources that were reserved for the ONU
-        # TODO: Done in onu delete now -> self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
-
     def rx_pa_packet(self, packets):
         if self._pon_agent is not None:
             for packet in packets:
@@ -1296,8 +1285,10 @@ class AdtranOltHandler(AdtranDeviceHandler):
         try:
             from voltha.protos.voltha_pb2 import Device
             # NOTE - channel_id of onu is set to pon_id
+            pon_port = self.pon_id_to_port_number(pon_id)
             proxy_address = Device.ProxyAddress(device_id=self.device_id,
-                                                channel_id=pon_id, onu_id=onu_id,
+                                                channel_id=pon_port,
+                                                onu_id=onu_id,
                                                 onu_session_id=onu_id)
 
             self.log.debug("added-onu", port_no=pon_id,
@@ -1306,7 +1297,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
 
             self.adapter_agent.add_onu_device(
                 parent_device_id=self.device_id,
-                parent_port_no=pon_id,
+                parent_port_no=pon_port,
                 vendor_id=serial_number[:4],
                 proxy_address=proxy_address,
                 root=True,
