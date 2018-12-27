@@ -314,7 +314,7 @@ class MibDbVolatileDict(MibDbApi):
             return changed or created
 
         except Exception as e:
-            self.log.error('set-failure', e, class_id=class_id,
+            self.log.error('set-failure', e=e, class_id=class_id,
                            instance_id=instance_id, attributes=attributes)
             raise
 

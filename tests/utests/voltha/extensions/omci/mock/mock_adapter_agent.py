@@ -64,6 +64,7 @@ class MockAdapterAgent(object):
         self._devices = dict()      # device-id -> mock device
         self.core = MockCore()
         self.deferred = d
+        self.timeout_the_message = False
 
     @property
     def send_omci_defer(self):
@@ -145,7 +146,7 @@ class MockAdapterAgent(object):
         self.log.debug("--> send_proxied_message", message=msg)
         
         # if proxy_address is None:
-        if self.deferred is not None:
+        if self.deferred is not None and not self.timeout_the_message:
             self.deferred.callback(msg)
         #     return None
 

@@ -99,7 +99,7 @@ class OmciMaskedData(Field):
                 continue
             try:
                 s, value = fld.getfield(pkt, s)
-            except Exception, e:
+            except Exception, _e:
                 raise
             if isinstance(pkt, OmciGetResponse) and isinstance(fld, OmciTableField):
                 data[fld.name + '_size'] = value

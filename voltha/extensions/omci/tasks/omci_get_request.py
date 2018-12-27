@@ -19,7 +19,9 @@ from twisted.internet.defer import failure, inlineCallbacks, TimeoutError, retur
 from voltha.extensions.omci.omci_defs import ReasonCodes, EntityOperations
 from voltha.extensions.omci.omci_me import MEFrame
 from voltha.extensions.omci.omci_frame import OmciFrame
+from voltha.extensions.omci.omci_cc import DEFAULT_OMCI_TIMEOUT
 from voltha.extensions.omci.omci_messages import OmciGet
+from voltha.extensions.omci.omci_fields import OmciTableField
 
 RC = ReasonCodes
 OP = EntityOperations
@@ -148,10 +150,19 @@ class OmciGetRequest(Task):
         """
         Perform the initial get request
         """
-        self.log.debug('perform-get')
-
+        self.log.info('perform-get', entity_class=self._entity_class,
+                      entity_id=self._entity_id, attributes=self._attributes)
         try:
-            frame = MEFrame(self._entity_class, self._entity_id, self._attributes).get()
+            # If one or more attributes is a table attribute, get it separately
+            def is_table_attr(attr):
+                index = self._entity_class.attribute_name_to_index_map[attr]
+                attr_def = self._entity_class.attributes[index]
+                return isinstance(attr_def.field, OmciTableField)
+
+            first_attributes = {attr for attr in self._attributes if not is_table_attr(attr)}
+            table_attributes = {attr for attr in self._attributes if is_table_attr(attr)}
+
+            frame = MEFrame(self._entity_class, self._entity_id, first_attributes).get()
             self.strobe_watchdog()
             results = yield self._device.omci_cc.send(frame)
 
@@ -167,11 +178,14 @@ class OmciGetRequest(Task):
                 missing_attr = frame.fields['omci_message'].fields['attributes_mask'] ^ \
                     results_omci['attributes_mask']
 
-                if missing_attr > 0:
+                if missing_attr > 0 or len(table_attributes) > 0:
+                    self.log.info('perform-get-missing', num_missing=missing_attr,
+                                  table_attr=table_attributes)
                     self.strobe_watchdog()
                     self._local_deferred = reactor.callLater(0,
                                                              self.perform_get_missing_attributes,
-                                                             missing_attr)
+                                                             missing_attr,
+                                                             table_attributes)
                     returnValue(self._local_deferred)
 
             elif status == RC.AttributeFailure.value:
@@ -204,7 +218,7 @@ class OmciGetRequest(Task):
             self.deferred.errback(failure.Failure(e))
 
     @inlineCallbacks
-    def perform_get_missing_attributes(self, missing_attr):
+    def perform_get_missing_attributes(self, missing_attr, table_attributes):
         """
         This method is called when the original Get requests completes with success
         but not all attributes were returned.  This can happen if one or more of the
@@ -213,10 +227,12 @@ class OmciGetRequest(Task):
         This routine iterates through the missing attributes and attempts to retrieve
         the ones that were missing.
 
-        :param missing_attr: (set) Missing attributes
+        :param missing_attr: (int) Missing attributes bitmask
+        :param table_attributes: (set) Attributes that need table get/get-next support
         """
-        self.log.debug('perform-get-missing', attrs=missing_attr)
+        self.log.debug('perform-get-missing', attrs=missing_attr, tbl=table_attributes)
 
+        # Retrieve missing attributes first (if any)
         results_omci = self._results.fields['omci_message'].fields
 
         for index in xrange(16):
@@ -254,6 +270,39 @@ class OmciGetRequest(Task):
 
                 except Exception as e:
                     self.log.exception('missing-failure', e=e)
+
+        # Now any table attributes. OMCI_CC handles background get/get-next sequencing
+        for tbl_attr in table_attributes:
+            attr_mask = self._entity_class.mask_for(tbl_attr)
+            frame = OmciFrame(
+                    transaction_id=None,  # OMCI-CC will set
+                    message_type=OmciGet.message_id,
+                    omci_message=OmciGet(
+                            entity_class=self._entity_class.class_id,
+                            entity_id=self._entity_id,
+                            attributes_mask=attr_mask
+                    )
+            )
+            try:
+                timeout = 2 * DEFAULT_OMCI_TIMEOUT  # Multiple frames expected
+                self.strobe_watchdog()
+                get_results = yield self._device.omci_cc.send(frame,
+                                                              timeout=timeout)
+                self.strobe_watchdog()
+                get_omci = get_results.fields['omci_message'].fields
+                if get_omci['success_code'] != RC.Success.value:
+                    continue
+
+                if results_omci.get('data') is None:
+                    results_omci['data'] = dict()
+
+                results_omci['data'].update(get_omci['data'])
+
+            except TimeoutError:
+                self.log.debug('tbl-attr-timeout')
+
+            except Exception as e:
+                self.log.exception('tbl-attr-timeout', e=e)
 
         self.deferred.callback(self)
 

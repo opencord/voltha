@@ -77,8 +77,8 @@ class MibDbExternal(MibDbApi):
     DEVICE_PATH = MIB_PATH + '/{}'            # .format(device_id)
 
     # Classes, Instances, and Attributes as lists from root proxy
-    CLASSES_PATH = DEVICE_PATH + '/classes'                               # .format(device_id)
-    INSTANCES_PATH = DEVICE_PATH +'/classes/{}/instances'                 # .format(device_id, class_id)
+    CLASSES_PATH = DEVICE_PATH + '/classes'                                # .format(device_id)
+    INSTANCES_PATH = DEVICE_PATH + '/classes/{}/instances'                 # .format(device_id, class_id)
     ATTRIBUTES_PATH = DEVICE_PATH + '/classes/{}/instances/{}/attributes'  # .format(device_id, class_id, instance_id)
 
     # Single Class, Instance, and Attribute as objects from device proxy

@@ -138,6 +138,7 @@ class OpenOMCIAgent(object):
     def database_class(self):
         return self._mib_database_cls
 
+    # TODO: Need to deprecate this. ImageAgent is using it and should not
     @property
     def database(self):
         return self._mib_db
