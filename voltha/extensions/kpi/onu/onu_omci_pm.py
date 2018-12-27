@@ -75,10 +75,15 @@ class OnuOmciPmMetrics(AdapterPmMetrics):
             ('rx_onu_frames', PmConfig.COUNTER),        # Rx ONU autonomous messages
             ('rx_unknown_me', PmConfig.COUNTER),        # Managed Entities without a decode definition
             ('rx_timeouts', PmConfig.COUNTER),
+            ('rx_late', PmConfig.COUNTER),
             ('consecutive_errors', PmConfig.COUNTER),
             ('reply_min', PmConfig.GAUGE),      # Milliseconds
             ('reply_max', PmConfig.GAUGE),      # Milliseconds
             ('reply_average', PmConfig.GAUGE),  # Milliseconds
+            ('hp_tx_queue_len', PmConfig.GAUGE),
+            ('lp_tx_queue_len', PmConfig.GAUGE),
+            ('max_hp_tx_queue', PmConfig.GAUGE),
+            ('max_lp_tx_queue', PmConfig.GAUGE),
         }
         self.omci_cc_metrics_config = {m: PmConfig(name=m, type=t, enabled=True)
                                        for (m, t) in self.omci_cc_pm_names}

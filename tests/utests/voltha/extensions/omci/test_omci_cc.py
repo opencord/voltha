@@ -15,7 +15,7 @@
 #
 import binascii
 from common.frameio.frameio import hexify
-from nose.twistedtools import deferred
+from twisted.python.failure import Failure
 from unittest import TestCase, main, skip
 from mock.mock_adapter_agent import MockAdapterAgent
 from mock.mock_onu_handler import MockOnuHandler
@@ -25,7 +25,8 @@ from voltha.extensions.omci.omci_defs import *
 from voltha.extensions.omci.omci_frame import *
 from voltha.extensions.omci.omci_entities import *
 from voltha.extensions.omci.omci_me import ExtendedVlanTaggingOperationConfigurationDataFrame
-from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
+from voltha.extensions.omci.omci_cc import OMCI_CC, UNKNOWN_CLASS_ATTRIBUTE_KEY,\
+    MAX_OMCI_REQUEST_AGE
 
 DEFAULT_OLT_DEVICE_ID = 'default_olt_mock'
 DEFAULT_ONU_DEVICE_ID = 'default_onu_mock'
@@ -35,6 +36,9 @@ DEFAULT_ONU_SN = 'TEST00000001'
 
 OP = EntityOperations
 RC = ReasonCodes
+
+successful = False
+error_reason = None
 
 
 def chunk(indexable, chunk_size):
@@ -53,7 +57,7 @@ class TestOmciCc(TestCase):
     Note also added some testing of MockOnu behaviour since its behaviour during more
     complicated unit/integration tests may be performed in the future.
     """
-    def setUp(self):
+    def setUp(self, let_msg_timeout=False):
         self.adapter_agent = MockAdapterAgent()
 
     def tearDown(self):
@@ -77,11 +81,12 @@ class TestOmciCc(TestCase):
         handler.onu_mock = onu
         return handler
 
-    def setup_one_of_each(self):
+    def setup_one_of_each(self, timeout_messages=False):
         # Most tests will use at lease one or more OLT and ONU
         self.olt_handler = self.setup_mock_olt()
         self.onu_handler = self.setup_mock_onu(parent_id=self.olt_handler.device_id)
         self.onu_device = self.onu_handler.onu_mock
+        self.adapter_agent.timeout_the_message = timeout_messages
 
         self.adapter_agent.add_child_device(self.olt_handler.device,
                                             self.onu_handler.device)
@@ -123,7 +128,6 @@ class TestOmciCc(TestCase):
     def _default_errback(self, failure):
         from twisted.internet.defer import TimeoutError
         assert isinstance(failure.type, type(TimeoutError))
-        return None
 
     def _snapshot_stats(self):
         omci_cc = self.onu_handler.omci_cc
@@ -135,11 +139,16 @@ class TestOmciCc(TestCase):
             'rx_onu_discards': omci_cc.rx_onu_discards,
             'rx_timeouts': omci_cc.rx_timeouts,
             'rx_unknown_me': omci_cc.rx_unknown_me,
+            'rx_late': omci_cc.rx_late,
             'tx_errors': omci_cc.tx_errors,
             'consecutive_errors': omci_cc.consecutive_errors,
             'reply_min': omci_cc.reply_min,
             'reply_max': omci_cc.reply_max,
-            'reply_average': omci_cc.reply_average
+            'reply_average': omci_cc.reply_average,
+            'hp_tx_queue_len': omci_cc.hp_tx_queue_len,
+            'lp_tx_queue_len': omci_cc.lp_tx_queue_len,
+            'max_hp_tx_queue': omci_cc.max_hp_tx_queue,
+            'max_lp_tx_queue': omci_cc._max_lp_tx_queue,
         }
 
     def test_default_init(self):
@@ -153,7 +162,12 @@ class TestOmciCc(TestCase):
         self.assertIsNone(omci_cc._proxy_address)
 
         # No outstanding requests
-        self.assertEqual(len(omci_cc._requests), 0)
+        self.assertEqual(len(omci_cc._pending[OMCI_CC.LOW_PRIORITY]), 0)
+        self.assertEqual(len(omci_cc._pending[OMCI_CC.HIGH_PRIORITY]), 0)
+
+        # No active requests
+        self.assertIsNone(omci_cc._tx_request[OMCI_CC.LOW_PRIORITY])
+        self.assertIsNone(omci_cc._tx_request[OMCI_CC.HIGH_PRIORITY])
 
         # Flags/properties
         self.assertFalse(omci_cc.enabled)
@@ -166,11 +180,16 @@ class TestOmciCc(TestCase):
         self.assertEqual(omci_cc.rx_onu_discards, 0)
         self.assertEqual(omci_cc.rx_unknown_me, 0)
         self.assertEqual(omci_cc.rx_timeouts, 0)
+        self.assertEqual(omci_cc.rx_late, 0)
         self.assertEqual(omci_cc.tx_errors, 0)
         self.assertEqual(omci_cc.consecutive_errors, 0)
         self.assertNotEquals(omci_cc.reply_min, 0.0)
         self.assertEqual(omci_cc.reply_max, 0.0)
         self.assertEqual(omci_cc.reply_average, 0.0)
+        self.assertEqual(omci_cc.lp_tx_queue_len, 0.0)
+        self.assertEqual(omci_cc.max_hp_tx_queue, 0.0)
+        self.assertEqual(omci_cc._max_hp_tx_queue, 0.0)
+        self.assertEqual(omci_cc._max_lp_tx_queue, 0.0)
 
     def test_enable_disable(self):
         self.setup_one_of_each()
@@ -186,12 +205,14 @@ class TestOmciCc(TestCase):
         omci_cc.enabled = True
         self.assertTrue(omci_cc.enabled)
         self.assertIsNotNone(omci_cc._proxy_address)
-        self.assertEqual(len(omci_cc._requests), 0)
+        self.assertEqual(len(omci_cc._pending[OMCI_CC.LOW_PRIORITY]), 0)
+        self.assertEqual(len(omci_cc._pending[OMCI_CC.HIGH_PRIORITY]), 0)
 
         omci_cc.enabled = True      # Should be a NOP
         self.assertTrue(omci_cc.enabled)
         self.assertIsNotNone(omci_cc._proxy_address)
-        self.assertEqual(len(omci_cc._requests), 0)
+        self.assertEqual(len(omci_cc._pending[OMCI_CC.LOW_PRIORITY]), 0)
+        self.assertEqual(len(omci_cc._pending[OMCI_CC.HIGH_PRIORITY]), 0)
 
         omci_cc.enabled = False
         self.assertFalse(omci_cc.enabled)
@@ -216,7 +237,6 @@ class TestOmciCc(TestCase):
         self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'])
         self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
         self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'])
-        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
 
     def test_message_send_get(self):
         # Various tests of sending an OMCI message and it either
@@ -367,6 +387,7 @@ class TestOmciCc(TestCase):
         d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
+        d.addCallback(self._check_stats, snapshot, 'rx_late', snapshot['rx_late'])
         d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
         return d
@@ -395,6 +416,7 @@ class TestOmciCc(TestCase):
         d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
+        d.addCallback(self._check_stats, snapshot, 'rx_late', snapshot['rx_late'])
         d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
         return d
@@ -427,6 +449,48 @@ class TestOmciCc(TestCase):
         # d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
         # return d
 
+    def test_message_send_no_timeout(self):
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        self.onu_device.mib_data_sync = 10
+        snapshot = self._snapshot_stats()
+
+        d = omci_cc.send_mib_reset(timeout=0)
+        d.addCallback(self._check_stats, snapshot, 'tx_frames', snapshot['tx_frames'] + 1)
+        d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'])
+        d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
+        return d
+
+    def test_message_send_bad_timeout(self):
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        self.onu_device.mib_data_sync = 10
+        snapshot = self._snapshot_stats()
+
+        d = omci_cc.send_mib_reset(timeout=MAX_OMCI_REQUEST_AGE + 1)
+        d.addCallback(self._check_stats, snapshot, 'tx_frames', snapshot['tx_frames'])
+        d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'])
+        d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'] + 1)
+        return d
+
+    def test_message_send_not_a_frame(self):
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        self.onu_device.mib_data_sync = 10
+        snapshot = self._snapshot_stats()
+
+        d = omci_cc.send('hello world', timeout=1)
+        d.addCallback(self._check_stats, snapshot, 'tx_frames', snapshot['tx_frames'])
+        d.addCallback(self._check_stats, snapshot, 'rx_frames', snapshot['rx_frames'])
+        d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'] + 1)
+        return d
+
     def test_message_send_reboot(self):
         self.setup_one_of_each()
 
@@ -447,6 +511,7 @@ class TestOmciCc(TestCase):
         d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'])
+        d.addCallback(self._check_stats, snapshot, 'rx_late', snapshot['rx_late'])
         d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         d.addCallback(self._check_value_equal, 'consecutive_errors', 0, omci_cc.consecutive_errors)
         return d
@@ -506,6 +571,7 @@ class TestOmciCc(TestCase):
         self.assertEqual(omci_cc.rx_frames, 0)
         self.assertEqual(omci_cc.rx_unknown_tid, 0)
         self.assertEqual(omci_cc.rx_timeouts, 0)
+        self.assertEqual(omci_cc.rx_late, 0)
         self.assertEqual(omci_cc.tx_errors, 0)
 
         # # Class ID not found
@@ -624,7 +690,6 @@ class TestOmciCc(TestCase):
         # TODO: add more
         self.assertTrue(True)  # TODO: Implement
 
-
     def test_rx_discard_if_disabled(self):
         # ME without a known decoder
         self.setup_one_of_each()
@@ -644,7 +709,6 @@ class TestOmciCc(TestCase):
         self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'])
         self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
         self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'])
-        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
 
     def test_omci_alarm_decode(self):
         """
@@ -655,15 +719,79 @@ class TestOmciCc(TestCase):
 
         omci_cc = self.onu_handler.omci_cc
         omci_cc.enabled = True
+        snapshot = self._snapshot_stats()
 
         # Frame from the JIRA issue
         msg = '0000100a000b0102800000000000000000000000' \
               '0000000000000000000000000000000000000015' \
               '000000282d3ae0a6'
 
-        results = omci_cc.receive_message(hex2raw(msg))
+        _results = omci_cc.receive_message(hex2raw(msg))
 
-        self.assertTrue(True, 'Truth is the truth')
+        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'])
+        self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'])
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
+        self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'] + 1)
+        self.assertEqual(omci_cc.rx_onu_discards, snapshot['rx_onu_discards'])
+
+    def test_omci_avc_decode(self):
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        snapshot = self._snapshot_stats()
+
+        # Frame from the JIRA issue
+        msg = '0000110a0007000080004d4c2d33363236000000' \
+              '0000000020202020202020202020202020202020' \
+              '00000028'
+
+        _results = omci_cc.receive_message(hex2raw(msg))
+
+        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'])
+        self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'])
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
+        self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'] + 1)
+        self.assertEqual(omci_cc.rx_onu_discards, snapshot['rx_onu_discards'])
+
+    def test_omci_unknown_onu_decode(self):
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        snapshot = self._snapshot_stats()
+
+        # Frame from the JIRA issue
+        msg = '0000190a0007000080004d4c2d33363236000000' \
+              '0000000020202020202020202020202020202020' \
+              '00000028'
+
+        _results = omci_cc.receive_message(hex2raw(msg))
+
+        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'])
+        self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'])
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
+        self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'] + 1)
+        self.assertEqual(omci_cc.rx_onu_discards, snapshot['rx_onu_discards'] + 1)
+
+    def test_omci_bad_frame_decode(self):
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        snapshot = self._snapshot_stats()
+
+        # Frame from the JIRA issue
+        msg = '0020190a0007000080004d4c2d33363236000000' \
+              '0000000000000028'
+
+        _results = omci_cc.receive_message(hex2raw(msg))
+        # NOTE: Currently do not increment any Rx Discard counters, just throw it away
+        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'] + 1)
+        self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'])
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'] + 1)
+        self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'])
+        self.assertEqual(omci_cc.rx_onu_discards, snapshot['rx_onu_discards'])
 
     def test_rx_decode_onu_g(self):
         self.setup_one_of_each()
@@ -709,7 +837,7 @@ class TestOmciCc(TestCase):
         self.assertEqual(expected, val)
         return results
 
-    @skip('for unknow omci failure') 
+    @skip('for unknown omci failure')
     #@deferred()
     def test_rx_table_get_extvlantagging(self):
         self.setup_one_of_each()
@@ -832,12 +960,274 @@ class TestOmciCc(TestCase):
         d.addCallback(self._check_stats, snapshot, 'rx_onu_discards', snapshot['rx_onu_discards'])
         d.addCallback(self._check_stats, snapshot, 'rx_unknown_me', snapshot['rx_unknown_me'])
         d.addCallback(self._check_stats, snapshot, 'rx_timeouts', snapshot['rx_timeouts'] + 2)
+        d.addCallback(self._check_stats, snapshot, 'rx_late', snapshot['rx_late'])
         d.addCallback(self._check_stats, snapshot, 'tx_errors', snapshot['tx_errors'])
         d.addCallback(self._check_stats, snapshot, 'consecutive_errors', 0)
         d.addCallback(self._check_vlan_tag_op, 'received_frame_vlan_tagging_operation_table', tbl)
 
         return d
 
+    ##################################################################
+    # Start of tests specific to new stop_and_wait changes
+    #
+    def test_message_send_low_priority(self):
+        # self.setup_one_of_each(timeout_messages=True)
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        snapshot = self._snapshot_stats()
+
+        # MIB Upload
+        d = omci_cc.send_mib_upload(timeout=1.0, high_priority=False)
+        d.addCallback(self._check_stats, snapshot, 'lp_tx_queue_len', snapshot['lp_tx_queue_len'])
+        d.addCallback(self._check_stats, snapshot, 'hp_tx_queue_len', snapshot['hp_tx_queue_len'])
+        d.addCallback(self._check_stats, snapshot, 'max_lp_tx_queue', snapshot['max_lp_tx_queue'] + 1)
+        d.addCallback(self._check_stats, snapshot, 'max_hp_tx_queue', snapshot['max_hp_tx_queue'])
+
+        # Flush to get ready for next test (one frame queued)
+        omci_cc.flush()
+        self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+        self.adapter_agent.timeout_the_message = True
+        omci_cc.send_mib_upload(timeout=1.0, high_priority=False)
+        omci_cc.send_mib_upload(timeout=1.0, high_priority=False)
+
+        self.assertEqual(omci_cc.lp_tx_queue_len, 1)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.max_lp_tx_queue, 1)
+        self.assertEqual(omci_cc.max_hp_tx_queue, 0)
+
+        # Flush to get ready for next test (two queued and new max)
+        omci_cc.flush()
+        omci_cc.send_mib_upload(timeout=1.0, high_priority=False)
+        omci_cc.send_mib_upload(timeout=1.0, high_priority=False)
+        omci_cc.send_mib_upload(timeout=1.0, high_priority=False)
+
+        self.assertEqual(omci_cc.lp_tx_queue_len, 2)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.max_lp_tx_queue, 2)
+        self.assertEqual(omci_cc.max_hp_tx_queue, 0)
+
+    def test_message_send_high_priority(self):
+        # self.setup_one_of_each(timeout_messages=True)
+        self.setup_one_of_each()
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+        snapshot = self._snapshot_stats()
+
+        # MIB Upload
+        d = omci_cc.send_mib_upload(high_priority=True)
+        d.addCallback(self._check_stats, snapshot, 'lp_tx_queue_len', snapshot['lp_tx_queue_len'])
+        d.addCallback(self._check_stats, snapshot, 'hp_tx_queue_len', snapshot['hp_tx_queue_len'])
+        d.addCallback(self._check_stats, snapshot, 'max_lp_tx_queue', snapshot['max_lp_tx_queue'])
+        d.addCallback(self._check_stats, snapshot, 'max_hp_tx_queue', snapshot['max_hp_tx_queue'] + 1)
+
+        # Flush to get ready for next test (one frame queued)
+        omci_cc.flush()
+        self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+        self.adapter_agent.timeout_the_message = True
+        omci_cc.send_mib_upload(high_priority=True)
+        omci_cc.send_mib_upload(high_priority=True)
+
+        self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 1)
+        self.assertEqual(omci_cc.max_lp_tx_queue, 0)
+        self.assertEqual(omci_cc.max_hp_tx_queue, 1)
+
+        # Flush to get ready for next test (two queued and new max)
+        omci_cc.flush()
+        omci_cc.send_mib_upload(high_priority=True)
+        omci_cc.send_mib_upload(high_priority=True)
+        omci_cc.send_mib_upload(high_priority=True)
+
+        self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 2)
+        self.assertEqual(omci_cc.max_lp_tx_queue, 0)
+        self.assertEqual(omci_cc.max_hp_tx_queue, 2)
+
+    def test_message_send_and_cancel(self):
+        global error_reason
+        global successful
+        # Do not send messages to adapter_agent
+        self.setup_one_of_each(timeout_messages=True)
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+
+        def success(_results):
+            global successful
+            successful = True
+
+        def failure(reason):
+            global error_reason
+            error_reason = reason
+
+        def notCalled(reason):
+            assert isinstance(reason, Failure), 'Should not be called with success'
+
+        # Cancel one that is actively being sent
+        d = omci_cc.send_mib_upload(high_priority=False)
+        d.addCallbacks(success, failure)
+        self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+        d.cancel()
+        self.assertIsInstance(error_reason, Failure)
+        self.assertFalse(successful)
+        self.assertTrue(d.called)
+
+        self.assertEqual(omci_cc.max_lp_tx_queue, 1)
+        self.assertEqual(omci_cc.max_hp_tx_queue, 0)
+
+        # Flush to get ready for next test (one running, one queued, cancel the
+        # running one, so queued runs)
+        omci_cc.flush()
+        self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+        error_reason = None
+        d1 = omci_cc.send_mib_upload(high_priority=False)
+        d2 = omci_cc.send_mib_upload(high_priority=False)
+        d1.addCallbacks(success, failure)
+        d2.addCallbacks(notCalled, notCalled)
+        self.assertEqual(omci_cc.lp_tx_queue_len, 1)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+        d1.cancel()
+        self.assertIsInstance(error_reason, Failure)
+        self.assertFalse(successful)
+        self.assertTrue(d1.called)
+        self.assertFalse(d2.called)
+
+        self.assertEqual(omci_cc.max_lp_tx_queue, 1)
+        self.assertEqual(omci_cc.max_hp_tx_queue, 0)
+        self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+        # Flush to get ready for next test (one running, one queued, cancel the queued one)
+
+        omci_cc.flush()
+        self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+        error_reason = None
+        d3 = omci_cc.send_mib_upload(timeout=55, high_priority=False)
+        d4 = omci_cc.send_mib_upload(timeout=55, high_priority=False)
+        d5 = omci_cc.send_mib_upload(timeout=55, high_priority=False)
+        d3.addCallbacks(notCalled, notCalled)
+        d4.addCallbacks(success, failure)
+        d5.addCallbacks(notCalled, notCalled)
+        self.assertEqual(omci_cc.lp_tx_queue_len, 2)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+        d4.cancel()
+        self.assertIsInstance(error_reason, Failure)
+        self.assertFalse(successful)
+        self.assertFalse(d3.called)
+        self.assertTrue(d4.called)
+        self.assertFalse(d5.called)
+
+    def test_message_send_low_and_high_priority(self):
+        self.setup_one_of_each(timeout_messages=True)
+
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+
+        omci_cc.send_mib_reset(high_priority=False)
+        omci_cc.send_mib_reset(high_priority=True)
+        self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+        omci_cc.flush()
+        self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+        omci_cc.send_mib_reset(high_priority=False)
+        omci_cc.send_mib_reset(high_priority=True)
+        omci_cc.send_mib_reset(high_priority=False)
+        omci_cc.send_mib_reset(high_priority=True)
+        self.assertEqual(omci_cc.lp_tx_queue_len, 1)
+        self.assertEqual(omci_cc.hp_tx_queue_len, 1)
+
+    def test_no_sw_download_and_mib_upload_at_same_time(self):
+        # Section B.2.3 of ITU G.988-2017 specifies that a MIB
+        # upload or software download at a given priority level
+        # is not allowed while a similar action in the other
+        # priority level is in progress. Relates to possible memory
+        # consumption/needs on the ONU.
+        #
+        # OMCI_CC only checks if the commands are currently in
+        # progress. ONU should reject messages if the upload/download
+        # is in progress (but not an active request is in progress).
+
+        self.setup_one_of_each(timeout_messages=True)
+        omci_cc = self.onu_handler.omci_cc
+        omci_cc.enabled = True
+
+        mib_upload_msgs = [omci_cc.send_mib_upload,
+                           # omci_cc.send_mib_upload_next
+                           ]
+        sw_download_msgs = [omci_cc.send_start_software_download,
+                            # omci_cc.send_download_section,
+                            # omci_cc.send_end_software_download
+                            ]
+
+        for upload in mib_upload_msgs:
+            for download in sw_download_msgs:
+                self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+                self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+                upload(high_priority=False)
+                download(1, 1, 1, high_priority=True)    # Should stall send-next 50mS
+                self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+                self.assertEqual(omci_cc.hp_tx_queue_len, 1)
+
+                omci_cc.flush()
+                self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+                self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+                upload(high_priority=True)
+                download(1, 1, 1, high_priority=False)    # Should stall send-next 50mS
+                self.assertEqual(omci_cc.lp_tx_queue_len, 1)
+                self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+                omci_cc.flush()
+                self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+                self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+                download(1, 1, 1, high_priority=False)
+                upload(high_priority=True)    # Should stall send-next 50mS
+                self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+                self.assertEqual(omci_cc.hp_tx_queue_len, 1)
+
+                omci_cc.flush()
+                self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+                self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+                download(1, 1, 1, high_priority=True)
+                upload(high_priority=False)    # Should stall send-next 50mS)
+                self.assertEqual(omci_cc.lp_tx_queue_len, 1)
+                self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+                omci_cc.flush()
+                self.assertEqual(omci_cc.lp_tx_queue_len, 0)
+                self.assertEqual(omci_cc.hp_tx_queue_len, 0)
+
+    # Some more ideas for tests that we could add
+    # Send explicit tid that is not valid
+    #       - Look at top of 'Send' method and test all the error conditions could may hit
+
+    # Send multiple and have the OLT proxy throw an exception. Should call errback and
+    # schedule remainder in queue to still tx.
+
+    # Send a frame and then inject a response and test the RX logic out, including late
+    # rx and retries by the OMCI_CC transmitter.
+
+
 if __name__ == '__main__':
     main()
-
