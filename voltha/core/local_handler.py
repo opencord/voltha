@@ -521,9 +521,9 @@ class LocalHandler(VolthaLocalServiceServicer):
             assert isinstance(request, ImageDownload)
             self.root.add('/devices/{}/image_downloads'.\
                     format(request.id), request)
-            assert device.admin_state == AdminState.ENABLED, \
-                'Device to DOWNLOADING_IMAGE cannot be ' \
-                'in admin state \'{}\''.format(device.admin_state)
+            # assert device.admin_state == AdminState.ENABLED, \
+            #     'Device to DOWNLOADING_IMAGE cannot be ' \
+            #     'in admin state \'{}\''.format(device.admin_state)
             device.admin_state = AdminState.DOWNLOADING_IMAGE
             self.root.update(path, device, strict=True)
             agent = self.core.get_device_agent(device.id)
@@ -671,9 +671,9 @@ class LocalHandler(VolthaLocalServiceServicer):
             assert isinstance(request, ImageDownload)
             path = '/devices/{}'.format(request.id)
             device = self.root.get(path)
-            # assert device.admin_state == AdminState.ENABLED, \
-            #     'Device to activate image cannot be ' \
-            #     'in admin state \'{}\''.format(device.admin_state)
+            assert device.admin_state == AdminState.ENABLED, \
+                'Device to activate image cannot be ' \
+                'in admin state \'{}\''.format(device.admin_state)
             agent = self.core.get_device_agent(device.id)
             agent.activate_image_update(request)
             return OperationResp(code=OperationResp.OPERATION_SUCCESS)
