@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "650966be_50c18b0b",
+        "filename": "tests/atests/common/discovery.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2019-01-03T16:34:41Z",
+      "side": 1,
+      "message": "Is it a debug print? Is there a way to convert it to log with DEBUG level? The same comment is related to all print",
+      "revId": "b93e127c56324369ca76c6e62e269c0a15546619",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fdb6f18c_d7ba388c",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 4
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2019-01-03T16:34:41Z",
+      "side": 1,
+      "message": "Oh I love this test case which is now very self-documented",
+      "revId": "b93e127c56324369ca76c6e62e269c0a15546619",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
