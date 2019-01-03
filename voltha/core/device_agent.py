@@ -213,6 +213,8 @@ class DeviceAgent(object):
                 device.admin_state = AdminState.DOWNLOADING_IMAGE
                 self.proxy.update('/', device)
                 yield self.adapter_agent.activate_image_update(device, img_dnld)
+                device.admin_state = AdminState.ENABLED
+                self.proxy.update('/', device)
             elif img_dnld.image_state == ImageDownload.IMAGE_REVERT:
                 device = self.proxy.get('/')
                 yield self.adapter_agent.revert_image_update(device, img_dnld)

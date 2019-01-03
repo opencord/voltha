@@ -242,7 +242,7 @@ class ImageDownloadeSTM(object):
 
 class OmciSoftwareImageDownloadSTM(object):
     
-    OMCI_SWIMG_DOWNLOAD_TIMEOUT = 1800      # Seconds for the full downloading procedure to avoid errors that cause infinte downloading
+    OMCI_SWIMG_DOWNLOAD_TIMEOUT = 5400      # TODO: Seconds for the full downloading procedure to avoid errors that cause infinte downloading
     OMCI_SWIMG_DOWNLOAD_WINDOW_SIZE = 32
     OMCI_SWIMG_WINDOW_RETRY_MAX = 2
     OMCI_SWIMG_ACTIVATE_RETRY_MAX = 2
@@ -379,7 +379,6 @@ class OmciSoftwareImageDownloadSTM(object):
 
     def __omci_end_download_resp_success(self, rx_frame):
         self.log.debug("__omci_end_download_resp_success")
-        self._deferred = None
         if rx_frame.fields['message_type'] == OmciEndSoftwareDownloadResponse.message_id: # 0x35
             omci_data = rx_frame.fields['omci_message']
             if omci_data.fields['result'] == 0: 
@@ -390,9 +389,9 @@ class OmciSoftwareImageDownloadSTM(object):
                 self.log.debug('OMCI End Image Busy')
                 self.onu_busy()
             else:
-                self.log.debug('OMCI End Image Failed', reason=omci_data['result'])
+                self.log.debug('OMCI End Image Failed', reason=omci_data.fields['result'])
         else:
-            self.log.debug('Receive Unexpected OMCI', message_type=rx_frame['message_type'])
+            self.log.debug('Receive Unexpected OMCI', message_type=rx_frame.fields['message_type'])
 
     def __omci_end_download_resp_fail(self, fail):
         self.log.debug("__omci_end_download_resp_fail", failure=fail)
@@ -410,7 +409,7 @@ class OmciSoftwareImageDownloadSTM(object):
         self.rx_ack_failed()
 
     def __activate_resp_success(self, rx_frame):
-        self._deferred = None
+        self._current_deferred = None
         if rx_frame.fields['message_type'] == OmciActivateImageResponse.message_id: # 0x36
             omci_data = rx_frame.fields['omci_message']
             if omci_data.fields['result'] == 0:
@@ -430,13 +429,13 @@ class OmciSoftwareImageDownloadSTM(object):
                 
     def __activate_fail(self, fail):
         self.log.debug("Activate software image failed", faile=fail)
-        self._deferred = None
+        self._current_deferred = None
         self._result = ReasonCodes.ProcessingError
         self.activate_done()
         
     def __commit_success(self, rx_frame):
         self.log.debug("Commit software success", device_id=self._device_id)
-        self._deferred = None
+        self._current_deferred = None
         standby_image_id = 0 if self._image_id else 1
         self._omci_agent.database.set(self._device_id, SoftwareImage.class_id, self._image_id, {"is_committed": 1})
         self._omci_agent.database.set(self._device_id, SoftwareImage.class_id, standby_image_id, {"is_committed": 0})
@@ -446,7 +445,7 @@ class OmciSoftwareImageDownloadSTM(object):
 
     def __commit_fail(self, fail):
         self.log.debug("Commit software image failed", faile=fail)
-        self._deferred = None
+        self._current_deferred = None
         self._result = ReasonCodes.ProcessingError
         self._image_download.image_state = ImageDownload.IMAGE_REVERT
         self.activate_done()
@@ -589,8 +588,8 @@ class OmciSoftwareImageDownloadSTM(object):
         self.log.debug("on_enter_actimg_activating", instance=self._image_id, state=img)
         if img["is_active"] == 0:
             #if img["is_valid"] == 1:
-            self._deferred = self._device.omci_cc.send_active_image(self._image_id)
-            self._deferred.addCallbacks(self.__activate_resp_success, self.__activate_fail)
+            self._current_deferred = self._device.omci_cc.send_active_image(self._image_id)
+            self._current_deferred.addCallbacks(self.__activate_resp_success, self.__activate_fail)
             #else:
             #    self.fail()
         else:
@@ -612,7 +611,7 @@ class OmciSoftwareImageDownloadSTM(object):
             self._timeout_dc = self.reactor.callLater(self._timeout, self.__on_reboot_timeout)
 
     def on_exit_actimg_rebooting(self):
-        self.log.debug("on_exit_actimg_rebooting", timeout=self._timeout_dc.active)
+        self.log.debug("on_exit_actimg_rebooting", timeout=self._timeout_dc)
         if self._timeout_dc and self._timeout_dc.active:
             self._timeout_dc.cancel()
             self._timeout_dc = None
@@ -628,8 +627,8 @@ class OmciSoftwareImageDownloadSTM(object):
             self.reset_actimg()
         else:
             self._actimg_retry = 0
-            self._deferred = self._device.omci_cc.send_commit_image(self._image_id)
-            self._deferred.addCallbacks(self.__commit_success, self.__commit_fail)
+            self._current_deferred = self._device.omci_cc.send_commit_image(self._image_id)
+            self._current_deferred.addCallbacks(self.__commit_success, self.__commit_fail)
 
     def on_enter_done_image(self):
         self.log.debug("on_enter_done_image", result=self._result)
@@ -890,6 +889,9 @@ class ImageAgent(object):
                 instance_id = 0
         return instance_id
 
+    def __clear_task(self, arg):
+        self.__omci_upgrade_task = None
+
     # def get_image(self, name, local_dir, remote_url, timeout_delay=ImageDownloadeSTM.DEFAULT_TIMEOUT_RETRY):
     def get_image(self, image_download, timeout_delay=ImageDownloadeSTM.DEFAULT_TIMEOUT_RETRY):
 
@@ -978,13 +980,14 @@ class ImageAgent(object):
             self.log.debug("task created but not started")
             # self._device.task_runner.start()
             self._omci_upgrade_deferred = self._device.task_runner.queue_task(self._omci_upgrade_task)
+            self._omci_upgrade_deferred.addBoth(self.__clear_task)
         return self._omci_upgrade_deferred
 
 
     def cancel_upgrade_onu(self):
         self.log.debug("cancel_upgrade_onu")
         if self._omci_upgrade_task is not None:
-            self.log.debug("cancel_upgrade_onu 2", running=self._omci_upgrade_task.running)
+            self.log.debug("cancel_upgrade_onu", running=self._omci_upgrade_task.running)
             # if self._omci_upgrade_task.running:
             self._omci_upgrade_task.stop()
             self._omci_upgrade_task = None

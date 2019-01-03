@@ -456,12 +456,14 @@ class OnuDeviceEntry(object):
         self.log.debug("__on_omci_image_activate_success", image_name=image_name)
         self._omci_activate_deferred = None
         self._img_deferred.callback(image_name)
+        self._img_deferred = None
         return image_name
 
     def __on_omci_image_activate_fail(self, fail, image_name):
         self.log.debug("__on_omci_image_activate_fail", faile=fail, image_name=image_name)
         self._omci_activate_deferred = None
         self._img_deferred.errback(fail)
+        self._img_deferred = None
     
     def _publish_device_status_event(self):
         """
@@ -611,19 +613,20 @@ class OnuDeviceEntry(object):
         """
         Return a Deferred that will be triggered when switching software image results in success or failure
         """
-        self.log.debug('do_onu_image_activate')
         if self._img_deferred is None:
-	        self._img_deferred = defer.Deferred()
-	        self._omci_upgrade_deferred = self._image_agent.onu_omci_download(image_dnld_name)
-	        self._omci_upgrade_deferred.addCallbacks(self.__on_omci_image_activate_success, 
+            self.log.debug('do_onu_image_activate')
+            self._img_deferred = defer.Deferred()
+            self._omci_upgrade_deferred = self._image_agent.onu_omci_download(image_dnld_name)
+            self._omci_upgrade_deferred.addCallbacks(self.__on_omci_image_activate_success, 
 	                                                 self.__on_omci_image_activate_fail, errbackArgs=(image_dnld_name,))
         return self._img_deferred
 
     def cancel_onu_software_download(self, image_name):
+        self.log.debug('cancel_onu_software_download')
         self._image_agent.cancel_download_image(image_name)
         self._image_agent.cancel_upgrade_onu()
         if self._img_deferred and not self._img_deferred.called:
-           self._img_deferred.cancel()
+            self._img_deferred.cancel()
         self._img_deferred = None
         # self._image_download = None
 
