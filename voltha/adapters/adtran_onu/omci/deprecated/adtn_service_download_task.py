@@ -88,7 +88,7 @@ class AdtnServiceDownloadTask(Task):
         #
         # TODO: Probably need to store many of these in the appropriate object (UNI, PON,...)
         #
-        self._ieee_mapper_service_profile_entity_id = self._pon.hsi_8021p_mapper_entity_id
+        self._ieee_mapper_service_profile_entity_id = self._pon.ieee_mapper_service_profile_entity_id
         self._gal_enet_profile_entity_id = self._handler.gal_enet_profile_entity_id
 
         # Next to are specific

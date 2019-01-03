@@ -70,7 +70,8 @@ class AdtranOltResourceMgr(object):
 
     def __del__(self):
         self.log.info("clearing-device-resource-pool")
-        self.resource_mgr.clear_device_resource_pool()
+        for key, resource_mgr in self.resource_mgrs.iteritems():
+            resource_mgr.clear_device_resource_pool()
 
     def get_onu_id(self, pon_intf_id):
         onu_id = self.resource_mgr.get_resource_id(pon_intf_id,

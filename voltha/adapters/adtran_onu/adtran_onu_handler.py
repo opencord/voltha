@@ -391,9 +391,9 @@ class AdtranOnuHandler(object):
         bidirectional_ids = upstream_ids & downstream_ids
 
         gem_port_types = {     # Keys are the 'direction' attribute value, value is list of GEM attributes
-            1: [upstream[gid] for gid in upstream_ids - bidirectional_ids],
-            2: [downstream[gid] for gid in downstream_ids - bidirectional_ids],
-            3: [upstream[gid] for gid in bidirectional_ids]
+            OnuGemPort.UPSTREAM: [upstream[gid] for gid in upstream_ids - bidirectional_ids],
+            OnuGemPort.DOWNSTREAM: [downstream[gid] for gid in downstream_ids - bidirectional_ids],
+            OnuGemPort.BIDIRECTIONAL: [upstream[gid] for gid in bidirectional_ids]
         }
         for direction, gem_list in gem_port_types.items():
             for gem in gem_list:
@@ -405,10 +405,10 @@ class AdtranOnuHandler(object):
                     'max-q-size': gem['max_q_size'],
                     'pbit-map': gem['pbit_map'],
                     'priority-q': gem['priority_q'],
-                    'scheduling_policy': gem['scheduling_policy'],
+                    'scheduling-policy': gem['scheduling_policy'],
                     'weight': gem['weight'],
                     'uni-id': uni_id,
-                    'discard_config': {
+                    'discard-config': {
                         'max-probability': gem['discard_config']['max_probability'],
                         'max-threshold': gem['discard_config']['max_threshold'],
                         'min-threshold': gem['discard_config']['min_threshold'],
@@ -456,7 +456,7 @@ class AdtranOnuHandler(object):
                 def success(_results):
                     self.log.info("tech-profile-config-done-successfully")
                     device = self.adapter_agent.get_device(self.device_id)
-                    device.reason = 'Tech Profile config Success'
+                    device.reason = ''
                     self.adapter_agent.update_device(device)
 
                     if tp_path in self._tp_service_specific_task[uni_id]:

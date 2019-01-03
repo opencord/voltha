@@ -32,7 +32,9 @@ class OnuGemPort(GemPort):
                  uni_id, entity_id,
                  multicast=False, traffic_class=None, is_mock=False):
         gem_id = gem_data['gemport-id']
+        self.log = structlog.get_logger(device_id=handler.device_id, gem_id=gem_id)
         encryption = gem_data['encryption']
+
         super(OnuGemPort, self).__init__(gem_id, alloc_id, uni_id,
                                          tech_profile_id,
                                          encryption=encryption,
@@ -40,16 +42,106 @@ class OnuGemPort(GemPort):
                                          traffic_class=traffic_class,
                                          handler=handler,
                                          is_mock=is_mock)
-        self._gem_data = gem_data
-        self._entity_id = entity_id
-        self._tcont_entity_id = None
-        self._interworking = False
-        self.uni_id = gem_data['uni-id']
-        self.log = structlog.get_logger(device_id=handler.device_id, gem_id=gem_id)
+        try:
+            self._gem_data = gem_data
+            self._entity_id = entity_id
+            self._tcont_entity_id = None
+            self._interworking = False
+            self.uni_id = gem_data['uni-id']
+            self.direction = gem_data.get('direction', OnuGemPort.BIDIRECTIONAL)
+
+            # IEEE 802.1p Mapper ME (#130) related parameters
+            self._pbit_map = None
+            self.pbit_map = gem_data.get('pbit-map', '0b00000011')
+
+            # Upstream priority queue ME (#277) related parameters
+            self.priority_q = gem_data.get('priority-q', 3)
+
+            self._max_q_size = None
+            self.max_q_size = gem_data.get('max-q-size', 'auto')
+
+            self.weight = gem_data.get('weight', 8)
+
+            self._discard_config = None
+            self.discard_config = gem_data.get('discard-config',  None)
+
+            self._discard_policy = None
+            self.discard_policy = gem_data.get('discard-policy', 'TailDrop')
+
+            # Traffic scheduler ME (#278) related parameters
+            self._scheduling_policy = None
+            self.scheduling_policy = gem_data.get('scheduling-policy', 'WRR')
+
+        except Exception as _e:
+            raise
 
     @property
     def entity_id(self):
         return self._entity_id
+
+    @property
+    def discard_config(self):
+        return self._discard_config
+
+    @discard_config.setter
+    def discard_config(self, discard_config):
+        assert isinstance(discard_config, dict), "discard-config not dict"
+        assert 'max-probability' in discard_config, "max-probability missing"
+        assert 'max-threshold' in discard_config, "max-hreshold missing"
+        assert 'min-threshold' in discard_config, "min-threshold missing"
+        self._discard_config = discard_config
+
+    @property
+    def discard_policy(self):
+        self.log.debug('function-entry')
+        return self._discard_policy
+
+    @discard_policy.setter
+    def discard_policy(self, discard_policy):
+        dp = ("TailDrop", "WTailDrop", "RED", "WRED")
+        assert (isinstance(discard_policy, str))
+        assert (discard_policy in dp)
+        self._discard_policy = discard_policy
+
+    @property
+    def max_q_size(self):
+        return self._max_q_size
+
+    @max_q_size.setter
+    def max_q_size(self, max_q_size):
+        if isinstance(max_q_size, str):
+            assert (max_q_size == "auto")
+        else:
+            assert (isinstance(max_q_size, int))
+
+        self._max_q_size = max_q_size
+
+    @property
+    def pbit_map(self):
+        return self._pbit_map
+
+    @pbit_map.setter
+    def pbit_map(self, pbit_map):
+        assert (isinstance(pbit_map, str))
+        assert (len(pbit_map[2:]) == 8)  # Example format of pbit_map: "0b00000101"
+        try:
+            _ = int(pbit_map[2], 2)
+        except ValueError:
+            raise Exception("pbit_map-not-binary-string-{}".format(pbit_map))
+
+        # remove '0b'
+        self._pbit_map = pbit_map[2:]
+
+    @property
+    def scheduling_policy(self):
+        return self._scheduling_policy
+
+    @scheduling_policy.setter
+    def scheduling_policy(self, scheduling_policy):
+        sp = ("WRR", "StrictPriority")
+        assert (isinstance(scheduling_policy, str))
+        assert (scheduling_policy in sp)
+        self._scheduling_policy = scheduling_policy
 
     @property
     def in_hardware(self):
@@ -57,8 +149,6 @@ class OnuGemPort(GemPort):
 
     @staticmethod
     def create(handler, gem_data, alloc_id, tech_profile_id, uni_id, entity_id):
-        # TODO: Only a minimal amount of info from the 'gem_port' dictionary
-        #       is currently used to create the GEM ports.
         return OnuGemPort(handler, gem_data, alloc_id,
                           tech_profile_id, uni_id, entity_id)
 

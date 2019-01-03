@@ -67,10 +67,10 @@ class AdtnRemoveFlowTask(Task):
         # self._output_tpid = AdtnRemoveFlowTask.default_tpid
 
         is_upstream = flow_entry.flow_direction in FlowEntry.upstream_flow_types
-        # uni_port = flow_entry.in_port if is_upstream else flow_entry.out_port
+        uni_port = flow_entry.in_port if is_upstream else flow_entry.out_port
         pon_port = flow_entry.out_port if is_upstream else flow_entry.in_port
 
-        # self._uni = handler.uni_port(uni_port)
+        self._uni = handler.uni_port(uni_port)
         self._pon = handler.pon_port(pon_port)
 
         self._vid = OMCI.DEFAULT_UNTAGGED_VLAN
@@ -80,8 +80,8 @@ class AdtnRemoveFlowTask(Task):
         #
         # TODO: Probably need to store many of these in the appropriate object (UNI, PON,...)
         #
-        self._ieee_mapper_service_profile_entity_id = self._pon.hsi_8021p_mapper_entity_id
-        self._mac_bridge_port_ani_entity_id = self._pon.hsi_mac_bridge_port_ani_entity_id
+        self._ieee_mapper_service_profile_entity_id = self._pon.ieee_mapper_service_profile_entity_id
+        self._mac_bridge_port_ani_entity_id = self._pon.mac_bridge_port_ani_entity_id
 
         # Next to are specific
         self._mac_bridge_service_profile_entity_id = handler.mac_bridge_service_profile_entity_id
@@ -146,7 +146,9 @@ class AdtnRemoveFlowTask(Task):
         """
         Send the commands to configure the flow
         """
-        self.log.info('perform-flow-removall')
+        self.log.info('perform-flow-removal')
+
+        # TODO: This has not been fully implemented
 
         def resources_available():
             return (len(self._handler.uni_ports) > 0 and
@@ -201,8 +203,9 @@ class AdtnRemoveFlowTask(Task):
                         )
                 )
                 msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                        self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                        attributes=attributes  # See above
+                        self._mac_bridge_service_profile_entity_id +
+                        self._uni.mac_bridge_port_num,  # Bridge Entity ID
+                        attributes=attributes           # See above
                 )
                 frame = msg.set()
                 results = yield omci.send(frame)

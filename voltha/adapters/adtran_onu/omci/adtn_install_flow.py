@@ -73,8 +73,7 @@ class AdtnInstallFlowTask(Task):
         # TODO: Probably need to store many of these in the appropriate object (UNI, PON,...)
         #
         self._ethernet_uni_entity_id = self._handler.uni_ports[0].entity_id
-        self._ieee_mapper_service_profile_entity_id = self._pon.hsi_8021p_mapper_entity_id
-        # self._hsi_mac_bridge_port_ani_entity_id = self._pon.hsi_mac_bridge_port_ani_entity_id
+        self._ieee_mapper_service_profile_entity_id = self._pon.ieee_mapper_service_profile_entity_id
 
         # Next to are specific
         self._mac_bridge_service_profile_entity_id = handler.mac_bridge_service_profile_entity_id
@@ -177,7 +176,7 @@ class AdtnInstallFlowTask(Task):
                     )
 
                     frame = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                        self._mac_bridge_service_profile_entity_id,
+                        self._mac_bridge_service_profile_entity_id + self._uni.mac_bridge_port_num,
                         attributes=attributes
                     ).create()
                     results = yield omci.send(frame)
@@ -186,7 +185,7 @@ class AdtnInstallFlowTask(Task):
                     # TODO: Any of the following needed as well
 
                     # # Delete bridge ani side vlan filter
-                    # msg = VlanTaggingFilterDataFrame(self._hsi_mac_bridge_port_ani_entity_id)
+                    # msg = VlanTaggingFilterDataFrame(self._mac_bridge_port_ani_entity_id)
                     # frame = msg.delete()
                     #
                     # results = yield omci.send(frame)
@@ -194,7 +193,7 @@ class AdtnInstallFlowTask(Task):
                     #
                     # # Re-Create bridge ani side vlan filter
                     # msg = VlanTaggingFilterDataFrame(
-                    #         self._hsi_mac_bridge_port_ani_entity_id,  # Entity ID
+                    #         self._mac_bridge_port_ani_entity_id,  # Entity ID
                     #         vlan_tcis=[vlan_vid],             # VLAN IDs
                     #         forward_operation=0x10
                     # )
@@ -239,7 +238,7 @@ class AdtnInstallFlowTask(Task):
                 #         )
                 # )
                 # msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                #         self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
+                #         self._mac_bridge_service_profile_entity_id + self._uni.mac_bridge_port_num,  # Bridge Entity ID
                 #         attributes=attributes  # See above
                 # )
                 # frame = msg.set()
@@ -260,24 +259,22 @@ class AdtnInstallFlowTask(Task):
                 # TODO: Downstream mode may need to be modified once we work more on the flow rules
 
                 attributes = dict(
-                    input_tpid=0x8100,  # input TPID
+                    input_tpid=0x8100,   # input TPID
                     output_tpid=0x8100,  # output TPID
-                    downstream_mode=0,  # inverse of upstream
+                    downstream_mode=0,   # inverse of upstream
                 )
 
                 msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                        self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                        attributes=attributes  # See above
+                        self._mac_bridge_service_profile_entity_id +
+                        self._uni.mac_bridge_port_num,  # Bridge Entity ID
+                        attributes=attributes           # See above
                 )
                 frame = msg.set()
 
                 results = yield omci.send(frame)
                 self.check_status_and_state(results, 'set-extended-vlan-tagging-operation-configuration-data')
 
-
                 attributes = dict(
-
-
                     received_frame_vlan_tagging_operation_table=
                     VlanTaggingOperation(
                         filter_outer_priority=15,  # This entry is not a double-tag rule
@@ -302,8 +299,9 @@ class AdtnInstallFlowTask(Task):
                 )
 
                 msg = ExtendedVlanTaggingOperationConfigurationDataFrame(
-                        self._mac_bridge_service_profile_entity_id,  # Bridge Entity ID
-                        attributes=attributes  # See above
+                        self._mac_bridge_service_profile_entity_id +
+                        self._uni.mac_bridge_port_num,  # Bridge Entity ID
+                        attributes=attributes           # See above
                 )
                 frame = msg.set()
 

@@ -88,8 +88,8 @@ class AdtnMibDownloadTask(Task):
         #
         # TODO: Probably need to store many of these in the appropriate object (UNI, PON,...)
         #
-        self._ieee_mapper_service_profile_entity_id = self._pon.hsi_8021p_mapper_entity_id
-        self._mac_bridge_port_ani_entity_id = self._pon.hsi_mac_bridge_port_ani_entity_id
+        self._ieee_mapper_service_profile_entity_id = self._pon.ieee_mapper_service_profile_entity_id
+        self._mac_bridge_port_ani_entity_id = self._pon.mac_bridge_port_ani_entity_id
         self._gal_enet_profile_entity_id = self._handler.gal_enet_profile_entity_id
 
         # Next to are specific     TODO: UNI lookups here or uni specific install !!!
@@ -173,18 +173,23 @@ class AdtnMibDownloadTask(Task):
             try:
                 # Lock the UNI ports to prevent any alarms during initial configuration
                 # of the ONU
-                self.strobe_watchdog()
-                # yield self.enable_unis(self._handler.uni_ports, True)
+                for uni_port in self._handler.uni_ports:
+                    self.strobe_watchdog()
 
-                # Provision the initial bridge configuration
-                yield self.perform_initial_bridge_setup()
+                    yield self.enable_uni(uni_port, True)
 
-                # If here, we are done with the generic MIB download
-                device = self._handler.adapter_agent.get_device(self.device_id)
+                    # Provision the initial bridge configuration
+                    yield self.perform_initial_bridge_setup(uni_port)
 
-                device.reason = 'Initial OMCI Download Complete'
-                self._handler.adapter_agent.update_device(device)
-                self.deferred.callback('MIB Download - success')
+                    # And re-enable the UNIs if needed
+                    yield self.enable_uni(uni_port, False)
+
+                    # If here, we are done with the generic MIB download
+                    device = self._handler.adapter_agent.get_device(self.device_id)
+
+                    device.reason = 'Initial OMCI Download Complete'
+                    self._handler.adapter_agent.update_device(device)
+                    self.deferred.callback('MIB Download - success')
 
             except TimeoutError as e:
                 self.deferred.errback(failure.Failure(e))
@@ -195,7 +200,7 @@ class AdtnMibDownloadTask(Task):
             self.deferred.errback(failure.Failure(e))
 
     @inlineCallbacks
-    def perform_initial_bridge_setup(self):
+    def perform_initial_bridge_setup(self, uni_port):
         omci_cc = self._onu_device.omci_cc
         frame = None
 
@@ -231,7 +236,8 @@ class AdtnMibDownloadTask(Task):
             #            - Nothing at this point. When a GEM port is created, this entity will
             #              be updated to reference the GEM Interworking TP
 
-            frame = Ieee8021pMapperServiceProfileFrame(self._ieee_mapper_service_profile_entity_id).create()
+            frame = Ieee8021pMapperServiceProfileFrame(self._ieee_mapper_service_profile_entity_id +
+                                                       uni_port.mac_bridge_port_num).create()
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-8021p-mapper-service-profile')
 
@@ -256,7 +262,8 @@ class AdtnMibDownloadTask(Task):
                 # TODO: The PORT number for this port and the UNI port are the same. Correct?
                 port_num=self._pon_port_num,                            # Port ID
                 tp_type=3,                                              # TP Type (IEEE 802.1p mapper service)
-                tp_pointer=self._ieee_mapper_service_profile_entity_id  # TP ID, 8021p mapper ID
+                tp_pointer=self._ieee_mapper_service_profile_entity_id +
+                           uni_port.mac_bridge_port_num                 # TP ID, 8021p mapper ID
             ).create()
             results = yield omci_cc.send(frame)
             self.check_status_and_state(results, 'create-mac-bridge-port-config-data-part-1')
@@ -327,7 +334,7 @@ class AdtnMibDownloadTask(Task):
         returnValue(None)
 
     @inlineCallbacks
-    def enable_unis(self, unis, force_lock):
+    def enable_uni(self, uni, force_lock):
         """
         Lock or unlock one or more UNI ports
 
@@ -335,29 +342,29 @@ class AdtnMibDownloadTask(Task):
         :param force_lock: (boolean) If True, force lock regardless of enabled state
         """
         omci_cc = self._onu_device.omci_cc
-        frame = None
 
-        for uni in unis:
-            ##################################################################
-            #  Lock/Unlock UNI  -  0 to Unlock, 1 to lock
-            #
-            #  EntityID is referenced by:
-            #            - MAC bridge port configuration data for the UNI side
-            #  References:
-            #            - Nothing
-            try:
-                state = 1 if force_lock or not uni.enabled else 0
-                frame = PptpEthernetUniFrame(uni.entity_id,
-                                             attributes=dict(administrative_state=state)).set()
-                results = yield omci_cc.send(frame)
-                self.check_status_and_state(results, 'set-pptp-ethernet-uni-lock-restore')
+        ##################################################################
+        #  Lock/Unlock UNI  -  0 to Unlock, 1 to lock
+        #
+        #  EntityID is referenced by:
+        #            - MAC bridge port configuration data for the UNI side
+        #  References:
+        #            - Nothing
+        try:
+            state = 1 if force_lock or not uni.enabled else 0
 
-            except TimeoutError:
-                self.log.warn('rx-timeout-uni-enable', frame=hexlify(frame))
-                raise
+            frame = PptpEthernetUniFrame(uni.entity_id,
+                                         attributes=dict(administrative_state=state)).set()
 
-            except Exception as e:
-                self.log.exception('omci-failure', e=e)
-                raise
+            results = yield omci_cc.send(frame)
+            self.check_status_and_state(results, 'set-pptp-ethernet-uni-lock-restore')
+
+        except TimeoutError:
+            self.log.warn('rx-timeout-uni-enable', uni_port=uni)
+            raise
+
+        except Exception as e:
+            self.log.exception('omci-failure', e=e)
+            raise
 
         returnValue(None)

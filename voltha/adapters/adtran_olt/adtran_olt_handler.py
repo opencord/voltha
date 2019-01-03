@@ -620,6 +620,11 @@ class AdtranOltHandler(AdtranDeviceHandler):
         self._zmq_shutdown()
         self._pio_exception_map = []
 
+        # Remove any UNI ports that were created for any activated ONUs
+        uni_ports = self.adapter_agent.get_ports(self.device_id, Port.ETHERNET_UNI)
+        for uni_port in uni_ports:
+            self.adapter_agent.delete_port(self.device_id, uni_port)
+
         super(AdtranOltHandler, self).disable()
 
     def reenable(self, done_deferred=None):

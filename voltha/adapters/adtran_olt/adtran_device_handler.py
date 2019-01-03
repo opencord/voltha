@@ -917,7 +917,8 @@ class AdtranDeviceHandler(object):
         # Remove the peer references from this device
         self.adapter_agent.delete_all_peer_references(self.device_id)
 
-        # Remove the logical device
+        # Remove the logical device to clear out logical device ports for any
+        # previously activated ONUs
         self._delete_logical_device()
 
         # Set all ports to disabled
@@ -1022,12 +1023,9 @@ class AdtranDeviceHandler(object):
         # Reenable all child devices
         self.adapter_agent.update_child_devices_state(device.id,
                                                       admin_state=AdminState.ENABLED)
-
-        # Re-subscribe for ONU detection
-        # self.adapter_agent.register_for_onu_detect_state(self.device.id)
-
-        # TODO:
-        # 1) Restart health check / pings
+        # Schedule the heartbeat for the device
+        self.log.debug('starting-heartbeat')
+        self.start_heartbeat(delay=5)
 
         self.log.info('re-enabled', device_id=device.id)
 

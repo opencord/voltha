@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import structlog
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, TimeoutError, failure, returnValue
 from voltha.extensions.omci.omci_me import *
@@ -83,8 +82,8 @@ class AdtnTpServiceSpecificTask(Task):
         #             IDs set to None are discovered/set
 
         self._mac_bridge_service_profile_entity_id = handler.mac_bridge_service_profile_entity_id
-        self._ieee_mapper_service_profile_entity_id = pon_port.hsi_8021p_mapper_entity_id
-        self._mac_bridge_port_ani_entity_id = pon_port.hsi_mac_bridge_port_ani_entity_id
+        self._ieee_mapper_service_profile_entity_id = pon_port.ieee_mapper_service_profile_entity_id
+        self._mac_bridge_port_ani_entity_id = pon_port.mac_bridge_port_ani_entity_id
         self._gal_enet_profile_entity_id = handler.gal_enet_profile_entity_id
 
         # Extract the current set of TCONT and GEM Ports from the Handler's pon_port that are
@@ -95,7 +94,7 @@ class AdtnTpServiceSpecificTask(Task):
                         if tcont.uni_id == self._uni_port.uni_id]
 
         self._gem_ports = [gem_port for gem_port in pon_port.gem_ports.itervalues()
-                           if gem_port.uni_id != self._uni_port.uni_id]
+                           if gem_port.uni_id == self._uni_port.uni_id]
 
         self.tcont_me_to_queue_map = dict()
         self.uni_port_to_queue_map = dict()
@@ -371,7 +370,8 @@ class AdtnTpServiceSpecificTask(Task):
                     pass
 
             msg = Ieee8021pMapperServiceProfileFrame(
-                self._ieee_mapper_service_profile_entity_id + self._uni_port.mac_bridge_port_num,  # 802.1p mapper Service Mapper Profile ID
+                self._ieee_mapper_service_profile_entity_id +
+                self._uni_port.mac_bridge_port_num,   # 802.1p mapper Service Mapper Profile ID
                 interwork_tp_pointers=gem_entity_ids  # Interworking TP IDs
             )
             frame = msg.set()

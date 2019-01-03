@@ -75,6 +75,10 @@ class AdtranPONResourceManager(PONResourceManager):
                 pon_intf_id=pon_id,
                 resource_type=PONResourceManager.GEMPORT_ID,
             )
+            self.clear_resource_id_pool(
+                pon_intf_id=pon_id,
+                resource_type=PONResourceManager.FLOW_ID,
+            )
 
     def init_resource_id_pool(self, pon_intf_id, resource_type, start_idx=None,
                               end_idx=None, resource_map=None):

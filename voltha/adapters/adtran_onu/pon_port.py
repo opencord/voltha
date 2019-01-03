@@ -43,8 +43,8 @@ class PonPort(object):
 
         # OMCI resources
         # TODO: These could be dynamically chosen (can be most any value)
-        self.hsi_8021p_mapper_entity_id = 0x100
-        self.hsi_mac_bridge_port_ani_entity_id = 0x100
+        self.ieee_mapper_service_profile_entity_id = 0x100
+        self.mac_bridge_port_ani_entity_id = 0x100
 
     def __str__(self):
         return "PonPort"      # TODO: Encode current state

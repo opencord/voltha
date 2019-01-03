@@ -732,21 +732,25 @@ class EVCMap(object):
         returnValue(results)
 
     def _shaper_install_xml(self, name, bandwidth):
-        xml = '<adtn-shaper:shapers xmlns:adtn-shaper="http://www.adtran.com/ns/yang/adtran-traffic-shapers" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
-              ' <adtn-shaper:shaper nc:operation="create">'
-        xml += '  <adtn-shaper:name>{}</adtn-shaper:name>'.format(name)
-        xml += '  <adtn-shaper:enabled>true</adtn-shaper:enabled>'
-        xml += '  <adtn-shaper:rate>{}</adtn-shaper:rate>'.format(bandwidth)
-        xml += '  <adtn-shaper-evc-map:evc-map xmlns:adtn-shaper-evc-map="http://www.adtran.com/ns/yang/adtran-traffic-shaper-evc-maps">{}</adtn-shaper-evc-map:evc-map>'.format(self.name)
-        xml += ' </adtn-shaper:shaper>'
+        xml = '<adtn-shaper:shapers xmlns:adtn-shaper="http://www.adtran.com/ns/yang/adtran-traffic-shapers" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" nc:operation="merge">'
+        for onu_id, gem_ids_and_vid in self._gem_ids_and_vid.iteritems():
+            for gem_id in gem_ids_and_vid[0]:
+                xml += ' <adtn-shaper:shaper>'
+                xml += '  <adtn-shaper:name>{}.{}.{}</adtn-shaper:name>'.format(name, onu_id, gem_id)
+                xml += '  <adtn-shaper:enabled>true</adtn-shaper:enabled>'
+                xml += '  <adtn-shaper:rate>{}</adtn-shaper:rate>'.format(bandwidth)
+                xml += '  <adtn-shaper-evc-map:evc-map xmlns:adtn-shaper-evc-map="http://www.adtran.com/ns/yang/adtran-traffic-shaper-evc-maps">{}.{}.{}</adtn-shaper-evc-map:evc-map>'.format(self.name, onu_id, gem_id)
+                xml += ' </adtn-shaper:shaper>'
         xml += '</adtn-shaper:shapers>'
         return xml
 
     def _shaper_remove_xml(self, name):
-        xml = '<adtn-shaper:shapers xmlns:adtn-shaper="http://www.adtran.com/ns/yang/adtran-traffic-shapers" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
-              ' <adtn-shaper:shaper nc:operation="delete">'
-        xml += '  <adtn-shaper:name>{}</adtn-shaper:name>'.format(self.name)
-        xml += ' </adtn-shaper:shaper>'
+        xml = '<adtn-shaper:shapers xmlns:adtn-shaper="http://www.adtran.com/ns/yang/adtran-traffic-shapers" xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0" nc:operation="delete">'
+        for onu_id, gem_ids_and_vid in self._gem_ids_and_vid.iteritems():
+            for gem_id in gem_ids_and_vid[0]:
+                xml += ' <adtn-shaper:shaper >'
+                xml += '  <adtn-shaper:name>{}.{}.{}</adtn-shaper:name>'.format(name, onu_id, gem_id)
+                xml += ' </adtn-shaper:shaper>'
         xml += '</adtn-shaper:shapers>'
         return xml
 
