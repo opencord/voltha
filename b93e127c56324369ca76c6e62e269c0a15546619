@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "6b6ba09d_cd83737d",
+        "filename": "tests/atests/common/discovery.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-01-10T21:47:55Z",
+      "side": 1,
+      "message": "I changed the majority of the prints across all test libraries to INFO logs while the rest were set to DEBUG logs.\nThe Info logs are just one liners and give context as the test is being run.\nI also set the logging level to \"logging.INFO\" to see the INFO logs otherwise with the default level \"logging.WARNING\", they would not have been printed.\nIf you prefer not to see any of them then I can leave the log level to default and they will all be masked.",
+      "parentUuid": "650966be_50c18b0b",
+      "revId": "b93e127c56324369ca76c6e62e269c0a15546619",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fdb6f18c_d7ba388c",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 4
