@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9625c386_c0511bf4",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-01-16T06:44:16Z",
+      "side": 0,
+      "message": "Who sets the mfr_desc to \u0027Voltha Project\u0027 or whatever is needed? Is it somehow set to some default and where is that?",
+      "revId": "e3aefd952068c8c01237428053a2b49a589a2784",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
