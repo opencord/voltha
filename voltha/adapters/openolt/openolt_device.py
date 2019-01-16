@@ -172,9 +172,6 @@ class OpenoltDevice(object):
                 )
             ),
             desc=ofp_desc(
-                mfr_desc=mfr_desc,
-                hw_desc=hw_desc,
-                sw_desc=sw_desc,
                 serial_num=serial_number
             )
         )
