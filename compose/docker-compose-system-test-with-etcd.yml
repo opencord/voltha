@@ -257,9 +257,6 @@ services:
       "--controller=${DOCKER_HOST_IP}:6653",
       "--grpc-endpoint=@voltha-grpc",
       "--instance-id-is-container-name",
-      "--enable-tls",
-      "--key-file=/ofagent/pki/voltha.key",
-      "--cert-file=/ofagent/pki/voltha.crt",
       "-v"
     ]
     depends_on:

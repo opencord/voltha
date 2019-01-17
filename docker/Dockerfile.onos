@@ -52,9 +52,6 @@ RUN ./app-install.sh
 FROM onosproject/onos:1.13.5
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
-# Install Key Store Options
-ENV JAVA_OPTS="${JAVA_OPTS:--DenableOFTLS=true -Djavax.net.ssl.keyStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.keyStorePassword=222222 -Djavax.net.ssl.trustStore=/home/sdn/wiki/onos.jks -Djavax.net.ssl.trustStorePassword=222222}"
-
 # The ENV settings must be replicated below as they are not shared between stages
 ENV ONOS=/root/onos
 ENV KARAF_VERSION=3.0.8
