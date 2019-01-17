@@ -347,7 +347,7 @@ class BrcmTpServiceSpecificTask(Task):
 
                 if gem_port.direction == "upstream" or \
                         gem_port.direction == "bi-directional":
-                    for i, p in enumerate(gem_port.pbit_map):
+                    for i, p in enumerate(reversed(gem_port.pbit_map)):
                         if p == '1':
                             gem_entity_ids[i] = gem_port.entity_id
                 elif gem_port.direction == "downstream":
