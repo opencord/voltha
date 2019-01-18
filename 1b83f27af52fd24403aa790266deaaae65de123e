@@ -22,6 +22,30 @@
       "revId": "1b83f27af52fd24403aa790266deaaae65de123e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "165cc598_62790c4f",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 863,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2019-01-18T15:18:24Z",
+      "side": 1,
+      "message": "I will try and take a look at it.  Perhaps it is in the table get-next logic where there is not proper cleanup at table download completion or error/timeout.  Since I had to modify that area, I may have missed something.\n\nIn the JIRA I\u0027m working on now, I am moving the table logic to the omci_get_request task to move this out comm channel to help simplify what goes on in that class (OMCI_CC)",
+      "parentUuid": "871a4883_bec5392e",
+      "range": {
+        "startLine": 863,
+        "startChar": 8,
+        "endLine": 863,
+        "endChar": 43
+      },
+      "revId": "1b83f27af52fd24403aa790266deaaae65de123e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
