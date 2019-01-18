@@ -46,6 +46,30 @@
       "revId": "1b83f27af52fd24403aa790266deaaae65de123e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f7d75dd4_0578ef22",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 863,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2019-01-18T16:28:30Z",
+      "side": 1,
+      "message": "Found one possible issue, may not be related but could be a bug.\n\nOn line 898 we check for timeout \u003e 0 too see if a timeout is needed.  Only then is the self._tx_request is set and request success/failure linked in.  Seems like we need to always do this so that we do a stop-and-wait even if the user did not have a timeout.  Also in Craig\u0027s table logic, he divides up the original timeout across requests if I remember correctly.  Doubt if that would be zero.\n\nAnyway I need to always set self._tx_request even without timeout and then clean it up in success/failure too keep stop-and-wait work correctly.\n\nWill continue looking deeper to see if I can explain your error.",
+      "parentUuid": "165cc598_62790c4f",
+      "range": {
+        "startLine": 863,
+        "startChar": 8,
+        "endLine": 863,
+        "endChar": 43
+      },
+      "revId": "1b83f27af52fd24403aa790266deaaae65de123e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
