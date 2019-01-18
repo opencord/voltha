@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "53abbfed_2d8b2adc",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 380,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2019-01-18T20:19:41Z",
+      "side": 1,
+      "message": "This return may be your issue Matt.   I have set a breakpoint here and it can get called sometimes even without the d.called being true.  So the d.callback() to service the request never gets called.   Perhaps a side effect of doing callLater()s.\n\nI am commenting this out so that we continue to process the frame and if d.called is still false, we should get the proper d.callback() serviced to make things work.",
+      "revId": "1b83f27af52fd24403aa790266deaaae65de123e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "871a4883_bec5392e",
         "filename": "voltha/extensions/omci/omci_cc.py",
         "patchSetId": 3
@@ -132,6 +149,30 @@
       "side": 1,
       "message": "Understood, no worries on the timing.  Given we pushed out tagging 2.0 its not that big a deal.  Ill gather some more info that will hopefully help.",
       "parentUuid": "fd1b1cb7_1ef97f29",
+      "range": {
+        "startLine": 289,
+        "startChar": 16,
+        "endLine": 290,
+        "endChar": 78
+      },
+      "revId": "1b83f27af52fd24403aa790266deaaae65de123e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "64127977_c491e2e0",
+        "filename": "voltha/extensions/omci/tasks/omci_get_request.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2019-01-18T20:19:41Z",
+      "side": 1,
+      "message": "I think I am starting to get an idea where it is going south and it may be the bug.   At line 378 (or so) in the OMCI_CC rx processing it checks to see if the last Tx frame TID \u003d\u003d the received TID.  If not, it considers it a late request even though the d.called is false (did not time out).  So tossing it with the return around line 380 makes this hang.\n\nI will add a comment there in omci_cc.py at the proper line so we get the right location",
+      "parentUuid": "1c7aedbe_6d2b4e9c",
       "range": {
         "startLine": 289,
         "startChar": 16,
