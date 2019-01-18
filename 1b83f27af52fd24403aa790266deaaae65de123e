@@ -70,6 +70,29 @@
       "revId": "1b83f27af52fd24403aa790266deaaae65de123e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1cd01f02_ed9c8d9a",
+        "filename": "voltha/extensions/omci/tasks/omci_get_request.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2019-01-18T18:14:23Z",
+      "side": 1,
+      "message": "I think its this call here (or one of the iterations) thats getting stuck.",
+      "range": {
+        "startLine": 289,
+        "startChar": 16,
+        "endLine": 290,
+        "endChar": 78
+      },
+      "revId": "1b83f27af52fd24403aa790266deaaae65de123e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
