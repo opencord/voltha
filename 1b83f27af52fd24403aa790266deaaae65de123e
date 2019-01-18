@@ -93,6 +93,30 @@
       "revId": "1b83f27af52fd24403aa790266deaaae65de123e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fd1b1cb7_1ef97f29",
+        "filename": "voltha/extensions/omci/tasks/omci_get_request.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1000182
+      },
+      "writtenOn": "2019-01-18T18:20:19Z",
+      "side": 1,
+      "message": "That is along my line of thinking as well.  I\u0027ve been picking apart the current Rx path to find and improve on things and it may be Monday before I get to the root of the problem.\n\nWith the other JIRA I mentioned, (VOL-1336) I am moving the table logic out of OMCI_CC and strictly in here to simplify OMCI_CC.  I plan to fix this issue here and apply any lessons learned to VOL-1336. \n\nAll the extra queue logic occurring while trying to get ONF Connect demo working and a customer trial I was supporting really was way to much WIP.",
+      "parentUuid": "1cd01f02_ed9c8d9a",
+      "range": {
+        "startLine": 289,
+        "startChar": 16,
+        "endLine": 290,
+        "endChar": 78
+      },
+      "revId": "1b83f27af52fd24403aa790266deaaae65de123e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
