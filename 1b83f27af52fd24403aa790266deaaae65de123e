@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "871a4883_bec5392e",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 863,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2019-01-18T14:21:46Z",
+      "side": 1,
+      "message": "Im stuck here.  After initially mib syncing and sending requests previously i now have a tx_request that stays \"stuck\" in here and therefore the index is never None skipping this whole block for any omci transmits.\n\nRunning in the debugger this is what is in tx_request, index 0:\n\n\u003ctype \u0027tuple\u0027\u003e: (1547818582.497454, \u003cDeferred at 0x7fbb8c4abc68\u003e, \u003cOmciFrame  transaction_id\u003d778 message_type\u003d73 omci_message\u003d\u003cOmciGet  entity_class\u003d171 entity_id\u003d514 attributes_mask\u003d1024 |\u003e |\u003e, 6.0, 0, \u003ctwisted.internet.base.DelayedCall instance at 0x7fbb8c522f80\u003e)\n\nWhich is a previously defined and transmitted ExtVlanConfigData frame... the usual problem child.",
+      "range": {
+        "startLine": 863,
+        "startChar": 8,
+        "endLine": 863,
+        "endChar": 43
+      },
+      "revId": "1b83f27af52fd24403aa790266deaaae65de123e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
