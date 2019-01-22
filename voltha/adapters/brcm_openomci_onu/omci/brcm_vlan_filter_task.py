@@ -90,7 +90,7 @@ class BrcmVlanFilterTask(Task):
             # Delete bridge ani side vlan filter
             msg = VlanTaggingFilterDataFrame(_mac_bridge_port_ani_entity_id + self._uni_port.mac_bridge_port_num)
             frame = msg.delete()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             self.strobe_watchdog()
             results = yield self._device.omci_cc.send(frame)
             self.check_status_and_state(results, 'flow-delete-vlan-tagging-filter-data')
@@ -102,7 +102,7 @@ class BrcmVlanFilterTask(Task):
                 forward_operation=0x10
             )
             frame = msg.create()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             self.strobe_watchdog()
             results = yield self._device.omci_cc.send(frame)
             self.check_status_and_state(results, 'flow-create-vlan-tagging-filter-data')
@@ -140,7 +140,7 @@ class BrcmVlanFilterTask(Task):
                 attributes=attributes  # See above
             )
             frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             self.strobe_watchdog()
             results = yield self._device.omci_cc.send(frame)
             self.check_status_and_state(results,
@@ -176,7 +176,7 @@ class BrcmVlanFilterTask(Task):
                 attributes=attributes  # See above
             )
             frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             self.strobe_watchdog()
             results = yield self._device.omci_cc.send(frame)
             self.check_status_and_state(results,

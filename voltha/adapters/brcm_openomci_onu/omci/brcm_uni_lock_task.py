@@ -86,7 +86,7 @@ class BrcmUniLockTask(Task):
             # lock the whole ont and all the pptp.  some onu dont causing odd behavior.
             msg = OntGFrame(attributes={'administrative_state': state})
             frame = msg.set()
-            self.log.debug('openomci-msg', msg=msg)
+            self.log.debug('openomci-msg', omci_msg=msg)
             results = yield self._device.omci_cc.send(frame)
             self.strobe_watchdog()
 
@@ -124,7 +124,7 @@ class BrcmUniLockTask(Task):
     @inlineCallbacks
     def _send_uni_lock_msg(self, entity_id, value, me_message):
         frame = me_message.set()
-        self.log.debug('openomci-msg', msg=me_message)
+        self.log.debug('openomci-msg', omci_msg=me_message)
         results = yield self._device.omci_cc.send(frame)
         self.strobe_watchdog()
 

@@ -102,12 +102,12 @@ class BrcmTpServiceSpecificTask(Task):
         self._tconts = []
         for tcont in handler.pon_port.tconts.itervalues():
             if tcont.uni_id is not None and tcont.uni_id != self._uni_port.uni_id: continue
-            self._tconts.append(tcont);
+            self._tconts.append(tcont)
 
         self._gem_ports = []
         for gem_port in handler.pon_port.gem_ports.itervalues():
             if gem_port.uni_id is not None and gem_port.uni_id != self._uni_port.uni_id: continue
-            self._gem_ports.append(gem_port);
+            self._gem_ports.append(gem_port)
 
         self.tcont_me_to_queue_map = dict()
         self.uni_port_to_queue_map = dict()
@@ -191,25 +191,30 @@ class BrcmTpServiceSpecificTask(Task):
             self.log.debug('tcont-idents', tcont_idents=tcont_idents)
 
             for tcont in self._tconts:
-                free_entity_id = None
-                for k, v in tcont_idents.items():
-                    alloc_check = v.get('attributes', {}).get('alloc_id', 0)
-                    # Some onu report both to indicate an available tcont
-                    if alloc_check == 0xFF or alloc_check == 0xFFFF:
-                        free_entity_id = k
+                self.log.debug('tcont-loop', tcont=tcont)
+
+                if tcont.entity_id is None:
+                    free_entity_id = None
+                    for k, v in tcont_idents.items():
+                        alloc_check = v.get('attributes', {}).get('alloc_id', 0)
+                        # Some onu report both to indicate an available tcont
+                        if alloc_check == 0xFF or alloc_check == 0xFFFF:
+                            free_entity_id = k
+                            break
+
+                    self.log.debug('tcont-loop-free', free_entity_id=free_entity_id, alloc_id=tcont.alloc_id)
+
+                    if free_entity_id is None:
+                        self.log.error('no-available-tconts')
                         break
-                    else:
-                        free_entity_id = None
 
-                self.log.debug('tcont-loop', free_entity_id=free_entity_id, alloc_id=tcont.alloc_id)
-
-                if free_entity_id is None:
-                    self.log.error('no-available-tconts')
-                    break
-
-                # TODO: Need to restore on failure.  Need to check status/results
-                results = yield tcont.add_to_hardware(omci_cc, free_entity_id)
-                self.check_status_and_state(results, 'create-tcont')
+                    # Also assign entity id within tcont object
+                    results = yield tcont.add_to_hardware(omci_cc, free_entity_id)
+                    self.check_status_and_state(results, 'new-tcont-added')
+                else:
+                    # likely already added given entity_id is set, but no harm in doing it again
+                    results = yield tcont.add_to_hardware(omci_cc, tcont.entity_id)
+                    self.check_status_and_state(results, 'existing-tcont-added')
 
             ################################################################################
             # GEMS  (GemPortNetworkCtp and GemInterworkingTp)
@@ -321,15 +326,16 @@ class BrcmTpServiceSpecificTask(Task):
 
                     # TODO: Need to restore on failure.  Need to check status/results
                     results = yield gem_port.add_to_hardware(omci_cc,
-                                                   tcont.entity_id,
-                                                   self._ieee_mapper_service_profile_entity_id +
-                                                             self._uni_port.mac_bridge_port_num,
-                                                   self._gal_enet_profile_entity_id,
-                                                   ul_prior_q_entity_id, dl_prior_q_entity_id)
-                    self.check_status_and_state(results, 'create-gem-port')
+                                             tcont.entity_id,
+                                             self._ieee_mapper_service_profile_entity_id +
+                                                      self._uni_port.mac_bridge_port_num,
+                                             self._gal_enet_profile_entity_id,
+                                             ul_prior_q_entity_id, dl_prior_q_entity_id)
+                    self.check_status_and_state(results, 'assign-gem-port')
                 elif gem_port.direction == "downstream":
                     # Downstream is inverse of upstream
                     # TODO: could also be a case of multicast. Not supported for now
+                    self.log.debug("skipping-downstream-gem", gem_port=gem_port)
                     pass
 
             ################################################################################

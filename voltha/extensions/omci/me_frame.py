@@ -42,6 +42,9 @@ class MEFrame(object):
         return '{}: Entity_ID: {}, Data: {}'.\
             format(self.entity_class_name, self._entity_id, self.data)
 
+    def __repr__(self):
+        return str(self)
+
     @property
     def entity_class(self):
         """
