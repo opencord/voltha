@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-apiVersion: "etcd.database.coreos.com/v1beta2"
-kind: "EtcdCluster"
-metadata:
-  name: etcd
-  namespace: voltha
-spec:
-  size: 1
-  version: "3.2.18"
-  pod:
-    annotations:
-      cni: "calico"
+apiVersion: v1
+data:
+  clients.conf: |
+    client 192.168.0.0/16 {
+      secret = SECRET
+    }
+  users: |
+    user Cleartext-Password := "password", MS-CHAP-Use-NTLM-Auth := 0
 
+kind: ConfigMap
+metadata:
+  name: freeradius-config
+  namespace: voltha
