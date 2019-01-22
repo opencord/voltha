@@ -18,5 +18,8 @@ metadata:
   namespace: voltha
 spec:
   size: 1
-  version: "3.2.9"
+  version: "3.2.18"
+  pod:
+    annotations:
+      cni: "calico"
 
