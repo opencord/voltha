@@ -26,7 +26,8 @@ class OnuGemPort(object):
     Broadcom ONU specific implementation
     """
 
-    def __init__(self, gem_id, uni_id, alloc_id, entity_id,
+    def __init__(self, gem_id, uni_id, alloc_id,
+                 entity_id=None,
                  direction="BIDIRECTIONAL",
                  encryption=False,
                  discard_config=None,
@@ -88,7 +89,10 @@ class OnuGemPort(object):
         self.tx_bytes = 0
 
     def __str__(self):
-        return "alloc-id: {}, gem-id: {}".format(self.alloc_id, self.gem_id)
+        return "OnuGemPort - entity_id {}, alloc-id: {}, gem-id: {}, ".format(self.entity_id, self.alloc_id, self.gem_id)
+
+    def __repr__(self):
+        return str(self)
 
     @property
     def pon_id(self):
@@ -162,6 +166,11 @@ class OnuGemPort(object):
     def entity_id(self):
         self.log.debug('function-entry')
         return self._entity_id
+
+    @entity_id.setter
+    def entity_id(self, value):
+        self.log.debug('function-entry')
+        self._entity_id = value
 
     @property
     def encryption(self):
@@ -252,13 +261,12 @@ class OnuGemPort(object):
         self._scheduling_policy = scheduling_policy
 
     @staticmethod
-    def create(handler, gem_port, entity_id):
-        log.debug('function-entry', gem_port=gem_port, entity_id=entity_id)
+    def create(handler, gem_port):
+        log.debug('function-entry', gem_port=gem_port)
 
         return OnuGemPort(gem_id=gem_port['gemport_id'],
                           uni_id=gem_port['uni_id'],
                           alloc_id=gem_port['alloc_id_ref'],
-                          entity_id=entity_id,
                           direction=gem_port['direction'],
                           encryption=gem_port['encryption'],  # aes_indicator,
                           discard_config=gem_port['discard_config'],
@@ -278,7 +286,6 @@ class OnuGemPort(object):
                         gal_enet_profile_entity_id,
                         ul_prior_q_entity_id,
                         dl_prior_q_entity_id):
-        self.log.debug('function-entry')
 
         self.log.debug('add-to-hardware', entity_id=self.entity_id, gem_id=self.gem_id,
                        tcont_entity_id=tcont_entity_id,
@@ -291,7 +298,6 @@ class OnuGemPort(object):
             direction = "downstream" if self.multicast else "bi-directional"
             assert not self.multicast, 'MCAST is not supported yet'
 
-            # TODO: magic numbers here
             attributes = dict()
             attributes['priority_queue_pointer_downstream'] = dl_prior_q_entity_id
             msg = GemPortNetworkCtpFrame(

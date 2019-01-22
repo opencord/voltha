@@ -83,8 +83,7 @@ class BrcmMibDownloadTask(Task):
 
         self._pon = handler.pon_port
 
-        # Port numbers
-        self._pon_port_num = self._pon.pon_port_num
+        # Defaults
         self._input_tpid = DEFAULT_TPID
         self._output_tpid = DEFAULT_TPID
 
