@@ -55,7 +55,11 @@ class UniPort(object):
         self._oper_status = OperStatus.ACTIVE
 
     def __str__(self):
-        return "UniPort: {}:{}".format(self.name, self.port_number)
+        return "UniPort - name: {}, port_number: {}, entity_id: {}, mac_bridge_port_num: {}, type: {}, ofp_port: {}"\
+            .format(self.name, self.port_number, self.entity_id, self._mac_bridge_port_num, self.type, self._ofp_port_no)
+
+    def __repr__(self):
+        return str(self)
 
     @staticmethod
     def create(handler, name, uni_id, port_no, ofp_port_no, type):

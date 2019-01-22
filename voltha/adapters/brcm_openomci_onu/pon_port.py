@@ -49,13 +49,15 @@ class PonPort(object):
         self._gem_ports = {}                           # gem-id -> GemPort
         self._tconts = {}                              # alloc-id -> TCont
 
-        self.pon_port_num = 3  # TODO why 3.  maybe this is the ani port number.  look at anis list
-
         self.ieee_mapper_service_profile_entity_id = 0x8001
         self.mac_bridge_port_ani_entity_id = 0x2102  # TODO: can we just use the entity id from the anis list?
 
     def __str__(self):
-        return "PonPort"      # TODO: Encode current state
+        return "PonPort - port_number: {}, next_entity_id: {}, num_gem_ports: {}, num_tconts: {}".format(
+            self._port_number, self._next_entity_id, len(self._gem_ports), len(self._tconts))
+
+    def __repr__(self):
+        return str(self)
 
     @staticmethod
     def create(handler, port_no):
@@ -256,10 +258,12 @@ class PonPort(object):
         if not self._valid:
             return  # Deleting
 
-        if not reflow and gem_port.gem_id in self._gem_ports:
+        if not reflow and (gem_port.gem_id, gem_port.direction) in self._gem_ports:
             return  # nop
 
-        self.log.info('add-gem-port', gem_port=gem_port.gem_id, reflow=reflow)
+        # if this is actually a new gem port then issue the next entity_id
+        gem_port.entity_id = self.next_gem_entity_id
+        self.log.info('add-gem-port', gem_port=gem_port, reflow=reflow)
         self._gem_ports[(gem_port.gem_id, gem_port.direction)] = gem_port
 
     @inlineCallbacks

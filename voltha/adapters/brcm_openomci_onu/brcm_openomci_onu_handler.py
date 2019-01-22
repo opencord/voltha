@@ -375,7 +375,7 @@ class BrcmOpenomciOnuHandler(object):
             gemdict['weight'] = gem_port['weight']
             gemdict['uni_id'] = uni_id
 
-            gem_port = OnuGemPort.create(self, gem_port=gemdict, entity_id=self._pon.next_gem_entity_id)
+            gem_port = OnuGemPort.create(self, gem_port=gemdict)
 
             self._pon.add_gem_port(gem_port)
 
@@ -615,12 +615,12 @@ class BrcmOpenomciOnuHandler(object):
         assert uni_port is not None
 
         def success(_results):
-            self.log.info('vlan-tagging-success', _results=_results)
+            self.log.info('vlan-tagging-success', uni_port=uni_port, vlan=_set_vlan_vid)
             device.reason = 'omci-flows-pushed'
             self._vlan_filter_task = None
 
         def failure(_reason):
-            self.log.warn('vlan-tagging-failure', _reason=_reason)
+            self.log.warn('vlan-tagging-failure', uni_port=uni_port, vlan=_set_vlan_vid)
             device.reason = 'omci-flows-failed-retrying'
             self._vlan_filter_task = reactor.callLater(_STARTUP_RETRY_WAIT,
                                                        self._add_vlan_filter_task, device, uni_port, _set_vlan_vid)

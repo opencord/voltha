@@ -40,6 +40,13 @@ class OnuTCont(object):
         self._handler = handler
         self._entity_id = None
 
+    def __str__(self):
+        return "OnuTCont - uni_id: {}, entity_id {}, alloc-id: {}, q_sched_policy: {}, traffic_descriptor: {}".format(
+            self.uni_id, self._entity_id, self.alloc_id, self.q_sched_policy, self.traffic_descriptor)
+
+    def __repr__(self):
+        return str(self)
+
     @property
     def entity_id(self):
         self.log.debug('function-entry')
@@ -73,7 +80,6 @@ class OnuTCont(object):
 
     @inlineCallbacks
     def add_to_hardware(self, omci, tcont_entity_id):
-        self.log.debug('function-entry', omci=omci, tcont_entity_id=tcont_entity_id)
         self.log.debug('add-to-hardware', tcont_entity_id=tcont_entity_id)
 
         self._entity_id = tcont_entity_id
