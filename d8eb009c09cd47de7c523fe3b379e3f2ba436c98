@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "f70a4176_7a11279d",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-01-23T04:35:55Z",
+      "side": 1,
+      "message": "I guess we can remove this code snippet. \u0027free_entity_id\u0027 was already is already initialized to None.",
+      "range": {
+        "startLine": 204,
+        "startChar": 0,
+        "endLine": 205,
+        "endChar": 49
+      },
+      "revId": "d8eb009c09cd47de7c523fe3b379e3f2ba436c98",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "72c0566a_62130a67",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 1
