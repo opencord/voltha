@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "01a62edc_ae6a9ce1",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2019-01-23T15:39:05Z",
+      "side": 1,
+      "message": "Ill get rid of it.",
+      "parentUuid": "f70a4176_7a11279d",
+      "range": {
+        "startLine": 204,
+        "startChar": 0,
+        "endLine": 205,
+        "endChar": 49
+      },
+      "revId": "d8eb009c09cd47de7c523fe3b379e3f2ba436c98",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "72c0566a_62130a67",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 1
@@ -42,6 +66,24 @@
     },
     {
       "key": {
+        "uuid": "dcc79695_f1c6696f",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 218,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2019-01-23T15:39:05Z",
+      "side": 1,
+      "message": "I removed the yield here because within add_to_hardware yield is called again on the actual omci_cc call, which is what really blocks.   But propagating back the result or an exception is still a good idea.",
+      "parentUuid": "72c0566a_62130a67",
+      "revId": "d8eb009c09cd47de7c523fe3b379e3f2ba436c98",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "54a446e9_707b64e5",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
         "patchSetId": 1
@@ -53,6 +95,24 @@
       "writtenOn": "2019-01-23T04:28:12Z",
       "side": 1,
       "message": "Don\u0027t we need to yield and check the status ?",
+      "revId": "d8eb009c09cd47de7c523fe3b379e3f2ba436c98",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e6ea6284_745b0924",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_tp_service_specific_task.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 330,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2019-01-23T15:39:05Z",
+      "side": 1,
+      "message": "same as above.  yield is called within already.",
+      "parentUuid": "54a446e9_707b64e5",
       "revId": "d8eb009c09cd47de7c523fe3b379e3f2ba436c98",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
