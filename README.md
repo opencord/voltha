@@ -28,3 +28,33 @@ While we are still at the early phase of development, you can check out the [BUI
 ## How can you help?
 
 Contributions, small and large, are welcome. Minor contributions and bug fixes are always welcome in form of pull requests. For larger work, the best is to check in with the existing developers to see where help is most needed and to make sure your solution is compatible with the general philosophy of Voltha.
+
+### Contributing Unit Tests
+
+To begin, make sure to have a development environement installed according to the [OpenCord WIKI](https://wiki.opencord.org/display/CORD/Installing+required+tools). 
+Next, In a shell environment
+```bash
+source env.sh;             # Source the environment Settings and create a virtual environment
+make utest-with-coverage;  # Execute the Unit Test with coverage reporting
+```
+
+### Unit-testing the Core
+New unit tests for the core can be written in the [nosetest](https://nose.readthedocs.io/en/latest/) framework and can be found under <repo>/tests/utest/
+
+### Unit-testing an Adapter
+Each adapter's unit tests are discovered by the presence of a test.mk [submake file](https://www.gnu.org/software/make/manual/html_node/Include.html) underneath the adapter's directory. 
+for example)
+
+```Makefile
+# voltha/adapters/my_new_adapter/test.mk
+
+.PHONY test
+test:
+   @echo "Testing my amazing new adapter"
+   @./my_test_harness
+   
+```
+
+Voltha's test framework will execute the FIRST Target in the submake file as the unit test function.  It may include as many dependencies as needed, such as using a different python framework for testing (pytest, unittest, tox) or even alternate languages (go, rust, php).
+
+In order for you adapter's test-coverage to be reported, make sure that your test_harness creates a coverage report in a [junit xml](https://www.ibm.com/support/knowledgecenter/en/SSUFAU_1.0.0/com.ibm.rsar.analysis.codereview.cobol.doc/topics/cac_useresults_junit.html) format.  Most test harnesses can easily produce this report format.  The [Jenkins Job](https://jenkins.opencord.org/job/voltha_unit-test/cobertura) will pick up your coverage report file if named appropriately **junit-report.xml** according to the Jenkins configuration. 
