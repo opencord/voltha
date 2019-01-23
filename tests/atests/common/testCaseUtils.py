@@ -105,7 +105,7 @@ def printLogFile(self, logFile):
         for line in lines:
             sys.stdout.write (line)
 
-def extractIpAddr(podName):
+def extractPodIpAddr(podName):
     proc1 = subprocess.Popen(['/usr/bin/kubectl', 'get', 'svc', '--all-namespaces'],
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
@@ -113,6 +113,22 @@ def extractIpAddr(podName):
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
     proc3 = subprocess.Popen(['awk', "{print $4}"], stdin=proc2.stdout,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+                            
+    proc1.stdout.close
+    proc2.stdout.close
+    out, err = proc3.communicate()
+    return out
+    
+def extractRadiusIpAddr(podName):
+    proc1 = subprocess.Popen(['/usr/bin/kubectl', 'describe', 'pod', '-n', 'voltha', podName],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    proc2 = subprocess.Popen(['grep', '^IP:'], stdin=proc1.stdout,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    proc3 = subprocess.Popen(['awk', "{print $2}"], stdin=proc2.stdout,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
                             
@@ -137,4 +153,9 @@ def extractPodName(shortPodName):
     proc2.stdout.close
     out, err = proc3.communicate()
     return out
+    
+def modifyRadiusIpInJsonUsingSed(self, newIpAddr):
+    sedCommand ="sed -i '/radiusIp/c\  \"radiusIp\":\"'%s'\",' %s/tests/atests/build/aaa_json" % (newIpAddr, getDir(self, 'voltha'))
+    status = commands.getstatusoutput(sedCommand)[0]
+    return status
 
