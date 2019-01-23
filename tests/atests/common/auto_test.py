@@ -25,13 +25,13 @@ import argparse
 import volthaMngr
 import preprovisioning
 import discovery
+import authentication
 import logging
 
 DEFAULT_LOG_DIR = '/tmp/voltha_test_results'
 logging.basicConfig(level=logging.INFO)
 
-def dirInit(logDir=DEFAULT_LOG_DIR,
-         volthaDir=os.environ['VOLTHA_BASE']):
+def dir_init(logDir=DEFAULT_LOG_DIR, volthaDir=os.environ['VOLTHA_BASE']):
     logging.info(__file__)
     """
     Init automated testing environment and return three directories: root dir,
@@ -45,10 +45,10 @@ def dirInit(logDir=DEFAULT_LOG_DIR,
     # In future in order to keep the history of jobs, the run time should be
     # added to the log directory name
     # logDir += '_' + currentTime
-    
+ 
     os.system('mkdir -p ' + logDir + ' > /dev/null 2>&1')
     os.system('rm -rf %s/*' % logDir)
-    logging.info('Start Provisioning Test at: %s\nRoot Directory: %s\n'
+    logging.info('Starting Voltha Test Case Suite at: %s\nRoot Directory: %s\n'
           'VOLTHA Directory: %s\nLog Directory: %s' %
           (currentTime, rootDir, volthaDir, logDir))
 
@@ -68,12 +68,14 @@ if __name__ == "__main__":
                         help='log directory (default: %s).' % DEFAULT_LOG_DIR)
     args = parser.parse_args()
 
-    ROOT_DIR, VOLTHA_DIR, LOG_DIR = dirInit(args.logDir)
-
+    ROOT_DIR, VOLTHA_DIR, LOG_DIR = dir_init(args.logDir)
+    
     volthaMngr.voltha_Initialize(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
     preprovisioning.runTest('olt.voltha.svc', 50060, 'ponsim_olt', 'ponsim_onu', LOG_DIR)
     
     discovery.runTest('ponsim_olt', 'ponsim_onu', LOG_DIR)
+
+    authentication.runTest(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
     time.sleep(5)
