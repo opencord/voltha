@@ -19,9 +19,11 @@ Library           ../common/auto_test.py
 Library           ../common/volthaMngr.py
 Library           ../common/preprovisioning.py
 Library           ../common/discovery.py
+Library           ../common/authentication.py
 Library           volthaMngr.VolthaMngr
 Library           preprovisioning.Preprovisioning
 Library           discovery.Discovery
+Library           authentication.Authentication
 
 Suite Setup        Start Voltha      
 Suite Teardown     Stop Voltha
@@ -71,12 +73,32 @@ Olt Onu Discovery
     Olt Should Have At Least One Flow
     Onu Should Have At Least One Flow
     
+Radius Authentication
+    [Documentation]     Radius Authentication
+    ...                 This test attempts to perform a Radius Authentication from the RG
+    ...                 It uses the wpa_supplicant app to authenticate using EAPOL.
+    ...                 We then verify the generated log file confirming all the authentication steps
+    ASet Log Dirs    ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
+    Discover RG Pod Name
+    Discover Freeradius Pod Name
+    Discover Freeradius Ip Addr
+    Set Current Freeradius Ip In AAA Json
+    Alter AAA Application Configuration In Onos Using AAA Json
+    Execute Authenticatication On RG
+    Verify Authentication Should Have Started
+    Verify Authentication Should Have Completed
+    Verify Authentication Should Have Disconnected
+    Verify Authentication Should Have Terminated    
+
 *** Keywords ***
 Start Voltha
     [Documentation]     Start Voltha infrastructure to run test(s). This includes starting all 
     ...                 Kubernetes Pods and start collection of logs. PonsimV2 has now been
     ...                 containerized and does not need to be managed separately
     ${ROOT_DIR}  ${VOLTHA_DIR}  ${LOG_DIR}      Dir Init    ${LOG_DIR}
+    Set Suite Variable  ${ROOT_DIR}
+    Set Suite Variable  ${VOLTHA_DIR}
+    Set Suite Variable  ${LOG_DIR}   
     VSet Log Dirs  ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
     Stop Voltha
     Start All Pods
