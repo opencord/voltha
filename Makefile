@@ -186,7 +186,7 @@ help:
 	@echo "unum         : Build the unum docker container"
 	@echo "ponsim       : Build the ponsim docker container"
 	@echo "j2           : Build the Jinja2 template container"
-        @echo "alarm-generator : Build the alarm-generator container"
+	@echo "alarm-generator : Build the alarm-generator container"
 	@echo "test_runner  : Build a container from which tests are run"
 	@echo "start        : Start VOLTHA on the current system"
 	@echo "stop         : Stop VOLTHA on the current system"
@@ -428,8 +428,12 @@ else
 venv:
 endif
 
+VENV_BIN ?= virtualenv
+VENV_OPTS ?=
+
 ${VENVDIR}/.built:
-	@ virtualenv ${VENVDIR}
+	@ $(VENV_BIN) ${VENV_OPTS} ${VENVDIR}
+	@ $(VENV_BIN) ${VENV_OPTS} --relocatable ${VENVDIR}
 	@ . ${VENVDIR}/bin/activate && \
 	    pip install --upgrade pip; \
 	    if ! pip install -r requirements.txt; \
@@ -439,6 +443,7 @@ ${VENVDIR}/.built:
 	    else \
 	        uname -s > ${VENVDIR}/.built; \
 	    fi
+	@ $(VENV_BIN) ${VENV_OPTS} --relocatable ${VENVDIR}
 
 ifneq ($(VOLTHA_BUILD),docker)
 test: venv protos run-as-root-tests
@@ -459,11 +464,16 @@ test: protos test_runner run-as-root-tests
 		nosetests -s tests --exclude-dir=./tests/itests/run_as_root/
 endif
 
+TEST_ADAPTERS := $(shell find ./voltha/adapters -name test.mk)
+
 ifneq ($(VOLTHA_BUILD),docker)
 utest: venv protos
 	@ echo "Executing all unit tests"
-	. ${VENVDIR}/bin/activate && \
-	    for d in $$(find ./tests/utests -type d|sort -nr); do echo $$d:; nosetests $$d; done
+	@ . ${VENVDIR}/bin/activate && nosetests ./tests/utests
+	@ for test in $(TEST_ADAPTERS); do \
+			echo Adapter Tests $$test:; \
+			$(MAKE) -f $$test; \
+	  done
 else
 utest: protos test_runner
 	docker run \
@@ -475,22 +485,23 @@ utest: protos test_runner
 		--rm --net=host -v /var/run/docker.sock:/var/run/docker.sock \
 		${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
 		bash -c \
-		'for d in $$(find ./tests/utests -type d|sort -nr); do \
-			echo $$d:; \
-			nosetests $$d; \
+		'. ${VENVDIR}/bin/activate && nosetests ./tests/utests; \
+		for test in $(TEST_ADAPTERS); do \
+			echo Adapter Tests $$test:; \
+			$(MAKE) -f $$test; \
 		done'
 endif
 
+COVERAGE_OPTS=--with-xcoverage --with-xunit --cover-package=voltha,common,ofagent --cover-html\
+              --cover-html-dir=tmp/cover
 ifneq ($(VOLTHA_BUILD),docker)
 utest-with-coverage: venv protos
 	@ echo "Executing all unit tests and producing coverage results"
-	. ${VENVDIR}/bin/activate && \
-	  for d in $$(find ./tests/utests -type d|sort -nr); do \
-	    echo $$d:; \
-	    nosetests --with-xcoverage --xcoverage-file="$$d/coverage.xml" \
-                --with-xunit --xunit-file="$$d/nosetests.xml" \
-                --cover-package=voltha,common,ofagent $$d; \
-	  done
+	@ . ${VENVDIR}/bin/activate && nosetests $(COVERAGE_OPTS) ./tests/utests
+	@ for test in $(TEST_ADAPTERS); do \
+		echo Adapter Tests $$test:; \
+		$(MAKE) -f $$test; \
+	done
 else
 utest-with-coverage: protos test_runner
 	@echo "Executing all unit tests and producing coverage results"
@@ -503,12 +514,11 @@ utest-with-coverage: protos test_runner
 		--rm --net=host -v /var/run/docker.sock:/var/run/docker.sock \
 		${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
 		bash -c \
-	  'for d in $$(find ./tests/utests -type d|sort -nr); do \
-	    echo $$d:; \
-	    nosetests --with-xcoverage --xcoverage-file="$$d/coverage.xml" \
-                --with-xunit --xunit-file="$$d/nosetests.xml" \
-                --cover-package=voltha,common,ofagent $$d; \
-	  done'
+		'nosetests ${COVERAGE_OPTS} ./tests/utests; \
+		 for test in $(TEST_ADAPTERS); do \
+			echo Adapter Tests $$test:; \
+			$(MAKE) -f $$test; \
+		 done'
 endif
 
 ifneq ($(VOLTHA_BUILD),docker)
