@@ -44,4 +44,3 @@ if ! touch /tmp/fluentd/.check_write_permission; then
 else
     rm -f /tmp/fluentd/.check_write_permission
 fi
-

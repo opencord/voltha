@@ -70,7 +70,7 @@ class AdtranOltResourceMgr(object):
 
     def __del__(self):
         self.log.info("clearing-device-resource-pool")
-        for key, resource_mgr in self.resource_mgrs.iteritems():
+        for key, resource_mgr in self.resource_managers.iteritems():
             resource_mgr.clear_device_resource_pool()
 
     def get_onu_id(self, pon_intf_id):
@@ -107,7 +107,7 @@ class AdtranOltResourceMgr(object):
                                                           PONResourceManager.ALLOC_ID,
                                                           onu_id=onu_id,
                                                           num_of_id=1)
-        if alloc_id_list and len(alloc_id_list) == 0:
+        if alloc_id_list is None or len(alloc_id_list) == 0:
             self.log.error("no-alloc-id-available")
             return None
 
@@ -122,37 +122,6 @@ class AdtranOltResourceMgr(object):
 
         return alloc_id
 
-    def get_gemport_id(self, pon_intf_onu_id, num_of_id=1):
-        # TODO: Remove this if never used
-        # Derive the pon_intf and onu_id from the pon_intf_onu_id tuple
-        pon_intf = pon_intf_onu_id[0]
-        onu_id = pon_intf_onu_id[1]
-        uni_id = pon_intf_onu_id[2]
-        assert False, 'unused function'
-
-        gemport_id_list = self.resource_managers[pon_intf].get_current_gemport_ids_for_onu(
-            pon_intf_onu_id)
-        if gemport_id_list and len(gemport_id_list) > 0:
-            return gemport_id_list
-
-        gemport_id_list = self.resource_mgrs[pon_intf].get_resource_id(
-            pon_intf_id=pon_intf,
-            resource_type=PONResourceManager.GEMPORT_ID,
-            num_of_id=num_of_id
-        )
-
-        if gemport_id_list and len(gemport_id_list) == 0:
-            self.log.error("no-gemport-id-available")
-            return None
-
-        # update the resource map on KV store with the list of gemport_id
-        # allocated for the pon_intf_onu_id tuple
-        self.resource_managers[pon_intf].update_gemport_ids_for_onu(pon_intf_onu_id,
-                                                                    gemport_id_list)
-
-        self.update_gemports_ponport_to_onu_map_on_kv_store(gemport_id_list,
-                                                            pon_intf, onu_id, uni_id)
-        return gemport_id_list
 
     def free_pon_resources_for_onu(self, pon_intf_id_onu_id):
         """ Typically called on ONU delete """

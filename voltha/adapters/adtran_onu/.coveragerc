@@ -4,6 +4,5 @@ omit = venv/*, test/*
 parallel = True
 
 [report]
-show_missing = True
 
 [html]

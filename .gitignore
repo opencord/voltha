@@ -85,7 +85,7 @@ docs/manuals/user/_book
 docs/manual/user/*.pdf
 docs/manuals/user/node_modules/
 .coverage
-coverage.xml
+*coverage.xml
 nosetests.xml
 
 # OpenOLT repo

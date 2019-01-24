@@ -931,11 +931,15 @@ class PONResourceManager(object):
         :return: path for given resource type
         """
 
-        shared_pool_id = self.pon_resource_ranges[self.shared_idx_by_type[resource_type]]
-        if shared_pool_id is not None:
-            pon_intf_id = shared_pool_id
-
         path = None
+        try:
+            shared_pool_id = self.pon_resource_ranges[self.shared_idx_by_type[resource_type]]
+            if shared_pool_id is not None:
+                pon_intf_id = shared_pool_id
+        except KeyError as e:
+            self._log.exception("Get resource path failed: ", e=e)
+            return path
+
         if resource_type == PONResourceManager.ONU_ID:
             path = self._get_onu_id_resource_path(pon_intf_id)
         elif resource_type == PONResourceManager.ALLOC_ID:
