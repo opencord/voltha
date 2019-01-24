@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ad099a2f_45e81fea",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 436,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2019-01-24T15:23:32Z",
+      "side": 1,
+      "message": "Are both of these lines (and the one on line 446) needed?   Could the `--relocatable` be added to the $VENV_OPTS in cases where it\u0027s needed ?",
+      "range": {
+        "startLine": 435,
+        "startChar": 1,
+        "endLine": 436,
+        "endChar": 52
+      },
+      "revId": "7c24b662703112a5f073caa09b9e0cc7e82eea5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
