@@ -22,6 +22,30 @@
       "revId": "7c24b662703112a5f073caa09b9e0cc7e82eea5c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "08a2932f_65f35947",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 436,
+      "author": {
+        "id": 1000223
+      },
+      "writtenOn": "2019-01-24T16:35:47Z",
+      "side": 1,
+      "message": "It would need to be yet another variable.  you cannot create a virtualenv with the --relocatable flag the FIRST time.  It can only be used in successive calls.  \n\n\nWe\u0027ve reserved \nVENV_BIN for either virtualenv or python -m virtualenv\nVENV_OPT for either \u0027\u0027 or \u0027-p python2\u0027\n\nso we could have ANOTHER option\nVENV_EXTRA_OPTS for either \u0027\u0027 or \u0027--relocatable\u0027\n\nHowever, relocatable is really not dangerous -- but i can understand the reservations.\n\n\n» virtualenv -p python2 --relocatable abcd\nRunning virtualenv with interpreter /usr/bin/python2\nThe environment doesn\u0027t have a file /home/user/abcd/bin/activate_this.py -- please re-run virtualenv on this environment to update it\nTraceback (most recent call last):\n  File \"/usr/lib/python3/dist-packages/virtualenv.py\", line 2375, in \u003cmodule\u003e\n    main()\n  File \"/usr/lib/python3/dist-packages/virtualenv.py\", line 711, in main\n    make_environment_relocatable(home_dir)\n  File \"/usr/lib/python3/dist-packages/virtualenv.py\", line 1635, in make_environment_relocatable\n    fixup_scripts(home_dir, bin_dir)\n  File \"/usr/lib/python3/dist-packages/virtualenv.py\", line 1657, in fixup_scripts\n    for filename in os.listdir(bin_dir):\nOSError: [Errno 2] No such file or directory: \u0027/home/user/abcd/bin\u0027",
+      "parentUuid": "ad099a2f_45e81fea",
+      "range": {
+        "startLine": 435,
+        "startChar": 1,
+        "endLine": 436,
+        "endChar": 52
+      },
+      "revId": "7c24b662703112a5f073caa09b9e0cc7e82eea5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
