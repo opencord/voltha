@@ -33,6 +33,41 @@
       "revId": "7287ee434aaa11fabd3394df7139884ec3959f7b",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "588fab88_fdd7a61f",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-01-25T19:11:49Z",
+      "side": 1,
+      "message": "OK I get what you mean there\nI will change the language to what you suggest.",
+      "parentUuid": "085408e3_468f8344",
+      "revId": "7287ee434aaa11fabd3394df7139884ec3959f7b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3b2bce5f_37a91093",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-01-25T19:11:49Z",
+      "side": 1,
+      "message": "Forgot to take this line out",
+      "revId": "7287ee434aaa11fabd3394df7139884ec3959f7b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
