@@ -417,10 +417,6 @@ class OpenoltDevice(object):
 
         if intf_oper_indication.type == "nni":
 
-            # FIXME - creating logical port for 2nd interface throws exception!
-            if intf_oper_indication.intf_id != 0:
-                return
-
             # add_(logical_)port update the port if it exists
             port_no, label = self.add_port(intf_oper_indication.intf_id,
                                            Port.ETHERNET_NNI, oper_state)

@@ -403,7 +403,8 @@ class OpenOltFlowMgr(object):
 
                 if classifier[ETH_TYPE] == LLDP_ETH_TYPE:
                     self.log.debug('lldp flow add')
-                    self.add_lldp_flow(flow, port_no)
+                    nni_port = self.get_nni_port()
+                    self.add_lldp_flow(flow, port_no, nni_port)
 
             elif PUSH_VLAN in action:
                 self.add_upstream_data_flow(intf_id, onu_id, uni_id, port_no, classifier,
@@ -544,10 +545,9 @@ class OpenOltFlowMgr(object):
         if flow_id is None:
             self.log.error("hsia-flow-unavailable")
             return
-
         flow = openolt_pb2.Flow(
             access_intf_id=intf_id, onu_id=onu_id, uni_id=uni_id, flow_id=flow_id,
-            flow_type=direction, alloc_id=alloc_id, network_intf_id=0,
+            flow_type=direction, alloc_id=alloc_id, network_intf_id=self.get_nni_port(),
             gemport_id=gemport_id,
             classifier=self.mk_classifier(classifier),
             action=self.mk_action(action),
@@ -582,11 +582,10 @@ class OpenOltFlowMgr(object):
         flow_id = self.resource_mgr.get_flow_id(
             intf_id, onu_id, uni_id, flow_store_cookie
         )
-
         dhcp_flow = openolt_pb2.Flow(
             onu_id=onu_id, uni_id=uni_id, flow_id=flow_id, flow_type=UPSTREAM,
             access_intf_id=intf_id, gemport_id=gemport_id,
-            alloc_id=alloc_id, network_intf_id=0,
+            alloc_id=alloc_id, network_intf_id=self.get_nni_port(),
             priority=logical_flow.priority,
             classifier=self.mk_classifier(classifier),
             action=self.mk_action(action),
@@ -621,7 +620,7 @@ class OpenOltFlowMgr(object):
 
         upstream_flow = openolt_pb2.Flow(
             access_intf_id=intf_id, onu_id=onu_id, uni_id=uni_id, flow_id=uplink_flow_id,
-            flow_type=UPSTREAM, alloc_id=alloc_id, network_intf_id=0,
+            flow_type=UPSTREAM, alloc_id=alloc_id, network_intf_id=self.get_nni_port(),
             gemport_id=gemport_id,
             classifier=self.mk_classifier(uplink_classifier),
             action=self.mk_action(uplink_action),
@@ -674,7 +673,7 @@ class OpenOltFlowMgr(object):
 
             downstream_flow = openolt_pb2.Flow(
                 access_intf_id=intf_id, onu_id=onu_id, uni_id=uni_id, flow_id=downlink_flow_id,
-                flow_type=DOWNSTREAM, alloc_id=alloc_id, network_intf_id=0,
+                flow_type=DOWNSTREAM, alloc_id=alloc_id, network_intf_id=self.get_nni_port(),
                 gemport_id=gemport_id,
                 classifier=self.mk_classifier(downlink_classifier),
                 action=self.mk_action(downlink_action),
@@ -1049,3 +1048,12 @@ class OpenOltFlowMgr(object):
         else:
             to_hash = dumps(classifier, sort_keys=True)
         return hashlib.md5(to_hash).hexdigest()[:12]
+
+    def get_nni_port(self):
+
+        port_list = self.adapter_agent.get_ports(self.device_id, Port.ETHERNET_NNI)
+        logical_port = self.adapter_agent.get_logical_port(self.logical_device_id,
+                                                           port_list[0].label)
+        nni_port = self.platform.intf_id_from_nni_port_num(logical_port.ofp_port.port_no)
+        self.log.debug("nni-port ", nni_port=nni_port)
+        return nni_port
