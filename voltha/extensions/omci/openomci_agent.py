@@ -40,8 +40,8 @@ from voltha.extensions.omci.tasks.omci_sw_image_upgrade_task import OmciSwImageU
 OpenOmciAgentDefaults = {
     'mib-synchronizer': {
         'state-machine': MibSynchronizer,  # Implements the MIB synchronization state machine
-        # 'database': MibDbVolatileDict,     # Implements volatile ME MIB database
-        'database': MibDbExternal,         # Implements persistent ME MIB database
+        'database': MibDbVolatileDict,     # Implements volatile ME MIB database
+        # 'database': MibDbExternal,         # Implements persistent ME MIB database
         'advertise-events': True,          # Advertise events on OpenOMCI event bus
         'tasks': {
             'mib-upload': MibUploadTask,
