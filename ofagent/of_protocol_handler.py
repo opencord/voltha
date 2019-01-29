@@ -29,6 +29,10 @@ class OpenFlowProtocolHandler(object):
 
     ofp_version = [4]  # OFAgent supported versions
 
+    MAX_METER_IDS = 4294967295
+    MAX_METER_BANDS = 255
+    MAX_METER_COLORS = 255
+
     def __init__(self, datapath_id, device_id, agent, cxn, rpc):
         """
         The upper half of the OpenFlow protocol, focusing on message
@@ -261,7 +265,13 @@ class OpenFlowProtocolHandler(object):
         raise NotImplementedError()
 
     def handle_meter_features_request(self, req):
-        self.cxn.send(ofp.message.bad_request_error_msg())
+        feature = ofp.meter_features(max_meter=OpenFlowProtocolHandler.MAX_METER_IDS,
+                                     band_types=ofp.OFPMBT_DROP,
+                                     capabilities=ofp.OFPMF_KBPS,
+                                     max_bands=OpenFlowProtocolHandler.MAX_METER_BANDS,
+                                     max_color=OpenFlowProtocolHandler.MAX_METER_COLORS)
+        self.cxn.send(ofp.message.meter_features_stats_reply(xid=req.xid, flags=None,
+                                                             features=feature))
 
     @inlineCallbacks
     def handle_port_stats_request(self, req):

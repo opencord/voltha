@@ -103,5 +103,27 @@ class TestOF_Protocol_handler(TestCase):
         print context.exception
         self.assertTrue('\'function\' object has no attribute \'send\'' in str(context.exception))
 
+    def test_handle_meter_features_request_in_role_master(self):
+        generic_obj = self.gen_generic_obj()
+        device = self.gen_device()
+        of_proto_handler = OpenFlowProtocolHandler(device.datapath_id, device.id, generic_obj, generic_obj, generic_obj)
+        of_proto_handler.role = ofp.OFPCR_ROLE_MASTER
+        with self.assertRaises(Exception) as context:
+            of_proto_handler.handle_meter_features_request(generic_obj)
+        print context.exception
+        self.assertTrue('\'function\' object has no attribute \'send\'' in str(context.exception))
+
+    def test_handle_meter_features_request_in_role_slave(self):
+        generic_obj = self.gen_generic_obj()
+        device = self.gen_device()
+        of_proto_handler = OpenFlowProtocolHandler(device.datapath_id, device.id, generic_obj, generic_obj, generic_obj)
+        of_proto_handler.role = ofp.OFPCR_ROLE_SLAVE
+        with self.assertRaises(Exception) as context:
+            of_proto_handler.handle_meter_features_request(generic_obj)
+        print
+        context.exception
+        self.assertTrue('\'function\' object has no attribute \'send\'' in str(context.exception))
+
+
 if __name__ == '__main__':
     main()
