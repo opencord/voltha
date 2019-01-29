@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import structlog
+from twisted.internet import reactor
 from voltha.extensions.omci.state_machines.mib_sync import MibSynchronizer
 
 log = structlog.get_logger()
@@ -22,10 +23,6 @@ class BrcmMibSynchronizer(MibSynchronizer):
     """
     OpenOMCI MIB Synchronizer state machine for Broadcom ONUs
     """
-    # broadcom takes a while to sync.  going too often causes errors
-    BRCM_RESYNC_DELAY = 300 # Periodically force a resync
-    BRCM_TIMEOUT_RETRY = 60
-    BRCM_AUDIT_DELAY = 0   # disable audit as if its out of sync nothing can fix it anyway
 
     def __init__(self, agent, device_id, mib_sync_tasks, db,
                  advertise_events=False):
@@ -42,26 +39,30 @@ class BrcmMibSynchronizer(MibSynchronizer):
         self.log.debug('function-entry')
 
         super(BrcmMibSynchronizer, self).__init__(agent, device_id, mib_sync_tasks, db,
-                                                  advertise_events=advertise_events,
-                                                  # states=MibSynchronizer.DEFAULT_STATES,
-                                                  # transitions=MibSynchronizer.DEFAULT_TRANSITIONS,
-                                                  # initial_state='disabled',
-                                                  timeout_delay=BrcmMibSynchronizer.BRCM_TIMEOUT_RETRY,
-                                                  audit_delay=BrcmMibSynchronizer.BRCM_AUDIT_DELAY,
-                                                  resync_delay=BrcmMibSynchronizer.BRCM_RESYNC_DELAY)
-        self._omci_managed = False      # TODO: Look up model number/check handler
+                                                  advertise_events=advertise_events)
 
     def on_enter_auditing(self):
         """
-        Perform a MIB Audit.  If our last MIB resync was too long in the
-        past, perform a resynchronization anyway
+        Perform a MIB Audit.  Currently this is broken on BRCM based onu and its never in sync and continuously
+        retries. On disable/enable it never enables becaues its never in sync.  Effectively disable the function so
+        disable/enable works and we can figure out whats going on
+
+        Oddly enough this is only an issue with MibVolatileDict
         """
-        self.log.debug('function-entry')
+        # TODO: Actually fix resync
+        self.log.warn('audit-resync-not-supported')
 
-        # TODO: currently the audit/resync state machine cannot reconcile and re-add differences causing
-        # it to loop forever
-        self.log.info('audit-resync-not-supported')
+        self._deferred = reactor.callLater(0, self.success)
 
-        if self._omci_managed:
-            super(BrcmMibSynchronizer, self).on_enter_auditing()
+    def on_enter_examining_mds(self):
+        """
+        Examine MIB difference counter between onu and voltha.  Currently same problem as on_enter_auditing.
+        examine mds is always mismatched and causing disable/enable to fail
+
+        Oddly enough this is only an issue with MibVolatileDict
+        """
+        # TODO: Actually fix resync
+        self.log.warn('examine-mds-resync-not-supported')
+
+        self._deferred = reactor.callLater(0, self.success)
 

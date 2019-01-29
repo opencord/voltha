@@ -75,6 +75,7 @@ class BrcmOpenomciOnuAdapter(object):
         # Customize OpenOMCI for Broadcom ONUs
         self.broadcom_omci = deepcopy(OpenOmciAgentDefaults)
 
+        self.broadcom_omci['mib-synchronizer']['state-machine'] = BrcmMibSynchronizer
         self.broadcom_omci['omci-capabilities']['tasks']['get-capabilities'] = BrcmCapabilitiesTask
 
         # Defer creation of omci agent to a lazy init that allows subclasses to override support classes
