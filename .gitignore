@@ -90,3 +90,6 @@ nosetests.xml
 
 # OpenOLT repo
 voltha/adapters/openolt/core
+
+# junit-coverage file
+**/junit-coverage.xml
