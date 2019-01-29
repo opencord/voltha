@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8590352a_05526607",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-01-29T07:08:43Z",
+      "side": 1,
+      "message": "empty line not required",
+      "revId": "7ed9386920bf25e96cd2b019d0d7fb095ee92032",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "32d5fbe7_fbe8e82d",
+        "filename": "ofagent/of_protocol_handler.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-01-29T07:08:43Z",
+      "side": 1,
+      "message": "could use an empty line here between methods",
+      "revId": "7ed9386920bf25e96cd2b019d0d7fb095ee92032",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
