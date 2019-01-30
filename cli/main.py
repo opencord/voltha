@@ -34,7 +34,6 @@ from cli.omci import OmciCli
 from cli.alarm_filters import AlarmFiltersCli
 from cli.logical_device import LogicalDeviceCli
 from cli.table import print_pb_list_as_table
-from voltha.core.flow_decomposer import *
 from voltha.protos import third_party
 from voltha.protos import voltha_pb2, voltha_pb2_grpc, health_pb2_grpc
 from voltha.protos.openflow_13_pb2 import FlowTableUpdate, FlowGroupTableUpdate
