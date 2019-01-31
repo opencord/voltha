@@ -794,7 +794,7 @@ class OpenoltDevice(object):
         self.adapter_agent.add_onu_device(
             parent_device_id=self.device_id, parent_port_no=port_no,
             vendor_id=serial_number.vendor_id, proxy_address=proxy_address,
-            root=True, serial_number=serial_number_str,
+            root=False, serial_number=serial_number_str,
             admin_state=AdminState.ENABLED#, **{'vlan':4091} # magic still maps to brcm_openomci_onu.pon_port.BRDCM_DEFAULT_VLAN
         )
 
