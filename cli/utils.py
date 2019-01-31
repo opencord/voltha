@@ -132,8 +132,6 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
         for field in flow['match']['oxm_fields']:
             assert field['oxm_class'].endswith('OPENFLOW_BASIC')
             ofb = field['ofb_field']
-            # see CORD-816 (https://jira.opencord.org/browse/CORD-816)
-            assert not ofb['has_mask'], 'masked match not handled yet'
             type = ofb['type'][len('OFPXMT_OFB_'):]
             table.add_cell(i, *field_printers[type](ofb))
 
@@ -146,8 +144,14 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
             elif itype == 1:
                 table.add_cell(i, 10000, 'goto-table',
                                instruction['goto_table']['table_id'])
+            elif itype == 2:
+                table.add_cell(i, 10001, 'write-metadata',
+                               instruction['write_metadata']['metadata'])
             elif itype == 5:
-                table.add_cell(i, 10000, 'clear-actions', [])
+                table.add_cell(i, 10002, 'clear-actions', [])
+            elif itype == 6:
+                table.add_cell(i, 10003, 'meter',
+                               instruction['meter']['meter_id'])
             else:
                 raise NotImplementedError(
                     'not handling instruction type {}'.format(itype))
@@ -173,6 +177,26 @@ def print_groups(what, id, type, groups, printfn=_printfn):
                    output_ports.append(action['output']['port'])
         table.add_cell(i, 0, 'group_id', value=str(group['desc']['group_id']))
         table.add_cell(i, 1, 'buckets', value=str(dict(output=output_ports)))
+
+    table.print_table(header, printfn)
+
+
+def print_meters(what, id, type, meters, printfn=_printfn):
+    header = ''.join([
+        '{} '.format(what),
+        colored(id, color='green', attrs=['bold']),
+        ' (type: ',
+        colored(type, color='blue'),
+        ')'
+    ]) + '\nMeters ({}):'.format(len(meters))
+
+    table = TablePrinter()
+    for i, meter in enumerate(meters):
+        bands = []
+        for meter_band in meter['config']['bands']:
+            bands.append(meter_band)
+        table.add_cell(i, 0, 'meter_id', value=str(meter['config']['meter_id']))
+        table.add_cell(i, 1, 'meter_bands', value=str(dict(bands=bands)))
 
     table.print_table(header, printfn)
 

@@ -132,7 +132,6 @@ class OpenFlowProtocolHandler(object):
         elif self.role == ofp.OFPCR_ROLE_SLAVE:
            self.cxn.send(ofp.message.bad_request_error_msg(code=ofp.OFPBRC_IS_SLAVE))
 
-
     def handle_meter_mod_request(self, req):
         if self.role == ofp.OFPCR_ROLE_MASTER or self.role == ofp.OFPCR_ROLE_EQUAL:
             try:
@@ -148,10 +147,9 @@ class OpenFlowProtocolHandler(object):
     @inlineCallbacks
     def handle_meter_stats_request(self, req):
         try:
-            meter_stats = yield self.rpc.get_meter_stats(self.device_id)
-            meter_stats = [to_loxi(m) for m in meter_stats]
-            of_message = ofp.message.meter_stats_reply(xid=req.xid, entries=meter_stats)
-            self.cxn.send(of_message)
+            meters = yield self.rpc.list_meters(self.device_id)
+            self.cxn.send(ofp.message.meter_stats_reply(
+                xid=req.xid, entries=[to_loxi(m.stats) for m in meters]))
         except Exception, e:
             log.exception("failed-meter-stats-request", req=req, e=e)
 

@@ -23,7 +23,7 @@ from simplejson import dumps
 
 from cli.table import print_pb_as_table, print_pb_list_as_table
 from cli.utils import pb2dict
-from cli.utils import print_flows, print_groups
+from cli.utils import print_flows, print_groups, print_meters
 from voltha.protos import third_party
 from google.protobuf.empty_pb2 import Empty
 
@@ -96,6 +96,16 @@ class LogicalDeviceCli(Cmd):
             self.logical_device_id,
             type='n/a',
             groups=logical_device['flow_groups']['items']
+        )
+
+    def do_meters(self, _):
+        """Show flow meter table for logical device"""
+        logical_device = pb2dict(self.get_logical_device(-1))
+        print_meters(
+            'Logical Device',
+            self.logical_device_id,
+            type='n/a',
+            meters=logical_device['meters']['items']
         )
 
     def do_devices(self, line):

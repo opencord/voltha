@@ -222,10 +222,12 @@ class test_multipon_logical_device_agent(FlowHelpers):
         self.lda.update_flow_table(mk_simple_flow_mod(
             priority=1000,
             match_fields=[in_port(201), eth_type(0x888e)],
-            actions=[output(ofp.OFPP_CONTROLLER)]
+            actions=[output(ofp.OFPP_CONTROLLER)],
+            meter_id=1,
+            metadata=32
         ))
         self.lda._flow_table_updated(self.flows)
-        self.assertEqual(len(self.device_flows['olt'].items), 2)
+        self.assertEqual(len(self.device_flows['olt'].items), 1)
         self.assertEqual(len(self.device_flows['onu1'].items), 3)
         self.assertEqual(len(self.device_flows['onu2'].items), 3)
         self.assertEqual(len(self.device_groups['olt'].items), 0)
@@ -234,70 +236,12 @@ class test_multipon_logical_device_agent(FlowHelpers):
 
         self.assertFlowsEqual(self.device_flows['olt'].items[0], mk_flow_stat(
             priority=1000,
-            match_fields=[in_port(2), vlan_vid(4096 + 201), eth_type(0x888e)],
+            match_fields=[in_port(2), eth_type(0x888e)],
             actions=[
-                push_vlan(0x8100),
-                set_field(vlan_vid(4096 + 4000)),
-                output(0)
-            ]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[1], mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(0), vlan_vid(4096 + 4000), vlan_pcp(0), metadata(201)],
-            actions=[
-                pop_vlan(),
-                output(2)
-            ]
-        ))
-
-    def test_wildcarded_igmp_rule(self):
-        self.lda.update_flow_table(mk_simple_flow_mod(
-            priority=1000,
-            match_fields=[eth_type(0x800), ip_proto(2)],
-            actions=[output(ofp.OFPP_CONTROLLER)]
-        ))
-
-        self.lda._flow_table_updated(self.flows)
-        self.assertEqual(len(self.device_flows['olt'].items), 4)
-        self.assertEqual(len(self.device_flows['onu1'].items), 3)
-        self.assertEqual(len(self.device_flows['onu2'].items), 3)
-        self.assertEqual(len(self.device_groups['olt'].items), 0)
-        self.assertEqual(len(self.device_groups['onu1'].items), 0)
-        self.assertEqual(len(self.device_groups['onu2'].items), 0)
-
-        self.assertFlowsEqual(self.device_flows['olt'].items[0], mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(2), vlan_vid(4096 + 101), eth_type(0x800), ip_proto(2)],
-            actions=[
-                push_vlan(0x8100),
-                set_field(vlan_vid(4096 + 4000)),
-                output(0)
-            ]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[1], mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(0), vlan_vid(4096 + 4000), vlan_pcp(0), metadata(101)],
-            actions=[
-                pop_vlan(),
-                output(2)
-            ]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[2], mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(2), vlan_vid(4096 + 201), eth_type(0x800), ip_proto(2)],
-            actions=[
-                push_vlan(0x8100),
-                set_field(vlan_vid(4096 + 4000)),
-                output(0)
-            ]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[3], mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(0), vlan_vid(4096 + 4000), vlan_pcp(0), metadata(201)],
-            actions=[
-                pop_vlan(),
-                output(2)
-            ]
+                output(2147483645)
+            ],
+            meter_id=1,
+            metadata=32
         ))
 
     def test_multicast_group_with_one_subscriber(self):
@@ -442,8 +386,7 @@ class test_multipon_logical_device_agent(FlowHelpers):
                 priority=500,
                 match_fields=[
                     in_port(0),
-                    vlan_vid(4096 + 1000),
-                    metadata((c_vid << 32) | port)
+                    vlan_vid(4096 + 1000)
                 ],
                 actions=[pop_vlan()],
                 next_table_id=1
@@ -482,14 +425,14 @@ class test_multipon_logical_device_agent(FlowHelpers):
                 ]
             ))
 
-        self.assertEqual(len(self.flows.items), 20)
+        self.assertEqual(len(self.flows.items), 19)
         self.assertEqual(len(self.groups.items), 4)
 
         # trigger flow table decomposition
         self.lda._flow_table_updated(self.flows)
 
         # now check device level flows
-        self.assertEqual(len(self.device_flows['olt'].items), 17)
+        self.assertEqual(len(self.device_flows['olt'].items), 10)
         self.assertEqual(len(self.device_flows['onu1'].items), 5)
         self.assertEqual(len(self.device_flows['onu2'].items), 5)
         self.assertEqual(len(self.device_groups['olt'].items), 0)
@@ -497,109 +440,50 @@ class test_multipon_logical_device_agent(FlowHelpers):
         self.assertEqual(len(self.device_groups['onu2'].items), 0)
 
         # Flows installed on the OLT
-        self.assertFlowsEqual(self.device_flows['olt'].items[1], mk_flow_stat(
-            priority=2000,
-            match_fields=[in_port(0), vlan_vid(4096 + 4000), vlan_pcp(0), metadata(101)],
-            actions=[pop_vlan(), output(1)]
-        ))
         self.assertFlowsEqual(self.device_flows['olt'].items[0], mk_flow_stat(
             priority=2000,
-            match_fields=[in_port(1), vlan_vid(4096 + 101), eth_type(0x888e)],
+            match_fields=[in_port(1), eth_type(0x888e)],
             actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + 4000)),
-                     output(0)]
+                     output(2147483645)]
+        ))
+        self.assertFlowsEqual(self.device_flows['olt'].items[1], mk_flow_stat(
+            priority=1000,
+            match_fields=[in_port(1), eth_type(0x800), ip_proto(2)],
+            actions=[output(2147483645)]
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[2], mk_flow_stat(
             priority=1000,
-            match_fields=[in_port(1), vlan_vid(4096 + 101), eth_type(0x800), ip_proto(2)],
-            actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + 4000)),
-                     output(0)]
+            match_fields=[in_port(1), eth_type(0x800), ip_proto(17),
+                          udp_src(68), udp_dst(67)],
+            actions=[output(2147483645)]
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[3], mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(0), vlan_vid(4096 + 4000), vlan_pcp(0), metadata(101)],
-            actions=[pop_vlan(), output(1)]
+            priority=2000,
+            match_fields=[in_port(2), eth_type(0x888e)],
+            actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + 4000)),
+                     output(2147483645)]
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[4], mk_flow_stat(
             priority=1000,
-            match_fields=[in_port(1), vlan_vid(4096 + 101), eth_type(0x800), ip_proto(17),
-                          udp_src(68), udp_dst(67)],
-            actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + 4000)),
-                     output(0)]
+            match_fields=[in_port(2), eth_type(0x800), ip_proto(2)],
+            actions=[output(2147483645)]
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[5], mk_flow_stat(
-            priority=2000,
-            match_fields=[in_port(2), vlan_vid(4096 + 201), eth_type(0x888e)],
-            actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + 4000)),
-                     output(0)]
+            priority=1000,
+            match_fields=[in_port(2), eth_type(0x800), ip_proto(17),
+                          udp_src(68), udp_dst(67)],
+            actions=[output(2147483645)]
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[6], mk_flow_stat(
-            priority=2000,
-            match_fields=[in_port(0), vlan_vid(4096 + 4000), vlan_pcp(0), metadata(201)],
-            actions=[pop_vlan(), output(2)]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[7], mk_flow_stat(
             priority=1000,
-            match_fields=[in_port(2), vlan_vid(4096 + 201), eth_type(0x800), ip_proto(2)],
-            actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + 4000)),
-                     output(0)]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[8], mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(0), vlan_vid(4096 + 4000), vlan_pcp(0), metadata(201)],
-            actions=[pop_vlan(), output(2)]
+            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140),
+                          ipv4_dst(0xE4010102)],
+            actions=[pop_vlan(), output(1)]
         ))
         self.assertFlowsEqual(self.device_flows['olt'].items[9], mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(2), vlan_vid(4096 + 201), eth_type(0x800), ip_proto(17),
-                          udp_src(68), udp_dst(67)],
-            actions=[push_vlan(0x8100), set_field(vlan_vid(4096 + 4000)),
-                     output(0)]
-        ))
-        self.assertFlowNotInFlows(mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140),
-                          ipv4_dst(0xe4010101)],
+            priority=500,
+            match_fields=[in_port(0), vlan_vid(4096 + 1000)],
             actions=[pop_vlan(), output(2)]
-        ), self.device_flows['olt'])
-        self.assertFlowsEqual(self.device_flows['olt'].items[10], mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140),
-                          ipv4_dst(0xe4010102)],
-            actions=[pop_vlan(), output(1)]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[11], mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140),
-                          ipv4_dst(0xe4010103)],
-            actions=[pop_vlan(), output(1)]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[12], mk_flow_stat(
-            priority=1000,
-            match_fields=[in_port(0), eth_type(0x800), vlan_vid(4096 + 140),
-                          ipv4_dst(0xe4010104)],
-            actions=[pop_vlan(), output(1)]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[13], mk_flow_stat(
-            priority=500,
-            match_fields=[in_port(0), metadata(101), vlan_vid(4096 + 1000)],
-            actions=[pop_vlan(), output(1)]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[14], mk_flow_stat(
-            priority=500,
-            match_fields=[in_port(1), vlan_vid(4096 + 101)],
-            actions=[
-                push_vlan(0x8100), set_field(vlan_vid(4096 + 1000)), output(0)]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[15], mk_flow_stat(
-            priority=500,
-            match_fields=[in_port(0), metadata(201), vlan_vid(4096 + 1000)],
-            actions=[pop_vlan(), output(2)]
-        ))
-        self.assertFlowsEqual(self.device_flows['olt'].items[16], mk_flow_stat(
-            priority=500,
-            match_fields=[in_port(2), vlan_vid(4096 + 201)],
-            actions=[
-                push_vlan(0x8100), set_field(vlan_vid(4096 + 1000)), output(0)]
         ))
 
         # Flows installed on the ONU1

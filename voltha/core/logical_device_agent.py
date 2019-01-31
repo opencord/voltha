@@ -29,7 +29,7 @@ from voltha.core.device_graph import DeviceGraph
 from voltha.core.flow_decomposer import FlowDecomposer, \
     flow_stats_entry_from_flow_mod_message, group_entry_from_group_mod, \
     mk_flow_stat, in_port, vlan_vid, vlan_pcp, pop_vlan, output, set_field, \
-    push_vlan, mk_simple_flow_mod
+    push_vlan, meter_entry_from_meter_mod, get_meter_id_from_flow
 from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos.device_pb2 import Port
@@ -216,45 +216,66 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     def meter_add(self, meter_mod):
         assert isinstance(meter_mod, ofp.ofp_meter_mod)
         # read from model
-        meters = list(self.meters_proxy.get('/').items)
-        if not self.check_meter_id_overlapping(meters, meter_mod):
-            meters.append(ofp_meter_config(flags=meter_mod.flags, \
-                                           meter_id=meter_mod.meter_id, \
-                                           bands=meter_mod.bands))
+        meters = OrderedDict((m.config.meter_id, m)
+                             for m in self.meters_proxy.get('/').items)
+        changed = False
 
-            self.meters_proxy.update('/', Meters(items=meters))
-        else:
+        if meter_mod.meter_id in meters:
             self.signal_meter_mod_error(ofp.OFPMMFC_METER_EXISTS, meter_mod)
+        else:
+            meter_entry = meter_entry_from_meter_mod(meter_mod)
+            meters[meter_mod.meter_id] = meter_entry
+            changed = True
+
+        if changed:
+            self.meters_proxy.update('/', Meters(items=meters.values()))
 
     def meter_modify(self, meter_mod):
         assert isinstance(meter_mod, ofp.ofp_meter_mod)
-        meters = list(self.meters_proxy.get('/').items)
-        existing_meter = self.check_meter_id_overlapping(meters, meter_mod)
-        if existing_meter:
-            existing_meter.flags = meter_mod.flags
-            existing_meter.bands = meter_mod.bands
-            self.meters_proxy.update('/', Meters(items=meters))
-        else:
+
+        meters = OrderedDict((m.config.meter_id, m)
+                             for m in self.meters_proxy.get('/').items)
+        meter_id = meter_mod.meter_id
+        changed = False
+
+        if meter_id not in meters:
             self.signal_meter_mod_error(ofp.OFPMMFC_UNKNOWN_METER, meter_mod)
+        else:
+            # replace existing meter entry with new meter definition
+            new_meter_entry = meter_entry_from_meter_mod(meter_mod)
+            new_meter_entry.stats.flow_count = meters[meter_id].stats.flow_count
+            meters[meter_id] = new_meter_entry
+            changed = True
+
+        if changed:
+            self.meters_proxy.update('/', Meters(items=meters.values()))
+            self.log.debug('meter-updated', meter_id=meter_id)
 
     def meter_delete(self, meter_mod):
         assert isinstance(meter_mod, ofp.ofp_meter_mod)
-        meters = list(self.meters_proxy.get('/').items)
-        to_keep = list()
-        to_delete = 0
 
-        for meter in meters:
-            if meter.meter_id != meter_mod.meter_id:
-                to_keep.append(meter)
-            else:
-                to_delete += 1
+        meters = OrderedDict((m.config.meter_id, m)
+                             for m in self.meters_proxy.get('/').items)
+        meters_changed = False
+        flows_changed = False
 
-        if to_delete == 1:
-            self.meters_proxy.update('/', Meters(items=to_keep))
-        if to_delete == 0:
+        meter_id = meter_mod.meter_id
+        if meter_id not in meters:
             self.signal_meter_mod_error(ofp.OFPMMFC_UNKNOWN_METER, meter_mod)
-        elif to_delete > 1:
-            raise Exception('More than one meter_config sharing the same meter_id cannot exist')
+
+        else:
+            flows = list(self.flows_proxy.get('/').items)
+            flows_changed, flows = self.flows_delete_by_meter_id(
+                flows, meter_id)
+            del meters[meter_id]
+            meters_changed = True
+            self.log.debug('meter-deleted', meter_id=meter_id)
+
+        if meters_changed:
+            self.meters_proxy.update('/', Meters(items=meters.values()))
+        if flows_changed:
+            self.flows_proxy.update('/', Meters(items=flows))
+
 
     @staticmethod
     def check_meter_id_overlapping(meters, meter_mod):
@@ -277,8 +298,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         # read from model
         flows = list(self.flows_proxy.get('/').items)
+        flow = flow_stats_entry_from_flow_mod_message(mod)
 
-        changed = False
+        changed = updated = False
         check_overlap = mod.flags & ofp.OFPFF_CHECK_OVERLAP
         if check_overlap:
             if self.find_overlapping_flows(flows, mod, True):
@@ -286,13 +308,11 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                     ofp.OFPFMFC_OVERLAP, mod)
             else:
                 # free to add as new flow
-                flow = flow_stats_entry_from_flow_mod_message(mod)
                 flows.append(flow)
                 changed = True
                 self.log.debug('flow-added', flow=mod)
 
         else:
-            flow = flow_stats_entry_from_flow_mod_message(mod)
             idx = self.find_flow(flows, flow)
             if idx >= 0:
                 old_flow = flows[idx]
@@ -300,7 +320,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                     flow.byte_count = old_flow.byte_count
                     flow.packet_count = old_flow.packet_count
                 flows[idx] = flow
-                changed = True
+                changed = updated = True
                 self.log.debug('flow-updated', flow=flow)
 
             else:
@@ -311,6 +331,28 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         # write back to model
         if changed:
             self.flows_proxy.update('/', Flows(items=flows))
+            if not updated:
+                self.update_flow_count_of_meter_stats(mod, flow)
+
+    def update_flow_count_of_meter_stats(self, mod, flow):
+        command = mod.command
+        meter_id = get_meter_id_from_flow(flow)
+        if meter_id is not None:
+            try:
+                meters = OrderedDict((m.config.meter_id, m)
+                                     for m in self.meters_proxy.get('/').items)
+                meter = meters[meter_id]
+                if meter is not None:
+                    if command == ofp.OFPFC_ADD:
+                        meter.stats.flow_count += 1
+                    elif command == ofp.OFPFC_DELETE_STRICT:
+                        meter.stats.flow_count -= 1
+                    self.meters_proxy.update('/', Meters(items=meters.values()))
+                    self.log.debug("meters updated based on flow count stats",
+                               meters=meters.values())
+            except KeyError:
+                self.log.warn("meter id is not found in meters", meter_id=meter_id)
+
 
     def flow_delete(self, mod):
         assert isinstance(mod, (ofp.ofp_flow_mod, ofp.ofp_flow_stats))
@@ -333,6 +375,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         # write back
         if to_delete:
             self.flows_proxy.update('/', Flows(items=flows))
+            self.log.debug("flow deleted", mod=mod)
 
         # from mod send announcement
         if isinstance(mod, ofp.ofp_flow_mod):
@@ -349,6 +392,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         flow = flow_stats_entry_from_flow_mod_message(mod)
         idx = self.find_flow(flows, flow)
         if (idx >= 0):
+            self.update_flow_count_of_meter_stats(mod, flows[idx])
             del flows[idx]
             changed = True
         else:
@@ -357,6 +401,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         if changed:
             self.flows_proxy.update('/', Flows(items=flows))
+            self.log.debug("flow deleted strictly", mod=mod)
 
     def flow_modify(self, mod):
         raise NotImplementedError()
@@ -478,6 +523,17 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         # otherwise...
         return False
 
+    @staticmethod
+    def flow_has_meter(flow, meter_id):
+        assert isinstance(flow, ofp.ofp_flow_stats)
+        for instruction in flow.instructions:
+            if instruction.type == ofp.OFPIT_METER and \
+               instruction.meter.meter_id == meter_id:
+                    return True
+
+        return False
+
+
     def flows_delete_by_group_id(self, flows, group_id):
         """
         Delete any flow(s) referring to given group_id
@@ -498,6 +554,20 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         # send notification to deleted ones
         self.announce_flows_deleted(to_delete)
 
+        return bool(to_delete), flows
+
+    def flows_delete_by_meter_id(self, flows, meter_id):
+
+        to_keep = []
+        to_delete = []
+        for f in flows:
+            if self.flow_has_meter(f, meter_id):
+                to_delete.append(f)
+            else:
+                to_keep.append(f)
+
+        flows = to_keep
+        self.announce_flows_deleted(flows)
         return bool(to_delete), flows
 
     # ~~~~~~~~~~~~~~~~~~~~~ LOW LEVEL GROUP HANDLERS ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -915,22 +985,32 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         return rules
 
     def get_route(self, ingress_port_no, egress_port_no):
+        """
+        Returns the ingress and egress devices corresponding to the ingress_port_no
+        and egress_port.
+        If egress_port_no is CONTROLLER the egress device is always the OLT, while
+        the ingress device depends on if the ingress_port_no is UNI or NNI.
+        If egress_port_no is not specified, a half route is returned with only
+        the ingress device specified.
+        """
         self._assure_cached_tables_up_to_date()
         self.log.info('getting-route', eg_port=egress_port_no, in_port=ingress_port_no,
-                nni_port=self._nni_logical_port_no)
+                      nni_port=self._nni_logical_port_no)
         if egress_port_no is not None and \
-                        (egress_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
-            self.log.info('controller-flow', eg_port=egress_port_no, in_port=ingress_port_no,
-                    nni_port=self._nni_logical_port_no)
+                (egress_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
+            self.log.info('controller-flow', eg_port=egress_port_no,
+                          in_port=ingress_port_no,
+                          nni_port=self._nni_logical_port_no)
             if ingress_port_no == self._nni_logical_port_no:
                 self.log.info('returning half route')
-                # This is a trap on the NNI Port
-                # Return a 'half' route to make the flow decomp logic happy
+                # This is a trap on the NNI Port, both ingress and egress
+                # devices are OLTs.
                 for (ingress, egress), route in self._routes.iteritems():
                     if egress == self._nni_logical_port_no:
-                        return [None, route[1]]
+                        return [route[1], route[1]]
                 raise Exception('not a single upstream route')
-            # treat it as if the output port is the NNI of the OLT
+            # for a trap flow from the UNI, treat it as if the output port
+            # is the NNI of the OLT
             egress_port_no = self._nni_logical_port_no
 
         # If ingress_port is not specified (None), it may be a wildcarded
@@ -956,10 +1036,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             # This can occur is a leaf device is disabled
             self.log.exception('no-downstream-route',
                                ingress_port_no=ingress_port_no,
-                               egress_port_no= egress_port_no
-                               )
+                               egress_port_no=egress_port_no)
             return None
-
 
         return self._routes.get((ingress_port_no, egress_port_no))
 
