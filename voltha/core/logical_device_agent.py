@@ -29,7 +29,7 @@ from voltha.core.device_graph import DeviceGraph
 from voltha.core.flow_decomposer import FlowDecomposer, \
     flow_stats_entry_from_flow_mod_message, group_entry_from_group_mod, \
     mk_flow_stat, in_port, vlan_vid, vlan_pcp, pop_vlan, output, set_field, \
-    push_vlan, mk_simple_flow_mod
+    push_vlan, meter_entry_from_meter_mod
 from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos.device_pb2 import Port
@@ -216,45 +216,63 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
     def meter_add(self, meter_mod):
         assert isinstance(meter_mod, ofp.ofp_meter_mod)
         # read from model
-        meters = list(self.meters_proxy.get('/').items)
-        if not self.check_meter_id_overlapping(meters, meter_mod):
-            meters.append(ofp_meter_config(flags=meter_mod.flags, \
-                                           meter_id=meter_mod.meter_id, \
-                                           bands=meter_mod.bands))
+        meters = OrderedDict((m.config.meter_id, m)
+                             for m in self.meters_proxy.get('/').items)
+        changed = False
 
-            self.meters_proxy.update('/', Meters(items=meters))
-        else:
+        if meter_mod.meter_id in meters:
             self.signal_meter_mod_error(ofp.OFPMMFC_METER_EXISTS, meter_mod)
+        else:
+            meter_entry = meter_entry_from_meter_mod(meter_mod)
+            meters[meter_mod.meter_id] = meter_entry
+            changed = True
+
+        if changed:
+            self.meters_proxy.update('/', Meters(items=meters.values()))
 
     def meter_modify(self, meter_mod):
         assert isinstance(meter_mod, ofp.ofp_meter_mod)
-        meters = list(self.meters_proxy.get('/').items)
-        existing_meter = self.check_meter_id_overlapping(meters, meter_mod)
-        if existing_meter:
-            existing_meter.flags = meter_mod.flags
-            existing_meter.bands = meter_mod.bands
-            self.meters_proxy.update('/', Meters(items=meters))
-        else:
+
+        meters = OrderedDict((m.config.meter_id, m)
+                             for m in self.meters_proxy.get('/').items)
+        changed = False
+
+        if meter_mod.meter_id not in meters:
             self.signal_meter_mod_error(ofp.OFPMMFC_UNKNOWN_METER, meter_mod)
+        else:
+            # replace existing meter entry with new meter definition
+            meter_entry = meter_entry_from_meter_mod(meter_mod)
+            meters[meter_mod.meter_id] = meter_entry
+            changed = True
+
+        if changed:
+            self.meters_proxy.update('/', Meters(items=meters.values()))
 
     def meter_delete(self, meter_mod):
         assert isinstance(meter_mod, ofp.ofp_meter_mod)
-        meters = list(self.meters_proxy.get('/').items)
-        to_keep = list()
-        to_delete = 0
 
-        for meter in meters:
-            if meter.meter_id != meter_mod.meter_id:
-                to_keep.append(meter)
-            else:
-                to_delete += 1
+        meters = OrderedDict((m.config.meter_id, m)
+                             for m in self.meters_proxy.get('/').items)
+        meters_changed = False
+        flows_changed = False
 
-        if to_delete == 1:
-            self.meters_proxy.update('/', Meters(items=to_keep))
-        if to_delete == 0:
+        meter_id = meter_mod.meter_id
+        if meter_id not in meters:
             self.signal_meter_mod_error(ofp.OFPMMFC_UNKNOWN_METER, meter_mod)
-        elif to_delete > 1:
-            raise Exception('More than one meter_config sharing the same meter_id cannot exist')
+
+        else:
+            flows = list(self.flows_proxy.get('/').items)
+            flows_changed, flows = self.flows_delete_by_meter_id(
+                flows, meter_id)
+            del meters[meter_id]
+            meters_changed = True
+            self.log.debug('meter-deleted', meter_id=meter_id)
+
+        if meters_changed:
+            self.meters_proxy.update('/', Meters(items=meters.values()))
+        if flows_changed:
+            self.flows_proxy.update('/', Meters(items=flows))
+
 
     @staticmethod
     def check_meter_id_overlapping(meters, meter_mod):
@@ -478,6 +496,17 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         # otherwise...
         return False
 
+    @staticmethod
+    def flow_has_meter(flow, meter_id):
+        assert isinstance(flow, ofp.ofp_flow_stats)
+        for instruction in flow.instructions:
+            if instruction.type == ofp.OFPIT_METER and \
+                instruction.meter.meter_id == meter_id:
+                    return True
+
+        return False
+
+
     def flows_delete_by_group_id(self, flows, group_id):
         """
         Delete any flow(s) referring to given group_id
@@ -498,6 +527,20 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         # send notification to deleted ones
         self.announce_flows_deleted(to_delete)
 
+        return bool(to_delete), flows
+
+    def flows_delete_by_meter_id(self, flows, meter_id):
+
+        to_keep = []
+        to_delete = []
+        for f in flows:
+            if self.flow_has_meter(f, meter_id):
+                to_delete.append(f)
+            else:
+                to_keep.append(f)
+
+        flows = to_keep
+        self.announce_flow_deleted(to_delete)
         return bool(to_delete), flows
 
     # ~~~~~~~~~~~~~~~~~~~~~ LOW LEVEL GROUP HANDLERS ~~~~~~~~~~~~~~~~~~~~~~~~~~

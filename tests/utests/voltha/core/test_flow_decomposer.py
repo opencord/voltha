@@ -300,7 +300,8 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
             actions=[
                 output(ofp.OFPP_CONTROLLER)
             ],
-            priority=1000
+            priority=1000,
+            metadata=4294967296
         )
         device_rules = self.decompose_rules([flow], [])
         onu1_flows, onu1_groups = device_rules['onu1']
@@ -330,20 +331,21 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 push_vlan(0x8100),
                 set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
                 output(2)
-            ]
+            ],
+            metadata=4294967296
         ))
         self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
             priority=1000,
             match_fields=[
                 in_port(2),
                 vlan_vid(ofp.OFPVID_PRESENT | 4000),
-                vlan_pcp(0),
-                metadata(1)
+                vlan_pcp(0)
             ],
             actions=[
                 pop_vlan(),
                 output(1)
-            ]
+            ],
+            metadata=4294967296
         ))
 
     def test_dhcp_reroute_rule_decomposition(self):
@@ -358,7 +360,8 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 udp_dst(67)
             ],
             actions=[output(ofp.OFPP_CONTROLLER)],
-            priority=1000
+            priority=1000,
+            metadata=4294967296
         )
         device_rules = self.decompose_rules([flow], [])
         onu1_flows, onu1_groups = device_rules['onu1']
@@ -392,20 +395,20 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 push_vlan(0x8100),
                 set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
                 output(2)
-            ]
+            ],
+            metadata=4294967296
         ))
         self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
             priority=1000,
             match_fields=[
                 in_port(2),
                 vlan_vid(ofp.OFPVID_PRESENT | 4000),
-                vlan_pcp(0),
-                metadata(1)
-            ],
+                vlan_pcp(0)],
             actions=[
                 pop_vlan(),
                 output(1)
-            ]
+            ],
+            metadata=4294967296
         ))
 
     @nottest
@@ -418,12 +421,13 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 ip_proto(2)
             ],
             actions=[output(ofp.OFPP_CONTROLLER)],
-            priority=1000
+            priority=1000,
+            metadata=4294967296
         )
         device_rules = self.decompose_rules([flow], [])
         onu1_flows, onu1_groups = device_rules['onu1']
         olt_flows, olt_groups = device_rules['olt']
-        self.assertEqual(len(onu1_flows), 2)
+        self.assertEqual(len(onu1_flows), 1)
         self.assertEqual(len(onu1_groups), 0)
         self.assertEqual(len(olt_flows), 2)
         self.assertEqual(len(olt_groups), 0)
@@ -449,141 +453,144 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 push_vlan(0x8100),
                 set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
                 output(2)
-            ]
+            ],
+            metadata=4294967296
         ))
         self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
             priority=1000,
             match_fields=[
                 in_port(2),
                 vlan_vid(ofp.OFPVID_PRESENT | 4000),
-                vlan_pcp(0),
-                metadata(1)
+                vlan_pcp(0)
             ],
             actions=[
                 pop_vlan(),
                 output(1)
-            ]
+            ],
+            metadata=4294967296
         ))
 
-    @nottest
-    def test_wildcarded_igmp_reroute_rule_decomposition(self):
-        flow = mk_flow_stat(
-            match_fields=[
-                eth_type(0x0800),
-                ip_proto(2)
-            ],
-            actions=[output(ofp.OFPP_CONTROLLER)],
-            priority=2000,
-            cookie=140
-        )
-        device_rules = self.decompose_rules([flow], [])
-        onu1_flows, onu1_groups = device_rules['onu1']
-        olt_flows, olt_groups = device_rules['olt']
-        self.assertEqual(len(onu1_flows), 1)
-        self.assertEqual(len(onu1_groups), 0)
-        self.assertEqual(len(olt_flows), 8)
-        self.assertEqual(len(olt_groups), 0)
-        self.assertFlowsEqual(onu1_flows.values()[0], mk_flow_stat(
-            match_fields=[
-                in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 0)
-            ],
-            actions=[
-                set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
-                output(1)
-            ]
-        ))
-        self.assertFlowsEqual(olt_flows.values()[0], mk_flow_stat(
-            priority=2000,
-            cookie=140,
-            match_fields=[
-                in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 0),
-                eth_type(0x0800), ip_proto(2)
-            ],
-            actions=[
-                push_vlan(0x8100),
-                set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
-                output(2)
-            ]
-        ))
-        self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
-            priority=2000,
-            match_fields=[
-                in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
-                vlan_pcp(0), metadata(0)
-            ],
-            actions=[
-                pop_vlan(), output(1)
-            ]
-        ))
-        self.assertFlowsEqual(olt_flows.values()[2], mk_flow_stat(
-            priority=2000,
-            cookie=140,
-            match_fields=[
-                in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 1),
-                eth_type(0x0800), ip_proto(2)
-            ],
-            actions=[
-                push_vlan(0x8100),
-                set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
-                output(2)
-            ]
-        ))
-        self.assertFlowsEqual(olt_flows.values()[3], mk_flow_stat(
-            priority=2000,
-            match_fields=[
-                in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
-                vlan_pcp(0), metadata(1)
-            ],
-            actions=[
-                pop_vlan(), output(1)
-            ]
-        ))
-        self.assertFlowsEqual(olt_flows.values()[4], mk_flow_stat(
-            priority=2000,
-            cookie=140,
-            match_fields=[
-                in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 3),
-                eth_type(0x0800), ip_proto(2)
-            ],
-            actions=[
-                push_vlan(0x8100),
-                set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
-                output(2)
-            ]
-        ))
-        self.assertFlowsEqual(olt_flows.values()[5], mk_flow_stat(
-            priority=2000,
-            match_fields=[
-                in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
-                vlan_pcp(0), metadata(3)
-            ],
-            actions=[
-                pop_vlan(), output(1)
-            ]
-        ))
-        self.assertFlowsEqual(olt_flows.values()[6], mk_flow_stat(
-            priority=2000,
-            cookie=140,
-            match_fields=[
-                in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 4),
-                eth_type(0x0800), ip_proto(2)
-            ],
-            actions=[
-                push_vlan(0x8100),
-                set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
-                output(2)
-            ]
-        ))
-        self.assertFlowsEqual(olt_flows.values()[7], mk_flow_stat(
-            priority=2000,
-            match_fields=[
-                in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
-                vlan_pcp(0), metadata(4)
-            ],
-            actions=[
-                pop_vlan(), output(1)
-            ]
-        ))
+    # @nottest
+    # def test_wildcarded_igmp_reroute_rule_decomposition(self):
+    #     flow = mk_flow_stat(
+    #         match_fields=[
+    #             eth_type(0x0800),
+    #             ip_proto(2)
+    #         ],
+    #         actions=[output(ofp.OFPP_CONTROLLER)],
+    #         priority=2000,
+    #         metadata=4294967296,
+    #         cookie=140
+    #     )
+    #     device_rules = self.decompose_rules([flow], [])
+    #     onu1_flows, onu1_groups = device_rules['onu1']
+    #     olt_flows, olt_groups = device_rules['olt']
+    #     self.assertEqual(len(onu1_flows), 1)
+    #     self.assertEqual(len(onu1_groups), 0)
+    #     self.assertEqual(len(olt_flows), 1)
+    #     self.assertEqual(len(olt_groups), 0)
+    #     self.assertFlowsEqual(onu1_flows.values()[0], mk_flow_stat(
+    #         match_fields=[
+    #             in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 0)
+    #         ],
+    #         actions=[
+    #             set_field(vlan_vid(ofp.OFPVID_PRESENT | 101)),
+    #             output(1)
+    #         ]
+    #     ))
+    #     self.assertFlowsEqual(olt_flows.values()[0], mk_flow_stat(
+    #         priority=2000,
+    #         cookie=140,
+    #         match_fields=[
+    #             in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 0),
+    #             eth_type(0x0800), ip_proto(2)
+    #         ],
+    #         actions=[
+    #             push_vlan(0x8100),
+    #             set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+    #             output(2)
+    #         ],
+    #         metadata=4294967296
+    #     ))
+    #     self.assertFlowsEqual(olt_flows.values()[1], mk_flow_stat(
+    #         priority=2000,
+    #         match_fields=[
+    #             in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
+    #             vlan_pcp(0)
+    #         ],
+    #         actions=[
+    #             pop_vlan(), output(1)
+    #         ]
+    #     ))
+    #     self.assertFlowsEqual(olt_flows.values()[2], mk_flow_stat(
+    #         priority=2000,
+    #         cookie=140,
+    #         match_fields=[
+    #             in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 1),
+    #             eth_type(0x0800), ip_proto(2)
+    #         ],
+    #         actions=[
+    #             push_vlan(0x8100),
+    #             set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+    #             output(2)
+    #         ]
+    #     ))
+    #     self.assertFlowsEqual(olt_flows.values()[3], mk_flow_stat(
+    #         priority=2000,
+    #         match_fields=[
+    #             in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
+    #             vlan_pcp(0)
+    #         ],
+    #         actions=[
+    #             pop_vlan(), output(1)
+    #         ]
+    #     ))
+    #     self.assertFlowsEqual(olt_flows.values()[4], mk_flow_stat(
+    #         priority=2000,
+    #         cookie=140,
+    #         match_fields=[
+    #             in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 3),
+    #             eth_type(0x0800), ip_proto(2)
+    #         ],
+    #         actions=[
+    #             push_vlan(0x8100),
+    #             set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+    #             output(2)
+    #         ]
+    #     ))
+    #     self.assertFlowsEqual(olt_flows.values()[5], mk_flow_stat(
+    #         priority=2000,
+    #         match_fields=[
+    #             in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
+    #             vlan_pcp(0)
+    #         ],
+    #         actions=[
+    #             pop_vlan(), output(1)
+    #         ]
+    #     ))
+    #     self.assertFlowsEqual(olt_flows.values()[6], mk_flow_stat(
+    #         priority=2000,
+    #         cookie=140,
+    #         match_fields=[
+    #             in_port(1), vlan_vid(ofp.OFPVID_PRESENT | 4),
+    #             eth_type(0x0800), ip_proto(2)
+    #         ],
+    #         actions=[
+    #             push_vlan(0x8100),
+    #             set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
+    #             output(2)
+    #         ]
+    #     ))
+    #     self.assertFlowsEqual(olt_flows.values()[7], mk_flow_stat(
+    #         priority=2000,
+    #         match_fields=[
+    #             in_port(2), vlan_vid(ofp.OFPVID_PRESENT | 4000),
+    #             vlan_pcp(0)
+    #         ],
+    #         actions=[
+    #             pop_vlan(), output(1)
+    #         ]
+    #     ))
 
     def test_unicast_upstream_rule_decomposition(self):
         flow1 = mk_flow_stat(
@@ -672,8 +679,7 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 set_field(vlan_pcp(0)),
                 output(0)
             ],
-            next_table_id=64,
-            meters=[1, 2]
+            meter_id=1
         )
         device_rules = self.decompose_rules([flow1, flow2], [])
         onu1_flows, onu1_groups = device_rules['onu1']
@@ -708,8 +714,7 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 set_field(vlan_pcp(0)),
                 output(2)
             ],
-            table_id=64,
-            meters=[1, 2]
+            meter_id=1
         )
 
         self.assertFlowsEqual(olt_flows.values()[0], check_flow)
@@ -719,13 +724,14 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
         flow1 = mk_flow_stat(
             match_fields=[
                 in_port(0),
-                metadata((1000 << 32) | 1),
                 vlan_pcp(0)
             ],
             actions=[
                 pop_vlan(),
             ],
             next_table_id=1,
+            meter_id=1,
+            metadata=2,
             priority=500
         )
         flow2 = mk_flow_stat(
@@ -738,7 +744,9 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
                 set_field(vlan_vid(ofp.OFPVID_PRESENT | 0)),
                 output(1)
             ],
-            priority=500
+            priority=500,
+            meter_id=1,
+            metadata=2
         )
         device_rules = self.decompose_rules([flow1, flow2], [])
         onu1_flows, onu1_groups = device_rules['onu1']
@@ -751,13 +759,14 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
             priority=500,
             match_fields=[
                 in_port(2),
-                metadata(1000),
                 vlan_pcp(0)
             ],
             actions=[
                 pop_vlan(),
                 output(1)
-            ]
+            ],
+            meter_id=1,
+            metadata=2
         ))
         self.assertFlowsEqual(onu1_flows.values()[1], mk_flow_stat(
             priority=500,
@@ -769,7 +778,9 @@ class TestFlowDecomposer(FlowHelpers, FlowDecomposer):
             actions=[
                 set_field(vlan_vid(ofp.OFPVID_PRESENT | 0)),
                 output(2)
-            ]
+            ],
+            meter_id=1,
+            metadata=2
         ))
 
     def test_multicast_downstream_rule_decomposition(self):

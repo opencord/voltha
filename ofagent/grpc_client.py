@@ -210,7 +210,7 @@ class GrpcClient(object):
             meter_mod=meter_mod
         )
         res = yield threads.deferToThread(
-            self.local_stub.UpdateLogicalDeviceMeterTable, req)
+            self.local_stub.UpdateLogicalDeviceMeterTable, req, timeout=self.grpc_timeout)
         returnValue(res)
 
     @inlineCallbacks
@@ -238,6 +238,13 @@ class GrpcClient(object):
         returnValue(res.items)
 
     @inlineCallbacks
+    def list_meters(self, device_id):
+        req = ID(id=device_id)
+        res = yield threads.deferToThread(
+            self.local_stub.ListLogicalDeviceMeters, req, timeout=self.grpc_timeout)
+        returnValue(res.items)
+
+    @inlineCallbacks
     def list_ports(self, device_id):
         req = ID(id=device_id)
         res = yield threads.deferToThread(
@@ -262,10 +269,3 @@ class GrpcClient(object):
         res = yield threads.deferToThread(
             self.local_stub.Subscribe, subscriber, timeout=self.grpc_timeout)
         returnValue(res)
-
-    @inlineCallbacks
-    def get_meter_stats(self, device_id):
-        req = ID(id=device_id)
-        res = yield threads.deferToThread(
-            self.local_stub.GetMeterStatsOfLogicalDevice, req)
-        returnValue(res.items)
