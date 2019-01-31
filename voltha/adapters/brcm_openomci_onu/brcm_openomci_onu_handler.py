@@ -190,7 +190,7 @@ class BrcmOpenomciOnuHandler(object):
         if self.enabled is not True:
             self.log.info('activating-new-onu')
             # populate what we know.  rest comes later after mib sync
-            device.root = True
+            device.root = False
             device.vendor = 'Broadcom'
             device.connect_status = ConnectStatus.REACHABLE
             device.oper_status = OperStatus.DISCOVERED
