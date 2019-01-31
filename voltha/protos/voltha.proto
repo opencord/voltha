@@ -356,12 +356,13 @@ service VolthaGlobalService {
         };
     }
 
-    // Get all meter stats for logical device
-    rpc GetMeterStatsOfLogicalDevice(ID)
-            returns(openflow_13.MeterStatsReply) {
+    // List all meters of a logical device
+    rpc ListLogicalDeviceMeters(ID) returns (openflow_13.Meters) {
         option (google.api.http) = {
-            get: "/api/v1/logical_devices/{id}/meters_stats"
+            get: "/api/v1/logical_devices/{id}/meters"
         };
+        option (voltha.yang_xml_tag).xml_tag = 'meters';
+        option (voltha.yang_xml_tag).list_items_name = 'items';
     }
 
     // List all flow groups of a logical device
@@ -1119,20 +1120,21 @@ service VolthaLocalService {
     }
 
 
-    // Get all meter stats for logical device
-    rpc GetMeterStatsOfLogicalDevice(ID)
-            returns(openflow_13.MeterStatsReply) {
-        option (google.api.http) = {
-            get: "/api/v1/logical_devices/{id}/meters_stats"
-        };
-    }
-
     // List all flow groups of a logical device
     rpc ListLogicalDeviceFlowGroups(ID) returns(openflow_13.FlowGroups) {
         option (google.api.http) = {
             get: "/api/v1/local/logical_devices/{id}/flow_groups"
         };
         option (voltha.yang_xml_tag).xml_tag = 'flow_groups';
+        option (voltha.yang_xml_tag).list_items_name = 'items';
+    }
+
+    // List all meters of a logical device
+    rpc ListLogicalDeviceMeters(ID) returns (openflow_13.Meters) {
+        option (google.api.http) = {
+            get: "/api/v1/local/logical_devices/{id}/meters"
+        };
+        option (voltha.yang_xml_tag).xml_tag = 'meters';
         option (voltha.yang_xml_tag).list_items_name = 'items';
     }
 

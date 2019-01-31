@@ -147,13 +147,9 @@ class OpenFlowProtocolHandler(object):
 
     @inlineCallbacks
     def handle_meter_stats_request(self, req):
-        try:
-            meter_stats = yield self.rpc.get_meter_stats(self.device_id)
-            meter_stats = [to_loxi(m) for m in meter_stats]
-            of_message = ofp.message.meter_stats_reply(xid=req.xid, entries=meter_stats)
-            self.cxn.send(of_message)
-        except Exception, e:
-            log.exception("failed-meter-stats-request", req=req, e=e)
+        meters = yield self.rpc.list_meters(self.device_id)
+        self.cxn.send(ofp.message.meter_stats_reply(
+            xid=req.xid, entries=[to_loxi(m.stats) for m in meters]))
 
     def handle_get_async_request(self, req):
         raise NotImplementedError()

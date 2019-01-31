@@ -25,7 +25,7 @@ import structlog
 
 from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
-from common.tech_profile import tech_profile
+
 _ = third_party
 log = structlog.get_logger()
 
@@ -318,6 +318,12 @@ def get_goto_table_id(flow):
             return instruction.goto_table.table_id
     return None
 
+def get_metadata_from_write_metadata(flow):
+    for instruction in flow.instructions:
+        if instruction.type == ofp.OFPIT_WRITE_METADATA:
+            return instruction.write_metadata.metadata
+    return None
+
 def get_metadata(flow):
     ''' legacy get method (only want lower 32 bits '''
     for field in get_ofb_fields(flow):
@@ -334,44 +340,38 @@ def get_metadata_64_bit(flow):
 
 def get_port_number_from_metadata(flow):
     """
-    The port number (UNI on ONU) is in the lower 32-bits of metadata and
-    the inner_tag is in the upper 32-bits
+    Write metadata instruction is 8 bytes:
+    MS 2 bytes: C Tag
+    Next 2 bytes: Technology Profile Id
+    Next 4 bytes: Port number (uni or nni)
 
-    This is set in the ONOS OltPipeline as a metadata field
+    This is set in the ONOS OltPipeline as a write metadata instruction
     """
-    md = get_metadata_64_bit(flow)
-
-    if md is None:
-        return None
-
-    if md <= 0xffffffff:
-        log.warn('onos-upgrade-suggested',
-                 netadata=md,
-                 message='Legacy MetaData detected form OltPipeline')
-        return md
-
-    return md & 0xffffffff
+    metadata = get_metadata_from_write_metadata(flow)
+    log.debug("The metadata for in port", metadata=metadata)
+    if metadata is not None:
+        in_port = metadata & 0xffffffff
+        log.debug("Found in port", in_port=in_port)
+        return in_port
+    return None
 
 
-def get_inner_tag_from_metadata(flow):
+def get_inner_tag_from_write_metadata(flow):
     """
-    The port number (UNI on ONU) is in the lower 32-bits of metadata and
-    the inner_tag is in the upper 32-bits
+    Write metadata instruction is 8 bytes:
+    MS 2 bytes: C Tag
+    Next 2 bytes: Technology Profile Id
+    Next 4 bytes: Port number (uni or nni)
 
-    This is set in the ONOS OltPipeline as a metadata field
+    This is set in the ONOS OltPipeline as a write metadata instruction
     """
-    md = get_metadata_64_bit(flow)
-
-    if md is None:
-        return None
-
-    if md <= 0xffffffff:
-        log.warn('onos-upgrade-suggested',
-                 netadata=md,
-                 message='Legacy MetaData detected form OltPipeline')
-        return md
-
-    return (md >> 32) & 0xffffffff
+    metadata = get_metadata_from_write_metadata(flow)
+    log.debug("The metadata for inner tag", metadata=metadata)
+    if metadata is not None:
+        inner_tag = (metadata >> 48) & 0xffffffff
+        log.debug("Found inner tag", inner_tag=inner_tag)
+        return inner_tag
+    return None
 
 
 # test and extract next table and group information
@@ -384,18 +384,17 @@ def get_group(flow):
             return action.group.group_id
     return None
 
-def get_meter_ids_from_flow(flow):
-    meter_ids = list()
+def get_meter_id_from_flow(flow):
     for instruction in flow.instructions:
         if instruction.type == ofp.OFPIT_METER:
-            meter_ids.append(instruction.meter.meter_id)
-    return meter_ids
+            return instruction.meter.meter_id
+    return None
 
 def has_group(flow):
     return get_group(flow) is not None
 
 def mk_oxm_fields(match_fields):
-    oxm_fields = [
+    oxm_fields=[
         ofp.ofp_oxm_field(
             oxm_class=ofp.OFPXMC_OPENFLOW_BASIC,
             ofb_field=field
@@ -412,7 +411,7 @@ def mk_instructions_from_actions(actions):
     return [instruction]
 
 def mk_simple_flow_mod(match_fields, actions, command=ofp.OFPFC_ADD,
-                       next_table_id=None, meters=None, **kw):
+                       next_table_id=None, meter_id=None, metadata=None, **kw):
     """
     Convenience function to generare ofp_flow_mod message with OXM BASIC match
     composed from the match_fields, and single APPLY_ACTIONS instruction with
@@ -430,17 +429,22 @@ def mk_simple_flow_mod(match_fields, actions, command=ofp.OFPFC_ADD,
         )
     ]
 
-    if meters is not None:
-        for meter_id in meters:
-            instructions.append(ofp.ofp_instruction(
-                type=ofp.OFPIT_METER,
-                meter=ofp.ofp_instruction_meter(meter_id=meter_id)
-            ))
+    if meter_id is not None:
+        instructions.append(ofp.ofp_instruction(
+            type=ofp.OFPIT_METER,
+            meter=ofp.ofp_instruction_meter(meter_id=meter_id)
+        ))
 
     if next_table_id is not None:
         instructions.append(ofp.ofp_instruction(
             type=ofp.OFPIT_GOTO_TABLE,
             goto_table=ofp.ofp_instruction_goto_table(table_id=next_table_id)
+        ))
+
+    if metadata is not None:
+        instructions.append(ofp.ofp_instruction(
+            type=ofp.OFPIT_WRITE_METADATA,
+            write_metadata=ofp.ofp_instruction_write_metadata(metadata=metadata)
         ))
 
     return ofp.ofp_flow_mod(
@@ -518,6 +522,27 @@ def group_entry_from_group_mod(mod):
     )
     return group
 
+def meter_entry_from_meter_mod(mod):
+    meter = ofp.ofp_meter_entry(
+        config=ofp.ofp_meter_config(
+            flags=mod.flags,
+            meter_id=mod.meter_id,
+            bands=mod.bands
+        ),
+        stats=ofp.ofp_meter_stats(
+            meter_id=mod.meter_id,
+            flow_count=0,
+            packet_in_count=0,
+            byte_in_count=0,
+            duration_sec=0,
+            duration_nsec=0,
+            band_stats=[ofp.ofp_meter_band_stats(
+                packet_band_count=0,
+                byte_band_count=0
+            )]
+        )
+    )
+    return meter
 
 def mk_flow_stat(**kw):
     return flow_stats_entry_from_flow_mod_message(mk_simple_flow_mod(**kw))
@@ -614,66 +639,8 @@ class FlowDecomposer(object):
         def is_upstream():
             return not is_downstream()
 
-        def update_devices_rules(flow, curr_device_rules, meter_ids=None, table_id=None):
-            actions = [action.type for action in get_actions(flow)]
-            if len(actions) == 1 and OUTPUT in actions:
-                # Transparent ONU and OLT case (No-L2-Modification flow)
-                child_device_flow_lst, _ = curr_device_rules.setdefault(
-                    ingress_hop.device.id, ([], []))
-                parent_device_flow_lst, _ = curr_device_rules.setdefault(
-                    egress_hop.device.id, ([], []))
-
-                child_device_flow_lst.append(mk_flow_stat(
-                    priority=flow.priority,
-                    cookie=flow.cookie,
-                    match_fields=[
-                                     in_port(ingress_hop.ingress_port.port_no)
-                                 ] + [
-                                     field for field in get_ofb_fields(flow)
-                                     if field.type not in (IN_PORT,)
-                                 ],
-                    actions=[
-                        output(ingress_hop.egress_port.port_no)
-                    ]
-                ))
-
-                parent_device_flow_lst.append(mk_flow_stat(
-                    priority=flow.priority,
-                    cookie=flow.cookie,
-                    match_fields=[
-                                     in_port(egress_hop.ingress_port.port_no),
-                                 ] + [
-                                     field for field in get_ofb_fields(flow)
-                                     if field.type not in (IN_PORT,)
-                                 ],
-                    actions=[
-                        output(egress_hop.egress_port.port_no)
-                    ],
-                    table_id=table_id,
-                    meters=meter_ids
-                ))
-
-            else:
-                fl_lst, _ = curr_device_rules.setdefault(
-                    egress_hop.device.id, ([], []))
-                fl_lst.append(mk_flow_stat(
-                    priority=flow.priority,
-                    cookie=flow.cookie,
-                    match_fields=[
-                                     in_port(egress_hop.ingress_port.port_no)
-                                 ] + [
-                                     field for field in get_ofb_fields(flow)
-                                     if field.type not in (IN_PORT,)
-                                 ],
-                    actions=[
-                                action for action in get_actions(flow)
-                                if action.type != OUTPUT
-                            ] + [
-                                output(egress_hop.egress_port.port_no)
-                            ],
-                    table_id=table_id,
-                    meters=meter_ids
-                ))
+        meter_id = get_meter_id_from_flow(flow)
+        metadata_from_write_metadata = get_metadata_from_write_metadata(flow)
 
         if out_port_no is not None and \
                 (out_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
@@ -708,7 +675,9 @@ class FlowDecomposer(object):
                     ],
                     actions=[
                         action for action in get_actions(flow)
-                    ]
+                    ],
+                    meter_id=meter_id,
+                    metadata=metadata_from_write_metadata
                 ))
 
             else:
@@ -737,7 +706,9 @@ class FlowDecomposer(object):
                         actions=[
                             push_vlan(0x8100),
                             set_field(vlan_vid(ofp.OFPVID_PRESENT | 4000)),
-                            output(egress_hop.egress_port.port_no)]
+                            output(egress_hop.egress_port.port_no)],
+                        meter_id=meter_id,
+                        metadata=metadata_from_write_metadata
                     ))
                     fl_lst.append(mk_flow_stat(            # Downstream flow
                         priority=flow.priority,
@@ -749,7 +720,9 @@ class FlowDecomposer(object):
                         ],
                         actions=[
                             pop_vlan(),
-                            output(egress_hop.ingress_port.port_no)]
+                            output(egress_hop.ingress_port.port_no)],
+                        meter_id=meter_id,
+                        metadata=metadata_from_write_metadata
                     ))
         else:
             # NOT A CONTROLLER-BOUND FLOW
@@ -760,8 +733,7 @@ class FlowDecomposer(object):
                 # the first using the goto-statement. We also assume that the
                 # inner tag is applied at the ONU, while the outer tag is
                 # applied at the OLT
-                next_table_id = get_goto_table_id(flow)
-                if next_table_id is not None and next_table_id < tech_profile.DEFAULT_TECH_PROFILE_TABLE_ID:
+                if has_next_table(flow):
                     assert out_port_no is None
                     fl_lst, _ = device_rules.setdefault(
                         ingress_hop.device.id, ([], []))
@@ -778,22 +750,80 @@ class FlowDecomposer(object):
                             action for action in get_actions(flow)
                         ] + [
                             output(ingress_hop.egress_port.port_no)
-                        ]
+                        ],
+                        meter_id=meter_id,
+                        metadata=metadata_from_write_metadata
                     ))
 
-                elif next_table_id is not None and next_table_id >= tech_profile.DEFAULT_TECH_PROFILE_TABLE_ID:
-                    assert out_port_no is not None
-                    meter_ids = get_meter_ids_from_flow(flow)
-                    update_devices_rules(flow, device_rules, meter_ids, next_table_id)
                 else:
-                    update_devices_rules(flow, device_rules)
+
+                    actions = [action.type for action in get_actions(flow)]
+                    # Transparent ONU and OLT case (No-L2-Modification flow)
+                    if len(actions) == 1 and OUTPUT in actions:
+                        child_device_flow_lst, _ = device_rules.setdefault(
+                            ingress_hop.device.id, ([], []))
+                        parent_device_flow_lst, _ = device_rules.setdefault(
+                            egress_hop.device.id, ([], []))
+
+                        child_device_flow_lst.append(mk_flow_stat(
+                                            priority = flow.priority,
+                                            cookie = flow.cookie,
+                                            match_fields=[
+                                                in_port(ingress_hop.ingress_port.port_no)
+                                            ] + [
+                                                field for field in get_ofb_fields(flow)
+                                                if field.type not in (IN_PORT,)
+                                            ],
+                                            actions=[
+                                                output(ingress_hop.egress_port.port_no)
+                                            ],
+                                            meter_id=meter_id,
+                                            metadata=metadata_from_write_metadata
+                        ))
+
+                        parent_device_flow_lst.append(mk_flow_stat(
+                                            priority = flow.priority,
+                                            cookie=flow.cookie,
+                                            match_fields=[
+                                                in_port(egress_hop.ingress_port.port_no),
+                                            ] + [
+                                                field for field in get_ofb_fields(flow)
+                                                if field.type not in (IN_PORT,)
+                                            ],
+                                            actions=[
+                                                output(egress_hop.egress_port.port_no)
+                                            ],
+                                            meter_id=meter_id,
+                                            metadata=metadata_from_write_metadata
+                        ))
+                    else:
+                        assert out_port_no is not None
+                        fl_lst, _ = device_rules.setdefault(
+                            egress_hop.device.id, ([], []))
+                        fl_lst.append(mk_flow_stat(
+                            priority=flow.priority,
+                            cookie=flow.cookie,
+                            match_fields=[
+                                in_port(egress_hop.ingress_port.port_no),
+                            ] + [
+                                field for field in get_ofb_fields(flow)
+                                if field.type not in (IN_PORT, )
+                            ],
+                            actions=[
+                                action for action in get_actions(flow)
+                                if action.type != OUTPUT
+                            ] + [
+                                output(egress_hop.egress_port.port_no)
+                            ],
+                            meter_id=meter_id,
+                            metadata=metadata_from_write_metadata
+                        ))
 
             else:  # downstream
-                next_table_id = get_goto_table_id(flow)
-                if next_table_id is not None and next_table_id < tech_profile.DEFAULT_TECH_PROFILE_TABLE_ID:
+                if has_next_table(flow):
                     assert out_port_no is None
 
-                    if get_metadata(flow) is not None:
+                    if metadata_from_write_metadata is not None:
                         log.debug('creating-metadata-flow', flow=flow)
                         # For downstream flows with dual-tags, recalculate route.
                         port_number = get_port_number_from_metadata(flow)
@@ -802,19 +832,17 @@ class FlowDecomposer(object):
                             route = self.get_route(in_port_no, port_number)
                             if route is None:
                                 log.error('no-route-double-tag', in_port_no=in_port_no,
-                                          out_port_no=port_number, comment='deleting flow',
-                                          metadata=get_metadata_64_bit(flow))
+                                          out_port_no=port_number, comment='deleting flow')
                                 self.flow_delete(flow)
                                 return device_rules
                             assert len(route) == 2
                             ingress_hop, egress_hop = route
 
-                        inner_tag = get_inner_tag_from_metadata(flow)
+                        inner_tag = get_inner_tag_from_write_metadata(flow)
 
                         if inner_tag is None:
                             log.error('no-inner-tag-double-tag', in_port_no=in_port_no,
-                                      out_port_no=port_number, comment='deleting flow',
-                                      metadata=get_metadata_64_bit(flow))
+                                      out_port_no=port_number, comment='deleting flow')
                             self.flow_delete(flow)
                             return device_rules
 
@@ -828,13 +856,15 @@ class FlowDecomposer(object):
                                 metadata(inner_tag)
                             ] + [
                                 field for field in get_ofb_fields(flow)
-                                if field.type not in (IN_PORT, METADATA)
+                                if field.type not in (IN_PORT,)
                             ],
                             actions=[
                                 action for action in get_actions(flow)
                             ] + [
                                 output(ingress_hop.egress_port.port_no)
-                            ]
+                            ],
+                            meter_id=meter_id,
+                            metadata=metadata_from_write_metadata
                         ))
                     else:
                         log.debug('creating-standard-flow', flow=flow)
@@ -853,7 +883,8 @@ class FlowDecomposer(object):
                                 action for action in get_actions(flow)
                             ] + [
                                 output(ingress_hop.egress_port.port_no)
-                            ]
+                            ],
+                            meter_id=meter_id
                         ))
 
                 elif out_port_no is not None:  # unicast case
@@ -877,7 +908,9 @@ class FlowDecomposer(object):
                                             ],
                                             actions=[
                                                  output(ingress_hop.egress_port.port_no)
-                                            ]
+                                            ],
+                                            meter_id=meter_id,
+                                            metadata=metadata_from_write_metadata
                                             ))
 
                         child_device_flow_lst.append(mk_flow_stat(
@@ -891,7 +924,9 @@ class FlowDecomposer(object):
                                             ],
                                             actions=[
                                                  output(egress_hop.egress_port.port_no)
-                                            ]
+                                            ],
+                                            meter_id=meter_id,
+                                            metadata=metadata_from_write_metadata
                                             ))
                     else:
                         fl_lst, _ = device_rules.setdefault(
@@ -911,15 +946,18 @@ class FlowDecomposer(object):
                             ] + [
                                 output(egress_hop.egress_port.port_no)
                             ],
-                            #table_id=flow.table_id,
-                            #meters=None if len(get_meter_ids_from_flow(flow)) == 0 else get_meter_ids_from_flow(flow)
+                            meter_id=meter_id,
+                            metadata=metadata_from_write_metadata
                         ))
+
                 else:
                     grp_id = get_group(flow)
 
                     if grp_id is not None: # multicast case
+
                         fl_lst_olt, _ = device_rules.setdefault(
                             ingress_hop.device.id, ([], []))
+
                         # having no group yet is the same as having a group with
                         # no buckets
                         group = group_map.get(grp_id, ofp.ofp_group_entry())
@@ -990,6 +1028,8 @@ class FlowDecomposer(object):
                             ))
                     else:
                         raise NotImplementedError('undefined downstream case for flows')
+
+
         return device_rules
 
     # ~~~~~~~~~~~~ methods expected to be provided by derived class ~~~~~~~~~~~
