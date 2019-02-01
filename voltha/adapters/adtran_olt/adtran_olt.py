@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 """
 Adtran 1-U OLT adapter.
 """
@@ -325,7 +326,7 @@ class AdtranOltAdapter(object):
         handler = self.devices_handlers.get(device.id)
         if handler is not None:
             reactor.callLater(0, handler.delete)
-            del self.device_handlers[device.id]
+            del self.devices_handlers[device.id]
             del self.logical_device_id_to_root_device_id[device.parent_id]
 
         return device

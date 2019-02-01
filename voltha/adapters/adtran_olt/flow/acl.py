@@ -350,7 +350,7 @@ class ACL(object):
 
             if rpc_reply.ok:
                 result_dict = xmltodict.parse(rpc_reply.data_xml)
-                entries = result_dict['data']['access-lists'] if 'access-lists' in result_dict['data'] else {}
+                entries = result_dict['data'].get('access-lists') or {}
 
                 if 'acl' in entries:
                     p = re.compile(regexpr)

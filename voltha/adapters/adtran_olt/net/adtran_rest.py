@@ -67,15 +67,15 @@ class AdtranRestClient(object):
     for _method in _valid_methods:
         assert _method in _valid_results  # Make sure we have a results entry for each supported method
 
-    def __init__(self, host_ip, port, username='', password='', timeout=10):
+    def __init__(self, host_ip, port, username='', password='', timeout=10.0):
         """
         REST Client initialization
 
-        :param host_ip: (string) IP Address of Adtran Device
-        :param port: (int) Port number
-        :param username: (string) Username for credentials
-        :param password: (string) Password for credentials
-        :param timeout: (int) Number of seconds to wait for a response before timing out
+        :param str host_ip: IP Address of Adtran Device
+        :param int port: Port number
+        :param str username: Username for credentials
+        :param str password: Password for credentials
+        :param float timeout: Number of seconds to wait for a response before timing out
         """
         self._ip = host_ip
         self._port = port
@@ -88,20 +88,23 @@ class AdtranRestClient(object):
 
     @inlineCallbacks
     def request(self, method, uri, data=None, name='', timeout=None, is_retry=False,
-                suppress_error=False):
+                suppress_error=False, **kwargs):
         """
         Send a REST request to the Adtran device
 
-        :param method: (string) HTTP method
-        :param uri: (string) fully URL to perform method on
-        :param data: (string) optional data for the request body
-        :param name: (string) optional name of the request, useful for logging purposes
-        :param timeout: (int) Number of seconds to wait for a response before timing out
-        :param is_retry: (boolean) True if this method called recursively in order to recover
-                                   from a connection loss. Can happen sometimes in debug sessions
-                                   and in the real world.
-        :param suppress_error: (boolean) If true, do not output ERROR message on REST request failure
-        :return: (dict) On success with the proper results
+        :param str method: HTTP method
+        :param str uri: fully URL to perform method on
+        :param Optional[str] data: optional data for the request body
+        :param str name: optional name of the request, useful for logging purposes
+        :param Optional[float] timeout: Number of seconds to wait for a response before timing out
+        :param bool is_retry: True if this method called recursively in order to recover
+                              from a connection loss. Can happen sometimes in debug sessions
+                              and in the real world.
+        :param bool suppress_error: If true, do not output ERROR message on REST request failure
+        :keyword dict json: json body passed as a dictionary and used in the absence of data
+
+        :return: On success with the proper results
+        :rtype dict
         """
         log.debug('request', method=method, uri=uri, data=data, retry=is_retry)
 
@@ -113,6 +116,10 @@ class AdtranRestClient(object):
                                         uri)
         response = None
         timeout = timeout or self._timeout
+
+        json_data = kwargs.get('json')
+        if data is None and json_data:
+            data = json.dumps(json_data)
 
         try:
             if method.upper() == 'GET':
@@ -137,13 +144,11 @@ class AdtranRestClient(object):
                                              auth=(self._username, self._password),
                                              timeout=timeout,
                                              headers=self.REST_DELETE_REQUEST_HEADER)
-            else:
-                raise NotImplementedError("REST method '{}' is not supported".format(method))
 
         except NotImplementedError:
             raise
 
-        except (ConnectionDone, ConnectionLost) as e:
+        except (ConnectionDone, ConnectionLost):
             if is_retry:
                 raise
             returnValue(self.request(method, uri, data=data, name=name,

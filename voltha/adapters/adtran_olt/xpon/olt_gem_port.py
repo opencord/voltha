@@ -102,7 +102,8 @@ class OltGemPort(GemPort):
 
         except Exception as e:
             if operation == 'POST':
-                returnValue(self.add_to_hardware(session, operation='PATCH'))
+                result = yield self.add_to_hardware(session, operation='PATCH')
+                returnValue(result)
             else:
                 log.exception('add-2-hw', gem=self, e=e)
                 raise

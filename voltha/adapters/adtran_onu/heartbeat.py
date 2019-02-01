@@ -22,6 +22,7 @@ class HeartBeat(object):
     """Wraps health-check support for ONU"""
     INITIAL_DELAY = 60                      # Delay after start until first check
     TICK_DELAY = 2                          # Heartbeat interval
+    HEARTBEAT_FAILED_LIMIT = 5
 
     def __init__(self, handler, device_id):
         self.log = structlog.get_logger(device_id=device_id)
@@ -33,13 +34,13 @@ class HeartBeat(object):
         self._heartbeat_count = 0
         self._heartbeat_miss = 0
         self._alarms_raised_count = 0
-        self.heartbeat_failed_limit = 5
+        self.heartbeat_failed_limit = self.HEARTBEAT_FAILED_LIMIT
         self.heartbeat_last_reason = ''
         self.heartbeat_interval = self.TICK_DELAY
 
     def __str__(self):
-        return "HeartBeat: count:{}, miss: {}".format(self._heartbeat_count,
-                                                      self._heartbeat_miss)
+        return "HeartBeat: count: {}, miss: {}".format(self._heartbeat_count,
+                                                       self._heartbeat_miss)
 
     @staticmethod
     def create(handler, device_id):
@@ -49,7 +50,7 @@ class HeartBeat(object):
         self._defer = reactor.callLater(delay, self.check_pulse)
 
     def _stop(self):
-        d, self._defeered = self._defeered, None
+        d, self._defer = self._defer, None
         if d is not None and not d.called():
             d.cancel()
 
@@ -122,7 +123,7 @@ class HeartBeat(object):
             self._heartbeat_miss = self.heartbeat_failed_limit
             self.heartbeat_last_reason = e.message
 
-        self.heartbeat_check_status(results)
+        self.heartbeat_check_status()
 
     def _heartbeat_fail(self, failure):
         self._heartbeat_miss += 1
@@ -130,7 +131,7 @@ class HeartBeat(object):
                       count=self._heartbeat_count,
                       miss=self._heartbeat_miss)
         self.heartbeat_last_reason = 'OMCI connectivity error'
-        self.heartbeat_check_status(None)
+        self.heartbeat_check_status()
 
     def on_heartbeat_alarm(self, active):
         # TODO: Do something here ?
@@ -138,7 +139,7 @@ class HeartBeat(object):
         #  TODO: If failed (active = true) due to bad serial-number shut off the UNI port?
         pass
 
-    def heartbeat_check_status(self, results):
+    def heartbeat_check_status(self):
         """
         Check the number of heartbeat failures against the limit and emit an alarm if needed
         """
@@ -165,7 +166,6 @@ class HeartBeat(object):
                     device.reason = ''
                     self._handler.adapter_agent.update_device(device)
                     HeartbeatAlarm(self._handler.alarms, 'onu').clear_alarm()
-
                     self._alarm_active = False
                     self._alarms_raised_count += 1
                     self.on_heartbeat_alarm(False)

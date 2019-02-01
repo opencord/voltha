@@ -47,7 +47,7 @@ class PhysicalEntitiesState(object):
         """
         if self._rpc_reply is None:
             # TODO: Support auto-get?
-            return None
+            return
 
         result_dict = xmltodict.parse(self._rpc_reply.data_xml)
         return result_dict['data']['physical-entities-state']['physical-entity']

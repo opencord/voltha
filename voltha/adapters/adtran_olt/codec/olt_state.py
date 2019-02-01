@@ -248,7 +248,7 @@ class OltState(object):
                 self._packet = packet
 
             def __str__(self):
-                return "OltState.Pon.Gem: onu-id: {}, gem-id".\
+                return "OltState.Pon.Gem: onu-id: {}, gem-id: {}".\
                     format(self.onu_id, self.gem_id)
 
             @staticmethod

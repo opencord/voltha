@@ -332,7 +332,7 @@ class AdtranOnuHandler(object):
         parts = tp_path.split('/')
         if len(parts) > 2:
             try:
-                return int(tp_path[1])
+                return int(parts[1])
             except ValueError:
                 return DEFAULT_TECH_PROFILE_TABLE_ID
 

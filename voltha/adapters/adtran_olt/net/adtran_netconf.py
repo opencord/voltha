@@ -39,6 +39,18 @@ def phys_entities_rpc():
     """.format(adtran_module_url('adtran-physical-entities'))
 
 
+def _raises_rpc_error(message=""):
+    def raises_rpc_error(func):
+        def wrap_func(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except RPCError as e:
+                log.exception(message, e=e)
+                raise
+        return wrap_func
+    return raises_rpc_error
+
+
 class AdtranNetconfClient(object):
     """
     Performs NETCONF requests
@@ -158,11 +170,7 @@ class AdtranNetconfClient(object):
 
         :return: (deferred) Deferred request that wraps the GetReply class
         """
-        if not self._session:
-            raise NotImplemented('No SSH Session')
-
-        if not self._session.connected:
-            self._reconnect()
+        self._check_session()
 
         return threads.deferToThread(self._do_get_config, source)
 
@@ -185,14 +193,11 @@ class AdtranNetconfClient(object):
         """
         log.debug('get', filter=payload)
 
-        if not self._session:
-            raise NotImplemented('No SSH Session')
-
-        if not self._session.connected:
-            self._reconnect()
+        self._check_session()
 
         return threads.deferToThread(self._do_get, payload)
 
+    @_raises_rpc_error('get')
     def _do_get(self, payload):
         """
         Get the requested data from the server
@@ -200,15 +205,10 @@ class AdtranNetconfClient(object):
         :param payload: Payload/filter
         :return: (GetReply) response
         """
-        try:
-            log.debug('get', payload=payload)
-            response = self._session.get(payload)
-            # To get XML, use response.xml
-            log.debug('response', response=response)
-
-        except RPCError as e:
-            log.exception('get', e=e)
-            raise
+        log.debug('get', payload=payload)
+        response = self._session.get(payload)
+        # To get XML, use response.xml
+        log.debug('response', response=response)
 
         return response
 
@@ -220,21 +220,17 @@ class AdtranNetconfClient(object):
         log.info('lock', source=source, timeout=lock_timeout)
 
         if not self._session or not self._session.connected:
-            raise NotImplemented('TODO: Support auto-connect if needed')
+            raise NotImplementedError('TODO: Support auto-connect if needed')
 
         return threads.deferToThread(self._do_lock, source, lock_timeout)
 
+    @_raises_rpc_error('lock')
     def _do_lock(self, source, lock_timeout):
         """
         Lock the configuration system
         """
-        try:
-            response = self._session.lock(source, timeout=lock_timeout)
-            # To get XML, use response.xml
-
-        except RPCError as e:
-            log.exception('lock', e=e)
-            raise
+        response = self._session.lock(source, timeout=lock_timeout)
+        # To get XML, use response.xml
 
         return response
 
@@ -248,21 +244,16 @@ class AdtranNetconfClient(object):
         log.info('unlock', source=source)
 
         if not self._session or not self._session.connected:
-            raise NotImplemented('TODO: Support auto-connect if needed')
+            raise NotImplementedError('TODO: Support auto-connect if needed')
 
         return threads.deferToThread(self._do_unlock, source)
 
+    @_raises_rpc_error('unlock')
     def _do_unlock(self, source):
         """
         Lock the configuration system
         """
-        try:
-            response = self._session.unlock(source)
-            # To get XML, use response.xml
-
-        except RPCError as e:
-            log.exception('unlock', e=e)
-            raise
+        response = self._session.unlock(source)
 
         return response
 
@@ -290,7 +281,7 @@ class AdtranNetconfClient(object):
         :return: (deferred) for RpcReply
         """
         if not self._session:
-            raise NotImplemented('No SSH Session')
+            raise NotImplementedError('No SSH Session')
 
         if not self._session.connected:
             try:
@@ -309,8 +300,7 @@ class AdtranNetconfClient(object):
                       default_operation=default_operation)
 
             rpc_reply = yield threads.deferToThread(self._do_edit_config, target,
-                                                    config, default_operation,
-                                                    test_option, error_option)
+                                                    config)
         except Exception as e:
             if ignore_delete_error and 'operation="delete"' in config.lower():
                 returnValue('ignoring-delete-error')
@@ -319,8 +309,7 @@ class AdtranNetconfClient(object):
 
         returnValue(rpc_reply)
 
-    def _do_edit_config(self, target, config, default_operation, test_option, error_option,
-                        ignore_delete_error=False):
+    def _do_edit_config(self, target, config, ignore_delete_error=False):
         """
         Perform actual edit-config operation
         """
@@ -353,11 +342,7 @@ class AdtranNetconfClient(object):
         """
         log.debug('rpc', rpc=rpc_string)
 
-        if not self._session:
-            raise NotImplemented('No SSH Session')
-
-        if not self._session.connected:
-            self._reconnect()
+        self._check_session()
 
         return threads.deferToThread(self._do_rpc, rpc_string)
 
@@ -371,3 +356,9 @@ class AdtranNetconfClient(object):
             raise
 
         return response
+
+    def _check_session(self):
+        if not self._session:
+            raise NotImplementedError('No SSH Session')
+        if not self._session.connected:
+            self._reconnect()

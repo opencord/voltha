@@ -15,9 +15,10 @@
 import structlog
 import random
 import time
-from adtran_netconf import AdtranNetconfClient
+from voltha.adapters.adtran_olt.net.adtran_netconf import AdtranNetconfClient
 from common.utils.asleep import asleep
 from ncclient.operations.rpc import RPCReply, RPCError
+from ncclient.operations.retrieve import GetReply
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 log = structlog.get_logger()
@@ -27,6 +28,7 @@ _dummy_xml = '<rpc-reply message-id="br-549" ' + \
       'xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0">' + \
       '<data/>' + \
       '</rpc-reply>'
+
 
 class MockNetconfClient(AdtranNetconfClient):
     """
@@ -69,7 +71,7 @@ class MockNetconfClient(AdtranNetconfClient):
 
         :return: (deferred) Deferred request
         """
-        yield asleep(random.uniform(0.1, 5.0))   # Simulate NETCONF request delay
+        yield asleep(random.uniform(0.01, 0.05))   # Simulate NETCONF request delay
         self._connected = True
         self._locked = {}
         returnValue(True)
@@ -80,7 +82,7 @@ class MockNetconfClient(AdtranNetconfClient):
         Close the connection to the NETCONF server
         :return:  (deferred) Deferred request
         """
-        yield asleep(random.uniform(0.1, 0.5))   # Simulate NETCONF request delay
+        yield asleep(random.uniform(0.01, 0.05))   # Simulate NETCONF request delay
         self._connected = False
         self._locked = {}
         returnValue(True)
@@ -93,11 +95,11 @@ class MockNetconfClient(AdtranNetconfClient):
         :param source: (string) Configuration source, 'running', 'candidate', ...
         :return: (deferred) Deferred request that wraps the GetReply class
         """
-        yield asleep(random.uniform(0.1, 4.0))   # Simulate NETCONF request delay
+        yield asleep(random.uniform(0.01, 0.04))   # Simulate NETCONF request delay
 
         # TODO: Customize if needed...
         xml = _dummy_xml
-        returnValue(RPCReply(xml))
+        returnValue(GetReply(xml))
 
     @inlineCallbacks
     def get(self, payload):
@@ -105,13 +107,13 @@ class MockNetconfClient(AdtranNetconfClient):
         Get the requested data from the server
 
         :param payload: Payload/filter
-        :return: (defeered) for GetReply
+        :return: (deferred) for GetReply
         """
-        yield asleep(random.uniform(0.1, 3.0))   # Simulate NETCONF request delay
+        yield asleep(random.uniform(0.01, 0.03))   # Simulate NETCONF request delay
 
         # TODO: Customize if needed...
         xml = _dummy_xml
-        returnValue(RPCReply(xml))
+        returnValue(GetReply(xml))
 
     @inlineCallbacks
     def lock(self, source, lock_timeout):
@@ -134,7 +136,7 @@ class MockNetconfClient(AdtranNetconfClient):
             yield asleep(0.1)
 
         if time.time() < expire_time:
-            yield asleep(random.uniform(0.1, 0.5))   # Simulate NETCONF request delay
+            yield asleep(random.uniform(0.01, 0.05))   # Simulate NETCONF request delay
             self._locked[source] = expire_time
 
         returnValue(RPCReply(_dummy_xml) if expire_time > time.time() else RPCError('TODO'))
@@ -151,14 +153,14 @@ class MockNetconfClient(AdtranNetconfClient):
             self._locked[source] = None
 
         if self._locked[source] is not None:
-            yield asleep(random.uniform(0.1, 0.5))   # Simulate NETCONF request delay
+            yield asleep(random.uniform(0.01, 0.05))   # Simulate NETCONF request delay
 
         self._locked[source] = None
         returnValue(RPCReply(_dummy_xml))
 
     @inlineCallbacks
     def edit_config(self, config, target='running', default_operation='merge',
-                    test_option=None, error_option=None):
+                    test_option=None, error_option=None, ignore_delete_error=False):
         """
         Loads all or part of the specified config to the target configuration datastore with the ability to lock
         the datastore during the edit.
@@ -170,13 +172,18 @@ class MockNetconfClient(AdtranNetconfClient):
         :param test_option if specified must be one of { 'test_then_set', 'set' }
         :param error_option if specified must be one of { 'stop-on-error', 'continue-on-error', 'rollback-on-error' }
                             The 'rollback-on-error' error_option depends on the :rollback-on-error capability.
-
-        :return: (defeered) for RpcReply
+        :param ignore_delete_error: (bool) For some startup deletes/clean-ups, we do a
+                                    delete high up in the config to get whole lists. If
+                                    these lists are empty, this helps suppress any error
+                                    message from NETConf on failure to delete an empty list
+        :return: (deferred) for RpcReply
         """
         try:
-            yield asleep(random.uniform(0.1, 2.0))  # Simulate NETCONF request delay
+            yield asleep(random.uniform(0.01, 0.02))  # Simulate NETCONF request delay
 
         except Exception as e:
+            if ignore_delete_error and 'operation="delete"' in config.lower():
+                returnValue('ignoring-delete-error')
             log.exception('edit_config', e=e)
             raise
 
@@ -191,7 +198,7 @@ class MockNetconfClient(AdtranNetconfClient):
         :param rpc_string: (string) RPC request
         :return: (defeered) for GetReply
         """
-        yield asleep(random.uniform(0.1, 2.0))   # Simulate NETCONF request delay
+        yield asleep(random.uniform(0.01, 0.02))   # Simulate NETCONF request delay
 
         # TODO: Customize if needed...
         xml = _dummy_xml

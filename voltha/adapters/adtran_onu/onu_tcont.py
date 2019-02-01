@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import structlog
-from twisted.internet.defer import  inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from voltha.adapters.adtran_olt.xpon.tcont import TCont
 from voltha.adapters.adtran_olt.xpon.traffic_descriptor import TrafficDescriptor

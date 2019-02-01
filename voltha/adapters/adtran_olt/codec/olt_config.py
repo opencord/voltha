@@ -164,7 +164,7 @@ class OltConfig(object):
             @property
             def tconts_dict(self):               # TODO: Remove if not used
                 if self._tconts_dict is None:
-                    self._tconts_dict = {tcont.alloc_id: tcont for tcont in self.tconts}
+                    self._tconts_dict = {self.tconts[tcont].alloc_id: self.tconts[tcont] for tcont in self.tconts}
                 return self._tconts_dict
 
             @property
@@ -176,7 +176,7 @@ class OltConfig(object):
             @property
             def gem_ports_dict(self):               # TODO: Remove if not used
                 if self._gem_ports_dict is None:
-                    self._gem_ports_dict = {gem.gem_id: gem for gem in self.gem_ports}
+                    self._gem_ports_dict = {self.gem_ports[gem].gem_id: self.gem_ports[gem] for gem in self.gem_ports}
                 return self._gem_ports_dict
 
             class TCont(object):
@@ -269,6 +269,10 @@ class OltConfig(object):
 
                     def __str__(self):
                         return "OltConfig.Pon.Onu.TCont.BestEffort: {}".format(self.bandwidth)
+
+                    @staticmethod
+                    def decode(best_effort_container):
+                        return OltConfig.Pon.Onu.TCont.BestEffort(best_effort_container)
 
                     @property
                     def bandwidth(self):

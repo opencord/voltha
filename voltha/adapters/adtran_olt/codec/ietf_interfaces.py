@@ -63,6 +63,10 @@ def _with_defaults(default_type=None):
 
 class IetfInterfacesConfig(object):
     def __init__(self, session):
+        """
+
+        :param session: this should be a netconf session
+        """
         self._session = session
 
     @inlineCallbacks

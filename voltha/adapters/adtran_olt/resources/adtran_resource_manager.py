@@ -217,8 +217,11 @@ class AdtranPONResourceManager(PONResourceManager):
                          else False
         """
         status = False
-
-        path = self._get_path(pon_intf_id, resource_type)
+        try:
+	    path = self._get_path(pon_intf_id, resource_type)
+        except KeyError:
+            path = None
+        
         if path is None:
             return status
 

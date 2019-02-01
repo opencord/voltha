@@ -13,62 +13,71 @@
 # limitations under the License.
 #
 from flow_entry import FlowEntry
+from collections import MutableMapping
 from evc import EVC
+import six
 
 
-class DeviceFlows(object):
-    """ Tracks existing flows on the device """
+class _Storage(MutableMapping):
+    def __init__(self, *args, **kwargs):
+        self._store = dict()   # Key = (str)Flow ID, Value = FlowEntry
+        self.update(dict(*args, **kwargs))  # use the free update to set keys
 
-    def __init__(self):
-        self._flow_table = dict()   # Key = (str)Flow ID, Value = FlowEntry
+    def _keytransform(self, key):
+        raise NotImplementedError
 
-    def __getitem__(self, item):
-        flow_id = item.flow_id if isinstance(item, FlowEntry) else item
-        return self._flow_table[flow_id]
+    def __getitem__(self, key):
+        return self._store[self._keytransform(key)]
+
+    def __setitem__(self, key, flow):
+        self._store[self._keytransform(key)] = flow
+
+    def __delitem__(self, key):
+        del self._store[self._keytransform(key)]
 
     def __iter__(self):
-        for _flow_id, _flow in self._flow_table.items():
-            yield _flow_id, _flow
-
-    def itervalues(self):
-        for _flow in self._flow_table.values():
-            yield _flow
-
-    def iterkeys(self):
-        for _id in self._flow_table.keys():
-            yield _id
-
-    def items(self):
-        return self._flow_table.items()
-
-    def values(self):
-        return self._flow_table.values()
-
-    def keys(self):
-        return self._flow_table.keys()
+        return iter(self._store)
 
     def __len__(self):
-        return len(self._flow_table)
+        return len(self._store)
+
+
+class DeviceFlows(_Storage):
+    """ Tracks existing flows on the device """
+    def _keytransform(self, key):
+        key = key.flow_id if isinstance(key, FlowEntry) else key
+        assert isinstance(key, six.integer_types), "Flow key should be int"
+        return key
+
+    def __setitem__(self, key, flow):
+        assert isinstance(flow, FlowEntry)
+        assert key == flow.flow_id
+        return super(DeviceFlows, self).__setitem__(key, flow)
 
     def add(self, flow):
+        """
+        Non-standard dict function that adds and returns the added element
+        If the element with this key already exists, no state is modified
+        :param FlowEntry flow: element to add
+        :return: returns the added element
+        :rtype: FlowEntry
+        """
         assert isinstance(flow, FlowEntry)
-        if flow.flow_id not in self._flow_table:
-            self._flow_table[flow.flow_id] = flow
+        if flow.flow_id not in self:
+            self[flow.flow_id] = flow
         return flow
 
-    def get(self, item):
-        flow_id = item.flow_id if isinstance(item, FlowEntry) else item
-        return self._flow_table.get(flow_id)
-
     def remove(self, item):
-        flow_id = item.flow_id if isinstance(item, FlowEntry) else item
-        return self._flow_table.pop(flow_id, None)
+        """
+        Non-standard dict function that removes and returns an element
+        :param Union[int, FlowEntry] item: identifier for which element to remove
+        :return: flow entry or None
+        :rtype: Optional[FlowEntry]
+        """
+        return self.pop(item, None)
 
-    def clear_all(self):
-        self._flow_table = dict()
 
-
-class DownstreamFlows(object):
+class DownstreamFlows(_Storage):
     """
     Tracks existing flows that are downstream (NNI as source port)
 
@@ -86,62 +95,40 @@ class DownstreamFlows(object):
 
     TODO: Drop device ID from signatures once flow tables are unique to a device handler
     """
-    def __init__(self):
-        self._signature_table = dict()  # Key = (str)Downstream signature
-                                        #  |
-                                        #  +-> downstream-signature
-                                        #      |
-                                        #      +-> 'evc' -> EVC
-                                        #      |
-                                        #      +-> flow-ids -> flow-entries...
+    # Key = (str)Downstream signature
+    #  |
+    #  +-> downstream-signature
+    #      |
+    #      +-> 'evc' -> EVC
+    #      |
+    #      +-> flow-ids -> flow-entries...
 
-    def __getitem__(self, signature):
-        assert isinstance(signature, str)
-        return self._signature_table[signature]
+    def _keytransform(self, key):
+        key = key.signature if isinstance(key, DownstreamFlows.SignatureTableEntry) else key
+        assert isinstance(key, six.string_types)
+        return key
 
-    def __iter__(self):
-        for _flow_id, _flow in self._signature_table.items():
-            yield _flow_id, _flow
-
-    def itervalues(self):
-        for _flow in self._signature_table.values():
-            yield _flow
-
-    def iterkeys(self):
-        for _id in self._signature_table.keys():
-            yield _id
-
-    def items(self):
-        return self._signature_table.items()
-
-    def values(self):
-        return self._signature_table.values()
-
-    def keys(self):
-        return self._signature_table.keys()
-
-    def __len__(self):
-        return len(self._signature_table)
-
-    def get(self, signature):
-        assert isinstance(signature, str)
-        return self._signature_table.get(signature)
+    def __setitem__(self, key, item):
+        assert isinstance(item, DownstreamFlows.SignatureTableEntry)
+        assert key == item.signature
+        return super(DownstreamFlows, self).__setitem__(key, item)
 
     def add(self, signature):
-        assert isinstance(signature, str)
         """
         Can be called by upstream flow to reserve a slot
         """
-        if signature not in self._signature_table:
-            self._signature_table[signature] = DownstreamFlows.SignatureTableEntry(signature)
-        return self._signature_table[signature]
+        if signature not in self:
+            self[signature] = DownstreamFlows.SignatureTableEntry(signature)
+        return self[signature]
 
     def remove(self, signature):
-        assert isinstance(signature, str)
-        return self._signature_table.pop(signature)
-
-    def clear_all(self):
-        self._signature_table = dict()
+        """
+        Non-standard dict function that removes and returns an element
+        :param Union[str] signature: identifier for which element to remove
+        :return: Signature Table or None
+        :rtype: Optional[DownstreamFlows.SignatureTableEntry]
+        """
+        return self.pop(signature, None)
 
     class SignatureTableEntry(object):
         def __init__(self, signature):
@@ -150,12 +137,16 @@ class DownstreamFlows(object):
             self._flow_table = DeviceFlows()
 
         @property
+        def signature(self):
+            return self._signature
+
+        @property
         def evc(self):
             return self._evc
 
         @evc.setter
         def evc(self, evc):
-            assert isinstance(evc, (EVC, type(None)))
+            assert isinstance(evc, EVC) or evc is None
             self._evc = evc
 
         @property
