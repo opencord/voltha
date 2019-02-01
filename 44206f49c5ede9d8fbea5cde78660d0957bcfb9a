@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "260c83be_fcd21d24",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 409,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2019-02-01T16:01:12Z",
+      "side": 1,
+      "message": "and as expected if i comment out this whole block nothing gets hung up and the onu can get completely provisioned. \n\nobviously not a solution but may be a workaround for now.  Im not sure what effect this would have on mib reconcile, but for openonu ive already had to disable that anyway.",
+      "range": {
+        "startLine": 404,
+        "startChar": 12,
+        "endLine": 409,
+        "endChar": 71
+      },
+      "revId": "44206f49c5ede9d8fbea5cde78660d0957bcfb9a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "69afa9a4_1d8f5548",
         "filename": "voltha/extensions/omci/omci_cc.py",
         "patchSetId": 4
