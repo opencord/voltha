@@ -81,7 +81,7 @@ class EVCMap(object):
         self._onu_id = None               # Remains None if associated with a multicast flow
         self._installed = False
         self._needs_update = False
-        self._status_message = None
+        self.status = None
         self._deferred = None
         self._name = None
         self._enabled = True
@@ -104,7 +104,7 @@ class EVCMap(object):
 
         from common.tech_profile.tech_profile import DEFAULT_TECH_PROFILE_TABLE_ID
         self._tech_profile_id = DEFAULT_TECH_PROFILE_TABLE_ID
-        self._gem_ids_and_vid = None      # { key -> onu-id, value -> tuple(sorted GEM Port IDs, onu_vid) }
+        self._gem_ids_and_vid = {}      # { key -> onu-id, value -> tuple(sorted GEM Port IDs, onu_vid) }
         self._upstream_bandwidth = None
         self._shaper_name = None
 
@@ -167,14 +167,6 @@ class EVCMap(object):
     @property
     def name(self):
         return self._name
-
-    @property
-    def status(self):
-        return self._status_message
-
-    @status.setter
-    def status(self, value):
-        self._status_message = value
 
     @property
     def evc(self):
@@ -884,7 +876,7 @@ class EVCMap(object):
         if evc:
             self._evc_connection = EVCMap.EvcConnection.EVC
         else:
-            self._status_message = 'Can only create EVC-MAP if EVC supplied'
+            self.status = 'Can only create EVC-MAP if EVC supplied'
             return False
 
         is_pon = flow.handler.is_pon_port(flow.in_port)
@@ -898,7 +890,7 @@ class EVCMap(object):
             self._uni_port = flow.handler.get_port_name(flow.in_port)
             evc.ce_vlan_preservation = evc.ce_vlan_preservation or False
         else:
-            self._status_message = 'EVC-MAPS without UNI or PON ports are not supported'
+            self.status = 'EVC-MAPS without UNI or PON ports are not supported'
             return False    # UNI Ports handled in the EVC Maps
 
         # ACL logic
@@ -973,7 +965,7 @@ class EVCMap(object):
 
             if rpc_reply.ok:
                 result_dict = xmltodict.parse(rpc_reply.data_xml)
-                entries = result_dict['data']['evc-maps'] if 'evc-maps' in result_dict['data'] else {}
+                entries = result_dict['data'].get('evc-maps') or {}
 
                 if 'evc-map' in entries:
                     p = re.compile(regexpr)

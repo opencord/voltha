@@ -1,282 +1,281 @@
-# Copyright 2017-present Adtran, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+    # Copyright 2017-present Adtran, Inc.
+    #
+    # Licensed under the Apache License, Version 2.0 (the "License");
+    # you may not use this file except in compliance with the License.
+    # You may obtain a copy of the License at
+    #
+    # http://www.apache.org/licenses/LICENSE-2.0
+    #
+    # Unless required by applicable law or agreed to in writing, software
+    # distributed under the License is distributed on an "AS IS" BASIS,
+    # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    # See the License for the specific language governing permissions and
+    # limitations under the License.
 
-from evc import EVC
-from evc_map import EVCMap
-from enum import IntEnum
-from utility_evc import UtilityEVC
-import voltha.core.flow_decomposer as fd
-from voltha.core.flow_decomposer import *
-from voltha.protos.openflow_13_pb2 import OFPP_MAX, OFPP_CONTROLLER, OFPVID_PRESENT, OFPXMC_OPENFLOW_BASIC
-from twisted.internet.defer import returnValue, inlineCallbacks, gatherResults
+    from evc import EVC
+    from evc_map import EVCMap
+    from enum import IntEnum
+    from utility_evc import UtilityEVC
+    import voltha.core.flow_decomposer as fd
+    from voltha.core.flow_decomposer import *
+    from voltha.protos.openflow_13_pb2 import OFPP_MAX, OFPP_CONTROLLER, OFPVID_PRESENT, OFPXMC_OPENFLOW_BASIC
+    from twisted.internet.defer import returnValue, inlineCallbacks, gatherResults
 
-log = structlog.get_logger()
+    log = structlog.get_logger()
 
-# IP Protocol numbers
-_supported_ip_protocols = [
-    1,          # ICMP
-    2,          # IGMP
-    6,          # TCP
-    17,         # UDP
-]
+    # IP Protocol numbers
+    _supported_ip_protocols = [
+        1,          # ICMP
+        2,          # IGMP
+        6,          # TCP
+        17,         # UDP
+    ]
 
 
-class FlowEntry(object):
-    """
-    Provide a class that wraps the flow rule and also provides state/status for a FlowEntry.
-
-    When a new flow is sent, it is first decoded to check for any potential errors. If None are
-    found, the entry is created and it is analyzed to see if it can be combined to with any other flows
-    to create or modify an existing EVC.
-
-    Note: Since only E-LINE is supported, modification of an existing EVC is not performed.
-    """
-    class PortType(IntEnum):
-        NNI = 0         # NNI Port
-        UNI = 1         # UNI Port
-        PON = 2         # PON Port (all UNIs on PON)
-        CONTROLLER = 3  # Controller port (packet in/out)
-
-    class FlowDirection(IntEnum):
-        UPSTREAM = 0          # UNI port to NNI Port
-        DOWNSTREAM = 1        # NNI port to UNI Port
-        CONTROLLER_UNI = 2    # Trap packet on UNI and send to controller
-        NNI_PON = 3           # NNI port to PON Port (all UNIs) - Utility VLAN & multicast
-
-        # The following are not yet supported
-        CONTROLLER_NNI = 4    # Trap packet on NNI and send to controller
-        CONTROLLER_PON = 5    # Trap packet on all UNIs of a PON and send to controller
-        NNI_NNI = 6           # NNI port to NNI Port
-        UNI_UNI = 7           # UNI port to UNI Port
-        OTHER = 9             # Unable to determine
-
-    upstream_flow_types = {FlowDirection.UPSTREAM, FlowDirection.CONTROLLER_UNI}
-    downstream_flow_types = {FlowDirection.DOWNSTREAM, FlowDirection.NNI_PON}
-
-    LEGACY_CONTROL_VLAN = 4000
-
-    # Well known EtherTypes
-    class EtherType(IntEnum):
-        EAPOL = 0x888E
-        IPv4 = 0x0800
-        IPv6 = 0x86DD
-        ARP = 0x0806
-        LLDP = 0x88CC
-
-    # Well known IP Protocols
-    class IpProtocol(IntEnum):
-        IGMP = 2
-        UDP = 17
-
-    def __init__(self, flow, handler):
-        self._flow = flow
-        self._handler = handler
-        self.flow_id = flow.id
-        self.evc = None              # EVC this flow is part of
-        self.evc_map = None          # EVC-MAP this flow is part of
-        self._flow_direction = FlowEntry.FlowDirection.OTHER
-        self._logical_port = None    # Currently ONU VID is logical port if not doing xPON
-        self._is_multicast = False
-        self._is_acl_flow = False
-        self._bandwidth = None
-
-        # A value used to locate possible related flow entries
-        self.signature = None
-        self.downstream_signature = None  # Valid for upstream EVC-MAP Flows
-
-        # Selection properties
-        self.in_port = None
-        self.vlan_id = None
-        self.pcp = None
-        self.eth_type = None
-        self.ip_protocol = None
-        self.ipv4_dst = None
-        self.udp_dst = None         # UDP Port #
-        self.udp_src = None         # UDP Port #
-        self.inner_vid = None
-
-        # Actions
-        self.output = None
-        self.pop_vlan = False
-        self.push_vlan_tpid = None
-        self.push_vlan_id = None
-
-        self._name = self.create_flow_name()
-
-    def __str__(self):
-        return 'flow_entry: {}, in: {}, out: {}, vid: {}, inner:{}, eth: {}, IP: {}'.format(
-            self.name, self.in_port, self.output, self.vlan_id, self.inner_vid,
-            self.eth_type, self.ip_protocol)
-
-    def __repr__(self):
-        return str(self)
-
-    @property
-    def name(self):
-        return self._name    # TODO: Is a name really needed in production?
-
-    def create_flow_name(self):
-        return 'flow-{}-{}'.format(self.device_id, self.flow_id)
-
-    @property
-    def flow(self):
-        return self._flow
-
-    @property
-    def handler(self):
-        return self._handler
-
-    @property
-    def device_id(self):
-        return self.handler.device_id
-
-    @property
-    def bandwidth(self):
-        """ Bandwidth in Mbps (if any) """
-        return self._bandwidth
-
-    @property
-    def flow_direction(self):
-        return self._flow_direction
-
-    @property
-    def is_multicast_flow(self):
-        return self._is_multicast
-
-    @property
-    def is_acl_flow(self):
-        return self._is_acl_flow or self._needs_acl_support
-
-    @property
-    def logical_port(self):
-        return self._logical_port   # NNI or UNI Logical Port
-
-    @staticmethod
-    def create(flow, handler):
+    class FlowEntry(object):
         """
-        Create the appropriate FlowEntry wrapper for the flow.  This method returns a two
-        results.
+        Provide a class that wraps the flow rule and also provides state/status for a FlowEntry.
 
-        The first result is the flow entry that was created. This could be a match to an
-        existing flow since it is a bulk update.  None is returned only if no match to
-        an existing entry is found and decode failed (unsupported field)
+        When a new flow is sent, it is first decoded to check for any potential errors. If None are
+        found, the entry is created and it is analyzed to see if it can be combined to with any other flows
+        to create or modify an existing EVC.
 
-        The second result is the EVC this flow should be added to. This could be an
-        existing flow (so your adding another EVC-MAP) or a brand new EVC (no existing
-        EVC-MAPs).  None is returned if there are not a valid EVC that can be created YET.
-
-        :param flow:   (Flow) Flow entry passed to VOLTHA adapter
-        :param handler: (AdtranDeviceHandler) handler for the device
-        :return: (FlowEntry, EVC)
+        Note: Since only E-LINE is supported, modification of an existing EVC is not performed.
         """
-        # Exit early if it already exists
-        try:
-            flow_entry = FlowEntry(flow, handler)
+        class PortType(IntEnum):
+            NNI = 0         # NNI Port
+            UNI = 1         # UNI Port
+            PON = 2         # PON Port (all UNIs on PON)
+            CONTROLLER = 3  # Controller port (packet in/out)
 
-            ######################################################################
-            # Decode the flow entry
-            if not flow_entry._decode(flow):
-                # TODO: When we support individual flow mods, we will need to return
-                #       this flow back always
-                return None, None
+        class FlowDirection(IntEnum):
+            UPSTREAM = 0          # UNI port to NNI Port
+            DOWNSTREAM = 1        # NNI port to UNI Port
+            CONTROLLER_UNI = 2    # Trap packet on UNI and send to controller
+            NNI_PON = 3           # NNI port to PON Port (all UNIs) - Utility VLAN & multicast
 
-            ######################################################################
-            # Initialize flow_entry database (dicts) if needed and determine if
-            # the flows have already been handled.
-            downstream_sig_table = handler.downstream_flows
-            upstream_flow_table = handler.upstream_flows
+            # The following are not yet supported
+            CONTROLLER_NNI = 4    # Trap packet on NNI and send to controller
+            CONTROLLER_PON = 5    # Trap packet on all UNIs of a PON and send to controller
+            NNI_NNI = 6           # NNI port to NNI Port
+            UNI_UNI = 7           # UNI port to UNI Port
+            OTHER = 9             # Unable to determine
 
-            log.debug('flow-entry-decoded', flow=flow_entry, signature=flow_entry.signature,
-                      downstream_signature=flow_entry.downstream_signature)
+        upstream_flow_types = {FlowDirection.UPSTREAM, FlowDirection.CONTROLLER_UNI}
+        downstream_flow_types = {FlowDirection.DOWNSTREAM, FlowDirection.NNI_PON}
 
-            if flow_entry.flow_direction in FlowEntry.upstream_flow_types and\
-                    flow_entry.flow_id in upstream_flow_table:
-                log.debug('flow-entry-upstream-exists', flow=flow_entry)
-                return flow_entry, None
+        LEGACY_CONTROL_VLAN = 4000
 
-            if flow_entry.flow_direction in FlowEntry.downstream_flow_types:
-                sig_table = downstream_sig_table.get(flow_entry.signature)
-                if sig_table is not None and flow_entry in sig_table.flows:
-                    log.debug('flow-entry-downstream-exists', flow=flow_entry)
+        # Well known EtherTypes
+        class EtherType(IntEnum):
+            EAPOL = 0x888E
+            IPv4 = 0x0800
+            IPv6 = 0x86DD
+            ARP = 0x0806
+            LLDP = 0x88CC
+
+        # Well known IP Protocols
+        class IpProtocol(IntEnum):
+            IGMP = 2
+            UDP = 17
+
+        def __init__(self, flow, handler):
+            self._flow = flow
+            self._handler = handler
+            self.flow_id = flow.id
+            self.evc = None              # EVC this flow is part of
+            self.evc_map = None          # EVC-MAP this flow is part of
+            self._flow_direction = FlowEntry.FlowDirection.OTHER
+            self._logical_port = None    # Currently ONU VID is logical port if not doing xPON
+            self._is_multicast = False
+            self._is_acl_flow = False
+            self._bandwidth = None
+
+            # A value used to locate possible related flow entries
+            self._signature = None
+            self.downstream_signature = None  # Valid for upstream EVC-MAP Flows
+
+            # Selection properties
+            self.in_port = None
+            self.vlan_id = None
+            self.pcp = None
+            self.eth_type = None
+            self.ip_protocol = None
+            self.ipv4_dst = None
+            self.udp_dst = None         # UDP Port #
+            self.udp_src = None         # UDP Port #
+            self.inner_vid = None
+
+            # Actions
+            self.output = None
+            self.pop_vlan = False
+            self.push_vlan_tpid = None
+            self.push_vlan_id = None
+
+            self._name = None
+
+        def __str__(self):
+            return 'flow_entry: {}, in: {}, out: {}, vid: {}, inner:{}, eth: {}, IP: {}'.format(
+                self.name, self.in_port, self.output, self.vlan_id, self.inner_vid,
+                self.eth_type, self.ip_protocol)
+
+        def __repr__(self):
+            return str(self)
+
+        @property
+        def name(self):
+            if self._name is None:
+                self._name = 'flow-{}-{}'.format(self.device_id, self.flow_id)
+            return self._name    # TODO: Is a name really needed in production?
+
+        @property
+        def flow(self):
+            return self._flow
+
+        @property
+        def handler(self):
+            return self._handler
+
+        @property
+        def device_id(self):
+            return self.handler.device_id
+
+        @property
+        def bandwidth(self):
+            """ Bandwidth in Mbps (if any) """
+            return self._bandwidth
+
+        @property
+        def flow_direction(self):
+            return self._flow_direction
+
+        @property
+        def is_multicast_flow(self):
+            return self._is_multicast
+
+        @property
+        def is_acl_flow(self):
+            return self._is_acl_flow or self._needs_acl_support
+
+        @property
+        def logical_port(self):
+            return self._logical_port   # NNI or UNI Logical Port
+
+        @staticmethod
+        def create(flow, handler):
+            """
+            Create the appropriate FlowEntry wrapper for the flow.  This method returns a two
+            results.
+
+            The first result is the flow entry that was created. This could be a match to an
+            existing flow since it is a bulk update.  None is returned only if no match to
+            an existing entry is found and decode failed (unsupported field)
+
+            The second result is the EVC this flow should be added to. This could be an
+            existing flow (so your adding another EVC-MAP) or a brand new EVC (no existing
+            EVC-MAPs).  None is returned if there are not a valid EVC that can be created YET.
+
+            :param flow:   (Flow) Flow entry passed to VOLTHA adapter
+            :param handler: (AdtranDeviceHandler) handler for the device
+            :return: (FlowEntry, EVC)
+            """
+            # Exit early if it already exists
+            try:
+                flow_entry = FlowEntry(flow, handler)
+
+                ######################################################################
+                # Decode the flow entry
+                if not flow_entry._decode(flow):
+                    # TODO: When we support individual flow mods, we will need to return
+                    #       this flow back always
+                    return None, None
+
+                ######################################################################
+                # Initialize flow_entry database (dicts) if needed and determine if
+                # the flows have already been handled.
+                downstream_sig_table = flow_entry.handler.downstream_flows
+                upstream_flow_table = flow_entry.handler.upstream_flows
+
+                log.debug('flow-entry-decoded', flow=flow_entry, signature=flow_entry.signature,
+                          downstream_signature=flow_entry.downstream_signature)
+
+                if flow_entry.flow_direction in FlowEntry.upstream_flow_types and\
+                        flow_entry.flow_id in upstream_flow_table:
+                    log.debug('flow-entry-upstream-exists', flow=flow_entry)
                     return flow_entry, None
 
-            ######################################################################
-            # Look for any matching flows in the other direction that might help
-            # make an EVC and then save it off in the device specific flow table
-            #
-            # TODO: For now, only support for E-LINE services between NNI and UNI
-            downstream_flow = None
-            upstream_flows = None
-            downstream_sig = None
+                if flow_entry.flow_direction in FlowEntry.downstream_flow_types:
+                    sig_table = downstream_sig_table.get(flow_entry.signature)
+                    if sig_table is not None and flow_entry in sig_table.flows:
+                        log.debug('flow-entry-downstream-exists', flow=flow_entry)
+                        return flow_entry, None
 
-            if flow_entry._is_multicast:        # Uni-directional flow
-                assert flow_entry._flow_direction in FlowEntry.downstream_flow_types, \
-                    'Only downstream Multicast supported'
-                downstream_flow = flow_entry
-                downstream_sig = flow_entry.signature
-                upstream_flows = []
+                ######################################################################
+                # Look for any matching flows in the other direction that might help
+                # make an EVC and then save it off in the device specific flow table
+                #
+                # TODO: For now, only support for E-LINE services between NNI and UNI
+                downstream_flow = None
+                upstream_flows = None
+                downstream_sig = None
 
-            elif flow_entry.flow_direction in FlowEntry.downstream_flow_types:
-                downstream_flow = flow_entry
-                downstream_sig = flow_entry.signature
+                if flow_entry._is_multicast:        # Uni-directional flow
+                    assert flow_entry._flow_direction in FlowEntry.downstream_flow_types, \
+                        'Only downstream Multicast supported'
+                    downstream_flow = flow_entry
+                    downstream_sig = flow_entry.signature
+                    upstream_flows = []
 
-            elif flow_entry.flow_direction in FlowEntry.upstream_flow_types:
-                downstream_sig = flow_entry.downstream_signature
+                elif flow_entry.flow_direction in FlowEntry.downstream_flow_types:
+                    downstream_flow = flow_entry
+                    downstream_sig = flow_entry.signature
 
-            if downstream_sig is None:
-                # TODO: When we support individual flow mods, we will need to return
-                #       this flow back always
-                log.debug('flow-entry-empty-downstream', flow=flow_entry)
+                elif flow_entry.flow_direction in FlowEntry.upstream_flow_types:
+                    downstream_sig = flow_entry.downstream_signature
+
+                if downstream_sig is None:
+                    # TODO: When we support individual flow mods, we will need to return
+                    #       this flow back always
+                    log.debug('flow-entry-empty-downstream', flow=flow_entry)
+                    return None, None
+
+                # Make sure a slot exists for the downstream signature and get its flow table
+                downstream_sig_table = downstream_sig_table.add(downstream_sig)
+                evc = downstream_sig_table.evc
+
+                # Save the new flow_entry to proper flow table
+                if flow_entry.flow_direction in FlowEntry.upstream_flow_types:
+                    upstream_flow_table.add(flow_entry)
+                    downstream_flow = evc.flow_entry if evc is not None else \
+                        next((_flow for _flow in downstream_sig_table.flows.itervalues()
+                              if isinstance(_flow, FlowEntry)), None)
+
+                elif flow_entry.flow_direction in FlowEntry.downstream_flow_types:
+                    downstream_sig_table.flows.add(flow_entry)
+
+                # Now find all the upstream flows
+                if downstream_flow is not None:
+                    upstream_flows = [_flow for _flow in upstream_flow_table.itervalues()
+                                      if _flow.downstream_signature == downstream_flow.signature]
+                    if len(upstream_flows) == 0 and not downstream_flow.is_multicast_flow:
+                        upstream_flows = None
+
+                log.debug('flow-entry-search-results', flow=flow_entry,
+                          downstream_flow=downstream_flow, upstream_flows=upstream_flows)
+
+                ######################################################################
+                # Compute EVC and and maps
+                evc = FlowEntry._create_evc_and_maps(evc, downstream_flow, upstream_flows)
+
+                # Save off EVC (if we have one) for this flow if it is new
+                if evc is not None and evc.valid and downstream_sig_table.evc is None:
+                    downstream_sig_table.evc = evc
+
+                return flow_entry, evc
+
+            except Exception as e:
+                log.exception('flow-entry-processing', e=e)
                 return None, None
-
-            # Make sure a slot exists for the downstream signature and get its flow table
-            downstream_sig_table = downstream_sig_table.add(downstream_sig)
-            evc = downstream_sig_table.evc
-
-            # Save the new flow_entry to proper flow table
-            if flow_entry.flow_direction in FlowEntry.upstream_flow_types:
-                upstream_flow_table.add(flow_entry)
-                downstream_flow = evc.flow_entry if evc is not None else \
-                    next((_flow for _flow in downstream_sig_table.flows.itervalues()
-                          if isinstance(_flow, FlowEntry)), None)
-
-            elif flow_entry.flow_direction in FlowEntry.downstream_flow_types:
-                downstream_sig_table.flows.add(flow_entry)
-
-            # Now find all the upstream flows
-            if downstream_flow is not None:
-                upstream_flows = [_flow for _flow in upstream_flow_table.itervalues()
-                                  if _flow.downstream_signature == downstream_flow.signature]
-                if len(upstream_flows) == 0 and not downstream_flow.is_multicast_flow:
-                    upstream_flows = None
-
-            log.debug('flow-entry-search-results', flow=flow_entry,
-                      downstream_flow=downstream_flow, upstream_flows=upstream_flows)
-
-            ######################################################################
-            # Compute EVC and and maps
-            evc = FlowEntry._create_evc_and_maps(evc, downstream_flow, upstream_flows)
-
-            # Save off EVC (if we have one) for this flow if it is new
-            if evc is not None and evc.valid and downstream_sig_table.evc is None:
-                downstream_sig_table.evc = evc
-
-            return flow_entry, evc
-
-        except Exception as e:
-            log.exception('flow-entry-processing', e=e)
-            return None, None
 
     @staticmethod
     def _create_evc_and_maps(evc, downstream_flow, upstream_flows):
@@ -363,6 +362,41 @@ class FlowEntry(object):
 
         return self.eth_type is not None or self.ip_protocol is not None or\
             self.ipv4_dst is not None or self.udp_dst is not None or self.udp_src is not None
+
+    @property
+    def signature(self):
+        if self._signature is None:
+            # These are not exact, just ones that may be put together to make an EVC. The
+            # basic rules are:
+            #
+            # 1 - Port numbers in increasing order
+            ports = sorted(filter(None, [self.in_port, self.output]))
+            assert len(ports) == 2, 'Invalid port count: {}'.format(len(ports))
+
+            # 3 - The outer VID
+            # 4 - The inner VID.  Wildcard if downstream
+            if self.push_vlan_id is None:
+                outer = self.vlan_id
+                inner = self.inner_vid
+            else:
+                outer = self.push_vlan_id
+                inner = self.vlan_id
+
+            downstream_sig = '.'.join(map(str, (
+                ports[0],
+                ports[1] if self.handler.is_nni_port(ports[1]) else '*',
+                outer,
+                '*'
+            )))
+
+            if self._flow_direction in FlowEntry.downstream_flow_types:
+                self._signature = downstream_sig
+            elif self._flow_direction in FlowEntry.upstream_flow_types:
+                self._signature = '.'.join(map(str, (ports[0], ports[1], outer, inner)))
+                self.downstream_signature = downstream_sig
+            else:
+                log.error('unsupported-flow')
+        return self._signature
 
     def _decode(self, flow):
         """
@@ -494,11 +528,11 @@ class FlowEntry(object):
                         vid = field.table_metadata & 0x0FFF
                         if vid > 0:
                             self.inner_vid = vid        # CTag is never '0'
-
+                
                     elif field.table_metadata > 0:
                         # Pre-ONOS v1.13.5 (vid without the 4096 offset)
                         self.inner_vid = field.table_metadata
-
+                
                 else:
                     # Upstream flow
                     pass   # Not used upstream at this time
@@ -600,7 +634,7 @@ class FlowEntry(object):
             # Utility VLAN downstream flow/EVC
             self._is_acl_flow = True
 
-        elif self.vlan_id in self._handler.multicast_vlans:
+        elif self.vlan_id in self.handler.multicast_vlans:
             #  multicast (ethType = IP)                         # TODO: May need to be an NNI_PON flow
             self._is_multicast = True
             self._is_acl_flow = True
@@ -783,8 +817,8 @@ class FlowEntry(object):
 
         :param handler: voltha adapter device handler
         """
-        handler.downstream_flows.clear_all()
-        handler.upstream_flows.clear_all()
+        handler.downstream_flows.clear()
+        handler.upstream_flows.clear()
 
     @staticmethod
     def get_packetout_info(handler, logical_port):

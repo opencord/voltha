@@ -70,7 +70,7 @@ class AdtranOltResourceMgr(object):
 
     def __del__(self):
         self.log.info("clearing-device-resource-pool")
-        for key, resource_mgr in self.resource_mgrs.iteritems():
+        for key, resource_mgr in self.resource_managers.iteritems():
             resource_mgr.clear_device_resource_pool()
 
     def get_onu_id(self, pon_intf_id):
@@ -107,7 +107,11 @@ class AdtranOltResourceMgr(object):
                                                           PONResourceManager.ALLOC_ID,
                                                           onu_id=onu_id,
                                                           num_of_id=1)
+<<<<<<< HEAD
         if alloc_id_list and len(alloc_id_list) == 0:
+=======
+        if alloc_id_list is None or len(alloc_id_list) == 0:
+>>>>>>> 6028001e... ADTRAN Adapter Tests
             self.log.error("no-alloc-id-available")
             return None
 
@@ -122,6 +126,7 @@ class AdtranOltResourceMgr(object):
 
         return alloc_id
 
+<<<<<<< HEAD
     def get_gemport_id(self, pon_intf_onu_id, num_of_id=1):
         # TODO: Remove this if never used
         # Derive the pon_intf and onu_id from the pon_intf_onu_id tuple
@@ -153,6 +158,8 @@ class AdtranOltResourceMgr(object):
         self.update_gemports_ponport_to_onu_map_on_kv_store(gemport_id_list,
                                                             pon_intf, onu_id, uni_id)
         return gemport_id_list
+=======
+>>>>>>> 6028001e... ADTRAN Adapter Tests
 
     def free_pon_resources_for_onu(self, pon_intf_id_onu_id):
         """ Typically called on ONU delete """
@@ -285,4 +292,8 @@ class AdtranOltResourceMgr(object):
     def update_flow_id_info_for_uni(self, pon_intf_id, onu_id, uni_id, flow_id, flow_data):
         pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
         return self.resource_managers[pon_intf_id].update_flow_id_info_for_onu(
+<<<<<<< HEAD
             pon_intf_onu_id, flow_id, flow_data)
+=======
+            pon_intf_onu_id, flow_id, flow_data)
+>>>>>>> 6028001e... ADTRAN Adapter Tests

@@ -1,0 +1,344 @@
+# Copyright 2017-present Adtran, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+version: '2'
+services:
+  #
+  # Single-node zookeeper service
+  #
+  zookeeper:
+    image: "${REGISTRY}wurstmeister/zookeeper:latest"
+    ports:
+    - 2181
+    environment:
+      SERVICE_2181_NAME: "zookeeper"
+  #
+  # Single-node kafka service
+  #
+  kafka:
+    image: "${REGISTRY}wurstmeister/kafka:latest"
+    ports:
+     - 9092
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: ${DOCKER_HOST_IP}
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_HEAP_OPTS: "-Xmx256M -Xms128M"
+      SERVICE_9092_NAME: "kafka"
+    depends_on:
+    - vconsul
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  #
+  # Single-node consul agent
+  #
+  vconsul:
+    image: "${REGISTRY}consul:0.9.2"
+    command: agent -server -bootstrap -client 0.0.0.0 -ui
+    ports:
+    - 8300
+    - 8400
+    - 8500
+    - 8600
+    environment:
+      #SERVICE_53_IGNORE: "yes"
+      SERVICE_8300_IGNORE: "yes"
+      SERVICE_8400_IGNORE: "yes"
+      SERVICE_8500_NAME: "consul-rest"
+  #
+  # Registrator
+  #
+  registrator:
+    image: "${REGISTRY}gliderlabs/registrator:latest"
+    command: [
+      "-ip=${DOCKER_HOST_IP}",
+      "-retry-attempts", "100",
+      "-cleanup",
+      # "-internal",
+      "consul://vconsul:8500"
+    ]
+    links:
+    - vconsul
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+
+  #
+  # Fluentd log server
+  #
+  fluentd:
+    image: "${REGISTRY}fluent/fluentd:v0.12.42"
+    ports:
+    - 24224
+    volumes:
+    - "/tmp/fluentd:/fluentd/log"
+    environment:
+      SERVICE_24224_NAME: "fluentd-intake"
+
+  #
+  # Graphite-Grafana-statsd service instance
+  # (demo place-holder for external KPI system)
+  #
+  grafana:
+    image: "${REGISTRY}${REPOSITORY}voltha-grafana${TAG}"
+    ports:
+    - 8883
+    - 2003
+    - 2004
+    - 8126
+    - 8125
+    environment:
+      SERVICE_80_NAME:   "grafana-web-ui"
+      SERVICE_2003_NAME: "carbon-plain-text-intake"
+      SERVICE_2004_NAME: "carbon-pickle-intake"
+      SERVICE_8126_NAME: "statsd-tcp-intake"
+      SERVICE_8125_NAME: "statsd-udp-intake"
+      GR_SERVER_ROOT_URL: "http://localhost:80/grafana/"
+
+  #
+  # Shovel (Kafka-graphite-gateway)
+  #
+  shovel:
+    image: "${REGISTRY}${REPOSITORY}voltha-shovel${TAG}"
+    command: [
+      "/shovel/shovel/main.py",
+      "--kafka=@kafka",
+      "--consul=${DOCKER_HOST_IP}:8500",
+      "--topic=voltha.kpis",
+      "--host=${DOCKER_HOST_IP}"
+    ]
+    depends_on:
+    - vconsul
+    - kafka
+    - grafana
+    restart: unless-stopped
+
+  #
+  # Voltha server instance(s)
+  #
+  voltha:
+    image: "${REGISTRY}${REPOSITORY}voltha-voltha${TAG}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+#      Use the fluentd driver to push logs to fluentd instead
+#      driver: "fluentd"
+#      options:
+#        fluentd-address: ${DOCKER_HOST_IP}:24224
+    command: [
+      "/voltha/voltha/main.py",
+      "-v",
+      "--consul=${DOCKER_HOST_IP}:8500",
+      "--rest-port=8880",
+      "--grpc-port=50556",
+      "--kafka=@kafka",
+      "--instance-id-is-container-name",
+      "--interface=eth1",
+      "--backend=consul",
+      "-v"
+    ]
+    ports:
+    - 8880
+    - 50556
+    - 18880
+    - 60001
+    depends_on:
+    - vconsul
+    links:
+    - vconsul
+    environment:
+      SERVICE_8880_NAME: "voltha-health"
+      SERVICE_8880_CHECK_HTTP: "/health"
+      SERVICE_8880_CHECK_INTERVAL: "5s"
+      SERVICE_8880_CHECK_TIMEOUT: "1s"
+      SERVICE_18880_NAME: "voltha-sim-rest"
+      SERVICE_HOST_IP: "${DOCKER_HOST_IP}"
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+    networks:
+    - default
+    - ponmgmt
+
+  envoy:
+    image: "${REGISTRY}${REPOSITORY}voltha-envoy${TAG}"
+    entrypoint:
+      - /usr/local/bin/envoyd
+      - -envoy-cfg-template
+      - "/envoy/voltha-grpc-proxy.template.json"
+      - -envoy-config
+      - "/envoy/voltha-grpc-proxy.json"
+      - -consul-svc-nme
+      - "vconsul"
+      - -kv-svc-name
+      - "vconsul"
+    ports:
+      - 50555
+      - 8882
+      - 8443
+      - 8001
+    environment:
+      SERVICE_50555_NAME: "voltha-grpc"
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+    networks:
+    - default
+    - ponmgmt
+    links:
+    - voltha:vcore
+  #
+  # Voltha cli container
+  #
+  cli:
+    image: "${REGISTRY}${REPOSITORY}voltha-cli${TAG}"
+    command: [
+      "/cli/cli/setup.sh",
+      "-L",
+      "-C vconsul:8500",
+      "-G"
+    ]
+    environment:
+      DOCKER_HOST_IP: "${DOCKER_HOST_IP}"
+    ports:
+    - 22
+    depends_on:
+    - voltha
+    
+  #
+  # ofagent server instance
+  #
+  ofagent:
+    image: "${REGISTRY}${REPOSITORY}voltha-ofagent${TAG}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+#      Use the fluentd driver to push logs to fluentd instead
+#      driver: "fluentd"
+#      options:
+#        fluentd-address: ${DOCKER_HOST_IP}:24224
+    command: [
+      "/ofagent/ofagent/main.py",
+      "-v",
+      "--consul=${DOCKER_HOST_IP}:8500",
+      "--controller=${DOCKER_HOST_IP}:6653",
+      "--grpc-endpoint=@voltha-grpc",
+      "--instance-id-is-container-name",
+      "--enable-tls",
+      "--key-file=/ofagent/pki/voltha.key",
+      "--cert-file=/ofagent/pki/voltha.crt",
+      "-v"
+    ]
+    depends_on:
+    - vconsul
+    - voltha
+    links:
+    - vconsul
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+    restart: unless-stopped
+
+  #
+  # Netconf server instance(s)
+  #
+  netconf:
+    image: "${REGISTRY}${REPOSITORY}voltha-netconf${TAG}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+#      Use the fluentd driver to push logs to fluentd instead
+#      driver: "fluentd"
+#      options:
+#        fluentd-address: ${DOCKER_HOST_IP}:24224
+    privileged: true
+    command: [
+      "/netconf/netconf/main.py",
+      "-v",
+      "--consul=${DOCKER_HOST_IP}:8500",
+      "--grpc-endpoint=@voltha-grpc",
+      "--instance-id-is-container-name",
+      "-v"
+    ]
+    ports:
+    - 1830
+    depends_on:
+    - vconsul
+    - voltha
+    links:
+    - vconsul
+    environment:
+      SERVICE_1830_NAME: "netconf-server"
+    volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+
+  #
+  # Dashboard daemon
+  #
+  dashd:
+    image: "${REGISTRY}${REPOSITORY}voltha-dashd${TAG}"
+    command: [
+      "/dashd/dashd/main.py",
+      "--kafka=@kafka",
+      "--consul=${DOCKER_HOST_IP}:8500",
+      "--grafana_url=http://admin:admin@${DOCKER_HOST_IP}:8883/api",
+      "--topic=voltha.kpis",
+      "--docker_host=${DOCKER_HOST_IP}"
+    ]
+    depends_on:
+    - vconsul
+    - kafka
+    - grafana
+    restart: unless-stopped
+
+  #
+  # Nginx service consolidation
+  #
+  nginx:
+    image: "${REGISTRY}${REPOSITORY}voltha-nginx${TAG}"
+    ports:
+    - 80
+    environment:
+      CONSUL_ADDR: "${DOCKER_HOST_IP}:8500"
+    command: [
+      "/nginx_config/start_service.sh"
+    ]
+    depends_on:
+    - vconsul
+    - grafana
+    - portainer
+    restart: unless-stopped
+
+  #
+  # Docker ui
+  #
+  portainer:
+    image: "${REGISTRY}${REPOSITORY}voltha-portainer${TAG}"
+    ports:
+    - 9000
+    environment:
+      CONSUL_ADDR: "${DOCKER_HOST_IP}:8500"
+    restart: unless-stopped
+    entrypoint: ["/portainer", "--logo", "/docker/images/logo_alt.png"]
+    volumes:
+    - "/var/run/docker.sock:/var/run/docker.sock"
+
+networks:
+  default:
+    driver: bridge
+  ponmgmt:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: "ponmgmt"
