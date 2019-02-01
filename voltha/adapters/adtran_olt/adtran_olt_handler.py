@@ -132,7 +132,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
             self.rest_client.request('PATCH', uri, data=data, name='olt-system-id')
 
     @inlineCallbacks
-    def get_device_info(self, device):
+    def get_device_info(self, _device):
         """
         Perform an initial network operation to discover the device hardware
         and software version. Serial Number would be helpful as well.
@@ -140,7 +140,7 @@ class AdtranOltHandler(AdtranDeviceHandler):
         Upon successfully retrieving the information, remember to call the
         'start_heartbeat' method to keep in contact with the device being managed
 
-        :param device: A voltha.Device object, with possible device-type
+        :param _device: A voltha.Device object, with possible device-type
                 specific extensions. Such extensions shall be described as part of
                 the device type specification returned by device_types().
         """

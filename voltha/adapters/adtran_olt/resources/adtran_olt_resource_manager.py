@@ -70,7 +70,7 @@ class AdtranOltResourceMgr(object):
 
     def __del__(self):
         self.log.info("clearing-device-resource-pool")
-        for key, resource_mgr in self.resource_mgrs.iteritems():
+        for key, resource_mgr in self.resource_managers.iteritems():
             resource_mgr.clear_device_resource_pool()
 
     def get_onu_id(self, pon_intf_id):
@@ -107,7 +107,7 @@ class AdtranOltResourceMgr(object):
                                                           PONResourceManager.ALLOC_ID,
                                                           onu_id=onu_id,
                                                           num_of_id=1)
-        if alloc_id_list and len(alloc_id_list) == 0:
+        if alloc_id_list is None or len(alloc_id_list) == 0:
             self.log.error("no-alloc-id-available")
             return None
 
