@@ -25,10 +25,10 @@ log = structlog.get_logger()
 
 # IP Protocol numbers
 _supported_ip_protocols = [
-    1,          # ICMP
-    2,          # IGMP
-    6,          # TCP
-    17,         # UDP
+    1,  # ICMP
+    2,  # IGMP
+    6,  # TCP
+    17, # UDP
 ]
 
 
@@ -277,579 +277,544 @@ class FlowEntry(object):
             log.exception('flow-entry-processing', e=e)
             return None, None
 
-@staticmethod
-def _create_evc_and_maps(evc, downstream_flow, upstream_flows):
-    """
-    Give a set of flows, find (or create) the EVC and any needed EVC-MAPs
+    @staticmethod
+    def _create_evc_and_maps(evc, downstream_flow, upstream_flows):
+        """
+        Give a set of flows, find (or create) the EVC and any needed EVC-MAPs
 
-    :param evc: (EVC) Existing EVC for downstream flow. May be null if not created
-    :param downstream_flow: (FlowEntry) NNI -> UNI flow (provides much of the EVC values)
-    :param upstream_flows: (list of FlowEntry) UNI -> NNI flows (provides much of the EVC-MAP values)
+        :param evc: (EVC) Existing EVC for downstream flow. May be null if not created
+        :param downstream_flow: (FlowEntry) NNI -> UNI flow (provides much of the EVC values)
+        :param upstream_flows: (list of FlowEntry) UNI -> NNI flows (provides much of the EVC-MAP values)
 
-    :return: EVC object
-    """
-    log.debug('flow-evc-and-maps', downstream_flow=downstream_flow,
-              upstream_flows=upstream_flows)
-
-    if (evc is None and downstream_flow is None) or upstream_flows is None:
-        return None
-
-    # Get any existing EVC if a flow is already created
-    if downstream_flow.evc is None:
-        if evc is not None:
-            downstream_flow.evc = evc
-
-        elif downstream_flow.is_multicast_flow:
-            from mcast import MCastEVC
-            downstream_flow.evc = MCastEVC.create(downstream_flow)
-
-        elif downstream_flow.is_acl_flow:
-            downstream_flow.evc = downstream_flow.get_utility_evc()
-        else:
-            downstream_flow.evc = EVC(downstream_flow)
-
-    if not downstream_flow.evc.valid:
-        log.debug('flow-evc-and-maps-downstream-invalid',
-                  downstream_flow=downstream_flow,
+        :return: EVC object
+        """
+        log.debug('flow-evc-and-maps', downstream_flow=downstream_flow,
                   upstream_flows=upstream_flows)
-        return None
 
-    # Create EVC-MAPs. Note upstream_flows is empty list for multicast
-    # For Packet In/Out support. The upstream flows for will have matching
-    # signatures. So the first one to get created should create the EVC and
-    # if it needs and ACL, do so then. The second one should just reference
-    # the first map.
-    #
-    #    If the second has and ACL, then it should add it to the map.
-    #    TODO: What to do if the second (or third, ...) is the data one.
-    #          What should it do then?
-    sig_map_map = {f.signature: f.evc_map for f in upstream_flows
-                   if f.evc_map is not None}
+        if (evc is None and downstream_flow is None) or upstream_flows is None:
+            return None
 
-    for flow in upstream_flows:
-        if flow.evc_map is None:
-            if flow.signature in sig_map_map:
-                # Found an explicitly matching existing EVC-MAP. Add flow to this EVC-MAP
-                flow.evc_map = sig_map_map[flow.signature].add_flow(flow, downstream_flow.evc)
+        # Get any existing EVC if a flow is already created
+        if downstream_flow.evc is None:
+            if evc is not None:
+                downstream_flow.evc = evc
+
+            elif downstream_flow.is_multicast_flow:
+                from mcast import MCastEVC
+                downstream_flow.evc = MCastEVC.create(downstream_flow)
+
+            elif downstream_flow.is_acl_flow:
+                downstream_flow.evc = downstream_flow.get_utility_evc()
             else:
-                # May need to create a MAP or search for an existing ACL/user EVC-Map
-                # upstream_flow_table = _existing_upstream_flow_entries[flow.device_id]
-                upstream_flow_table = flow.handler.upstream_flows
-                existing_flow = EVCMap.find_matching_ingress_flow(flow, upstream_flow_table)
+                downstream_flow.evc = EVC(downstream_flow)
 
-                if existing_flow is None:
-                    flow.evc_map = EVCMap.create_ingress_map(flow, downstream_flow.evc)
-                else:
-                    flow.evc_map = existing_flow.add_flow(flow, downstream_flow.evc)
+        if not downstream_flow.evc.valid:
+            log.debug('flow-evc-and-maps-downstream-invalid',
+                      downstream_flow=downstream_flow,
+                      upstream_flows=upstream_flows)
+            return None
 
-    all_maps_valid = all(flow.evc_map.valid for flow in upstream_flows) \
-        or downstream_flow.is_multicast_flow
-
-    log.debug('flow-evc-and-maps-downstream',
-              downstream_flow=downstream_flow,
-              upstream_flows=upstream_flows, all_valid=all_maps_valid)
-
-    return downstream_flow.evc if all_maps_valid else None
-
-def get_utility_evc(self, use_default_vlan_id=False):
-    assert self.is_acl_flow, 'Utility evcs are for acl flows only'
-    return UtilityEVC.create(self, use_default_vlan_id)
-
-@property
-def _needs_acl_support(self):
-    if self.ipv4_dst is not None:  # In case MCAST downstream has ACL on it
-        return False
-
-    return self.eth_type is not None or self.ip_protocol is not None or\
-        self.ipv4_dst is not None or self.udp_dst is not None or self.udp_src is not None
-
-@property
-def signature(self):
-    if self._signature is None:
-        # These are not exact, just ones that may be put together to make an EVC. The
-        # basic rules are:
+        # Create EVC-MAPs. Note upstream_flows is empty list for multicast
+        # For Packet In/Out support. The upstream flows for will have matching
+        # signatures. So the first one to get created should create the EVC and
+        # if it needs and ACL, do so then. The second one should just reference
+        # the first map.
         #
-        # 1 - Port numbers in increasing order
-        ports = sorted(filter(None, [self.in_port, self.output]))
-        assert len(ports) == 2, 'Invalid port count: {}'.format(len(ports))
+        #    If the second has and ACL, then it should add it to the map.
+        #    TODO: What to do if the second (or third, ...) is the data one.
+        #          What should it do then?
+        sig_map_map = {f.signature: f.evc_map for f in upstream_flows
+                       if f.evc_map is not None}
 
-        # 3 - The outer VID
-        # 4 - The inner VID.  Wildcard if downstream
-        if self.push_vlan_id is None:
-            outer = self.vlan_id
-            inner = self.inner_vid
-        else:
-            outer = self.push_vlan_id
-            inner = self.vlan_id
+        for flow in upstream_flows:
+            if flow.evc_map is None:
+                if flow.signature in sig_map_map:
+                    # Found an explicitly matching existing EVC-MAP. Add flow to this EVC-MAP
+                    flow.evc_map = sig_map_map[flow.signature].add_flow(flow, downstream_flow.evc)
+                else:
+                    # May need to create a MAP or search for an existing ACL/user EVC-Map
+                    # upstream_flow_table = _existing_upstream_flow_entries[flow.device_id]
+                    upstream_flow_table = flow.handler.upstream_flows
+                    existing_flow = EVCMap.find_matching_ingress_flow(flow, upstream_flow_table)
 
-        downstream_sig = '.'.join(map(str, (
-            ports[0],
-            ports[1] if self.handler.is_nni_port(ports[1]) else '*',
-            outer,
-            '*'
-        )))
+                    if existing_flow is None:
+                        flow.evc_map = EVCMap.create_ingress_map(flow, downstream_flow.evc)
+                    else:
+                        flow.evc_map = existing_flow.add_flow(flow, downstream_flow.evc)
 
-        if self._flow_direction in FlowEntry.downstream_flow_types:
-            self._signature = downstream_sig
-        elif self._flow_direction in FlowEntry.upstream_flow_types:
-            self._signature = '.'.join(map(str, (ports[0], ports[1], outer, inner)))
-            self.downstream_signature = downstream_sig
-        else:
-            log.error('unsupported-flow')
-    return self._signature
+        all_maps_valid = all(flow.evc_map.valid for flow in upstream_flows) \
+            or downstream_flow.is_multicast_flow
 
-def _decode(self, flow):
-    """
-    Examine flow rules and extract appropriate settings
-    """
-    log.debug('start-decode')
-    status = self._decode_traffic_selector(flow) and self._decode_traffic_treatment(flow)
+        log.debug('flow-evc-and-maps-downstream',
+                  downstream_flow=downstream_flow,
+                  upstream_flows=upstream_flows, all_valid=all_maps_valid)
 
-    # Determine direction of the flow and apply appropriate modifications
-    # to the decoded flows
-    if status:
-        if not self._decode_flow_direction():
+        return downstream_flow.evc if all_maps_valid else None
+
+    def get_utility_evc(self, use_default_vlan_id=False):
+        assert self.is_acl_flow, 'Utility evcs are for acl flows only'
+        return UtilityEVC.create(self, use_default_vlan_id)
+
+    @property
+    def _needs_acl_support(self):
+        if self.ipv4_dst is not None:  # In case MCAST downstream has ACL on it
             return False
 
-        if self._flow_direction in FlowEntry.downstream_flow_types:
-            status = self._apply_downstream_mods()
+        return self.eth_type is not None or self.ip_protocol is not None or\
+            self.ipv4_dst is not None or self.udp_dst is not None or self.udp_src is not None
 
-        elif self._flow_direction in FlowEntry.upstream_flow_types:
-            status = self._apply_upstream_mods()
+    @property
+    def signature(self):
+        if self._signature is None:
+            # These are not exact, just ones that may be put together to make an EVC. The
+            # basic rules are:
+            #
+            # 1 - Port numbers in increasing order
+            ports = sorted(filter(None, [self.in_port, self.output]))
+            assert len(ports) == 2, 'Invalid port count: {}'.format(len(ports))
 
-        else:
-            # TODO: Need to code this - Perhaps this is an NNI_PON for Multicast support?
-            log.error('unsupported-flow-direction')
-            status = False
-
-        log.debug('flow-evc-decode', direction=self._flow_direction, is_acl=self._is_acl_flow,
-                  inner_vid=self.inner_vid, vlan_id=self.vlan_id, pop_vlan=self.pop_vlan,
-                  push_vid=self.push_vlan_id, status=status)
-
-    # Create a signature that will help locate related flow entries on a device.
-    if status:
-        # These are not exact, just ones that may be put together to make an EVC. The
-        # basic rules are:
-        #
-        # 1 - Port numbers in increasing order
-        ports = [self.in_port, self.output]
-        ports.sort()
-        assert len(ports) == 2, 'Invalid port count: {}'.format(len(ports))
-
-        # 3 - The outer VID
-        # 4 - The inner VID.  Wildcard if downstream
-        if self.push_vlan_id is None:
-            outer = self.vlan_id
-            inner = self.inner_vid
-        else:
-            outer = self.push_vlan_id
-            inner = self.vlan_id
-
-        upstream_sig = '{}'.format(ports[0])
-        downstream_sig = '{}'.format(ports[0])
-        upstream_sig += '.{}'.format(ports[1])
-        downstream_sig += '.{}'.format(ports[1] if self.handler.is_nni_port(ports[1]) else '*')
-
-        upstream_sig += '.{}.{}'.format(outer, inner)
-        downstream_sig += '.{}.*'.format(outer)
-
-        if self._flow_direction in FlowEntry.downstream_flow_types:
-            self.signature = downstream_sig
-
-        elif self._flow_direction in FlowEntry.upstream_flow_types:
-            self.signature = upstream_sig
-            self.downstream_signature = downstream_sig
-
-        else:
-            log.error('unsupported-flow')
-            status = False
-
-        log.debug('flow-evc-decode', upstream_sig=self.signature, downstream_sig=self.downstream_signature)
-    return status
-
-def _decode_traffic_selector(self, flow):
-    """
-    Extract EVC related traffic selection settings
-    """
-    self.in_port = fd.get_in_port(flow)
-
-    if self.in_port > OFPP_MAX:
-        log.warn('logical-input-ports-not-supported', in_port=self.in_port)
-        return False
-
-    for field in fd.get_ofb_fields(flow):
-        if field.type == IN_PORT:
-            if self._handler.is_nni_port(self.in_port) or self._handler.is_uni_port(self.in_port):
-                self._logical_port = self.in_port
-
-        elif field.type == VLAN_VID:
-            if field.vlan_vid >= OFPVID_PRESENT + 4095:
-                self.vlan_id = None             # pre-ONOS v1.13.5 or old EAPOL Rule
+            # 3 - The outer VID
+            # 4 - The inner VID.  Wildcard if downstream
+            if self.push_vlan_id is None:
+                outer = self.vlan_id
+                inner = self.inner_vid
             else:
-                self.vlan_id = field.vlan_vid & 0xfff
+                outer = self.push_vlan_id
+                inner = self.vlan_id
 
-            log.debug('*** field.type == VLAN_VID', value=field.vlan_vid, vlan_id=self.vlan_id)
+            downstream_sig = '.'.join(map(str, (
+                ports[0],
+                ports[1] if self.handler.is_nni_port(ports[1]) else '*',
+                outer,
+                '*'
+            )))
 
-        elif field.type == VLAN_PCP:
-            log.debug('*** field.type == VLAN_PCP', value=field.vlan_pcp)
-            self.pcp = field.vlan_pcp
+            if self._flow_direction in FlowEntry.downstream_flow_types:
+                self._signature = downstream_sig
+            elif self._flow_direction in FlowEntry.upstream_flow_types:
+                self._signature = '.'.join(map(str, (ports[0], ports[1], outer, inner)))
+                self.downstream_signature = downstream_sig
+            else:
+                log.error('unsupported-flow')
+        return self._signature
 
-        elif field.type == ETH_TYPE:
-            log.debug('*** field.type == ETH_TYPE', value=field.eth_type)
-            self.eth_type = field.eth_type
+    def _decode(self, flow):
+        """
+        Examine flow rules and extract appropriate settings
+        """
+        log.debug('start-decode')
+        status = self._decode_traffic_selector(flow) and self._decode_traffic_treatment(flow)
 
-        elif field.type == IP_PROTO:
-            log.debug('*** field.type == IP_PROTO', value=field.ip_proto)
-            self.ip_protocol = field.ip_proto
-
-            if self.ip_protocol not in _supported_ip_protocols:
-                log.error('Unsupported IP Protocol', protocol=self.ip_protocol)
+        # Determine direction of the flow and apply appropriate modifications
+        # to the decoded flows
+        if status:
+            if not self._decode_flow_direction():
                 return False
 
-        elif field.type == IPV4_DST:
-            log.debug('*** field.type == IPV4_DST', value=field.ipv4_dst)
-            self.ipv4_dst = field.ipv4_dst
+            if self._flow_direction in FlowEntry.downstream_flow_types:
+                status = self._apply_downstream_mods()
 
-        elif field.type == UDP_DST:
-            log.debug('*** field.type == UDP_DST', value=field.udp_dst)
-            self.udp_dst = field.udp_dst
+            elif self._flow_direction in FlowEntry.upstream_flow_types:
+                status = self._apply_upstream_mods()
 
-        elif field.type == UDP_SRC:
-            log.debug('*** field.type == UDP_SRC', value=field.udp_src)
-            self.udp_src = field.udp_src
-
-        elif field.type == METADATA:
-            if self._handler.is_nni_port(self.in_port):
-                # Downstream flow
-                log.debug('*** field.type == METADATA', value=field.table_metadata)
-
-                if field.table_metadata > 4095:
-                    # ONOS v1.13.5 or later. c-vid in upper 32-bits
-                    vid = field.table_metadata & 0x0FFF
-                    if vid > 0:
-                        self.inner_vid = vid        # CTag is never '0'
-            
-                elif field.table_metadata > 0:
-                    # Pre-ONOS v1.13.5 (vid without the 4096 offset)
-                    self.inner_vid = field.table_metadata
-            
             else:
-                # Upstream flow
-                pass   # Not used upstream at this time
+                # TODO: Need to code this - Perhaps this is an NNI_PON for Multicast support?
+                log.error('unsupported-flow-direction')
+                status = False
 
-            log.debug('*** field.type == METADATA', value=field.table_metadata,
-                      inner_vid=self.inner_vid)
-        else:
-            log.warn('unsupported-selection-field', type=field.type)
-            self._status_message = 'Unsupported field.type={}'.format(field.type)
+            log.debug('flow-evc-decode', direction=self._flow_direction, is_acl=self._is_acl_flow,
+                      inner_vid=self.inner_vid, vlan_id=self.vlan_id, pop_vlan=self.pop_vlan,
+                      push_vid=self.push_vlan_id, status=status)
+
+        # Create a signature that will help locate related flow entries on a device.
+        if status:
+            status = self.signature is not None
+            log.debug('flow-evc-decode', upstream_sig=self.signature, downstream_sig=self.downstream_signature)
+        return status
+
+    def _decode_traffic_selector(self, flow):
+        """
+        Extract EVC related traffic selection settings
+        """
+        self.in_port = fd.get_in_port(flow)
+
+        if self.in_port > OFPP_MAX:
+            log.warn('logical-input-ports-not-supported', in_port=self.in_port)
             return False
 
-    return True
+        for field in fd.get_ofb_fields(flow):
+            if field.type == IN_PORT:
+                if self._handler.is_nni_port(self.in_port) or self._handler.is_uni_port(self.in_port):
+                    self._logical_port = self.in_port
 
-def _decode_traffic_treatment(self, flow):
-    # Loop through traffic treatment
-    for act in fd.get_actions(flow):
-        if act.type == fd.OUTPUT:
-            self.output = act.output.port
+            elif field.type == VLAN_VID:
+                if field.vlan_vid >= OFPVID_PRESENT + 4095:
+                    self.vlan_id = None             # pre-ONOS v1.13.5 or old EAPOL Rule
+                else:
+                    self.vlan_id = field.vlan_vid & 0xfff
 
-        elif act.type == POP_VLAN:
-            log.debug('*** action.type == POP_VLAN')
-            self.pop_vlan = True
+                log.debug('*** field.type == VLAN_VID', value=field.vlan_vid, vlan_id=self.vlan_id)
 
-        elif act.type == PUSH_VLAN:
-            log.debug('*** action.type == PUSH_VLAN', value=act.push)
-            tpid = act.push.ethertype
-            self.push_vlan_tpid = tpid
+            elif field.type == VLAN_PCP:
+                log.debug('*** field.type == VLAN_PCP', value=field.vlan_pcp)
+                self.pcp = field.vlan_pcp
 
-        elif act.type == SET_FIELD:
-            log.debug('*** action.type == SET_FIELD', value=act.set_field.field)
-            assert (act.set_field.field.oxm_class == OFPXMC_OPENFLOW_BASIC)
-            field = act.set_field.field.ofb_field
+            elif field.type == ETH_TYPE:
+                log.debug('*** field.type == ETH_TYPE', value=field.eth_type)
+                self.eth_type = field.eth_type
 
-            if field.type == VLAN_VID:
-                self.push_vlan_id = field.vlan_vid & 0xfff
+            elif field.type == IP_PROTO:
+                log.debug('*** field.type == IP_PROTO', value=field.ip_proto)
+                self.ip_protocol = field.ip_proto
+
+                if self.ip_protocol not in _supported_ip_protocols:
+                    log.error('Unsupported IP Protocol', protocol=self.ip_protocol)
+                    return False
+
+            elif field.type == IPV4_DST:
+                log.debug('*** field.type == IPV4_DST', value=field.ipv4_dst)
+                self.ipv4_dst = field.ipv4_dst
+
+            elif field.type == UDP_DST:
+                log.debug('*** field.type == UDP_DST', value=field.udp_dst)
+                self.udp_dst = field.udp_dst
+
+            elif field.type == UDP_SRC:
+                log.debug('*** field.type == UDP_SRC', value=field.udp_src)
+                self.udp_src = field.udp_src
+
+            elif field.type == METADATA:
+                if self._handler.is_nni_port(self.in_port):
+                    # Downstream flow
+                    log.debug('*** field.type == METADATA', value=field.table_metadata)
+
+                    if field.table_metadata > 4095:
+                        # ONOS v1.13.5 or later. c-vid in upper 32-bits
+                        vid = field.table_metadata & 0x0FFF
+                        if vid > 0:
+                            self.inner_vid = vid        # CTag is never '0'
+                
+                    elif field.table_metadata > 0:
+                        # Pre-ONOS v1.13.5 (vid without the 4096 offset)
+                        self.inner_vid = field.table_metadata
+                
+                else:
+                    # Upstream flow
+                    pass   # Not used upstream at this time
+
+                log.debug('*** field.type == METADATA', value=field.table_metadata,
+                          inner_vid=self.inner_vid)
             else:
-                log.debug('unsupported-set-field')
-        else:
-            log.warn('unsupported-action', action=act)
-            self._status_message = 'Unsupported action.type={}'.format(act.type)
-            return False
-
-    return True
-
-def _decode_flow_direction(self):
-    # Determine direction of the flow
-    def port_type(port_number):
-        if port_number in self._handler.northbound_ports:
-            return FlowEntry.PortType.NNI
-
-        elif port_number in self._handler.southbound_ports:
-            return FlowEntry.PortType.PON
-
-        elif port_number <= OFPP_MAX:
-            return FlowEntry.PortType.UNI
-
-        elif port_number in {OFPP_CONTROLLER, 0xFFFFFFFD}:      # OFPP_CONTROLLER is wrong in proto-file
-            return FlowEntry.PortType.CONTROLLER
-
-        return FlowEntry.PortType.OTHER
-
-    flow_dir_map = {
-        (FlowEntry.PortType.UNI, FlowEntry.PortType.NNI):        FlowEntry.FlowDirection.UPSTREAM,
-        (FlowEntry.PortType.NNI, FlowEntry.PortType.UNI):        FlowEntry.FlowDirection.DOWNSTREAM,
-        (FlowEntry.PortType.UNI, FlowEntry.PortType.CONTROLLER): FlowEntry.FlowDirection.CONTROLLER_UNI,
-        (FlowEntry.PortType.NNI, FlowEntry.PortType.PON):        FlowEntry.FlowDirection.NNI_PON,
-        # The following are not yet supported
-        # (FlowEntry.PortType.NNI, FlowEntry.PortType.CONTROLLER): FlowEntry.FlowDirection.CONTROLLER_NNI,
-        # (FlowEntry.PortType.PON, FlowEntry.PortType.CONTROLLER): FlowEntry.FlowDirection.CONTROLLER_PON,
-        # (FlowEntry.PortType.NNI, FlowEntry.PortType.NNI):        FlowEntry.FlowDirection.NNI_NNI,
-        # (FlowEntry.PortType.UNI, FlowEntry.PortType.UNI):        FlowEntry.FlowDirection.UNI_UNI,
-    }
-    self._flow_direction = flow_dir_map.get((port_type(self.in_port), port_type(self.output)),
-                                            FlowEntry.FlowDirection.OTHER)
-    return self._flow_direction != FlowEntry.FlowDirection.OTHER
-
-def _apply_downstream_mods(self):
-    # This is a downstream flow.  It could be any one of the following:
-    #
-    #   Legacy control VLAN:
-    #       This is the old VLAN 4000 that was used to attach EAPOL and other
-    #       controller flows to. Eventually these will change to CONTROLLER_UNI
-    #       flows.  For these, use the 'utility' VLAN instead so 4000 if available
-    #       for other uses (AT&T uses it for downstream multicast video).
-    #
-    #   Multicast VLAN:
-    #       This is downstream multicast data.
-    #       TODO: Test this to see if this needs to be in a separate NNI_PON mod-method
-    #
-    #   User Data flow:
-    #       This is for user data.  Eventually we may need to support ACLs?
-    #
-    # May be for to controller flow downstream (no ethType)
-    if self.vlan_id == FlowEntry.LEGACY_CONTROL_VLAN and self.eth_type is None and self.pcp == 0:
-        return False    # Do not install this flow.  Utility VLAN is in charge
-
-    elif self.flow_direction == FlowEntry.FlowDirection.NNI_PON and \
-            self.vlan_id == self.handler.utility_vlan:
-        # Utility VLAN downstream flow/EVC
-        self._is_acl_flow = True
-
-    elif self.vlan_id in self.handler.multicast_vlans:
-        #  multicast (ethType = IP)                         # TODO: May need to be an NNI_PON flow
-        self._is_multicast = True
-        self._is_acl_flow = True
-
-    else:
-        # Currently do not support ACLs on user data flows downstream
-        assert not self._needs_acl_support    # User data, no special modifications needed at this time
-
-    return True
-
-def _apply_upstream_mods(self):
-    #
-    # This is an upstream flow.  It could be any of the following
-    #
-    #   ACL/Packet capture:
-    #       This is either a legacy (FlowDirection.UPSTREAM) or a new one
-    #       that specifies an output port of controller (FlowDirection.CONTROLLER_UNI).
-    #       Either way, these need to be placed on the Utility VLAN if the ONU attached
-    #       does not have a user-data flow (C-Tag).  If there is a C-Tag available,
-    #       then place it on that VLAN.
-    #
-    #       Once a user-data flow is established, move any of the ONUs ACL flows
-    #       over to that VLAN (this is handled elsewhere).
-    #
-    #   User Data flows:
-    #       No special modifications are needed
-    #
-    try:
-        # Do not handle PON level ACLs in this method
-        assert(self._flow_direction != FlowEntry.FlowDirection.CONTROLLER_PON)
-
-        # Is this a legacy (VLAN 4000) upstream to-controller flow
-        if self._needs_acl_support and FlowEntry.LEGACY_CONTROL_VLAN == self.push_vlan_id:
-            self._flow_direction = FlowEntry.FlowDirection.CONTROLLER_UNI
-            self._is_acl_flow = True
-            self.push_vlan_id = self.handler.utility_vlan
+                log.warn('unsupported-selection-field', type=field.type)
+                self._status_message = 'Unsupported field.type={}'.format(field.type)
+                return False
 
         return True
 
-    except Exception as e:
-        # TODO: Need to support flow retry if the ONU is not yet activated   !!!!
-        log.exception('tag-fixup', e=e)
-        return False
+    def _decode_traffic_treatment(self, flow):
+        # Loop through traffic treatment
+        for act in fd.get_actions(flow):
+            if act.type == fd.OUTPUT:
+                self.output = act.output.port
 
-@staticmethod
-def drop_missing_flows(handler, valid_flow_ids):
-    dl = []
-    try:
-        flow_table = handler.upstream_flows
-        flows_to_drop = [flow for flow_id, flow in flow_table.items()
-                         if flow_id not in valid_flow_ids]
-        dl.extend([flow.remove() for flow in flows_to_drop])
+            elif act.type == POP_VLAN:
+                log.debug('*** action.type == POP_VLAN')
+                self.pop_vlan = True
 
-        for sig_table in handler.downstream_flows.itervalues():
-            flows_to_drop = [flow for flow_id, flow in sig_table.flows.items()
-                             if isinstance(flow, FlowEntry) and flow_id not in valid_flow_ids]
+            elif act.type == PUSH_VLAN:
+                log.debug('*** action.type == PUSH_VLAN', value=act.push)
+                tpid = act.push.ethertype
+                self.push_vlan_tpid = tpid
+
+            elif act.type == SET_FIELD:
+                log.debug('*** action.type == SET_FIELD', value=act.set_field.field)
+                assert (act.set_field.field.oxm_class == OFPXMC_OPENFLOW_BASIC)
+                field = act.set_field.field.ofb_field
+
+                if field.type == VLAN_VID:
+                    self.push_vlan_id = field.vlan_vid & 0xfff
+                else:
+                    log.debug('unsupported-set-field')
+            else:
+                log.warn('unsupported-action', action=act)
+                self._status_message = 'Unsupported action.type={}'.format(act.type)
+                return False
+
+        return True
+
+    def _decode_flow_direction(self):
+        # Determine direction of the flow
+        def port_type(port_number):
+            if port_number in self._handler.northbound_ports:
+                return FlowEntry.PortType.NNI
+
+            elif port_number in self._handler.southbound_ports:
+                return FlowEntry.PortType.PON
+
+            elif port_number <= OFPP_MAX:
+                return FlowEntry.PortType.UNI
+
+            elif port_number in {OFPP_CONTROLLER, 0xFFFFFFFD}:      # OFPP_CONTROLLER is wrong in proto-file
+                return FlowEntry.PortType.CONTROLLER
+
+            return FlowEntry.PortType.OTHER
+
+        flow_dir_map = {
+            (FlowEntry.PortType.UNI, FlowEntry.PortType.NNI):        FlowEntry.FlowDirection.UPSTREAM,
+            (FlowEntry.PortType.NNI, FlowEntry.PortType.UNI):        FlowEntry.FlowDirection.DOWNSTREAM,
+            (FlowEntry.PortType.UNI, FlowEntry.PortType.CONTROLLER): FlowEntry.FlowDirection.CONTROLLER_UNI,
+            (FlowEntry.PortType.NNI, FlowEntry.PortType.PON):        FlowEntry.FlowDirection.NNI_PON,
+            # The following are not yet supported
+            # (FlowEntry.PortType.NNI, FlowEntry.PortType.CONTROLLER): FlowEntry.FlowDirection.CONTROLLER_NNI,
+            # (FlowEntry.PortType.PON, FlowEntry.PortType.CONTROLLER): FlowEntry.FlowDirection.CONTROLLER_PON,
+            # (FlowEntry.PortType.NNI, FlowEntry.PortType.NNI):        FlowEntry.FlowDirection.NNI_NNI,
+            # (FlowEntry.PortType.UNI, FlowEntry.PortType.UNI):        FlowEntry.FlowDirection.UNI_UNI,
+        }
+        self._flow_direction = flow_dir_map.get((port_type(self.in_port), port_type(self.output)),
+                                                FlowEntry.FlowDirection.OTHER)
+        return self._flow_direction != FlowEntry.FlowDirection.OTHER
+
+    def _apply_downstream_mods(self):
+        # This is a downstream flow.  It could be any one of the following:
+        #
+        #   Legacy control VLAN:
+        #       This is the old VLAN 4000 that was used to attach EAPOL and other
+        #       controller flows to. Eventually these will change to CONTROLLER_UNI
+        #       flows.  For these, use the 'utility' VLAN instead so 4000 if available
+        #       for other uses (AT&T uses it for downstream multicast video).
+        #
+        #   Multicast VLAN:
+        #       This is downstream multicast data.
+        #       TODO: Test this to see if this needs to be in a separate NNI_PON mod-method
+        #
+        #   User Data flow:
+        #       This is for user data.  Eventually we may need to support ACLs?
+        #
+        # May be for to controller flow downstream (no ethType)
+        if self.vlan_id == FlowEntry.LEGACY_CONTROL_VLAN and self.eth_type is None and self.pcp == 0:
+            return False    # Do not install this flow.  Utility VLAN is in charge
+
+        elif self.flow_direction == FlowEntry.FlowDirection.NNI_PON and \
+                self.vlan_id == self.handler.utility_vlan:
+            # Utility VLAN downstream flow/EVC
+            self._is_acl_flow = True
+
+        elif self.vlan_id in self.handler.multicast_vlans:
+            #  multicast (ethType = IP)                         # TODO: May need to be an NNI_PON flow
+            self._is_multicast = True
+            self._is_acl_flow = True
+
+        else:
+            # Currently do not support ACLs on user data flows downstream
+            assert not self._needs_acl_support    # User data, no special modifications needed at this time
+
+        return True
+
+    def _apply_upstream_mods(self):
+        #
+        # This is an upstream flow.  It could be any of the following
+        #
+        #   ACL/Packet capture:
+        #       This is either a legacy (FlowDirection.UPSTREAM) or a new one
+        #       that specifies an output port of controller (FlowDirection.CONTROLLER_UNI).
+        #       Either way, these need to be placed on the Utility VLAN if the ONU attached
+        #       does not have a user-data flow (C-Tag).  If there is a C-Tag available,
+        #       then place it on that VLAN.
+        #
+        #       Once a user-data flow is established, move any of the ONUs ACL flows
+        #       over to that VLAN (this is handled elsewhere).
+        #
+        #   User Data flows:
+        #       No special modifications are needed
+        #
+        try:
+            # Do not handle PON level ACLs in this method
+            assert(self._flow_direction != FlowEntry.FlowDirection.CONTROLLER_PON)
+
+            # Is this a legacy (VLAN 4000) upstream to-controller flow
+            if self._needs_acl_support and FlowEntry.LEGACY_CONTROL_VLAN == self.push_vlan_id:
+                self._flow_direction = FlowEntry.FlowDirection.CONTROLLER_UNI
+                self._is_acl_flow = True
+                self.push_vlan_id = self.handler.utility_vlan
+
+            return True
+
+        except Exception as e:
+            # TODO: Need to support flow retry if the ONU is not yet activated   !!!!
+            log.exception('tag-fixup', e=e)
+            return False
+
+    @staticmethod
+    def drop_missing_flows(handler, valid_flow_ids):
+        dl = []
+        try:
+            flow_table = handler.upstream_flows
+            flows_to_drop = [flow for flow_id, flow in flow_table.items()
+                             if flow_id not in valid_flow_ids]
             dl.extend([flow.remove() for flow in flows_to_drop])
 
-    except Exception as _e:
-        pass
+            for sig_table in handler.downstream_flows.itervalues():
+                flows_to_drop = [flow for flow_id, flow in sig_table.flows.items()
+                                 if isinstance(flow, FlowEntry) and flow_id not in valid_flow_ids]
+                dl.extend([flow.remove() for flow in flows_to_drop])
 
-    return gatherResults(dl, consumeErrors=True) if len(dl) > 0 else returnValue('no-flows-to-drop')
+        except Exception as _e:
+            pass
 
-@inlineCallbacks
-def remove(self):
-    """
-    Remove this flow entry from the list of existing entries and drop EVC
-    if needed
-    """
-    # Remove from exiting table list
-    flow_id = self.flow_id
-    flow_table = None
+        return gatherResults(dl, consumeErrors=True) if len(dl) > 0 else returnValue('no-flows-to-drop')
 
-    if self.flow_direction in FlowEntry.upstream_flow_types:
-        flow_table = self._handler.upstream_flows
+    @inlineCallbacks
+    def remove(self):
+        """
+        Remove this flow entry from the list of existing entries and drop EVC
+        if needed
+        """
+        # Remove from exiting table list
+        flow_id = self.flow_id
+        flow_table = None
 
-    elif self.flow_direction in FlowEntry.downstream_flow_types:
-        sig_table = self._handler.downstream_flows.get(self.signature)
-        flow_table = sig_table.flows if sig_table is not None else None
+        if self.flow_direction in FlowEntry.upstream_flow_types:
+            flow_table = self._handler.upstream_flows
 
-    if flow_table is None or flow_id not in flow_table.keys():
-        returnValue('NOP')
+        elif self.flow_direction in FlowEntry.downstream_flow_types:
+            sig_table = self._handler.downstream_flows.get(self.signature)
+            flow_table = sig_table.flows if sig_table is not None else None
 
-    # Remove from flow table and clean up flow table if empty
-    flow_table.remove(flow_id)
-    evc_map, self.evc_map = self.evc_map, None
-    evc = None
+        if flow_table is None or flow_id not in flow_table.keys():
+            returnValue('NOP')
 
-    if self.flow_direction in FlowEntry.downstream_flow_types:
-        sig_table = self._handler.downstream_flows.get(self.signature)
-        if len(flow_table) == 0:   # Only 'evc' entry present
-            evc = sig_table.evc
-        else:
-            assert sig_table.evc is not None, 'EVC flow re-assignment error'
+        # Remove from flow table and clean up flow table if empty
+        flow_table.remove(flow_id)
+        evc_map, self.evc_map = self.evc_map, None
+        evc = None
 
-    # Remove flow from the hardware
-    try:
-        dl = []
-        if evc_map is not None:
-            dl.append(evc_map.delete(self))
+        if self.flow_direction in FlowEntry.downstream_flow_types:
+            sig_table = self._handler.downstream_flows.get(self.signature)
+            if len(flow_table) == 0:   # Only 'evc' entry present
+                evc = sig_table.evc
+            else:
+                assert sig_table.evc is not None, 'EVC flow re-assignment error'
 
-        if evc is not None:
-            dl.append(evc.delete())
+        # Remove flow from the hardware
+        try:
+            dl = []
+            if evc_map is not None:
+                dl.append(evc_map.delete(self))
 
-        yield gatherResults(dl, consumeErrors=True)
-
-    except Exception as e:
-        log.exception('removal', e=e)
-
-    if self.flow_direction in FlowEntry.downstream_flow_types:
-        # If this flow owns the EVC, assign it to a remaining flow
-        sig_table = self._handler.downstream_flows.get(self.signature)
-        flow_evc = sig_table.evc
-
-        if flow_evc is not None and flow_evc.flow_entry is not None and flow_id == flow_evc.flow_entry.flow_id:
-            flow_evc.flow_entry = next((_flow for _flow in flow_table.itervalues()
-                                       if isinstance(_flow, FlowEntry)
-                                       and _flow.flow_id != flow_id), None)
-
-    # If evc was deleted, remove the signature table since now flows exist with
-    # that signature
-    if evc is not None:
-        self._handler.downstream_flows.remove(self.signature)
-
-    self.evc = None
-    returnValue('Done')
-
-@staticmethod
-def find_evc_map_flows(onu):
-    """
-    For a given OLT, find all the EVC Maps for a specific ONU
-    :param onu: (Onu) onu
-    :return: (list) of matching flows
-    """
-    # EVCs are only in the downstream table, EVC Maps are in upstream
-    onu_ports = onu.uni_ports
-
-    all_flow_entries = onu.olt.upstream_flows
-    evc_maps = [flow_entry.evc_map for flow_entry in all_flow_entries.itervalues()
-                if flow_entry.in_port in onu_ports
-                and flow_entry.evc_map is not None
-                and flow_entry.evc_map.valid]
-
-    return evc_maps
-
-@staticmethod
-def sync_flows_by_onu(onu, reflow=False):
-    """
-    Check status of all flows on a per-ONU basis. Called when values
-    within the ONU are modified that may affect traffic.
-
-    :param onu: (Onu) ONU to examine
-    :param reflow: (boolean) Flag, if True, requests that the flow be sent to
-                             hardware even if the values in hardware are
-                             consistent with the current flow settings
-    """
-    evc_maps = FlowEntry.find_evc_map_flows(onu)
-    evcs = {}
-
-    for evc_map in evc_maps:
-        if reflow or evc_map.reflow_needed():
-            evc_map.needs_update = False
-
-        if not evc_map.installed:
-            evc = evc_map.evc
             if evc is not None:
-                evcs[evc.name] = evc
+                dl.append(evc.delete())
 
-    for evc in evcs.itervalues():
-        evc.installed = False
-        evc.schedule_install(delay=2)
+            yield gatherResults(dl, consumeErrors=True)
 
-######################################################
-# Bulk operations
+        except Exception as e:
+            log.exception('removal', e=e)
 
-@staticmethod
-def clear_all(handler):
-    """
-    Remove all flows for the device.
+        if self.flow_direction in FlowEntry.downstream_flow_types:
+            # If this flow owns the EVC, assign it to a remaining flow
+            sig_table = self._handler.downstream_flows.get(self.signature)
+            flow_evc = sig_table.evc
 
-    :param handler: voltha adapter device handler
-    """
-    handler.downstream_flows.clear()
-    handler.upstream_flows.clear()
+            if flow_evc is not None and flow_evc.flow_entry is not None and flow_id == flow_evc.flow_entry.flow_id:
+                flow_evc.flow_entry = next((_flow for _flow in flow_table.itervalues()
+                                           if isinstance(_flow, FlowEntry)
+                                           and _flow.flow_id != flow_id), None)
 
-@staticmethod
-def get_packetout_info(handler, logical_port):
-    """
-    Find parameters needed to send packet out successfully to the OLT.
+        # If evc was deleted, remove the signature table since now flows exist with
+        # that signature
+        if evc is not None:
+            self._handler.downstream_flows.remove(self.signature)
 
-    :param handler: voltha adapter device handler
-    :param logical_port: (int) logical port number for packet to go out.
+        self.evc = None
+        returnValue('Done')
 
-    :return: physical port number, ctag, stag, evcmap name
-    """
-    from ..onu import Onu
+    @staticmethod
+    def find_evc_map_flows(onu):
+        """
+        For a given OLT, find all the EVC Maps for a specific ONU
+        :param onu: (Onu) onu
+        :return: (list) of matching flows
+        """
+        # EVCs are only in the downstream table, EVC Maps are in upstream
+        onu_ports = onu.uni_ports
 
-    for flow_entry in handler.upstream_flows.itervalues():
-        log.debug('get-packetout-info', flow_entry=flow_entry)
+        all_flow_entries = onu.olt.upstream_flows
+        evc_maps = [flow_entry.evc_map for flow_entry in all_flow_entries.itervalues()
+                    if flow_entry.in_port in onu_ports
+                    and flow_entry.evc_map is not None
+                    and flow_entry.evc_map.valid]
 
-        # match logical port
-        if flow_entry.evc_map is not None and flow_entry.evc_map.valid and \
-           flow_entry.logical_port == logical_port:
-            evc_map = flow_entry.evc_map
-            gem_ids_and_vid = evc_map.gem_ids_and_vid
+        return evc_maps
 
-            # must have valid gem id
-            if len(gem_ids_and_vid) > 0:
-                for onu_id, gem_ids_with_vid in gem_ids_and_vid.iteritems():
-                    log.debug('get-packetout-info', onu_id=onu_id, 
-                              gem_ids_with_vid=gem_ids_with_vid)
-                    if len(gem_ids_with_vid) > 0:
-                        gem_ids = gem_ids_with_vid[0]
-                        ctag = gem_ids_with_vid[1]
-                        gem_id = gem_ids[0]     # TODO: always grab first in list
-                        return flow_entry.in_port, ctag, Onu.gem_id_to_gvid(gem_id), \
-                            evc_map.get_evcmap_name(onu_id, gem_id)
-    return None, None, None, None
+    @staticmethod
+    def sync_flows_by_onu(onu, reflow=False):
+        """
+        Check status of all flows on a per-ONU basis. Called when values
+        within the ONU are modified that may affect traffic.
+
+        :param onu: (Onu) ONU to examine
+        :param reflow: (boolean) Flag, if True, requests that the flow be sent to
+                                 hardware even if the values in hardware are
+                                 consistent with the current flow settings
+        """
+        evc_maps = FlowEntry.find_evc_map_flows(onu)
+        evcs = {}
+
+        for evc_map in evc_maps:
+            if reflow or evc_map.reflow_needed():
+                evc_map.needs_update = False
+
+            if not evc_map.installed:
+                evc = evc_map.evc
+                if evc is not None:
+                    evcs[evc.name] = evc
+
+        for evc in evcs.itervalues():
+            evc.installed = False
+            evc.schedule_install(delay=2)
+
+    ######################################################
+    # Bulk operations
+
+    @staticmethod
+    def clear_all(handler):
+        """
+        Remove all flows for the device.
+
+        :param handler: voltha adapter device handler
+        """
+        handler.downstream_flows.clear()
+        handler.upstream_flows.clear()
+
+    @staticmethod
+    def get_packetout_info(handler, logical_port):
+        """
+        Find parameters needed to send packet out successfully to the OLT.
+
+        :param handler: voltha adapter device handler
+        :param logical_port: (int) logical port number for packet to go out.
+
+        :return: physical port number, ctag, stag, evcmap name
+        """
+        from ..onu import Onu
+
+        for flow_entry in handler.upstream_flows.itervalues():
+            log.debug('get-packetout-info', flow_entry=flow_entry)
+
+            # match logical port
+            if flow_entry.evc_map is not None and flow_entry.evc_map.valid and \
+               flow_entry.logical_port == logical_port:
+                evc_map = flow_entry.evc_map
+                gem_ids_and_vid = evc_map.gem_ids_and_vid
+
+                # must have valid gem id
+                if len(gem_ids_and_vid) > 0:
+                    for onu_id, gem_ids_with_vid in gem_ids_and_vid.iteritems():
+                        log.debug('get-packetout-info', onu_id=onu_id, 
+                                  gem_ids_with_vid=gem_ids_with_vid)
+                        if len(gem_ids_with_vid) > 0:
+                            gem_ids = gem_ids_with_vid[0]
+                            ctag = gem_ids_with_vid[1]
+                            gem_id = gem_ids[0]     # TODO: always grab first in list
+                            return flow_entry.in_port, ctag, Onu.gem_id_to_gvid(gem_id), \
+                                evc_map.get_evcmap_name(onu_id, gem_id)
+        return None, None, None, None
