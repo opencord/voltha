@@ -398,12 +398,56 @@ def signature(self):
             log.error('unsupported-flow')
     return self._signature
 
+<<<<<<< HEAD
 def _decode(self, flow):
     """
     Examine flow rules and extract appropriate settings
     """
     log.debug('start-decode')
     status = self._decode_traffic_selector(flow) and self._decode_traffic_treatment(flow)
+=======
+    @property
+    def signature(self):
+        if self._signature is None:
+            # These are not exact, just ones that may be put together to make an EVC. The
+            # basic rules are:
+            #
+            # 1 - Port numbers in increasing order
+            ports = sorted(filter(None, [self.in_port, self.output]))
+            assert len(ports) == 2, 'Invalid port count: {}'.format(len(ports))
+
+            # 3 - The outer VID
+            # 4 - The inner VID.  Wildcard if downstream
+            if self.push_vlan_id is None:
+                outer = self.vlan_id
+                inner = self.inner_vid
+            else:
+                outer = self.push_vlan_id
+                inner = self.vlan_id
+
+            downstream_sig = '.'.join(map(str, (
+                ports[0],
+                ports[1] if self.handler.is_nni_port(ports[1]) else '*',
+                outer,
+                '*'
+            )))
+
+            if self._flow_direction in FlowEntry.downstream_flow_types:
+                self._signature = downstream_sig
+            elif self._flow_direction in FlowEntry.upstream_flow_types:
+                self._signature = '.'.join(map(str, (ports[0], ports[1], outer, inner)))
+                self.downstream_signature = downstream_sig
+            else:
+                log.error('unsupported-flow')
+        return self._signature
+
+    def _decode(self, flow):
+        """
+        Examine flow rules and extract appropriate settings
+        """
+        log.debug('start-decode')
+        status = self._decode_traffic_selector(flow) and self._decode_traffic_treatment(flow)
+>>>>>>> 4c67d85e... ADTRAN Adapter Tests
 
     # Determine direction of the flow and apply appropriate modifications
     # to the decoded flows
@@ -552,6 +596,7 @@ def _decode_traffic_treatment(self, flow):
         if act.type == fd.OUTPUT:
             self.output = act.output.port
 
+<<<<<<< HEAD
         elif act.type == POP_VLAN:
             log.debug('*** action.type == POP_VLAN')
             self.pop_vlan = True
@@ -565,6 +610,21 @@ def _decode_traffic_treatment(self, flow):
             log.debug('*** action.type == SET_FIELD', value=act.set_field.field)
             assert (act.set_field.field.oxm_class == OFPXMC_OPENFLOW_BASIC)
             field = act.set_field.field.ofb_field
+=======
+                    if field.table_metadata > 4095:
+                        # ONOS v1.13.5 or later. c-vid in upper 32-bits
+                        vid = field.table_metadata & 0x0FFF
+                        if vid > 0:
+                            self.inner_vid = vid        # CTag is never '0'
+                
+                    elif field.table_metadata > 0:
+                        # Pre-ONOS v1.13.5 (vid without the 4096 offset)
+                        self.inner_vid = field.table_metadata
+                
+                else:
+                    # Upstream flow
+                    pass   # Not used upstream at this time
+>>>>>>> 4c67d85e... ADTRAN Adapter Tests
 
             if field.type == VLAN_VID:
                 self.push_vlan_id = field.vlan_vid & 0xfff
@@ -594,6 +654,7 @@ def _decode_flow_direction(self):
 
         return FlowEntry.PortType.OTHER
 
+<<<<<<< HEAD
     flow_dir_map = {
         (FlowEntry.PortType.UNI, FlowEntry.PortType.NNI):        FlowEntry.FlowDirection.UPSTREAM,
         (FlowEntry.PortType.NNI, FlowEntry.PortType.UNI):        FlowEntry.FlowDirection.DOWNSTREAM,
@@ -669,6 +730,68 @@ def _apply_upstream_mods(self):
         # Is this a legacy (VLAN 4000) upstream to-controller flow
         if self._needs_acl_support and FlowEntry.LEGACY_CONTROL_VLAN == self.push_vlan_id:
             self._flow_direction = FlowEntry.FlowDirection.CONTROLLER_UNI
+=======
+    def _decode_flow_direction(self):
+        # Determine direction of the flow
+        def port_type(port_number):
+            if port_number in self._handler.northbound_ports:
+                return FlowEntry.PortType.NNI
+
+            elif port_number in self._handler.southbound_ports:
+                return FlowEntry.PortType.PON
+
+            elif port_number <= OFPP_MAX:
+                return FlowEntry.PortType.UNI
+
+            elif port_number in {OFPP_CONTROLLER, 0xFFFFFFFD}:      # OFPP_CONTROLLER is wrong in proto-file
+                return FlowEntry.PortType.CONTROLLER
+
+            return FlowEntry.PortType.OTHER
+
+        flow_dir_map = {
+            (FlowEntry.PortType.UNI, FlowEntry.PortType.NNI):        FlowEntry.FlowDirection.UPSTREAM,
+            (FlowEntry.PortType.NNI, FlowEntry.PortType.UNI):        FlowEntry.FlowDirection.DOWNSTREAM,
+            (FlowEntry.PortType.UNI, FlowEntry.PortType.CONTROLLER): FlowEntry.FlowDirection.CONTROLLER_UNI,
+            (FlowEntry.PortType.NNI, FlowEntry.PortType.PON):        FlowEntry.FlowDirection.NNI_PON,
+            # The following are not yet supported
+            # (FlowEntry.PortType.NNI, FlowEntry.PortType.CONTROLLER): FlowEntry.FlowDirection.CONTROLLER_NNI,
+            # (FlowEntry.PortType.PON, FlowEntry.PortType.CONTROLLER): FlowEntry.FlowDirection.CONTROLLER_PON,
+            # (FlowEntry.PortType.NNI, FlowEntry.PortType.NNI):        FlowEntry.FlowDirection.NNI_NNI,
+            # (FlowEntry.PortType.UNI, FlowEntry.PortType.UNI):        FlowEntry.FlowDirection.UNI_UNI,
+        }
+        self._flow_direction = flow_dir_map.get((port_type(self.in_port), port_type(self.output)),
+                                                FlowEntry.FlowDirection.OTHER)
+        return self._flow_direction != FlowEntry.FlowDirection.OTHER
+
+    def _apply_downstream_mods(self):
+        # This is a downstream flow.  It could be any one of the following:
+        #
+        #   Legacy control VLAN:
+        #       This is the old VLAN 4000 that was used to attach EAPOL and other
+        #       controller flows to. Eventually these will change to CONTROLLER_UNI
+        #       flows.  For these, use the 'utility' VLAN instead so 4000 if available
+        #       for other uses (AT&T uses it for downstream multicast video).
+        #
+        #   Multicast VLAN:
+        #       This is downstream multicast data.
+        #       TODO: Test this to see if this needs to be in a separate NNI_PON mod-method
+        #
+        #   User Data flow:
+        #       This is for user data.  Eventually we may need to support ACLs?
+        #
+        # May be for to controller flow downstream (no ethType)
+        if self.vlan_id == FlowEntry.LEGACY_CONTROL_VLAN and self.eth_type is None and self.pcp == 0:
+            return False    # Do not install this flow.  Utility VLAN is in charge
+
+        elif self.flow_direction == FlowEntry.FlowDirection.NNI_PON and \
+                self.vlan_id == self.handler.utility_vlan:
+            # Utility VLAN downstream flow/EVC
+            self._is_acl_flow = True
+
+        elif self.vlan_id in self.handler.multicast_vlans:
+            #  multicast (ethType = IP)                         # TODO: May need to be an NNI_PON flow
+            self._is_multicast = True
+>>>>>>> 4c67d85e... ADTRAN Adapter Tests
             self._is_acl_flow = True
             self.push_vlan_id = self.handler.utility_vlan
 
@@ -815,10 +938,17 @@ def clear_all(handler):
     """
     Remove all flows for the device.
 
+<<<<<<< HEAD
     :param handler: voltha adapter device handler
     """
     handler.downstream_flows.clear()
     handler.upstream_flows.clear()
+=======
+        :param handler: voltha adapter device handler
+        """
+        handler.downstream_flows.clear()
+        handler.upstream_flows.clear()
+>>>>>>> 4c67d85e... ADTRAN Adapter Tests
 
 @staticmethod
 def get_packetout_info(handler, logical_port):
