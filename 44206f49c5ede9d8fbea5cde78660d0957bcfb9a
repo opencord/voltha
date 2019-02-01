@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "69afa9a4_1d8f5548",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 443,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2019-02-01T15:14:50Z",
+      "side": 1,
+      "message": "it seems for vlan_tagging_operation_table this needs to be just [index].   I was able to proceed with this.",
+      "range": {
+        "startLine": 443,
+        "startChar": 48,
+        "endLine": 443,
+        "endChar": 56
+      },
+      "revId": "44206f49c5ede9d8fbea5cde78660d0957bcfb9a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "958b29b8_f7aa0557",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 467,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2019-02-01T15:14:50Z",
+      "side": 1,
+      "message": "I may be misunderstanding the sequence but...\n\nIm not sure if this call will ever get results because there is already a send request in the queue.   This response handler is already running for the request in the queue now.  But this response handler tries to send and recv more before itself can signal complete (clearing the index spot).  Since its spawned sends never receives, this receive never finished and the message is staying in the tx_request index.   A deadlock?",
+      "range": {
+        "startLine": 467,
+        "startChar": 42,
+        "endLine": 467,
+        "endChar": 58
+      },
+      "revId": "44206f49c5ede9d8fbea5cde78660d0957bcfb9a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0f7c3bf0_f77e3d83",
+        "filename": "voltha/extensions/omci/omci_cc.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 497,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2019-02-01T15:14:50Z",
+      "side": 1,
+      "message": "What i find most confusing is even if there is an error above this failure signal never results in calling _request_failure , which would remove the hung up item in tx_request[index].",
+      "range": {
+        "startLine": 497,
+        "startChar": 16,
+        "endLine": 497,
+        "endChar": 45
+      },
+      "revId": "44206f49c5ede9d8fbea5cde78660d0957bcfb9a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
