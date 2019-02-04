@@ -31,14 +31,15 @@ import logging
 DEFAULT_LOG_DIR = '/tmp/voltha_test_results'
 logging.basicConfig(level=logging.INFO)
 
-def dir_init(logDir=DEFAULT_LOG_DIR, volthaDir=os.environ['VOLTHA_BASE']):
+
+def dir_init(log_dir=DEFAULT_LOG_DIR, voltha_dir=os.environ['VOLTHA_BASE']):
     logging.info(__file__)
     """
     Init automated testing environment and return three directories: root dir,
     voltha sources dir and log dir
     """
 
-    rootDir = os.path.abspath(os.path.dirname(__file__))
+    root_dir = os.path.abspath(os.path.dirname(__file__))
 
     currentTime = time.strftime("%Y-%m-%d-%H-%M-%S")
 
@@ -46,13 +47,13 @@ def dir_init(logDir=DEFAULT_LOG_DIR, volthaDir=os.environ['VOLTHA_BASE']):
     # added to the log directory name
     # logDir += '_' + currentTime
  
-    os.system('mkdir -p ' + logDir + ' > /dev/null 2>&1')
-    os.system('rm -rf %s/*' % logDir)
+    os.system('mkdir -p ' + log_dir + ' > /dev/null 2>&1')
+    os.system('rm -rf %s/*' % log_dir)
     logging.info('Starting Voltha Test Case Suite at: %s\nRoot Directory: %s\n'
-          'VOLTHA Directory: %s\nLog Directory: %s' %
-          (currentTime, rootDir, volthaDir, logDir))
+                 'VOLTHA Directory: %s\nLog Directory: %s' %
+                 (currentTime, root_dir, voltha_dir, log_dir))
 
-    return rootDir, volthaDir, logDir
+    return root_dir, voltha_dir, log_dir
 
 
 #
@@ -70,12 +71,12 @@ if __name__ == "__main__":
 
     ROOT_DIR, VOLTHA_DIR, LOG_DIR = dir_init(args.logDir)
     
-    volthaMngr.voltha_Initialize(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
+    volthaMngr.voltha_initialize(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
-    preprovisioning.runTest('olt.voltha.svc', 50060, 'ponsim_olt', 'ponsim_onu', LOG_DIR)
+    preprovisioning.run_test('olt.voltha.svc', 50060, 'ponsim_olt', 'ponsim_onu', LOG_DIR)
     
-    discovery.runTest('olt.voltha.svc', 'ponsim_olt', 'ponsim_onu', LOG_DIR)
+    discovery.run_test('olt.voltha.svc', 'ponsim_olt', 'ponsim_onu', LOG_DIR)
 
-    authentication.runTest(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
+    authentication.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
     time.sleep(5)

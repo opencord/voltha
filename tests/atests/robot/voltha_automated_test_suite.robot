@@ -46,8 +46,8 @@ Olt Pre Provisioning
     ...                 and then enables both it and a number of ponsim-ONUs with predefined IP/port
     ...                 information. It then verifies that all the physical and logical devices are ACTIVE
     ...                 and REACHEABLE
-    PSet Log Dirs    ${LOG_DIR}
-    PConfigure   ${OLT_IP_ADDR}    ${OLT_PORT_ID}    ${OLT_TYPE}    ${ONU_TYPE} 
+    P Set Log Dirs      ${LOG_DIR}
+    P Configure         ${OLT_IP_ADDR}    ${OLT_PORT_ID}    ${OLT_TYPE}    ${ONU_TYPE}
     Preprovision Olt
     Wait Until Keyword Succeeds    60s    2s    Query Devices Before Enabling
     Status Should Be Success After Preprovision Command
@@ -65,8 +65,8 @@ Olt Onu Discovery
     ...                 It also insures that the peers fields contains device Id entries for the corresponding 
     ...                 Olt or Onu device. Functionality to support multiple ONU accomodated
     ...                 The extent of the flow validation is limited to checking whether number of Flows is > 0
-    DSet Log Dirs    ${LOG_DIR}
-    DConfigure      ${LOGICAL_TYPE}    ${OLT_TYPE}    ${ONU_TYPE}
+    D Set Log Dirs      ${LOG_DIR}
+    D Configure         ${LOGICAL_TYPE}     ${OLT_TYPE}    ${ONU_TYPE}
     Olt Discovery
     Onu Discovery
     Logical Device
@@ -80,13 +80,13 @@ Radius Authentication
     ...                 This test attempts to perform a Radius Authentication from the RG
     ...                 It uses the wpa_supplicant app to authenticate using EAPOL.
     ...                 We then verify the generated log file confirming all the authentication steps
-    ASet Log Dirs    ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
+    A Set Log Dirs      ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
     Discover RG Pod Name
     Discover Freeradius Pod Name
     Discover Freeradius Ip Addr
     Set Current Freeradius Ip In AAA Json
     Alter AAA Application Configuration In Onos Using AAA Json
-    Execute Authenticatication On RG
+    Execute Authentication On RG
     Verify Authentication Should Have Started
     Verify Authentication Should Have Completed
     Verify Authentication Should Have Disconnected
@@ -97,20 +97,20 @@ Start Voltha
     [Documentation]     Start Voltha infrastructure to run test(s). This includes starting all 
     ...                 Kubernetes Pods and start collection of logs. PonsimV2 has now been
     ...                 containerized and does not need to be managed separately
-    ${ROOT_DIR}  ${VOLTHA_DIR}  ${LOG_DIR}      Dir Init    ${LOG_DIR}
+    ${ROOT_DIR}  ${VOLTHA_DIR}  ${LOG_DIR}  Dir Init    ${LOG_DIR}
     Set Suite Variable  ${ROOT_DIR}
     Set Suite Variable  ${VOLTHA_DIR}
     Set Suite Variable  ${LOG_DIR}   
-    VSet Log Dirs  ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
+    V Set Log Dirs      ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
     Stop Voltha
     Start All Pods
     Sleep    60
     ${pod_status}    Run    kubectl get pods --all-namespaces
-    Log To Console    \n ${pod_status}
-    Alter Onos NetCfg
+    Log To Console  \n  ${pod_status}
+    Alter Onos Net Cfg
     
 Stop Voltha
-    [Documentation]     Stop Voltha infrastucture. This includes clearing all installation milestones 
+    [Documentation]     Stop Voltha infrastructure. This includes clearing all installation milestones
     ...                 files and stopping all Kubernetes pods
     Collect Pod Logs
     Stop All Pods
