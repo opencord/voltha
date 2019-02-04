@@ -83,6 +83,8 @@ class OpenoltDevice(object):
     def __init__(self, **kwargs):
         super(OpenoltDevice, self).__init__()
 
+        self.admin_state = "up"
+
         self.adapter_agent = kwargs['adapter_agent']
         self.device_num = kwargs['device_num']
         device = kwargs['device']
@@ -387,10 +389,12 @@ class OpenoltDevice(object):
                     self.log.warn('unknown indication type')
 
     def olt_indication(self, olt_indication):
-        if olt_indication.oper_state == "up":
-            self.go_state_up()
-        elif olt_indication.oper_state == "down":
-            self.go_state_down()
+        if self.admin_state is "up":
+            # Ignore oper state indication from olt if it is admin down
+            if olt_indication.oper_state == "up":
+                self.go_state_up()
+            elif olt_indication.oper_state == "down":
+                self.go_state_down()
 
     def intf_indication(self, intf_indication):
         self.log.debug("intf indication", intf_id=intf_indication.intf_id,
@@ -959,8 +963,7 @@ class OpenoltDevice(object):
         try:
             # Send grpc call
             self.stub.DisableOlt(openolt_pb2.Empty())
-            # The resulting indication will bring the OLT down
-            # self.go_state_down()
+            self.admin_state = "down"
             self.log.info('openolt device disabled')
         except Exception as e:
             self.log.error('Failure to disable openolt device', error=e)
@@ -997,6 +1000,7 @@ class OpenoltDevice(object):
             self.log.error('Failure to reenable openolt device', error=e)
         else:
             self.log.info('openolt device reenabled')
+            self.admin_state = "up"
 
     def activate_onu(self, intf_id, onu_id, serial_number,
                      serial_number_str):

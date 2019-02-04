@@ -374,7 +374,7 @@ class DeviceAgent(object):
             self.log.debug('disable-device', device=device, dry_run=dry_run)
             if not dry_run:
                 # Remove all flows before disabling device
-                self._delete_all_flows()
+                # self._delete_all_flows()
                 yield self.adapter_agent.disable_device(device)
         except Exception, e:
             self.log.exception('error', e=e)
