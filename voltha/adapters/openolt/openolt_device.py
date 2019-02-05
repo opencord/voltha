@@ -118,6 +118,7 @@ class OpenoltDevice(object):
             device.oper_status = OperStatus.ACTIVATING
             self.adapter_agent.update_device(device)
 
+        self.logical_device_id = None
         # If logical device does exist use it, else create one after connecting to device
         if device.parent_id:
             # logical device already exists
@@ -239,31 +240,51 @@ class OpenoltDevice(object):
         device_info = self.stub.GetDeviceInfo(openolt_pb2.Empty())
         self.log.info('Device connected', device_info=device_info)
 
-        self.create_logical_device(device_info)
+        self.log.debug('logical-device-id', logical_device_id=self.logical_device_id)
+        if self.logical_device_id is None:
+            self.create_logical_device(device_info)
 
-        device.serial_number = self.serial_number
+            device.serial_number = self.serial_number
 
-        self.resource_mgr = self.resource_mgr_class(self.device_id,
-                                                    self.host_and_port,
-                                                    self.extra_args,
-                                                    device_info)
-        self.platform = self.platform_class(self.log, self.resource_mgr)
-        self.flow_mgr = self.flow_mgr_class(self.adapter_agent, self.log,
-                                            self.stub, self.device_id,
-                                            self.logical_device_id,
-                                            self.platform, self.resource_mgr)
+            self.resource_mgr = self.resource_mgr_class(self.device_id,
+                                                        self.host_and_port,
+                                                        self.extra_args,
+                                                        device_info)
+            self.platform = self.platform_class(self.log, self.resource_mgr)
+            self.flow_mgr = self.flow_mgr_class(self.adapter_agent, self.log,
+                                                self.stub, self.device_id,
+                                                self.logical_device_id,
+                                                self.platform, self.resource_mgr)
 
-        self.alarm_mgr = self.alarm_mgr_class(self.log, self.adapter_agent,
-                                              self.device_id,
-                                              self.logical_device_id,
-                                              self.platform)
-        self.stats_mgr = self.stats_mgr_class(self, self.log, self.platform)
-        self.bw_mgr = self.bw_mgr_class(self.log, self.proxy)
+            self.alarm_mgr = self.alarm_mgr_class(self.log, self.adapter_agent,
+                                                  self.device_id,
+                                                  self.logical_device_id,
+                                                  self.platform)
+            self.stats_mgr = self.stats_mgr_class(self, self.log, self.platform)
+            self.bw_mgr = self.bw_mgr_class(self.log, self.proxy)
 
-        device.vendor = device_info.vendor
-        device.model = device_info.model
-        device.hardware_version = device_info.hardware_version
-        device.firmware_version = device_info.firmware_version
+            device.vendor = device_info.vendor
+            device.model = device_info.model
+            device.hardware_version = device_info.hardware_version
+            device.firmware_version = device_info.firmware_version
+        else:
+            device_ports = self.adapter_agent.get_ports(self.device_id,
+                                                        Port.ETHERNET_NNI)
+            device_ports += self.adapter_agent.get_ports(self.device_id,
+                                                         Port.PON_OLT)
+            logical_ports_ids = [port.label for port in device_ports]
+            # Device Ports
+            for port in device_ports:
+                port.oper_status = OperStatus.ACTIVE
+                self.adapter_agent.add_port(self.device_id, port)
+
+            # Device logical port
+            for logical_port_id in logical_ports_ids:
+                logical_port = self.adapter_agent.get_logical_port(
+                    self.logical_device_id, logical_port_id)
+                logical_port.ofp_port.state = OFPPS_LIVE
+                self.adapter_agent.update_logical_port(self.logical_device_id,
+                                                       logical_port)
 
         # TODO: check for uptime and reboot if too long (VOL-1192)
 

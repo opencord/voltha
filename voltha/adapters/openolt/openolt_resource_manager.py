@@ -433,3 +433,20 @@ class OpenOltResourceMgr(object):
 
         # Make sure loaded range fits the platform bit encoding ranges
         resource_mgr.update_ranges(uni_id_start_idx=0, uni_id_end_idx=OpenOltPlatform.MAX_UNIS_PER_ONU-1)
+
+    def is_flow_cookie_on_kv_store(self, pon_intf_id, onu_id, uni_id, flow_store_cookie):
+        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
+        try:
+            flow_ids = self.resource_mgrs[pon_intf_id]. \
+                get_current_flow_ids_for_onu(pon_intf_onu_id)
+            if flow_ids is not None:
+                for flow_id in flow_ids:
+                    flows = self.get_flow_id_info(pon_intf_id, onu_id, uni_id, flow_id)
+                    assert (isinstance(flows, list))
+                    for flow in flows:
+                        if flow['flow_store_cookie'] == flow_store_cookie:
+                            return True
+        except Exception as e:
+            self.log.error("error-retrieving-flow-info", e=e)
+
+        return False
