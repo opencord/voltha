@@ -140,15 +140,15 @@ class OpenOltResourceMgr(object):
 
         return onu_id
 
-    def get_flow_id(self, pon_intf_id, onu_id, uni_id, flow_store_cookie,
+    def get_flow_id(self, intf_id, onu_id, uni_id, flow_store_cookie,
                     flow_category=None):
-        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
+        intf_onu_id = (intf_id, onu_id, uni_id)
         try:
-            flow_ids = self.resource_mgrs[pon_intf_id]. \
-                get_current_flow_ids_for_onu(pon_intf_onu_id)
+            flow_ids = self.resource_mgrs[intf_id]. \
+                get_current_flow_ids_for_onu(intf_onu_id)
             if flow_ids is not None:
                 for flow_id in flow_ids:
-                    flows = self.get_flow_id_info(pon_intf_id, onu_id, uni_id, flow_id)
+                    flows = self.get_flow_id_info(intf_id, onu_id, uni_id, flow_id)
                     assert (isinstance(flows, list))
                     for flow in flows:
 
@@ -161,27 +161,39 @@ class OpenOltResourceMgr(object):
         except Exception as e:
             self.log.error("error-retrieving-flow-info", e=e)
 
-        flow_id = self.resource_mgrs[pon_intf_id].get_resource_id(
-            pon_intf_onu_id[0], PONResourceManager.FLOW_ID)
+        flow_id = self.resource_mgrs[intf_id].get_resource_id(
+            intf_onu_id[0], PONResourceManager.FLOW_ID)
         if flow_id is not None:
-            self.resource_mgrs[pon_intf_id].update_flow_id_for_onu(
-                pon_intf_onu_id, flow_id
+            self.resource_mgrs[intf_id].update_flow_id_for_onu(
+                intf_onu_id, flow_id
             )
 
         return flow_id
 
-    def get_flow_id_info(self, pon_intf_id, onu_id, uni_id, flow_id):
-        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
-        return self.resource_mgrs[pon_intf_id].get_flow_id_info(pon_intf_onu_id, flow_id)
+    def get_flow_id_info(self, intf_id, onu_id, uni_id, flow_id):
+        '''
+        Note: For flows which trap from the NNI and not really associated with any particular
+        ONU (like LLDP), the onu_id and uni_id is set as -1. The intf_id is the NNI intf_id.
+        '''
+        intf_onu_id = (intf_id, onu_id, uni_id)
+        return self.resource_mgrs[intf_id].get_flow_id_info(intf_onu_id, flow_id)
 
-    def get_current_flow_ids_for_uni(self, pon_intf_id, onu_id, uni_id):
-        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
-        return self.resource_mgrs[pon_intf_id].get_current_flow_ids_for_onu(pon_intf_onu_id)
+    def get_current_flow_ids(self, intf_id, onu_id, uni_id):
+        '''
+        Note: For flows which trap from the NNI and not really associated with any particular
+        ONU (like LLDP), the onu_id and uni_id is set as -1. The intf_id is the NNI intf_id.
+        '''
+        intf_onu_id = (intf_id, onu_id, uni_id)
+        return self.resource_mgrs[intf_id].get_current_flow_ids_for_onu(intf_onu_id)
 
-    def update_flow_id_info_for_uni(self, pon_intf_id, onu_id, uni_id, flow_id, flow_data):
-        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
-        return self.resource_mgrs[pon_intf_id].update_flow_id_info_for_onu(
-            pon_intf_onu_id, flow_id, flow_data)
+    def update_flow_id_info(self, intf_id, onu_id, uni_id, flow_id, flow_data):
+        '''
+        Note: For flows which trap from the NNI and not really associated with any particular
+        ONU (like LLDP), the onu_id and uni_id is set as -1. The intf_id is the NNI intf_id.
+        '''
+        intf_onu_id = (intf_id, onu_id, uni_id)
+        return self.resource_mgrs[intf_id].update_flow_id_info_for_onu(
+            intf_onu_id, flow_id, flow_data)
 
     def get_alloc_id(self, pon_intf_onu_id):
         # Derive the pon_intf from the pon_intf_onu_id tuple
@@ -274,14 +286,14 @@ class OpenOltResourceMgr(object):
         self.resource_mgrs[pon_intf_id].remove_resource_map(
             pon_intf_onu_id)
 
-    def free_flow_id_for_uni(self, pon_intf_id, onu_id, uni_id, flow_id):
-        self.resource_mgrs[pon_intf_id].free_resource_id(
-            pon_intf_id, PONResourceManager.FLOW_ID, flow_id)
-        pon_intf_onu_id = (pon_intf_id, onu_id, uni_id)
-        self.resource_mgrs[pon_intf_id].update_flow_id_for_onu(pon_intf_onu_id,
-                                                               flow_id, False)
-        self.resource_mgrs[pon_intf_id].remove_flow_id_info(pon_intf_onu_id,
-                                                            flow_id)
+    def free_flow_id(self, intf_id, onu_id, uni_id, flow_id):
+        self.resource_mgrs[intf_id].free_resource_id(
+            intf_id, PONResourceManager.FLOW_ID, flow_id)
+        intf_onu_id = (intf_id, onu_id, uni_id)
+        self.resource_mgrs[intf_id].update_flow_id_for_onu(intf_onu_id,
+                                                           flow_id, False)
+        self.resource_mgrs[intf_id].remove_flow_id_info(intf_onu_id,
+                                                        flow_id)
 
     def free_pon_resources_for_onu(self, pon_intf_id_onu_id):
 
@@ -433,3 +445,24 @@ class OpenOltResourceMgr(object):
 
         # Make sure loaded range fits the platform bit encoding ranges
         resource_mgr.update_ranges(uni_id_start_idx=0, uni_id_end_idx=OpenOltPlatform.MAX_UNIS_PER_ONU-1)
+
+    def is_flow_cookie_on_kv_store(self, intf_id, onu_id, uni_id, flow_store_cookie):
+        '''
+        Note: For flows which trap from the NNI and not really associated with any particular
+        ONU (like LLDP), the onu_id and uni_id is set as -1. The intf_id is the NNI intf_id.
+        '''
+        intf_onu_id = (intf_id, onu_id, uni_id)
+        try:
+            flow_ids = self.resource_mgrs[intf_id]. \
+                get_current_flow_ids_for_onu(intf_onu_id)
+            if flow_ids is not None:
+                for flow_id in flow_ids:
+                    flows = self.get_flow_id_info(intf_id, onu_id, uni_id, flow_id)
+                    assert (isinstance(flows, list))
+                    for flow in flows:
+                        if flow['flow_store_cookie'] == flow_store_cookie:
+                            return True
+        except Exception as e:
+            self.log.error("error-retrieving-flow-info", e=e)
+
+        return False

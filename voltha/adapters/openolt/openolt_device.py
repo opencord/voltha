@@ -121,6 +121,7 @@ class OpenoltDevice(object):
             device.oper_status = OperStatus.ACTIVATING
             self.adapter_agent.update_device(device)
 
+        self.logical_device_id = None
         # If logical device does exist use it, else create one after connecting to device
         if device.parent_id:
             # logical device already exists
