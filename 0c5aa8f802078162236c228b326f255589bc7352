@@ -51,6 +51,23 @@
       "revId": "0c5aa8f802078162236c228b326f255589bc7352",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "731aa526_4698b0c5",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 437,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-06T17:30:10Z",
+      "side": 1,
+      "message": "What about flows that are only associated with the NNI -e.g. lldp or dhcp trap?",
+      "revId": "0c5aa8f802078162236c228b326f255589bc7352",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
