@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "06ede761_25987aa3",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 271,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-06T08:10:34Z",
+      "side": 1,
+      "message": "Is this else part the case where voltha/openolt-adapter is connecting to the device after a disconnect (e.g. OLT was rebooted)?\n\nWhy are ports being set to ACTIVE here? what if the real ports on the device are not active actually? should these not be done as a result of intf indications from the device?",
+      "revId": "0c5aa8f802078162236c228b326f255589bc7352",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
