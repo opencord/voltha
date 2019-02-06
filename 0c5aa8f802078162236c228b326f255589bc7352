@@ -16,6 +16,24 @@
       "revId": "0c5aa8f802078162236c228b326f255589bc7352",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "838a93b9_f0e387a7",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 271,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-06T16:53:33Z",
+      "side": 1,
+      "message": "You are right. This code was to address the case of adapter connecting to OLT after a disconnect. I guess this is an unnecessary (and also probably not a right way) change considering the main intention of this commit. \nThe fix for \u0027re-addition of flow on the device\u0027 will work without these changes too. I will remove this code snippet.",
+      "parentUuid": "06ede761_25987aa3",
+      "revId": "0c5aa8f802078162236c228b326f255589bc7352",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
