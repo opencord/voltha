@@ -41,6 +41,15 @@ class BrcmMibSynchronizer(MibSynchronizer):
         super(BrcmMibSynchronizer, self).__init__(agent, device_id, mib_sync_tasks, db,
                                                   advertise_events=advertise_events)
 
+    def on_enter_starting(self):
+        """
+        Given resync and mib update is questionable (see below) flag the ONU as a new device which forces a mib
+        reset and a mib upload
+        """
+        self.log.warn('db-sync-not-supported-forcing-reset')
+        self._last_mib_db_sync_value = None
+        super(BrcmMibSynchronizer, self).on_enter_starting()
+
     def on_enter_auditing(self):
         """
         Perform a MIB Audit.  Currently this is broken on BRCM based onu and its never in sync and continuously
