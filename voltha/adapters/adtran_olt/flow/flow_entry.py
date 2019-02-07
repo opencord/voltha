@@ -413,10 +413,8 @@ class FlowEntry(object):
 
             if self._flow_direction in FlowEntry.downstream_flow_types:
                 status = self._apply_downstream_mods()
-
             elif self._flow_direction in FlowEntry.upstream_flow_types:
                 status = self._apply_upstream_mods()
-
             else:
                 # TODO: Need to code this - Perhaps this is an NNI_PON for Multicast support?
                 log.error('unsupported-flow-direction')
@@ -545,10 +543,10 @@ class FlowEntry(object):
     def _decode_flow_direction(self):
         # Determine direction of the flow
         def port_type(port_number):
-            if port_number in self._handler.northbound_ports:
+            if port_number in self.handler.northbound_ports:
                 return FlowEntry.PortType.NNI
 
-            elif port_number in self._handler.southbound_ports:
+            elif port_number in self.handler.southbound_ports:
                 return FlowEntry.PortType.PON
 
             elif port_number <= OFPP_MAX:
