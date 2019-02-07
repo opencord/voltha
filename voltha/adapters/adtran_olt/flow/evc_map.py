@@ -359,7 +359,7 @@ class EVCMap(object):
                     results = yield self._handler.netconf_client.edit_config(map_xml)
                     self._installed = results.ok
                     self._needs_update = results.ok
-                    self._status_message = '' if results.ok else results.error
+                    self.status = '' if results.ok else results.error
 
                     if results.ok:
                         self._existing_acls.update(work_acls)

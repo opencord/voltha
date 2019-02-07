@@ -19,7 +19,7 @@ import pytest
 
 
 
-## This section test the proberties of the class EVCMap
+## This section test the properties of the class EVCMap
 
 def test_EVCMap_properties():
     flow = MagicMock()

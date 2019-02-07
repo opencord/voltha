@@ -16,7 +16,10 @@ import pytest
 from mock import Mock
 from mock import MagicMock
 from mock import patch
+import json
+import ast
 
+from twisted.internet.defer import Deferred
 
 from voltha.adapters.adtran_onu.adtran_onu_handler import AdtranOnuHandler
 from voltha.adapters.adtran_onu.adtran_onu import AdtranOnuAdapter
@@ -26,6 +29,7 @@ from common.tech_profile.tech_profile import DEFAULT_TECH_PROFILE_TABLE_ID
 from voltha.protos.voltha_pb2 import SelfTestResponse
 from voltha.adapters.adtran_onu.test.resources.technology_profile import tech_profile_json
 from voltha.adapters.adtran_onu.pon_port import PonPort
+from voltha.adapters.adtran_onu.adtran_onu_handler import _STARTUP_RETRY_WAIT
 
 
 @pytest.fixture()
@@ -142,4 +146,49 @@ def test_update_pm_config(onu_handler, device_info):
         pm_config = Mock()
         onu_handler.update_pm_config(device_info, pm_config)
         onu_handler.pm_metrics.update.assert_called_with(pm_config)
+
+
+@pytest.mark.parametrize("success_case", [True, False])
+def test_load_and_configure_tech_profile(onu_handler, success_case):
+    with patch('voltha.adapters.adtran_onu.adtran_onu_handler.AdtnTpServiceSpecificTask'),\
+         patch('voltha.adapters.adtran_onu.adtran_onu_handler.AdtranOnuHandler.openomci') as openomci, \
+            patch('voltha.adapters.adtran_onu.adtran_onu_handler.reactor.callLater') as onu_handler_reactor:
+        uni_id, tp_path = 1, '/255/XPON/1024'
+        tp = json.dumps(tech_profile_json)
+        onu_handler.kv_client = {tp_path: tp}
+        onu_handler._do_tech_profile_configuration = MagicMock()
+        d = Deferred()
+        openomci.onu_omci_device.task_runner.queue_task.return_value = d
+        onu_handler.load_and_configure_tech_profile(uni_id, tp_path)
+        if success_case:
+            d.callback('success')
+            assert onu_handler._tech_profile_download_done[uni_id][tp_path] is True
+        else:
+            d.errback(Exception('test'))
+            onu_handler_reactor.assert_called_with(_STARTUP_RETRY_WAIT,
+                                                   onu_handler.load_and_configure_tech_profile, uni_id, tp_path)
+
+        assert len(onu_handler._tp_service_specific_task[uni_id]) == 0
+        onu_handler._do_tech_profile_configuration.assert_called_with(uni_id, ast.literal_eval(tp), 255)
+
+
+def test_load_and_configure_tech_profile_handles_exceptions(onu_handler):
+    onu_handler.kv_client = Mock(side_effect=Exception())
+    uni_id, tp_path = 1, '/255/XPON/1024'
+    onu_handler.load_and_configure_tech_profile(uni_id, tp_path)
+    assert onu_handler._tech_profile_download_done[uni_id][tp_path] is False
+
+
+def test_load_and_configure_tech_profile_where_tech_profile_already_loaded(onu_handler):
+    uni_id, tp_path = 1, '/255/XPON/1024'
+    onu_handler._tech_profile_download_done[uni_id] = dict()
+    onu_handler._tech_profile_download_done[uni_id][tp_path] = True
+    onu_handler._do_tech_profile_configuration = MagicMock()
+    onu_handler.load_and_configure_tech_profile(uni_id, tp_path)
+    onu_handler._do_tech_profile_configuration.assert_not_called()
+
+
+def test_rx_inter_adapter_message_throws_not_implemented_error(onu_handler):
+    with pytest.raises(TypeError):
+        onu_handler.rx_inter_adapter_message('test')
 

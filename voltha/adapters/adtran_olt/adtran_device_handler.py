@@ -867,7 +867,7 @@ class AdtranDeviceHandler(object):
         # Drop registration for ONU detection
         # self.adapter_agent.unregister_for_onu_detect_state(self.device.id)
         self._suspend_heartbeat()
-
+        
         # Update the operational status to UNKNOWN
         device.oper_status = OperStatus.UNKNOWN
         device.connect_status = ConnectStatus.UNREACHABLE
