@@ -1,0 +1,197 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6f3f9f34_feb65a46",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-07T03:59:13Z",
+      "side": 1,
+      "message": "The first line of the commit message should a short message. Detailed message can be under that after leaving 1 empty line. Also since it is WIP you should add that temporarily to the commit message. Example:\n\nWIP: Adding support for metadata-write in OFAgent.\n\u003cblank-line\u003e\nAlso in this commit:\n - Flow decomposer support for Tech Profile Reference in metadata instead of using Flow Table ID as reference in Table 1. \n - Metadata information  passed on to the OLT and ONU Adapters.\n - Meter Reference in all Flow Tables passed on to the OLT and ONU Adapters.",
+      "revId": "70a4814491cd73a01e3a8bfe5afe1cc31c812b6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d67c9b16_8c55557c",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 327,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-07T03:59:13Z",
+      "side": 1,
+      "message": "maybe get rid of this one and 64_bit one, since it should no longer be called",
+      "revId": "70a4814491cd73a01e3a8bfe5afe1cc31c812b6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e2b1c8ec_44e9f454",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 343,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-07T03:59:13Z",
+      "side": 1,
+      "message": "The metadata is 8 bytes, not the instruction",
+      "revId": "70a4814491cd73a01e3a8bfe5afe1cc31c812b6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a96fb506_bf6e172f",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-07T03:59:13Z",
+      "side": 1,
+      "message": "Metadata port information is always about the out/egress port, not incoming port. In_port is in the match. Please fix the variable names and comments, and maybe even the method name, so it is clear",
+      "range": {
+        "startLine": 350,
+        "startChar": 1,
+        "endLine": 355,
+        "endChar": 22
+      },
+      "revId": "70a4814491cd73a01e3a8bfe5afe1cc31c812b6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "580d28a6_637397e0",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 736,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-07T03:59:13Z",
+      "side": 1,
+      "message": "This is really a check for a table 0 flow, which in the upstream case is meant for the ONU",
+      "revId": "70a4814491cd73a01e3a8bfe5afe1cc31c812b6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0a4fe617_98d527da",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 758,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-07T03:59:13Z",
+      "side": 1,
+      "message": "This is a Table 1 flow which in the upstream case if meant for the OLT",
+      "revId": "70a4814491cd73a01e3a8bfe5afe1cc31c812b6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f336ab25_053dbf38",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 762,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-07T03:59:13Z",
+      "side": 1,
+      "message": "The transparent case creates both OLT and ONU flows here. In my opinion it should only create the OLT flow (parent_device_flow) here, and create the ONU flow in the previous check for Table 0.",
+      "revId": "70a4814491cd73a01e3a8bfe5afe1cc31c812b6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d86d7bb6_cf7f82a1",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 823,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-07T03:59:13Z",
+      "side": 1,
+      "message": "I don\u0027t understand these downstream cases for flows which do not go to the controller.\n\nThe \u0027has_next_table\u0027 case is simply a check if it is a Table 0 flow which has a goto to the next table, which in the downstream case belongs for the OLT. \n\nSo why then a check for \u0027 if metadata_from_write_metadata\u0027  -- there will always be a metadata in write_metadata from now on",
+      "revId": "70a4814491cd73a01e3a8bfe5afe1cc31c812b6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1f60f1af_bc8c3e1d",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 856,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-07T03:59:13Z",
+      "side": 1,
+      "message": "We no longer create flows which match on metadata -- this whole if-else case needs to be revisited.\n\nIn my opinion, the checks for downstream should be the following:\n---- table 0 AND has_next_table\nThis is downstream flow for OLT meant for unicast traffic.  This one will have outport in the write_metadata_instruction, because it will not have the outport in the flow-action. Here we should check for \u0027transparent_vlan_case\u0027 where we do not pop off S-tag or \u0027standard case\u0027 where we pop off S-tag. In both cases, we should only create the flow for the OLT. The transparent vlan code creates both OLT and ONU flows -- that should be avoided, it should only create the OLT flow, and later create the ONU flow when we get the \u0027table 1\u0027 flow.\n\n---- table 0 AND has_group\nThis is downstream flow for OLT meant for multicast traffic. Multicast flow will not have goto to next table, but it will have group information in the flow action. Currently the multicast case is creating both flows for the OLT and ONU, which can stay as is - we can revisit it later.\n\n---- table 1 \nThis is downstream flow for ONU. So this one will have the \u0027outport\u0027 in the flow-action. Again we should check for \u0027transparent vlan case\u0027 and \u0027standard case\u0027 to create the flow for the ONU.",
+      "revId": "70a4814491cd73a01e3a8bfe5afe1cc31c812b6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9d8d5236_017f50fb",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 241,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-07T03:59:13Z",
+      "side": 1,
+      "message": "This should actually be UNKNOWN_METER",
+      "revId": "70a4814491cd73a01e3a8bfe5afe1cc31c812b6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a0ccc0d9_84bab303",
+        "filename": "voltha/core/logical_device_agent.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 261,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-07T03:59:13Z",
+      "side": 1,
+      "message": "According to the spec, the delete of a meter that does not exist should just be treated silently without generating an error. Same thing with groups. But since the group implementation is sending back an error, I guess we can send back an error for meter delete as well -- but it should maybe be UNKNOWN_METER",
+      "revId": "70a4814491cd73a01e3a8bfe5afe1cc31c812b6a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
