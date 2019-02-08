@@ -317,6 +317,11 @@ class OpenOltDataModel(object):
         self.adapter_agent.publish_inter_adapter_message(
             onu_device.id, msg)
 
+    def meter_band(self, meter_id):
+        return self.adapter_agent.get_meter_band(
+            self.logical_device_id, meter_id
+        )
+
     def onu_omci_rx(self, intf_id, onu_id, pkt):
         onu_device = self.adapter_agent.get_child_device(
             self.device.id,
@@ -393,6 +398,24 @@ class OpenOltDataModel(object):
         gem = GemPortId(intf_id=intf_id, gemport_id=gemport_id)
         self._onu_gemport_ids[gem] = onu_info
 
+    def get_ofp_port_name(self, intf_id, onu_id, uni_id):
+        parent_port_no = self.platform.intf_id_to_port_no(intf_id,
+                                                          Port.PON_OLT)
+        child_device = self.adapter_agent.get_child_device(
+            self.device.id, parent_port_no=parent_port_no, onu_id=onu_id)
+        if child_device is None:
+            self.log.error("could-not-find-child-device",
+                           parent_port_no=intf_id, onu_id=onu_id)
+            return (None, None)
+        ports = self.adapter_agent.get_ports(child_device.id,
+                                             Port.ETHERNET_UNI)
+        logical_port = self.adapter_agent.get_logical_port(
+            self.logical_device_id, ports[uni_id].label)
+        ofp_port_name = (logical_port.ofp_port.name,
+                         logical_port.ofp_port.port_no)
+        return ofp_port_name
+
+
     # #######################################################################
     # Methods used by Alarm and Statistics Manager (TODO - re-visit)
     # #######################################################################
@@ -404,8 +427,8 @@ class OpenOltDataModel(object):
         return self.device.id
 
     def _resolve_onu_id(self, onu_id, port_intf_id):
+        onu_device = None
         try:
-            onu_device = None
             onu_device = self.adapter_agent.get_child_device(
                 self.device_id,
                 parent_port_no=self.platform.intf_id_to_port_no(
