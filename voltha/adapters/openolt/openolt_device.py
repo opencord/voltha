@@ -19,6 +19,7 @@ import grpc
 import socket
 import re
 import structlog
+import time
 from twisted.internet import reactor
 from scapy.layers.l2 import Ether, Dot1Q
 from transitions import Machine
@@ -238,7 +239,25 @@ class OpenoltDevice(object):
 
         self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
 
-        device_info = self.stub.GetDeviceInfo(openolt_pb2.Empty())
+        delay = 1
+        while True:
+            try:
+                device_info = self.stub.GetDeviceInfo(openolt_pb2.Empty())
+                break
+            except Exception as e:
+                reraise = True
+                if delay > 120:
+                    self.log.error("gRPC failure too many times")
+                else:
+                    self.log.warn("gRPC failure, retry in %ds: %s"
+                                  % (delay, repr(e)))
+                    time.sleep(delay)
+                    delay += delay
+                    reraise = False
+
+                if reraise:
+                    raise
+
         self.log.info('Device connected', device_info=device_info)
 
         self.create_logical_device(device_info)
@@ -1010,9 +1029,6 @@ class OpenoltDevice(object):
 
         try:
             self.stub.ReenableOlt(openolt_pb2.Empty())
-
-            self.log.info('enabling-all-ports', device_id=self.device_id)
-            self.adapter_agent.enable_all_ports(self.device_id)
         except Exception as e:
             self.log.error('Failure to reenable openolt device', error=e)
         else:
