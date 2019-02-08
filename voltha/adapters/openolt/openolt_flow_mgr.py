@@ -18,6 +18,7 @@ from twisted.internet import reactor
 import grpc
 from google.protobuf.json_format import MessageToDict
 import hashlib
+import ast
 from simplejson import dumps
 
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
@@ -26,9 +27,10 @@ from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
 from voltha.protos.device_pb2 import Port
 import voltha.core.flow_decomposer as fd
 from voltha.adapters.openolt.protos import openolt_pb2
+from voltha.protos import tech_profile_pb2
 from voltha.registry import registry
-
-from common.tech_profile.tech_profile import DEFAULT_TECH_PROFILE_TABLE_ID
+from common.tech_profile.tech_profile import DEFAULT_TECH_PROFILE_TABLE_ID, \
+    Direction, TechProfile
 
 # Flow categories
 HSIA_FLOW = "HSIA_FLOW"
@@ -94,6 +96,9 @@ class OpenOltFlowMgr(object):
         self.log.debug('add flow', flow=flow)
         classifier_info = dict()
         action_info = dict()
+        flow_metadata = None
+        us_meter_id = None
+        ds_meter_id = None
 
         for field in fd.get_ofb_fields(flow):
             if field.type == fd.ETH_TYPE:
@@ -132,10 +137,6 @@ class OpenOltFlowMgr(object):
                 classifier_info[IPV4_SRC] = field.ipv4_src
                 self.log.debug('field-type-ipv4-src',
                                ipv4_dst=classifier_info[IPV4_SRC])
-            elif field.type == fd.METADATA:
-                classifier_info[METADATA] = field.table_metadata
-                self.log.debug('field-type-metadata',
-                               metadata=classifier_info[METADATA])
             else:
                 raise NotImplementedError('field.type={}'.format(
                     field.type))
@@ -172,6 +173,10 @@ class OpenOltFlowMgr(object):
                     self.log.debug('set-field-type-vlan-vid',
                                    vlan_vid=_field.vlan_vid & 0xfff)
                     action_info[VLAN_VID] = (_field.vlan_vid & 0xfff)
+                elif _field.type == fd.VLAN_PCP:
+                    self.log.debug('set-field-type-vlan-pcp',
+                                   vlan_pcp=_field.vlan_pcp & 0x7)
+                    action_info[VLAN_PCP] = (_field.vlan_pcp & 0x7)
                 else:
                     self.log.error('unsupported-action-set-field-type',
                                    field_type=_field.type)
@@ -183,9 +188,12 @@ class OpenOltFlowMgr(object):
             self.log.debug('being taken care of by ONU', flow=flow)
             return
 
-        if OUTPUT not in action_info and METADATA in classifier_info:
+        # FIXME: get_metada_from_write_metadata will be available once Gamze's work is on master
+        flow_metadata = fd.get_metadata_from_write_metadata(flow)
+
+        if OUTPUT not in action_info and flow_metadata is not None:
             # find flow in the next table
-            next_flow = self.find_next_flow(flow)
+            next_flow = self.find_next_flow(flow, flow_metadata)
             if next_flow is None:
                 return
             action_info[OUTPUT] = fd.get_out_port(next_flow)
@@ -193,12 +201,51 @@ class OpenOltFlowMgr(object):
                 if field.type == fd.VLAN_VID:
                     classifier_info[METADATA] = field.vlan_vid & 0xfff
 
-        self.log.debug('flow-ports', classifier_inport=classifier_info[IN_PORT], action_output=action_info[OUTPUT])
+        self.log.debug('flow-ports', classifier_inport=classifier_info[IN_PORT],
+                       action_output=action_info[OUTPUT])
         (port_no, intf_id, onu_id, uni_id) = self.platform.extract_access_from_flow(
             classifier_info[IN_PORT], action_info[OUTPUT])
 
+        # LLDP flow has nothing to do with any particular subscriber.
+        # So, lets not care about the Tech-profile, meters etc.
+        # Just add the flow and return.
+        if ETH_TYPE in classifier_info and \
+                classifier_info[ETH_TYPE] == LLDP_ETH_TYPE:
+            self.log.debug('lldp flow add')
+            self.add_lldp_flow(flow, port_no)
+            return
+
+        # Metadata 8 bytes:
+        #    Most Significant 2 Bytes = Inner VLAN
+        #    Next 2 Bytes = Tech Profile ID(TPID)
+        #    Least Significant 4 Bytes = Port ID
+        # Flow METADATA carries Tech-Profile (TP) ID and is mandatory in all
+        # subscriber related flows.
+        # Note: If we are here, assert that the flow_metadata is not None
+        assert flow_metadata is not None
+
+        # Retrieve the TP-ID if one exists for the subscriber already
+        tp_id = self.resource_mgr.get_tech_profile_id_for_onu(intf_id, onu_id, uni_id)
+
+        if tp_id is not None:
+            # Assert that the tp_id received in flow metadata is same is the tp_id in use
+            # TODO:
+            # For now, tp_id updates, require that we tear down the service and
+            # and re-provision the service, i.e., dynamic TP updates not supported.
+
+            assert tp_id == fd.get_tp_id_from_metadata(flow_metadata), \
+                "tp-updates-not-supported"
+        else:
+            tp_id = fd.get_tp_id_from_metadata(flow_metadata)
+            self.log.info("received-tp-id-from-flow", tp_id=tp_id)
+
+        if self.platform.is_upstream(action_info[OUTPUT]):
+            us_meter_id = fd.get_meter_id_from_flow(flow)
+        else:
+            ds_meter_id = fd.get_meter_id_from_flow(flow)
+
         self.divide_and_add_flow(intf_id, onu_id, uni_id, port_no, classifier_info,
-                                 action_info, flow)
+                                 action_info, flow, tp_id, us_meter_id, ds_meter_id)
 
     def _is_uni_port(self, port_no):
         try:
@@ -239,16 +286,16 @@ class OpenOltFlowMgr(object):
 
         if child_device_id:
             child_device = self.adapter_agent.get_device(child_device_id)
-            pon_intf = child_device.proxy_address.channel_id
+            intf_id = child_device.proxy_address.channel_id
             onu_id = child_device.proxy_address.onu_id
             uni_id = self.platform.uni_id_from_port_num(uni_port_no) if uni_port_no is not None else None
-            flows = self.resource_mgr.get_flow_id_info(pon_intf, onu_id, uni_id, flow_id)
+            flows = self.resource_mgr.get_flow_id_info(intf_id, onu_id, uni_id, flow_id)
             assert (isinstance(flows, list))
             self.log.debug("retrieved-flows", flows=flows)
             for idx in range(len(flows)):
                 if flow_direction == flows[idx]['flow_type']:
                     flows.pop(idx)
-                    self.update_flow_info_to_kv_store(pon_intf, onu_id, uni_id, flow_id, flows)
+                    self.update_flow_info_to_kv_store(intf_id, onu_id, uni_id, flow_id, flows)
                     if len(flows) > 0:
                         # There are still flows referencing the same flow_id.
                         # So the flow should not be freed yet.
@@ -256,7 +303,15 @@ class OpenOltFlowMgr(object):
                         # between DS and US.
                         return
 
-            self.resource_mgr.free_flow_id(pon_intf, onu_id, uni_id, flow_id)
+            self.resource_mgr.free_flow_id(intf_id, onu_id, uni_id, flow_id)
+            flow_list = self.resource_mgr.get_current_flow_ids(intf_id, onu_id, uni_id)
+            if flow_list is None:
+                tp_id = self.resource_mgr.get_tech_profile_id_for_onu(intf_id, onu_id, uni_id)
+                tp_instance = self.get_tech_profile_instance(intf_id, onu_id, uni_id, tp_id)
+                self.log.info("all-flows-cleared-for-onu")
+                self.log.info("initiate-sched-queue-teardown")
+                self.remove_us_scheduler_queues(intf_id, onu_id, uni_id, tp_instance)
+                self.remove_ds_scheduler_queues(intf_id, onu_id, uni_id, tp_instance)
         else:
             self.log.error("invalid-info", uni_port_no=uni_port_no,
                            child_device_id=child_device_id)
@@ -320,19 +375,18 @@ class OpenOltFlowMgr(object):
         if child_device is None:
             self.log.error("could-not-find-child-device",
                            parent_port_no=intf_id, onu_id=onu_id)
-            return (None, None)
+            return None, None
         ports = self.adapter_agent.get_ports(child_device.id, Port.ETHERNET_UNI)
         logical_port = self.adapter_agent.get_logical_port(
             self.logical_device_id, ports[uni_id].label)
-        ofp_port_name = (logical_port.ofp_port.name, logical_port.ofp_port.port_no)
-        return ofp_port_name
+        return logical_port.ofp_port.name, logical_port.ofp_port.port_no
 
     def get_tp_path(self, intf_id, ofp_port_name, techprofile_id):
         return self.tech_profile[intf_id]. \
             get_tp_path(techprofile_id,
                         ofp_port_name)
 
-    def delete_tech_profile_instance(self, intf_id, onu_id, uni_id, ofp_port_name):
+    def delete_tech_profile_instance(self, intf_id, onu_id, uni_id, ofp_port_name=None):
         # Remove the TP instance associated with the ONU
         if ofp_port_name is None:
             ofp_port_name, ofp_port_no = self._get_ofp_port_name(intf_id, onu_id, uni_id)
@@ -342,38 +396,75 @@ class OpenOltFlowMgr(object):
         return self.tech_profile[intf_id].delete_tech_profile_instance(tp_path)
 
     def divide_and_add_flow(self, intf_id, onu_id, uni_id, port_no, classifier,
-                            action, flow):
+                            action, flow, tp_id, us_meter_id, ds_meter_id):
 
-        self.log.debug('sorting flow', intf_id=intf_id, onu_id=onu_id, uni_id=uni_id, port_no=port_no,
-                       classifier=classifier, action=action)
+        self.log.debug('sorting flow', intf_id=intf_id, onu_id=onu_id,
+                       uni_id=uni_id, port_no=port_no,
+                       classifier=classifier, action=action,
+                       tp_id=tp_id, us_meter=us_meter_id,
+                       ds_meter=ds_meter_id)
 
-        alloc_id, gem_ports = self.create_tcont_gemport(intf_id, onu_id, uni_id,
-                                                        flow.table_id)
-        if alloc_id is None or gem_ports is None:
-            self.log.error("alloc-id-gem-ports-unavailable", alloc_id=alloc_id,
-                           gem_ports=gem_ports)
+        tp_instance = self.get_tech_profile_instance(intf_id, onu_id, uni_id, tp_id)
+        if tp_instance is None:
+            self.log.error("flow-not-added--tp-instance-unavailable")
             return
+
+        pon_intf_onu_id = (intf_id, onu_id, uni_id)
+        alloc_id = \
+            self.resource_mgr.get_current_alloc_ids_for_onu(pon_intf_onu_id)
+        gem_ports = \
+            self.resource_mgr.get_current_gemport_ids_for_onu(pon_intf_onu_id)
+
+        if alloc_id is None or gem_ports is None:
+            self.log.error("alloc-id-or-gem-ports-unavailable",
+                           alloc_id=alloc_id, gem_ports=gem_ports)
+            return
+
+        self.create_us_scheduler_queues(intf_id, onu_id, uni_id, tp_instance, us_meter_id)
+        self.create_ds_scheduler_queues(intf_id, onu_id, uni_id, tp_instance, ds_meter_id)
 
         self.log.debug('Generated required alloc and gemport ids',
                        alloc_id=alloc_id, gemports=gem_ports)
 
-        # Flows can't be added specific to gemport unless p-bits are received.
-        # Hence adding flows for all gemports
-        for gemport_id in gem_ports:
-            if IP_PROTO in classifier:
-                if classifier[IP_PROTO] == 17:
-                    self.log.debug('dhcp flow add')
+        ds_gem_port_attr_list = tp_instance.downstream_gem_port_attribute_list
+        us_gem_port_attr_list = tp_instance.upstream_gem_port_attribute_list
+        kwargs = dict()
+        kwargs['intf_id'] = intf_id
+        kwargs['onu_id'] = onu_id
+        kwargs['uni_id'] = uni_id
+        kwargs['port_no'] = port_no
+        kwargs['classifier'] = classifier
+        kwargs['action'] = action
+        kwargs['logical_flow'] = flow
+        kwargs['alloc_id'] = alloc_id
+
+        if IP_PROTO in classifier:
+            if classifier[IP_PROTO] == 17:
+                self.log.debug('dhcp flow add')
+                if VLAN_PCP in classifier:
+                    gemport_id = self._get_gem_port_for_pcp(
+                        classifier[VLAN_PCP], us_gem_port_attr_list
+                    )
                     self.add_dhcp_trap(intf_id, onu_id, uni_id, port_no, classifier,
                                        action, flow, alloc_id, gemport_id)
-                elif classifier[IP_PROTO] == 2:
-                    self.log.warn('igmp flow add ignored, not implemented yet')
                 else:
-                    self.log.warn("Invalid-Classifier-to-handle",
-                                  classifier=classifier,
-                                  action=action)
-            elif ETH_TYPE in classifier:
-                if classifier[ETH_TYPE] == EAP_ETH_TYPE:
-                    self.log.debug('eapol flow add')
+                    self._install_flow_on_all_gemports(self.add_dhcp_trap,
+                                                       kwargs,
+                                                       us_gem_port_attr_list)
+
+            elif classifier[IP_PROTO] == 2:
+                self.log.warn('igmp flow add ignored, not implemented yet')
+            else:
+                self.log.warn("Invalid-Classifier-to-handle",
+                              classifier=classifier,
+                              action=action)
+        elif ETH_TYPE in classifier:
+            if classifier[ETH_TYPE] == EAP_ETH_TYPE:
+                self.log.debug('eapol flow add')
+                if VLAN_PCP in classifier:
+                    gemport_id = self._get_gem_port_for_pcp(
+                        classifier[VLAN_PCP], us_gem_port_attr_list
+                    )
                     self.add_eapol_flow(intf_id, onu_id, uni_id, port_no, flow, alloc_id,
                                         gemport_id)
                     vlan_id = self.get_subscriber_vlan(fd.get_in_port(flow))
@@ -381,96 +472,350 @@ class OpenOltFlowMgr(object):
                         self.add_eapol_flow(
                             intf_id, onu_id, uni_id, port_no, flow, alloc_id, gemport_id,
                             vlan_id=vlan_id)
-                    parent_port_no = self.platform.intf_id_to_port_no(intf_id, Port.PON_OLT)
-                    onu_device = self.adapter_agent.get_child_device(self.device_id,
-                                                                     onu_id=onu_id,
-                                                                     parent_port_no=parent_port_no)
-                    (ofp_port_name, ofp_port_no) = self._get_ofp_port_name(intf_id, onu_id, uni_id)
-                    if ofp_port_name is None:
-                        self.log.error("port-name-not-found")
-                        return
-                    tp_id = self.resource_mgr.get_tech_profile_id_for_onu(intf_id, onu_id, uni_id)
-                    tp_path = self.get_tp_path(intf_id, ofp_port_name, tp_id)
+                else:
+                    self._install_flow_on_all_gemports(self.add_eapol_flow,
+                                                       kwargs,
+                                                       us_gem_port_attr_list)
+                    vlan_id = self.get_subscriber_vlan(fd.get_in_port(flow))
+                    if vlan_id is not None:
+                        kwargs['vlan_vid'] = vlan_id
+                        self._install_flow_on_all_gemports(self.add_eapol_flow,
+                                                           kwargs,
+                                                           us_gem_port_attr_list)
 
-                    self.log.debug('Load-tech-profile-request-to-brcm-handler',
-                                   tp_path=tp_path)
-                    msg = {'proxy_address': onu_device.proxy_address, 'uni_id': uni_id,
-                           'event': 'download_tech_profile', 'event_data': tp_path}
+                parent_port_no = self.platform.intf_id_to_port_no(intf_id, Port.PON_OLT)
+                onu_device = self.adapter_agent.get_child_device(self.device_id,
+                                                                 onu_id=onu_id,
+                                                                 parent_port_no=parent_port_no)
+                (ofp_port_name, ofp_port_no) = self._get_ofp_port_name(intf_id, onu_id, uni_id)
+                if ofp_port_name is None:
+                    self.log.error("port-name-not-found")
+                    return
 
-                    # Send the event message to the ONU adapter
-                    self.adapter_agent.publish_inter_adapter_message(onu_device.id,
-                                                                     msg)
+                tp_id = self.resource_mgr.get_tech_profile_id_for_onu(intf_id, onu_id, uni_id)
+                tp_path = self.get_tp_path(intf_id, ofp_port_name, tp_id)
 
-                if classifier[ETH_TYPE] == LLDP_ETH_TYPE:
-                    self.log.debug('lldp flow add')
-                    nni_intf_id = self.get_nni_intf_id()
-                    self.add_lldp_flow(flow, port_no, nni_intf_id)
+                self.log.debug('Load-tech-profile-request-to-brcm-handler',
+                               tp_path=tp_path)
+                msg = {'proxy_address': onu_device.proxy_address, 'uni_id': uni_id,
+                       'event': 'download_tech_profile', 'event_data': tp_path}
 
-            elif PUSH_VLAN in action:
+                # Send the event message to the ONU adapter
+                self.adapter_agent.publish_inter_adapter_message(onu_device.id,
+                                                                 msg)
+        elif PUSH_VLAN in action:
+            if VLAN_PCP in classifier:
+                gemport_id = self._get_gem_port_for_pcp(
+                    classifier[VLAN_PCP], us_gem_port_attr_list
+                )
                 self.add_upstream_data_flow(intf_id, onu_id, uni_id, port_no, classifier,
                                             action, flow, alloc_id, gemport_id)
-            elif POP_VLAN in action:
+            else:
+                self._install_flow_on_all_gemports(self.add_upstream_data_flow,
+                                                   kwargs, us_gem_port_attr_list
+                                                   )
+        elif POP_VLAN in action:
+            if VLAN_PCP in classifier:
+                gemport_id = self._get_gem_port_for_pcp(
+                    classifier[VLAN_PCP], us_gem_port_attr_list
+                )
                 self.add_downstream_data_flow(intf_id, onu_id, uni_id, port_no, classifier,
                                               action, flow, alloc_id, gemport_id)
             else:
-                self.log.debug('Invalid-flow-type-to-handle',
-                               classifier=classifier,
-                               action=action, flow=flow)
+                self._install_flow_on_all_gemports(self.add_downstream_data_flow,
+                                                   kwargs, ds_gem_port_attr_list
+                                                   )
+        else:
+            self.log.debug('Invalid-flow-type-to-handle',
+                           classifier=classifier,
+                           action=action, flow=flow)
 
-    def create_tcont_gemport(self, intf_id, onu_id, uni_id, table_id):
-        alloc_id, gem_port_ids = None, None
-        pon_intf_onu_id = (intf_id, onu_id)
+    def get_scheduler(self, tech_profile_instance, direction, meter_id):
+        if direction == Direction.UPSTREAM:
+            scheduler = tech_profile_instance.us_scheduler
+        elif direction == Direction.DOWNSTREAM:
+            scheduler = tech_profile_instance.ds_scheduler
+        else:
+            raise Exception("invalid-direction")
 
-        # If we already have allocated alloc_id and gem_ports earlier, render them
-        alloc_id = \
-            self.resource_mgr.get_current_alloc_ids_for_onu(pon_intf_onu_id)
-        gem_port_ids = \
-            self.resource_mgr.get_current_gemport_ids_for_onu(pon_intf_onu_id)
-        if alloc_id is not None and gem_port_ids is not None:
-            return alloc_id, gem_port_ids
+        meter_band = self.adapter_agent.get_meter_band(
+            self.logical_device_id, meter_id)
 
+        traffic_shaping_info = None
+
+        if meter_band is not None:
+            cir = meter_band.bands[0].rate
+            cbs = meter_band.bands[0].burst_size
+            eir = meter_band.bands[1].rate
+            ebs = meter_band.bands[1].burst_size
+            pir = cir + eir
+            pbs = cbs + ebs
+
+            traffic_shaping_info = tech_profile_pb2.TrafficShapingInfo(
+                cir=cir,
+                cbs=cbs,
+                pir=pir,
+                pbs=pbs
+            )
+
+        scheduler_config = tech_profile_pb2.SchedulerConfig(
+            direction=TechProfile.get_parameter(
+                'direction', scheduler.direction),
+            additional_bw=TechProfile.get_parameter(
+                'additional_bw', scheduler.additional_bw),
+            priority=scheduler.priority,
+            weight=scheduler.weight,
+            sched_policy=TechProfile.get_parameter(
+                'q_sched_policy', scheduler.q_sched_policy)
+        )
+
+        traffic_scheduler = tech_profile_pb2.TrafficScheduler(
+            direction=scheduler.direction,
+            scheduler=scheduler_config,
+            alloc_id=scheduler.alloc_id,
+            traffic_shaping_info=traffic_shaping_info
+        )
+
+        return traffic_scheduler
+
+    @staticmethod
+    def get_traffic_queues(tech_profile_instance, direction):
+        if direction == Direction.UPSTREAM:
+            gemport_attribute_list = tech_profile_instance.\
+                upstream_gem_port_attribute_list
+        elif direction == Direction.DOWNSTREAM:
+            gemport_attribute_list = tech_profile_instance.\
+                downstream_gem_port_attribute_list
+        else:
+            raise Exception("invalid-direction")
+        traffic_queues = list()
+        for i in range(len(gemport_attribute_list)):
+            traffic_queues.append(tech_profile_pb2.TrafficQueue(
+                direction=TechProfile.get_parameter('direction',
+                                                    tech_profile_instance.
+                                                    us_scheduler.direction),
+                gemport_id=gemport_attribute_list[i].gemport_id,
+                pbit_map=gemport_attribute_list[i].pbit_map,
+                aes_encryption=ast.literal_eval(gemport_attribute_list[i].
+                                                aes_encryption),
+                sched_policy=TechProfile.get_parameter(
+                    'sched_policy', gemport_attribute_list[i].
+                        scheduling_policy),
+                priority=gemport_attribute_list[i].priority_q,
+                weight=gemport_attribute_list[i].weight,
+                discard_policy=TechProfile.get_parameter(
+                    'discard_policy', gemport_attribute_list[i].
+                        discard_policy)))
+
+        return traffic_queues
+
+    def create_us_scheduler_queues(self, intf_id, onu_id, uni_id, tp_instance, us_meter_id):
+        if us_meter_id == None:
+            self.log.debug("us-meter-unavailable--no-action")
+            return
+
+        kv_store_meter_id = self.resource_mgr.get_meter_id_for_onu(UPSTREAM,
+                                                                   intf_id,
+                                                                   onu_id, uni_id)
+
+        # Lets make a simple assumption that if the meter-id is present on the KV store,
+        # then the scheduler and queues configuration is applied on the OLT device
+        # in the given direction.
+        if kv_store_meter_id is not None:
+            # TODO: Dynamic meter update not supported for now
+            # TODO: The subscriber has to be un-provisioned and re-provisioned for meter update
+            assert kv_store_meter_id == us_meter_id
+            self.log.debug("scheduler-already-created-in-us")
+            return
+
+        traffic_sched = self.get_scheduler(tp_instance, Direction.UPSTREAM, us_meter_id)
+        _, ofp_port_no = self._get_ofp_port_name(intf_id, onu_id, uni_id)
         try:
-            (ofp_port_name, ofp_port_no) = self._get_ofp_port_name(intf_id, onu_id, uni_id)
-            if ofp_port_name is None:
-                self.log.error("port-name-not-found")
-                return alloc_id, gem_port_ids
-            # FIXME: If table id is <= 63 using 64 as table id
-            if table_id < DEFAULT_TECH_PROFILE_TABLE_ID:
-                table_id = DEFAULT_TECH_PROFILE_TABLE_ID
-
-            # Check tech profile instance already exists for derived port name
-            tech_profile_instance = self.tech_profile[intf_id]. \
-                get_tech_profile_instance(table_id, ofp_port_name)
-            self.log.debug('Get-tech-profile-instance-status', tech_profile_instance=tech_profile_instance)
-
-            if tech_profile_instance is None:
-                # create tech profile instance
-                tech_profile_instance = self.tech_profile[intf_id]. \
-                    create_tech_profile_instance(table_id, ofp_port_name,
-                                                 intf_id)
-                if tech_profile_instance is None:
-                    raise Exception('Tech-profile-instance-creation-failed')
+            self.stub.CreateTrafficSchedulers(
+                tech_profile_pb2.TrafficSchedulers(
+                    intf_id=intf_id,
+                    onu_id=onu_id,
+                    uni_id=uni_id,
+                    port_no=ofp_port_no,
+                    traffic_scheds=[traffic_sched]
+            ))
+        except grpc.RpcError as grpc_e:
+            if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
+                self.log.warn("us-scheduler-already-exists")
             else:
-                self.log.debug(
-                    'Tech-profile-instance-already-exist-for-given port-name',
-                    ofp_port_name=ofp_port_name)
+                self.log.error("failure-to-create-us-scheduler")
+                return
 
-            # upstream scheduler
-            us_scheduler = self.tech_profile[intf_id].get_us_scheduler(
-                tech_profile_instance)
-            # downstream scheduler
-            ds_scheduler = self.tech_profile[intf_id].get_ds_scheduler(
-                tech_profile_instance)
-            # create Tcont
-            tconts = self.tech_profile[intf_id].get_tconts(tech_profile_instance,
-                                                           us_scheduler,
-                                                           ds_scheduler)
+        # On receiving the CreateTrafficQueues request, the driver should create corresponding
+        # downstream queues.
+        try:
+            self.stub.CreateTrafficQueues(
+                tech_profile_pb2.TrafficQueues(
+                    intf_id=intf_id,
+                    onu_id=onu_id,
+                    uni_id=uni_id,
+                    port_no=ofp_port_no,
+                    traffic_queues=
+                    OpenOltFlowMgr.get_traffic_queues(tp_instance, Direction.UPSTREAM)
+            ))
+        except grpc.RpcError as grpc_e:
+            if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
+                self.log.warn("ds-queues-already-exists")
+            else:
+                self.log.error("failure-to-create-ds-queues")
+                return
 
-            self.stub.CreateTconts(openolt_pb2.Tconts(intf_id=intf_id,
-                                                      onu_id=onu_id,
-                                                      uni_id=uni_id,
-                                                      port_no=ofp_port_no,
-                                                      tconts=tconts))
+        # After we succesfully applied the scheduler configuration on the OLT device,
+        # store the meter id on the KV store, for further reference
+        self.resource_mgr.update_meter_id_for_onu(UPSTREAM, intf_id, onu_id, uni_id, us_meter_id)
+
+    def create_ds_scheduler_queues(self, intf_id, onu_id, uni_id, tp_instance, ds_meter_id):
+        if ds_meter_id == None:
+            self.log.debug("ds-meter-unavailable--no-action")
+            return
+
+        kv_store_meter_id = self.resource_mgr.get_meter_id_for_onu(DOWNSTREAM,
+                                                                   intf_id,
+                                                                   onu_id, uni_id)
+        # Lets make a simple assumption that if the meter-id is present on the KV store,
+        # then the scheduler and queues configuration is applied on the OLT device
+        if kv_store_meter_id is not None:
+            # TODO: Dynamic meter update not supported for now
+            # TODO: The subscriber has to be un-provisioned and re-provisioned for meter update
+            assert kv_store_meter_id == ds_meter_id
+            self.log.debug("scheduler-already-created-in-ds")
+            return
+
+        traffic_sched = self.get_scheduler(tp_instance, Direction.DOWNSTREAM, ds_meter_id)
+        _, ofp_port_no = self._get_ofp_port_name(intf_id, onu_id, uni_id)
+        try:
+            self.stub.CreateTrafficSchedulers(
+                tech_profile_pb2.TrafficSchedulers(
+                    intf_id=intf_id,
+                    onu_id=onu_id,
+                    uni_id=uni_id,
+                    port_no=ofp_port_no,
+                    traffic_scheds=[traffic_sched]
+            ))
+        except grpc.RpcError as grpc_e:
+            if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
+                self.log.warn("ds-scheduler-already-exists")
+            else:
+                self.log.error("failure-to-create-ds-scheduler")
+                return
+
+        # On receiving the CreateTrafficQueues request, the driver should create corresponding
+        # downstream queues.
+        try:
+            self.stub.CreateTrafficQueues(
+                tech_profile_pb2.TrafficQueues(
+                    intf_id=intf_id,
+                    onu_id=onu_id,
+                    uni_id=uni_id,
+                    port_no=ofp_port_no,
+                    traffic_queues=
+                    OpenOltFlowMgr.get_traffic_queues(tp_instance, Direction.DOWNSTREAM)
+            ))
+        except grpc.RpcError as grpc_e:
+            if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
+                self.log.warn("ds-queues-already-exists")
+            else:
+                self.log.error("failure-to-create-ds-queues")
+                return
+
+        # After we successfully applied the scheduler configuration on the OLT device,
+        # store the meter id on the KV store, for further reference
+        self.resource_mgr.update_meter_id_for_onu(DOWNSTREAM, intf_id, onu_id, uni_id, ds_meter_id)
+
+    def remove_us_scheduler_queues(self, intf_id, onu_id, uni_id, tp_instance):
+        us_meter_id = self.resource_mgr.get_meter_id_for_onu(UPSTREAM,
+                                                             intf_id,
+                                                             onu_id, uni_id)
+        traffic_sched = self.get_scheduler(tp_instance, Direction.UPSTREAM, us_meter_id)
+        _, ofp_port_no = self._get_ofp_port_name(intf_id, onu_id, uni_id)
+        try:
+            self.stub.RemoveTrafficSchedulers(
+                tech_profile_pb2.TrafficSchedulers(
+                    intf_id=intf_id,
+                    onu_id=onu_id,
+                    uni_id=uni_id,
+                    port_no=ofp_port_no,
+                    traffic_scheds=[traffic_sched]
+            ))
+        except grpc.RpcError as grpc_e:
+            self.log.error("failure-to-remove-us-scheduler")
+
+        # On receiving the CreateTrafficQueues request, the driver should create corresponding
+        # downstream queues.
+        try:
+            self.stub.RemoveTrafficQueues(
+                tech_profile_pb2.TrafficQueues(
+                    intf_id=intf_id,
+                    onu_id=onu_id,
+                    uni_id=uni_id,
+                    port_no=ofp_port_no,
+                    traffic_queues=
+                    OpenOltFlowMgr.get_traffic_queues(tp_instance, Direction.UPSTREAM)
+            ))
+        except grpc.RpcError as grpc_e:
+            self.log.error("failure-to-remove-us-queues")
+
+        self.resource_mgr.remove_meter_id_for_onu(UPSTREAM, intf_id, onu_id, uni_id)
+
+    def remove_ds_scheduler_queues(self, intf_id, onu_id, uni_id, tp_instance):
+        ds_meter_id = self.resource_mgr.get_meter_id_for_onu(DOWNSTREAM,
+                                                             intf_id,
+                                                             onu_id, uni_id)
+
+        traffic_sched = self.get_scheduler(tp_instance, Direction.DOWNSTREAM, ds_meter_id)
+        _, ofp_port_no = self._get_ofp_port_name(intf_id, onu_id, uni_id)
+        try:
+            self.stub.RemoveTrafficSchedulers(
+                tech_profile_pb2.TrafficSchedulers(
+                    intf_id=intf_id,
+                    onu_id=onu_id,
+                    uni_id=uni_id,
+                    port_no=ofp_port_no,
+                    traffic_scheds=[traffic_sched]
+            ))
+        except grpc.RpcError as grpc_e:
+            self.log.error("failure-to-remove-ds-scheduler")
+
+        # On receiving the CreateTrafficQueues request, the driver should create corresponding
+        # downstream queues.
+        try:
+            self.stub.RemoveTrafficQueues(
+                tech_profile_pb2.TrafficQueues(
+                    intf_id=intf_id,
+                    onu_id=onu_id,
+                    uni_id=uni_id,
+                    port_no=ofp_port_no,
+                    traffic_queues=
+                    OpenOltFlowMgr.get_traffic_queues(tp_instance, Direction.DOWNSTREAM)
+            ))
+        except grpc.RpcError as grpc_e:
+            self.log.error("failure-to-remove-ds-queues")
+
+        self.resource_mgr.remove_meter_id_for_onu(DOWNSTREAM, intf_id, onu_id, uni_id)
+
+    def get_tech_profile_instance(self, intf_id, onu_id, uni_id, tp_id):
+        (ofp_port_name, ofp_port_no) = self._get_ofp_port_name(intf_id, onu_id, uni_id)
+        if ofp_port_name is None:
+            self.log.error("port-name-not-found")
+            return None
+
+        # Check tech profile instance already exists for derived port name
+        tech_profile_instance = self.tech_profile[intf_id]. \
+            get_tech_profile_instance(tp_id, ofp_port_name)
+        if tech_profile_instance is None:
+            # create tech profile instance
+            tech_profile_instance = self.tech_profile[intf_id]. \
+                create_tech_profile_instance(tp_id, ofp_port_name,
+                                             intf_id)
+            if tech_profile_instance is None:
+                raise Exception('Tech-profile-instance-creation-failed')
+
+            self.resource_mgr.update_tech_profile_id_for_onu(intf_id, onu_id, uni_id, tp_id)
 
             # Fetch alloc id and gemports from tech profile instance
             alloc_id = tech_profile_instance.us_scheduler.alloc_id
@@ -479,53 +824,64 @@ class OpenOltFlowMgr(object):
                     tech_profile_instance.upstream_gem_port_attribute_list)):
                 gem_port_ids.append(
                     tech_profile_instance.upstream_gem_port_attribute_list[i].
-                    gemport_id)
-        except BaseException as e:
-            self.log.exception(exception=e)
+                        gemport_id)
 
-        # Update the allocated alloc_id and gem_port_id for the ONU/UNI to KV store
-        pon_intf_onu_id = (intf_id, onu_id, uni_id)
-        self.resource_mgr.resource_mgrs[intf_id].update_alloc_ids_for_onu(
-            pon_intf_onu_id,
-            list([alloc_id])
-        )
-        self.resource_mgr.resource_mgrs[intf_id].update_gemport_ids_for_onu(
-            pon_intf_onu_id,
-            gem_port_ids
-        )
+            # Update the allocated alloc_id and gem_port_id for the ONU/UNI to KV store
+            pon_intf_onu_id = (intf_id, onu_id, uni_id)
+            self.resource_mgr.resource_mgrs[intf_id].update_alloc_ids_for_onu(
+                pon_intf_onu_id,
+                list([alloc_id])
+            )
+            self.resource_mgr.resource_mgrs[intf_id].update_gemport_ids_for_onu(
+                pon_intf_onu_id,
+                gem_port_ids
+            )
 
-        self.resource_mgr.update_gemports_ponport_to_onu_map_on_kv_store(
-            gem_port_ids, intf_id, onu_id, uni_id
-        )
+            self.resource_mgr.update_gemports_ponport_to_onu_map_on_kv_store(
+                gem_port_ids, intf_id, onu_id, uni_id
+            )
 
+        else:
+            self.log.debug(
+                'Tech-profile-instance-already-exist-for-given port-name',
+                ofp_port_name=ofp_port_name)
+
+        return tech_profile_instance
+
+    def get_alloc_id_gem_port(self, intf_id, onu_id):
+        pon_intf_onu_id = (intf_id, onu_id)
+        # If we already have allocated alloc_id and gem_ports earlier, render them
+        alloc_id = \
+            self.resource_mgr.get_current_alloc_ids_for_onu(pon_intf_onu_id)
+        gem_port_ids = \
+            self.resource_mgr.get_current_gemport_ids_for_onu(pon_intf_onu_id)
         return alloc_id, gem_port_ids
 
-    def add_upstream_data_flow(self, intf_id, onu_id, uni_id, port_no, uplink_classifier,
-                               uplink_action, logical_flow, alloc_id,
-                               gemport_id):
+    def add_upstream_data_flow(self, intf_id, onu_id, uni_id, port_no, classifier,
+                               action, logical_flow, alloc_id, gemport_id):
 
-        uplink_classifier[PACKET_TAG_TYPE] = SINGLE_TAG
+        classifier[PACKET_TAG_TYPE] = SINGLE_TAG
 
-        self.add_hsia_flow(intf_id, onu_id, uni_id, port_no, uplink_classifier,
-                           uplink_action, UPSTREAM,
+        self.add_hsia_flow(intf_id, onu_id, uni_id, port_no, classifier,
+                           action, UPSTREAM,
                            logical_flow, alloc_id, gemport_id)
 
         # Secondary EAP on the subscriber vlan
         (eap_active, eap_logical_flow) = self.is_eap_enabled(intf_id, onu_id, uni_id)
         if eap_active:
             self.add_eapol_flow(intf_id, onu_id, uni_id, port_no, eap_logical_flow, alloc_id,
-                                gemport_id, vlan_id=uplink_classifier[VLAN_VID])
+                                gemport_id, vlan_id=classifier[VLAN_VID])
 
-    def add_downstream_data_flow(self, intf_id, onu_id, uni_id, port_no, downlink_classifier,
-                                 downlink_action, flow, alloc_id, gemport_id):
-        downlink_classifier[PACKET_TAG_TYPE] = DOUBLE_TAG
+    def add_downstream_data_flow(self, intf_id, onu_id, uni_id, port_no, classifier,
+                                 action, logical_flow, alloc_id, gemport_id):
+        classifier[PACKET_TAG_TYPE] = DOUBLE_TAG
         # Needed ???? It should be already there
-        downlink_action[POP_VLAN] = True
-        downlink_action[VLAN_VID] = downlink_classifier[VLAN_VID]
+        action[POP_VLAN] = True
+        action[VLAN_VID] = classifier[VLAN_VID]
 
-        self.add_hsia_flow(intf_id, onu_id, uni_id, port_no, downlink_classifier,
-                           downlink_action, DOWNSTREAM,
-                           flow, alloc_id, gemport_id)
+        self.add_hsia_flow(intf_id, onu_id, uni_id, port_no, classifier,
+                           action, DOWNSTREAM,
+                           logical_flow, alloc_id, gemport_id)
 
     def add_hsia_flow(self, intf_id, onu_id, uni_id, port_no, classifier, action,
                       direction, logical_flow, alloc_id, gemport_id):
@@ -537,16 +893,16 @@ class OpenOltFlowMgr(object):
                                                         flow_store_cookie):
             self.log.debug('flow-exists--not-re-adding')
         else:
-
             # One of the OLT platform (Broadcom BAL) requires that symmetric
             # flows require the same flow_id to be used across UL and DL.
             # Since HSIA flow is the only symmetric flow currently, we need to
             # re-use the flow_id across both direction. The 'flow_category'
             # takes priority over flow_cookie to find any available HSIA_FLOW
             # id for the ONU.
+
             flow_id = self.resource_mgr.get_flow_id(intf_id, onu_id, uni_id,
-                                                    flow_store_cookie,
-                                                    HSIA_FLOW)
+                                                    flow_category=HSIA_FLOW,
+                                                    flow_pcp=classifier[VLAN_PCP])
             if flow_id is None:
                 self.log.error("hsia-flow-unavailable")
                 return
@@ -584,14 +940,15 @@ class OpenOltFlowMgr(object):
 
         flow_store_cookie = self._get_flow_store_cookie(classifier,
                                                         gemport_id)
+
         if self.resource_mgr.is_flow_cookie_on_kv_store(intf_id, onu_id, uni_id,
                                                         flow_store_cookie):
             self.log.debug('flow-exists--not-re-adding')
         else:
             flow_id = self.resource_mgr.get_flow_id(
-                intf_id, onu_id, uni_id, flow_store_cookie
+                intf_id, onu_id, uni_id,
+                flow_store_cookie=flow_store_cookie,
             )
-
             dhcp_flow = openolt_pb2.Flow(
                 onu_id=onu_id, uni_id=uni_id, flow_id=flow_id, flow_type=UPSTREAM,
                 access_intf_id=intf_id, gemport_id=gemport_id,
@@ -611,26 +968,28 @@ class OpenOltFlowMgr(object):
                                                   flow_info)
 
     def add_eapol_flow(self, intf_id, onu_id, uni_id, port_no, logical_flow, alloc_id,
-                       gemport_id, vlan_id=DEFAULT_MGMT_VLAN):
+                       gemport_id, vlan_id=DEFAULT_MGMT_VLAN, classifier=None, action=None):
 
         uplink_classifier = dict()
         uplink_classifier[ETH_TYPE] = EAP_ETH_TYPE
         uplink_classifier[PACKET_TAG_TYPE] = SINGLE_TAG
         uplink_classifier[VLAN_VID] = vlan_id
+        if classifier is not None:
+            uplink_classifier[VLAN_PCP] = classifier[VLAN_PCP]
 
         uplink_action = dict()
         uplink_action[TRAP_TO_HOST] = True
 
         flow_store_cookie = self._get_flow_store_cookie(uplink_classifier,
                                                         gemport_id)
-
         if self.resource_mgr.is_flow_cookie_on_kv_store(intf_id, onu_id, uni_id,
                                                         flow_store_cookie):
             self.log.debug('flow-exists--not-re-adding')
         else:
             # Add Upstream EAPOL Flow.
             uplink_flow_id = self.resource_mgr.get_flow_id(
-                intf_id, onu_id, uni_id, flow_store_cookie
+                intf_id, onu_id, uni_id,
+                flow_store_cookie=flow_store_cookie
             )
 
             upstream_flow = openolt_pb2.Flow(
@@ -678,16 +1037,15 @@ class OpenOltFlowMgr(object):
             downlink_action[PUSH_VLAN] = True
             downlink_action[VLAN_VID] = vlan_id
 
-
             flow_store_cookie = self._get_flow_store_cookie(downlink_classifier,
                                                             gemport_id)
             if self.resource_mgr.is_flow_cookie_on_kv_store(intf_id, onu_id, uni_id,
                                                             flow_store_cookie):
                 self.log.debug('flow-exists--not-re-adding')
             else:
-
                 downlink_flow_id = self.resource_mgr.get_flow_id(
-                    intf_id, onu_id, uni_id, flow_store_cookie
+                    intf_id, onu_id, uni_id,
+                    flow_store_cookie=flow_store_cookie
                 )
 
                 downstream_flow = openolt_pb2.Flow(
@@ -704,7 +1062,7 @@ class OpenOltFlowMgr(object):
                     id=logical_flow.id, cookie=logical_flow.cookie,
                     table_id=logical_flow.table_id, priority=logical_flow.priority,
                     flags=logical_flow.flags)
-
+ 
                 downstream_logical_flow.match.oxm_fields.extend(fd.mk_oxm_fields([
                     fd.in_port(fd.get_out_port(logical_flow)),
                     fd.vlan_vid(special_vlan_downstream_flow | 0x1000)]))
@@ -770,7 +1128,7 @@ class OpenOltFlowMgr(object):
             self.log.debug('flow-exists--not-re-adding')
         else:
             flow_id = self.resource_mgr.get_flow_id(network_intf_id, onu_id, uni_id,
-                                                    flow_store_cookie)
+                                                    flow_store_cookie=flow_store_cookie)
 
             downstream_flow = openolt_pb2.Flow(
                 access_intf_id=-1,  # access_intf_id not required
@@ -789,10 +1147,8 @@ class OpenOltFlowMgr(object):
             self.log.debug('add lldp downstream trap', classifier=classifier,
                            action=action, flow=downstream_flow, port_no=port_no)
             if self.add_flow_to_device(downstream_flow, logical_flow):
-                flow_info = self._get_flow_info_as_json_blob(downstream_flow,
-                                                             flow_store_cookie)
                 self.update_flow_info_to_kv_store(network_intf_id, onu_id, uni_id,
-                                                  flow_id, flow_info)
+                                                  flow_id, downstream_flow)
 
     def mk_classifier(self, classifier_info):
 
@@ -839,6 +1195,8 @@ class OpenOltFlowMgr(object):
         elif PUSH_VLAN in action_info:
             action.o_vid = action_info[VLAN_VID]
             action.cmd.add_outer_tag = True
+            if VLAN_PCP in action_info:
+                action.o_pbits = action_info[VLAN_PCP]
         elif TRAP_TO_HOST in action_info:
             action.cmd.trap_to_host = True
         else:
@@ -928,17 +1286,14 @@ class OpenOltFlowMgr(object):
         flows.items.extend([stored_flow])
         self.flows_proxy.update('/', flows)
 
-    def find_next_flow(self, flow):
+    def find_next_flow(self, flow, metadata):
         table_id = fd.get_goto_table_id(flow)
-        metadata = 0
         # Prior to ONOS 1.13.5, Metadata contained the UNI output port number. In
         # 1.13.5 and later, the lower 32-bits is the output port number and the
         # upper 32-bits is the inner-vid we are looking for. Use just the lower 32
         # bits.  Allows this code to work with pre- and post-1.13.5 ONOS OltPipeline
 
-        for field in fd.get_ofb_fields(flow):
-            if field.type == fd.METADATA:
-                metadata = field.table_metadata & 0xFFFFFFFF
+        port = metadata & 0xFFFFFFFF
         if table_id is None:
             return None
         flows = self.logical_flows_proxy.get('/').items
@@ -947,7 +1302,7 @@ class OpenOltFlowMgr(object):
             if f.table_id == table_id:
                 # FIXME
                 if fd.get_in_port(f) == fd.get_in_port(flow) and \
-                        fd.get_out_port(f) == metadata:
+                        fd.get_out_port(f) == port:
                     next_flows.append(f)
 
         if len(next_flows) == 0:
@@ -1011,14 +1366,27 @@ class OpenOltFlowMgr(object):
                 self.resource_mgr.free_flow_id(pon_port, onu_id, uni_id, flow_id)
 
         try:
-            tconts = self.tech_profile[pon_port].get_tconts(tech_profile_instance)
-            self.stub.RemoveTconts(openolt_pb2.Tconts(intf_id=pon_port,
-                                                      onu_id=onu_id,
-                                                      uni_id=uni_id,
-                                                      port_no=port_no,
-                                                      tconts=tconts))
+            traffic_scheds = self.tech_profile[pon_port].get_traffic_scheds(tech_profile_instance)
+            self.stub.RemoveTrafficSchedulers(tech_profile_pb2.TrafficSchedulers(
+                intf_id=pon_port,
+                onu_id=onu_id,
+                uni_id=uni_id,
+                port_no=port_no,
+                traffic_scheds=traffic_scheds))
         except grpc.RpcError as grpc_e:
-            self.log.error('error-removing-tcont-scheduler-queues',
+            self.log.error('error-removing-schedulers',
+                               err=grpc_e)
+        try:
+            traffic_queues = self.tech_profile[pon_port].get_traffic_queues(tech_profile_instance)
+            self.stub.RemoveTrafficQueues(tech_profile_pb2.TrafficQueues(
+                intf_id=port_no,
+                onu_id=onu_id,
+                uni_id=uni_id,
+                port_no=port_no,
+                traffic_queues=traffic_queues
+            ))
+        except grpc.RpcError as grpc_e:
+            self.log.error('error-removing-queues',
                            err=grpc_e)
 
     def generate_stored_id(self, flow_id, direction):
@@ -1100,3 +1468,33 @@ class OpenOltFlowMgr(object):
         self.log.debug("nni-intf-d ", nni_intf_id=self.nni_intf_id)
         return self.nni_intf_id
 
+    @staticmethod
+    def _get_gem_port_for_pcp(pcp, get_gem_port_for_pcp):
+        """
+        Return gem_port id corresponding to a given pcp bit
+
+        :param pcp: Represents the p_bit
+        :param get_gem_port_for_pcp: Represents a list of gemport_attributes (DS or US)
+        :return: Gemport ID servicing the given pcp if found, else None
+        """
+        for gem_port_attr in get_gem_port_for_pcp:
+            # The pbit_map appears as "0b00011010" in the Tech-Profile instance.
+            # The initial '0b' has to be stripped.
+            # The remaining string is reversed, then enumerated and matched against pcp index.
+            for i, p in enumerate(reversed(gem_port_attr.pbit_map[2:])):
+                if i == pcp and p == '1':
+                    return gem_port_attr.gemport_id
+        return None
+
+    @staticmethod
+    def _install_flow_on_all_gemports(func, kwargs, gem_attr_list):
+        for gem_attr in gem_attr_list:
+            # The pbit_map appears as "0b00011010" in the Tech-Profile instance.
+            # The initial '0b' has to be stripped.
+            # The remaining string is reversed, then enumerated and matched against pbit 1.
+            for i, p in enumerate(reversed(gem_attr.pbit_map[2:])):
+                if p == '1':
+                    kwargs['classifier'][VLAN_PCP] = i
+                    # Add the gemport corresponding to this PCP
+                    kwargs['gemport_id'] = gem_attr.gemport_id
+                    func(**kwargs)
