@@ -171,11 +171,14 @@ class OpenOltPlatform(object):
                         uni_port_no = action.output.port
                         break
 
+            if uni_port_no is None:
+                uni_port_no = fd.get_metadata_from_write_metadata(flow) & 0xFFFFFFFF
+
         if uni_port_no is None:
             raise ValueError
 
-        pon_intf = self.platform.intf_id_from_uni_port_num(uni_port_no)
-        onu_id = self.platform.onu_id_from_uni_port_num(uni_port_no)
-        uni_id = self.platform.uni_id_from_port_num(uni_port_no)
+        pon_intf = self.intf_id_from_uni_port_num(uni_port_no)
+        onu_id = self.onu_id_from_uni_port_num(uni_port_no)
+        uni_id = self.uni_id_from_port_num(uni_port_no)
 
-        return pon_intf, onu_id, uni_id
+        return int(pon_intf), int(onu_id), int(uni_id)
