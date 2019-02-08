@@ -1,0 +1,126 @@
+// Copyright (c) 2018 Open Networking Foundation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+package tech_profile;
+import "google/api/annotations.proto";
+
+enum Direction {
+    UPSTREAM = 0;
+    DOWNSTREAM = 1;
+    BIDIRECTIONAL = 2;
+}
+
+enum SchedulingPolicy {
+    WRR = 0;
+    StrictPriority = 1;
+    Hybrid = 2;
+}
+
+enum AdditionalBW {
+    AdditionalBW_None = 0;
+    AdditionalBW_NA = 1;
+    AdditionalBW_BestEffort = 2;
+    AdditionalBW_Auto = 3;
+}
+
+enum DiscardPolicy {
+    TailDrop = 0;
+    WTailDrop = 1;
+    Red = 2;
+    WRed = 3;
+}
+
+enum InferredAdditionBWIndication {
+    InferredAdditionBWIndication_None = 0;
+    InferredAdditionBWIndication_Assured = 1;
+    InferredAdditionBWIndication_BestEffort = 2;
+}
+
+message SchedulerConfig {
+    Direction direction = 1;
+    AdditionalBW additional_bw = 2; // Valid on for “direction == Upstream”.
+    fixed32 priority = 3;
+    fixed32 weight = 4;
+    SchedulingPolicy sched_policy = 5;
+}
+
+message TrafficShapingInfo {
+    fixed32 cir = 1;
+    fixed32 cbs = 2;
+    fixed32 pir = 3;
+    fixed32 pbs = 4;
+    fixed32 gir = 5; // only if “direction == Upstream ”
+    InferredAdditionBWIndication add_bw_ind = 6; // only if “direction == Upstream”
+}
+
+message TrafficScheduler {
+    Direction direction = 1;
+    fixed32 alloc_id = 2; // valid only if “direction == Upstream ”
+    SchedulerConfig scheduler = 3;
+    TrafficShapingInfo traffic_shaping_info = 4;
+}
+
+message TrafficSchedulers {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    fixed32 uni_id = 4;
+    fixed32 port_no = 5;
+    repeated TrafficScheduler traffic_scheds = 3;
+}
+
+message TailDropDiscardConfig {
+    fixed32 queue_size = 1;
+}
+
+message RedDiscardConfig {
+    fixed32 min_threshold = 1;
+    fixed32 max_threshold = 2;
+    fixed32 max_probability = 3;
+}
+
+message WRedDiscardConfig {
+    RedDiscardConfig green = 1;
+    RedDiscardConfig yellow = 2;
+    RedDiscardConfig red = 3;
+}
+
+message DiscardConfig {
+    DiscardPolicy discard_policy = 1;
+    oneof discard_config {
+        TailDropDiscardConfig tail_drop_discard_config = 2;
+        RedDiscardConfig red_discard_config = 3;
+        WRedDiscardConfig wred_discard_config = 4;
+    }
+}
+
+message TrafficQueue {
+    Direction direction = 1;
+    fixed32 gemport_id = 2;
+    string pbit_map = 3;
+    bool aes_encryption = 4;
+    SchedulingPolicy sched_policy = 5;
+    fixed32 priority = 6;
+    fixed32 weight = 7;
+    DiscardPolicy discard_policy = 8;
+    DiscardConfig discard_config = 9;
+}
+
+message TrafficQueues {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    fixed32 uni_id = 4;
+    fixed32 port_no = 5;
+    repeated TrafficQueue traffic_queues = 6;
+}

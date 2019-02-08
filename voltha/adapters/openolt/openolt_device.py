@@ -167,6 +167,66 @@ class OpenoltDevice(object):
 
     def post_down(self, event):
         self.log.debug('post_down')
+        # We land here on loosing connection with OLT.
+        # In such case, reset all data on the KV store for all the associated UNIs,
+        # and NNI port. As a result, when the connection is regained with the OLT,
+        # the whole configuration is replayed again.
+
+        # Clear the KV store data associated with the all the UNI ports
+        # This clears up flow data and also resource map data for various
+        # other pon resources like alloc_id and gemport_id
+        child_devices = self.data_model.adapter_agent.get_child_devices(self.device_id)
+        for child_device in child_devices:
+            ports = self.data_model.adapter_agent.get_ports(child_device.id, Port.ETHERNET_UNI)
+            for port in ports:
+                if port.type == Port.ETHERNET_UNI:
+                    self.log.debug("clearing-flows-for-onu-uni", child_device_id=child_device.id)
+                    port_no = port.port_no
+                    uni_id = self.platform.uni_id_from_port_num(port_no)
+                    pon_intf_id = child_device.proxy_address.channel_id
+                    onu_id = child_device.proxy_address.onu_id
+
+                    try:
+                        self.log.debug("clearing-tp-instance-for-onu",
+                                    serial_number=child_device.serial_number, onu_id=onu_id,
+                                    uni_id=uni_id, intf_id=pon_intf_id)
+                        self.flow_mgr.delete_tech_profile_instance(
+                                    pon_intf_id, onu_id, uni_id,
+                                    child_device.serial_number)
+                    except Exception as e:
+                        self.log.exception("error-removing-tp-instance")
+
+                    try:
+                        pon_intf_id_onu_id = (pon_intf_id, onu_id, uni_id)
+                        # Free any PON resources that were reserved for the ONU
+                        self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
+                        # Free tech_profile id for ONU
+                        self.resource_mgr.remove_tech_profile_id_for_onu(pon_intf_id, onu_id, uni_id)
+                        # Free meter_ids for the ONU
+                        self.resource_mgr.remove_meter_id_for_onu("upstream",
+                                                                  pon_intf_id, onu_id, uni_id)
+                        self.resource_mgr.remove_meter_id_for_onu("downstream",
+                                                                  pon_intf_id, onu_id, uni_id)
+                        self.log.debug('cleared-resource', pon_intf_id_onu_id=pon_intf_id_onu_id)
+                    except Exception as e:
+                        self.log.exception("error-removing-pon-resources-for-onu")
+
+        # Clear the flows from KV store associated with NNI port.
+        # There are mostly trap rules from NNI port (like LLDP)
+        ports = self.data_model.adapter_agent.get_ports(self.device_id, Port.ETHERNET_NNI)
+        for port in ports:
+            self.log.debug('clear-flows-for-nni-in-olt-device', port=port)
+            if port.type == Port.ETHERNET_NNI:
+                nni_intf_id = self.platform.intf_id_from_nni_port_num(port.port_no)
+                flow_ids = self.resource_mgr.get_current_flow_ids(nni_intf_id,
+                                                                  -1, -1)
+                # Clear the flows on KV store
+                if flow_ids is not None and isinstance(flow_ids, list):
+                    for flow_id in flow_ids:
+                        self.resource_mgr.free_flow_id(nni_intf_id, -1, -1,
+                                                       flow_id)
+                        self.log.debug('cleared-flows', nni_intf_id=nni_intf_id)
+
         self.flow_mgr.reset_flows()
 
     def indications_thread(self):
@@ -393,10 +453,17 @@ class OpenoltDevice(object):
                 port_no=egress_port,
                 packet=str(payload).encode("HEX"))
 
+            intf_id = self.platform.intf_id_from_uni_port_num(egress_port)
+            onu_id = self.platform.onu_id_from_port_num(egress_port)
+            port_no = egress_port
+            gemport_key = (intf_id, onu_id, port_no)
+            assert (gemport_key in self.data_model.packet_in_gem_port)
+            gemport_id = self.data_model.packet_in_gem_port[gemport_key]
             onu_pkt = openolt_pb2.OnuPacket(
-                intf_id=self.platform.intf_id_from_uni_port_num(egress_port),
-                onu_id=self.platform.onu_id_from_port_num(egress_port),
-                port_no=egress_port,
+                intf_id=intf_id,
+                onu_id=onu_id,
+                port_no=port_no,
+                gemport_id=gemport_id,
                 pkt=send_pkt)
 
             self.stub.OnuPacketOut(onu_pkt)
@@ -501,42 +568,45 @@ class OpenoltDevice(object):
     # FIXME - instead of passing child_device around, delete_child_device
     # needs to change to use serial_number.
     def delete_child_device(self, child_device):
-        self.log.debug('sending-deactivate-onu',
+        serial_number = OpenoltUtils.destringify_serial_number(
+                            child_device.serial_number)
+        pon_intf_id = child_device.proxy_address.channel_id
+        onu_id = child_device.proxy_address.onu_id
+        self.log.debug('delete-device',
                        onu_device=child_device,
-                       onu_serial_number=child_device.serial_number)
+                       onu_serial_number=serial_number,
+                       device_id=child_device.id)
 
-        self.data_model.onu_delete(child_device.serial_number)
+        try:
+            self.data_model.onu_delete(self.flow_mgr, child_device)
+            onu = openolt_pb2.Onu(
+                intf_id=pon_intf_id,
+                onu_id=onu_id,
+                serial_number=serial_number)
+            self.stub.DeleteOnu(onu)
+        except Exception as e:
+            self.log.exception("error-deleting-the-onu-on-olt-device", error=e)
 
         # TODO FIXME - For each uni.
         # TODO FIXME - Flows are not deleted
         uni_id = 0  # FIXME
         try:
             self.flow_mgr.delete_tech_profile_instance(
-                        child_device.proxy_address.channel_id,
+                        pon_intf_id,
                         child_device.proxy_address.onu_id,
-                        uni_id, None)
+                        uni_id, child_device.serial_number)
         except Exception as e:
             self.log.exception("error-removing-tp-instance")
 
         try:
-            pon_intf_id_onu_id = (child_device.proxy_address.channel_id,
-                                  child_device.proxy_address.onu_id,
+            pon_intf_id_onu_id = (pon_intf_id,
+                                  onu_id,
                                   uni_id)
             # Free any PON resources that were reserved for the ONU
             self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
         except Exception as e:
             self.log.exception("error-removing-pon-resources-for-onu")
 
-        serial_number = OpenoltUtils.destringify_serial_number(
-            child_device.serial_number)
-        try:
-            onu = openolt_pb2.Onu(
-                intf_id=child_device.proxy_address.channel_id,
-                onu_id=child_device.proxy_address.onu_id,
-                serial_number=serial_number)
-            self.stub.DeleteOnu(onu)
-        except Exception as e:
-            self.log.exception("error-deleting-the-onu-on-olt-device", error=e)
 
     def reboot(self):
         self.log.debug('rebooting openolt device')
