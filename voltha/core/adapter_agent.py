@@ -549,6 +549,22 @@ class AdapterAgent(object):
         return self.root_proxy.get('/logical_devices/{}/ports/{}'.format(
             logical_device_id, port_id))
 
+    def get_meter_band(self, logical_device_id, meter_id):
+        meters = list(self.root_proxy.get('/logical_devices/{}/meters'.format(
+            logical_device_id)).items)
+        for meter in meters:
+            if meter.config.meter_id == meter_id:
+                '''
+                # Returns
+                message ofp_meter_config {
+                    uint32        flags = 1;
+                    uint32        meter_id = 2;
+                    repeated ofp_meter_band_header bands = 3;
+                };
+                '''
+                return meter.config
+        return None
+
     def _create_cluster_ids_from_dpid(self, dpid):
         """
         Create a logical device id using a datapath id.
