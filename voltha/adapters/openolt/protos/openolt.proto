@@ -130,16 +130,30 @@ service Openolt {
         };
     }
 
-    rpc CreateTconts(Tconts) returns (Empty) {
+    rpc CreateTrafficSchedulers(TrafficSchedulers) returns (Empty) {
         option (google.api.http) = {
-            post: "/v1/CreateTconts"
+            post: "/v1/CreateTrafficSchedulers"
             body: "*"
         };
     }
 
-    rpc RemoveTconts(Tconts) returns (Empty) {
+    rpc RemoveTrafficSchedulers(TrafficSchedulers) returns (Empty) {
         option (google.api.http) = {
-            post: "/v1/RemoveTconts"
+            post: "/v1/RemoveTrafficSchedulers"
+            body: "*"
+        };
+    }
+
+    rpc CreateTrafficQueues(TrafficQueues) returns (Empty) {
+        option (google.api.http) = {
+            post: "/v1/CreateTrafficQueues"
+            body: "*"
+        };
+    }
+
+    rpc RemoveTrafficQueues(TrafficQueues) returns (Empty) {
+        option (google.api.http) = {
+            post: "/v1/RemoveTrafficQueues"
             body: "*"
         };
     }
@@ -496,7 +510,7 @@ enum InferredAdditionBWIndication {
     InferredAdditionBWIndication_BestEffort = 2;
 }
 
-message Scheduler {
+message SchedulerConfig {
     Direction direction = 1;
     AdditionalBW additional_bw = 2; // Valid on for “direction == Upstream”.
     fixed32 priority = 3;
@@ -513,19 +527,19 @@ message TrafficShapingInfo {
     InferredAdditionBWIndication add_bw_ind = 6; // only if “direction == Upstream”
 }
 
-message Tcont {
+message TrafficScheduler {
     Direction direction = 1;
     fixed32 alloc_id = 2; // valid only if “direction == Upstream ”
-    Scheduler scheduler = 3;
+    SchedulerConfig scheduler = 3;
     TrafficShapingInfo traffic_shaping_info = 4;
 }
 
-message Tconts {
+message TrafficSchedulers {
     fixed32 intf_id = 1;
     fixed32 onu_id = 2;
     fixed32 uni_id = 4;
     fixed32 port_no = 5;
-    repeated Tcont tconts = 3;
+    repeated TrafficScheduler traffic_scheds = 3;
 }
 
 message TailDropDiscardConfig {
@@ -551,6 +565,26 @@ message DiscardConfig {
         RedDiscardConfig red_discard_config = 3;
         WRedDiscardConfig wred_discard_config = 4;
     }
+}
+
+message TrafficQueue {
+    Direction direction = 1;
+    fixed32 gemport_id = 2;
+    string pbit_map = 3;
+    bool aes_encryption = 4;
+    SchedulingPolicy sched_policy = 5;
+    fixed32 priority = 6;
+    fixed32 weight = 7;
+    DiscardPolicy discard_policy = 8;
+    DiscardConfig discard_config = 9;
+}
+
+message TrafficQueues {
+    fixed32 intf_id = 1;
+    fixed32 onu_id = 2;
+    fixed32 uni_id = 4;
+    fixed32 port_no = 5;
+    repeated TrafficQueues traffic_queues = 6;
 }
 
 message Empty {}
