@@ -346,6 +346,49 @@ class OpenoltDevice(object):
 
     def post_down(self, event):
         self.log.debug('post_down')
+        # We land here on loosing connection with OLT.
+        # In such case, reset all data on the KV store for all the associated UNIs,
+        # and NNI port. As a result, when the connection is regained with the OLT,
+        # the whole configuration is replayed again.
+
+        # Clear the KV store data associated with the all the UNI ports
+        # This clears up flow data and also resource map data for various
+        # other pon resources like alloc_id and gemport_id
+        child_devices = self.adapter_agent.get_child_devices(self.device_id)
+        for child_device in child_devices:
+            for port in child_device.ports:
+                if port.type == Port.ETHERNET_UNI:
+                    port_no = port.port_no
+                    uni_id = self.platform.uni_id_from_port_num(port_no)
+                    try:
+                        pon_intf_id_onu_id = (child_device.proxy_address.channel_id,
+                                              child_device.proxy_address.onu_id,
+                                              uni_id)
+                        # Free any PON resources that were reserved for the ONU
+                        self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
+                        # Free tech_profile id for ONU
+                        self.resource_mgr.remove_tech_profile_id_for_onu(pon_intf_id_onu_id)
+                        # Free meter_ids for the ONU
+                        self.resource_mgr.remove_meter_id_for_onu("upstream", pon_intf_id_onu_id)
+                        self.resource_mgr.remove_meter_id_for_onu("downstream", pon_intf_id_onu_id)
+                    except Exception as e:
+                        self.log.exception("error-removing-pon-resources-for-onu")
+
+        # Clear the flows from KV store associated with NNI port.
+        # There are mostly trap rules from NNI port (like LLDP)
+        olt_device = self.adapter_agent.get_device(self.device_id)
+        for port in olt_device.ports:
+            if port.type == Port.ETHERNET_NNI:
+                nni_intf_id = self.platform.intf_id_from_nni_port_num(port.port_no)
+                flow_ids = self.resource_mgr.get_current_flow_ids(nni_intf_id,
+                                                                  -1, -1)
+                # Clear the flows on KV store
+
+                if flow_ids is not None and isinstance(flow_ids, list):
+                    for flow_id in flow_ids:
+                        self.resource_mgr.free_flow_id(nni_intf_id, -1, -1,
+                                                       flow_id)
+
         self.flow_mgr.reset_flows()
 
     def indications_thread(self):

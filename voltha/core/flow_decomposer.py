@@ -352,6 +352,8 @@ def get_port_number_from_metadata(flow):
 
     return md & 0xffffffff
 
+def get_tp_id_from_metadata(metadata):
+    return (metadata & 0x0000ffff00000000) >> 4
 
 def get_inner_tag_from_metadata(flow):
     """
