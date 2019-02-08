@@ -28,6 +28,8 @@ from voltha.adapters.openolt.openolt_platform import OpenOltPlatform
 
 class OpenOltResourceMgr(object):
     BASE_PATH_KV_STORE = "service/voltha/openolt/{}"  # service/voltha/openolt/<device_id>
+    TP_ID_PATH_SUFFIX = 'tp_id/{}'  # tp_id/<(pon_id, onu_id, uni_id)>
+    METER_ID_PATH_SUFFIX = 'meter_id/{}/{}'  # meter_id/<(pon_id, onu_id, uni_id)>/<direction>
 
     def __init__(self, device_id, host_and_port, extra_args, device_info):
         self.log = structlog.get_logger(id=device_id,
@@ -433,3 +435,33 @@ class OpenOltResourceMgr(object):
 
         # Make sure loaded range fits the platform bit encoding ranges
         resource_mgr.update_ranges(uni_id_start_idx=0, uni_id_end_idx=OpenOltPlatform.MAX_UNIS_PER_ONU-1)
+
+    def update_tech_profile_id_for_onu(self, intf_id, onu_id, uni_id, tp_id):
+        intf_id_onu_id_uni_id = (intf_id, onu_id, uni_id)
+        kv_path = OpenOltResourceMgr.TP_ID_PATH_SUFFIX.format(str(intf_id_onu_id_uni_id))
+        self.kv_store[kv_path] = str(tp_id)
+
+    def get_tech_profile_id_for_onu(self, intf_id, onu_id, uni_id):
+        intf_id_onu_id_uni_id = (intf_id, onu_id, uni_id)
+        try:
+            kv_path = OpenOltResourceMgr.TP_ID_PATH_SUFFIX.format(str(intf_id_onu_id_uni_id))
+            return int(self.kv_store[kv_path])
+        except Exception as e:
+            self.log.warn("tp-id-not-found-on-kv-store", e=e)
+            return None
+
+    def update_meter_id_for_onu(self, direction, intf_id, onu_id, uni_id, meter_id):
+        intf_id_onu_id_uni_id = (intf_id, onu_id, uni_id)
+        kv_path = OpenOltResourceMgr.METER_ID_PATH_SUFFIX.format(str(intf_id_onu_id_uni_id),
+                                                                 direction)
+        self.kv_store[kv_path] = str(meter_id)
+
+    def get_meter_id_for_onu(self, direction, intf_id, onu_id, uni_id):
+        intf_id_onu_id_uni_id = (intf_id, onu_id, uni_id)
+        try:
+            kv_path = OpenOltResourceMgr.METER_ID_PATH_SUFFIX.format(str(intf_id_onu_id_uni_id),
+                                                                     direction)
+            return int(self.kv_store[kv_path])
+        except Exception as e:
+            self.log.debug("meter-id-not-found-on-kv-store", e=e)
+            return None

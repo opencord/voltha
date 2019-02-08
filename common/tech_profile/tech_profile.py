@@ -173,13 +173,13 @@ class TechProfile(object):
                 host, port = self.args.etcd.split(':', 1)
                 self._kv_store = EtcdStore(
                     host, port, TechProfile.
-                    KV_STORE_TECH_PROFILE_PATH_PREFIX)
+                        KV_STORE_TECH_PROFILE_PATH_PREFIX)
             elif self.args.backend == 'consul':
                 # KV store's IP Address and PORT
                 host, port = self.args.consul.split(':', 1)
                 self._kv_store = ConsulStore(
                     host, port, TechProfile.
-                    KV_STORE_TECH_PROFILE_PATH_PREFIX)
+                        KV_STORE_TECH_PROFILE_PATH_PREFIX)
 
             # self.tech_profile_instance_store = dict()
         except Exception as e:
@@ -220,6 +220,8 @@ class TechProfile(object):
                 log.debug(
                     "Created-tech-profile-instance-with-values-from-kvstore")
             else:
+                # TODO: should we raise an exception here instead of creating
+                # TODO: default profile?
                 tech_profile = self._default_tech_profile()
                 log.debug(
                     "Created-tech-profile-instance-with-default-values")
@@ -427,7 +429,7 @@ class TechProfile(object):
     @staticmethod
     def get_us_scheduler(tech_profile_instance):
         # upstream scheduler
-        us_scheduler = openolt_pb2.Scheduler(
+        us_scheduler = openolt_pb2.SchedulerConfig(
             direction=TechProfile.get_parameter(
                 'direction', tech_profile_instance.us_scheduler.
                     direction),
@@ -444,7 +446,7 @@ class TechProfile(object):
 
     @staticmethod
     def get_ds_scheduler(tech_profile_instance):
-        ds_scheduler = openolt_pb2.Scheduler(
+        ds_scheduler = openolt_pb2.SchedulerConfig(
             direction=TechProfile.get_parameter(
                 'direction', tech_profile_instance.ds_scheduler.
                     direction),
@@ -466,14 +468,14 @@ class TechProfile(object):
         if ds_scheduler is None:
             ds_scheduler = TechProfile.get_ds_scheduler(tech_profile_instance)
 
-        tconts = [openolt_pb2.Tcont(direction=TechProfile.get_parameter(
+        tconts = [openolt_pb2.TrafficScheduler(direction=TechProfile.get_parameter(
             'direction',
             tech_profile_instance.
                 us_scheduler.direction),
             alloc_id=tech_profile_instance.
                 us_scheduler.alloc_id,
             scheduler=us_scheduler),
-            openolt_pb2.Tcont(direction=TechProfile.get_parameter(
+            openolt_pb2.TrafficScheduler(direction=TechProfile.get_parameter(
                 'direction',
                 tech_profile_instance.
                     ds_scheduler.direction),
@@ -482,6 +484,71 @@ class TechProfile(object):
                 scheduler=ds_scheduler)]
 
         return tconts
+
+    @staticmethod
+    def get_gemports(tech_profile_instance):
+        gemports = list()
+        # Upstream Gemports
+        for i in range(len(tech_profile_instance.
+                                   upstream_gem_port_attribute_list)):
+            gemports.append(openolt_pb2.TrafficQueue(
+                direction=TechProfile.get_parameter('direction',
+                                                    tech_profile_instance.
+                                                    us_scheduler.direction),
+                gemport_id=tech_profile_instance.
+                    upstream_gem_port_attribute_list[i].gemport_id,
+                pbit_map=tech_profile_instance.
+                    upstream_gem_port_attribute_list[i].pbit_map,
+                aes_encryption=ast.literal_eval(tech_profile_instance.
+                                                upstream_gem_port_attribute_list[i].aes_encryption),
+                sched_policy=TechProfile.get_parameter(
+                    'sched_policy', tech_profile_instance.
+                        upstream_gem_port_attribute_list[i].
+                        scheduling_policy),
+                priority=tech_profile_instance.
+                    upstream_gem_port_attribute_list[i].priority_q,
+                weight=tech_profile_instance.
+                    upstream_gem_port_attribute_list[i].weight,
+                discard_policy=TechProfile.get_parameter(
+                    'discard_policy', tech_profile_instance.
+                        upstream_gem_port_attribute_list[i].
+                        discard_policy)))
+
+        # Downstream Gemports
+        for i in range(len(tech_profile_instance.
+                                   downstream_gem_port_attribute_list)):
+            gemports.append(openolt_pb2.TrafficQueue(
+                direction=TechProfile.get_parameter('direction',
+                                                    tech_profile_instance.
+                                                    ds_scheduler.direction),
+                gemport_id=tech_profile_instance.
+                    downstream_gem_port_attribute_list[i].gemport_id,
+                pbit_map=tech_profile_instance.
+                    downstream_gem_port_attribute_list[i].pbit_map,
+                aes_encryption=ast.literal_eval(tech_profile_instance.
+                                                downstream_gem_port_attribute_list[i].aes_encryption),
+                sched_policy=TechProfile.get_parameter(
+                    'sched_policy', tech_profile_instance.
+                        downstream_gem_port_attribute_list[i].
+                        scheduling_policy),
+                priority=tech_profile_instance.
+                    downstream_gem_port_attribute_list[i].priority_q,
+                weight=tech_profile_instance.
+                    downstream_gem_port_attribute_list[i].weight,
+                discard_policy=TechProfile.get_parameter(
+                    'discard_policy', tech_profile_instance.
+                        downstream_gem_port_attribute_list[i].
+                        discard_policy)))
+        return gemports
+
+    @staticmethod
+    def get_us_traffic_scheduler(tech_profile_instance):
+        us_scheduler = TechProfile.get_us_scheduler(tech_profile_instance)
+        return openolt_pb2.TrafficScheduler(direction=TechProfile.get_parameter(
+            'direction',
+            us_scheduler.direction),
+            alloc_id=us_scheduler.alloc_id,
+            scheduler=us_scheduler)
 
     @staticmethod
     def get_parameter(param_type, param_value):
