@@ -23,6 +23,7 @@ endif
 default: build
 
 PROTO_FILES := $(wildcard *.proto) $(wildcard $(VOLTHA_BASE)/voltha/protos/third_party/google/api/*proto)
+PROTO_FILES := $(PROTO_FILES) $(wildcard *.proto) $(wildcard $(VOLTHA_BASE)/voltha/protos/tech_profile.proto)
 PROTO_PB2_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,_pb2.py,$(f)))
 PROTO_DESC_FILES := $(foreach f,$(PROTO_FILES),$(subst .proto,.desc,$(f)))
 
@@ -47,6 +48,7 @@ protos: $(PROTO_PB2_FILES)
 	env LD_LIBRARY_PATH=$(PROTOC_LIBDIR) python -m grpc.tools.protoc \
 	    -I. \
 	    -I$(VOLTHA_BASE)/voltha/protos/third_party \
+	    -I$(VOLTHA_BASE)/voltha/protos \
 	    --python_out=. \
 	    --grpc_python_out=. \
 	    --descriptor_set_out=$(basename $<).desc \
