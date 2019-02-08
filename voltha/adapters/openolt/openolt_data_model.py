@@ -307,6 +307,11 @@ class OpenOltDataModel(object):
         self.adapter_agent.publish_inter_adapter_message(
             onu_device.id, msg)
 
+    def meter_band(self, meter_id):
+        return self.adapter_agent.get_meter_band(
+            self.logical_device_id, meter_id
+        )
+
     def onu_omci_rx(self, intf_id, onu_id, pkt):
         onu_device = self.adapter_agent.get_child_device(
             self.device.id,
@@ -405,8 +410,8 @@ class OpenOltDataModel(object):
         return self.device.id
 
     def _resolve_onu_id(self, onu_id, port_intf_id):
+        onu_device = None
         try:
-            onu_device = None
             onu_device = self.adapter_agent.get_child_device(
                 self.device_id,
                 parent_port_no=self.platform.intf_id_to_port_no(
