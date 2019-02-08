@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a568b9fd_67fac37c",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 737,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-08T02:39:45Z",
+      "side": 1,
+      "message": "Gamze, I am not sure where you got this logic -- perhaps we can talk about it tomorrow. I also want to talk about the transparent vlan case. Finally I want to fix the trap flows to controller and make some minor edits - let me try to upload a patch on top of your checkin and see if it makes sense to you.",
+      "range": {
+        "startLine": 721,
+        "startChar": 1,
+        "endLine": 737,
+        "endChar": 18
+      },
+      "revId": "149497f94e21897f6e01a6b3f3c47c4c6927d7af",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
