@@ -350,6 +350,8 @@ def get_egress_port_number_from_metadata(flow):
 def get_tp_id_from_metadata(write_metadata_value):
     return (write_metadata_value >> 32) & 0xffff
 
+def get_tp_id_from_metadata(metadata):
+    return (metadata & 0x0000ffff00000000) >> 4
 
 def get_inner_tag_from_write_metadata(flow):
     """

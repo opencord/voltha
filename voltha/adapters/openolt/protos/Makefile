@@ -47,6 +47,7 @@ protos: $(PROTO_PB2_FILES)
 	env LD_LIBRARY_PATH=$(PROTOC_LIBDIR) python -m grpc.tools.protoc \
 	    -I. \
 	    -I$(VOLTHA_BASE)/voltha/protos/third_party \
+	    -I$(VOLTHA_BASE)/voltha/protos \
 	    --python_out=. \
 	    --grpc_python_out=. \
 	    --descriptor_set_out=$(basename $<).desc \
