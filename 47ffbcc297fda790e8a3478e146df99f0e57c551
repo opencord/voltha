@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5cb79a5e_9cf00c5b",
+        "filename": "voltha/adapters/adtran_olt/test.mk",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2019-02-11T21:37:49Z",
+      "side": 1,
+      "message": "Is this needed?  Shouldn\u0027t it be cleanup?",
+      "range": {
+        "startLine": 34,
+        "startChar": 1,
+        "endLine": 34,
+        "endChar": 52
+      },
+      "revId": "47ffbcc297fda790e8a3478e146df99f0e57c551",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
