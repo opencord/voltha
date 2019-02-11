@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "98e89a5b_5d4e1637",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 223,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T21:52:39Z",
+      "side": 1,
+      "message": "Its nice to have the default profile as it provides a backward compatibility in term of usage for 1.x - i.e. things still work as they used to without any extra configuration steps. Agree that for 2.0 we can force user to create tech profile.",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "cdd9e8d3_7729df78",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 583,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T21:52:39Z",
+      "side": 1,
+      "message": "Is num_tconts specified in TP? If so, then why not fetch it from there.",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ae2d2ec6_f2d06067",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 588,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T21:52:39Z",
+      "side": 1,
+      "message": "Why maintain copies of these TP attributes in the TP instance (num_gem_ports, profile_type, version, instance_control). Is it not better to just reference the parent TP in the TP instance?",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "66bd48c8_954d2dca",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 629,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T21:52:39Z",
+      "side": 1,
+      "message": "Same question - why copy the scheduler attributes from the TP when they can be referenced from the TP? The only thing that needs to be stored is the alloc_id.",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "854deddc_b94ac005",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 637,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T21:52:39Z",
+      "side": 1,
+      "message": "Same question - why copy the gem port attributes from the TP when they can be referenced from the TP? The only thing that needs to be stored is the gemport_id.",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d42c3f53_66b3dcee",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 232,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T21:52:39Z",
+      "side": 1,
+      "message": "Maybe good idea to define methods to parse meta_data fields. These methods can go into flow_decomposer and they can be used by both core and the openolt flow decomposers. e.g. fd.get_tp_id_from_meta_data(), etc",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8e8c27f7_b2920eca",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 405,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T21:52:39Z",
+      "side": 1,
+      "message": "function arguments do not match definition and invocation:\n\ndef get_tech_profile_instance(self, tp_id, intf_id, onu_id, uni_id)",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
