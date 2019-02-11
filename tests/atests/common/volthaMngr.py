@@ -112,8 +112,12 @@ class VolthaMngr(object):
         for nsName in allRunningPods:
             Namespace = nsName.get('NS')
             podName   = nsName.get('Name')
-            os.system('/usr/bin/kubectl logs -n %s -f %s > %s/%s.log 2>&1 &' %
-                      (Namespace, podName, testCaseUtils.getDir(self, 'log'), podName))
+            if 'onos' not in podName:
+                os.system('/usr/bin/kubectl logs -n %s -f %s > %s/%s.log 2>&1 &' %
+                          (Namespace, podName, testCaseUtils.getDir(self, 'log'), podName))
+            else:
+                os.system('/usr/bin/kubectl logs -n %s -f %s onos > %s/%s.log 2>&1 &' %
+                          (Namespace, podName, testCaseUtils.getDir(self, 'log'), podName))
 
         
 def voltha_Initialize(rootDir, volthaDir, logDir):
