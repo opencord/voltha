@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
     preprovisioning.runTest('olt.voltha.svc', 50060, 'ponsim_olt', 'ponsim_onu', LOG_DIR)
     
-    discovery.runTest('ponsim_olt', 'ponsim_onu', LOG_DIR)
+    discovery.runTest('olt.voltha.svc', 'ponsim_olt', 'ponsim_onu', LOG_DIR)
 
     authentication.runTest(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
