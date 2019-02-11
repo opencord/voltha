@@ -39,7 +39,6 @@ def hexify(buffer):
 DEFAULT_OMCI_TIMEOUT = 3                           # Seconds
 MAX_OMCI_REQUEST_AGE = 60                          # Seconds
 DEFAULT_OMCI_DOWNLOAD_SECTION_SIZE = 31            # Bytes
-MAX_TABLE_ROW_COUNT = 512                          # Keep get-next logic reasonable
 
 CONNECTED_KEY = 'connected'
 TX_REQUEST_KEY = 'tx-request'
@@ -118,7 +117,6 @@ class OMCI_CC(object):
         # Support 2 levels of priority since only baseline message set supported
         self._tx_tid = [OMCI_CC.MIN_OMCI_TX_ID_LOW_PRIORITY, OMCI_CC.MIN_OMCI_TX_ID_HIGH_PRIORITY]
         self._tx_request = [None, None]    # Tx in progress (timestamp, defer, frame, timeout, retry, delayedCall)
-        self._tx_request_deferred = [None, None]    # Tx in progress but held till child Rx/TX can finish. ie omci tables.
         self._pending = [list(), list()]   # pending queue (deferred, tx_frame, timeout, retry)
         self._rx_response = [None, None]
 
@@ -281,8 +279,7 @@ class OMCI_CC(object):
 
     def _receive_onu_message(self, rx_frame):
         """ Autonomously generated ONU frame Rx handler"""
-        self.log.debug('rx-onu-frame', frame_type=type(rx_frame),
-                       frame=hexify(str(rx_frame)))
+        self.log.debug('rx-onu-frame', frame_type=type(rx_frame))
 
         msg_type = rx_frame.fields['message_type']
         self._rx_onu_frames += 1
@@ -339,25 +336,12 @@ class OMCI_CC(object):
 
             try:
                 rx_frame = msg if isinstance(msg, OmciFrame) else OmciFrame(msg)
-                rx_tid = rx_frame.fields['transaction_id']
-
-                if rx_tid == 0:
-                    return self._receive_onu_message(rx_frame)
-
-                # Previously unreachable if this is the very first Rx or we
-                # have been running consecutive errors
-                if self._rx_frames == 0 or self._consecutive_errors != 0:
-                    self.reactor.callLater(0, self._publish_connectivity_event, True)
-
-                self._rx_frames += 1
-                self._consecutive_errors = 0
 
             except KeyError as e:
                 # Unknown, Unsupported, or vendor-specific ME. Key is the unknown classID
                 self.log.debug('frame-decode-key-error', msg=hexlify(msg), e=e)
                 rx_frame = self._decode_unknown_me(msg)
                 self._rx_unknown_me += 1
-                rx_tid = rx_frame.fields.get('transaction_id')
 
             except Exception as e:
                 self.log.exception('frame-decode', msg=hexlify(msg), e=e)
@@ -365,6 +349,18 @@ class OMCI_CC(object):
 
             finally:
                 omci_entities.entity_id_to_class_map = saved_me_map     # Always restore it.
+
+            rx_tid = rx_frame.fields['transaction_id']
+            if rx_tid == 0:
+                return self._receive_onu_message(rx_frame)
+
+            # Previously unreachable if this is the very first round-trip Rx or we
+            # have been running consecutive errors
+            if self._rx_frames == 0 or self._consecutive_errors != 0:
+                self.reactor.callLater(0, self._publish_connectivity_event, True)
+
+            self._rx_frames += 1
+            self._consecutive_errors = 0
 
             try:
                 high_priority = self._tid_is_high_priority(rx_tid)
@@ -377,15 +373,14 @@ class OMCI_CC(object):
                         last_tx_tuple[OMCI_CC.REQUEST_FRAME].fields.get('transaction_id') != rx_tid:
                     # Possible late Rx on a message that timed-out
                     self._rx_unknown_tid += 1
-                    #self.log.warn('tx-message-missing', rx_id=rx_tid, msg=hexlify(msg))
-                    #return
+                    self._rx_late += 1
+                    return
 
                 ts, d, tx_frame, timeout, retry, dc = last_tx_tuple
                 if dc is not None and not dc.cancelled and not dc.called:
                     dc.cancel()
-                    # self.log.debug("cancel-timeout-called")
 
-                secs = self._update_rx_tx_stats(now, ts)
+                _secs = self._update_rx_tx_stats(now, ts)
 
                 # Late arrival already serviced by a timeout?
                 if d.called:
@@ -398,137 +393,15 @@ class OMCI_CC(object):
                     return d.errback(failure.Failure(e))
                 return
 
-            # Extended processing needed. Note 'data' field will be None on some error
-            # status returns
-            omci_msg = rx_frame.fields['omci_message']
+            # Publish Rx event to listeners in a different task
+            reactor.callLater(0, self._publish_rx_frame, tx_frame, rx_frame)
 
-            if isinstance(omci_msg, OmciGetResponse) and \
-                    omci_msg.fields.get('data') is not None and \
-                    'table_attribute_mask' in omci_msg.fields['data']:
-                # Yes, run in a separate generator
-                reactor.callLater(0, self._process_get_rx_frame, timeout, secs,
-                                  rx_frame, d, tx_frame, high_priority)
-            else:
-                # Publish Rx event to listeners in a different task
-                reactor.callLater(0, self._publish_rx_frame, tx_frame, rx_frame)
-
-                # begin success callback chain (will cancel timeout and queue next Tx message)
-                from copy import copy
-                original_callbacks = copy(d.callbacks)
-                self._rx_response[index] = rx_frame
-                d.callback(rx_frame)
+            # begin success callback chain (will cancel timeout and queue next Tx message)
+            self._rx_response[index] = rx_frame
+            d.callback(rx_frame)
 
         except Exception as e:
             self.log.exception('rx-msg', e=e)
-
-    @inlineCallbacks
-    def _process_get_rx_frame(self, timeout, secs, rx_frame, d, tx_frame, high_priority):
-        """
-        Special handling for Get Requests that may require additional 'get_next' operations
-        if a table attribute was requested.
-        """
-        omci_msg = rx_frame.fields['omci_message']
-        rx_tid = rx_frame.fields.get('transaction_id')
-        high_priority = self._tid_is_high_priority(rx_tid)
-        frame_index = self._get_priority_index(high_priority)
-
-        if isinstance(omci_msg, OmciGetResponse) and 'table_attribute_mask' in omci_msg.fields['data']:
-
-            # save tx request for later so that below send/recv can finish
-            self._tx_request_deferred[frame_index] = self._tx_request[frame_index]
-            self._tx_request[frame_index] = None
-
-            try:
-                entity_class = omci_msg.fields['entity_class']
-                entity_id = omci_msg.fields['entity_id']
-                table_attributes = omci_msg.fields['data']['table_attribute_mask']
-
-                # Table attribute mask is encoded opposite of managed entity mask.
-                if entity_class in self._me_map:
-                    ec = self._me_map[entity_class]
-                    for index in xrange(1, len(ec.attributes) + 1):
-                        attr_mask = 1 << index
-
-                        if attr_mask & table_attributes:
-                            self.log.debug('omcc-get-table-ec', ec=ec, index=index, attr_mask=attr_mask,
-                                           table_attributes=table_attributes)
-                            eca = ec.attributes[index]
-                            self.log.debug('omcc-get-table-attribute', table_name=eca.field.name)
-
-                            seq_no = 0
-                            data_buffer = ''
-                            count = omci_msg.fields['data'][eca.field.name + '_size']
-
-                            if count > MAX_TABLE_ROW_COUNT:
-                                self.log.error('omcc-get-table-huge', count=count, name=eca.field.name)
-                                raise ValueError('Huge Table Size: {}'.format(count))
-
-                            # Original timeout must be chopped up into each individual get-next request
-                            # in order for total transaction to complete within the timeframe of the
-                            # original get() timeout.
-                            number_transactions = 1 + (count + OmciTableField.PDU_SIZE - 1) / OmciTableField.PDU_SIZE
-                            timeout /= (1 + number_transactions)
-
-                            # Start the loop
-                            vals = []
-                            for offset in xrange(0, count, OmciTableField.PDU_SIZE):
-                                frame = MEFrame(ec, entity_id, {eca.field.name: seq_no}).get_next()
-                                seq_no += 1
-
-                                max_retries = 3
-                                results = yield self.send(frame, min(timeout / max_retries, secs * 3), max_retries)
-
-                                omci_getnext_msg = results.fields['omci_message']
-                                status = omci_getnext_msg.fields['success_code']
-
-                                if status != ReasonCodes.Success.value:
-                                    raise Exception('get-next-failure table=' + eca.field.name +
-                                                    ' entity_id=' + str(entity_id) +
-                                                    ' sqn=' + str(seq_no) + ' omci-status ' + str(status))
-
-                                # Extract the data
-                                num_octets = count - offset
-                                if num_octets > OmciTableField.PDU_SIZE:
-                                    num_octets = OmciTableField.PDU_SIZE
-
-                                data = omci_getnext_msg.fields['data'][eca.field.name]
-                                data_buffer += data[:num_octets]
-
-                            while data_buffer:
-                                data_buffer, val = eca.field.getfield(None, data_buffer)
-                                vals.append(val)
-
-                            omci_msg.fields['data'][eca.field.name] = vals
-                            del omci_msg.fields['data'][eca.field.name + '_size']
-                            self.log.debug('omcc-got-table-attribute-rows', table_name=eca.field.name,
-                                           row_count=len(vals))
-                del omci_msg.fields['data']['table_attribute_mask']
-
-            except Exception as e:
-                self.log.exception('get-next-error', e=e)
-                self._tx_request_deferred[frame_index] = None
-                d.errback(failure.Failure(e), high_priority)
-                return
-
-            except IndexError as e:
-                self.log.exception('get-next-index-error', e=e)
-                self._tx_request_deferred[frame_index] = None
-                d.errback(failure.Failure(e), high_priority)
-                return
-
-            # Put it back so the outer Rx/Tx can finish
-            self._tx_request[frame_index] = self._tx_request_deferred[frame_index]
-            self._tx_request_deferred[frame_index] = None
-
-        # Publish Rx event to listeners in a different task
-        if not isinstance(omci_msg, OmciGetNextResponse):
-            reactor.callLater(0, self._publish_rx_frame, tx_frame, rx_frame)
-
-        from copy import copy
-        original_callbacks = copy(d.callbacks)
-        self._rx_response[frame_index] = rx_frame
-        d.callback(rx_frame)
-        self.log.debug("finished-processing-get-rx-frame")
 
     def _decode_unknown_me(self, msg):
         """

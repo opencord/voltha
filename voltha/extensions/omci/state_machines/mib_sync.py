@@ -25,7 +25,7 @@ from voltha.extensions.omci.omci_cc import OmciCCRxEvents, OMCI_CC, TX_REQUEST_K
     RX_RESPONSE_KEY
 from voltha.extensions.omci.onu_device_entry import OnuDeviceEvents, OnuDeviceEntry, \
     SUPPORTED_MESSAGE_ENTITY_KEY, SUPPORTED_MESSAGE_TYPES_KEY
-from voltha.extensions.omci.omci_entities import OntData
+from voltha.extensions.omci.omci_entities import OntData, Omci
 from common.event_bus import EventBusClient
 from voltha.protos.omci_mib_db_pb2 import OpenOmciEventType
 
@@ -667,11 +667,11 @@ class MibSynchronizer(object):
                     class_id = omci_msg['object_entity_class']
                     entity_id = omci_msg['object_entity_id']
 
-                    # Filter out the 'mib_data_sync' from the database. We save that at
-                    # the device level and do not want it showing up during a re-sync
-                    # during data compares
+                    # Filter out the 'mib_data_sync' and 'omci' from the database. We save
+                    # that at the device level and do not want it showing up during a
+                    # re-sync during data compares
 
-                    if class_id == OntData.class_id:
+                    if class_id in {OntData.class_id, Omci.class_id}:
                         return
 
                     attributes = {k: v for k, v in omci_msg['object_data'].items()}

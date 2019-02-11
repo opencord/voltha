@@ -28,6 +28,7 @@ from voltha.extensions.omci.omci_defs import OmciUninitializedFieldError, \
 from voltha.extensions.omci.omci_fields import OmciSerialNumberField, OmciTableField
 from voltha.extensions.omci.omci_defs import bitpos_from_mask
 
+
 class EntityClassAttribute(object):
 
     def __init__(self, fld, access=set(), optional=False, range_check=None,
@@ -650,6 +651,7 @@ class VlanTaggingOperation(Packet):
         self.fields['treatment_inner_tpid_de'] = 0x7
         return self
 
+
 class ExtendedVlanTaggingOperationConfigurationData(EntityClass):
     class_id = 171
     attributes = [
@@ -1160,6 +1162,64 @@ class VirtualEthernetInterfacePt(EntityClass):
     }
 
 
+class OmciMeTypeTable(Packet):
+    """
+    OMCI ME Supported Types Table
+    """
+    name = "OmciMeTypeTable"
+    fields_desc = [
+        ShortField("me_type", None)
+    ]
+
+    def to_json(self):
+        return json.dumps(self.fields, separators=(',', ':'))
+
+    @staticmethod
+    def json_from_value(value):
+        data = int(value)
+        temp = OmciMeTypeTable(me_type=data)
+        return json.dumps(temp.fields, separators=(',', ':'))
+
+    def index(self):
+        return '{:04}'.format(self.fields.get('me_type', 0))
+
+    def is_delete(self):
+        return self.fields.get('me_type', 0) == 0
+
+    def delete(self):
+        self.fields['me_type'] = 0
+        return self
+
+
+class OmciMsgTypeTable(Packet):
+    """
+    OMCI Supported Message Types Table
+    """
+    name = "OmciMsgTypeTable"
+    fields_desc = [
+        ByteField("msg_type", None)
+    ]
+
+    def to_json(self):
+        return json.dumps(self.fields, separators=(',', ':'))
+
+    @staticmethod
+    def json_from_value(value):
+        data = int(value)
+        temp = OmciMeTypeTable(me_type=data)
+        return json.dumps(temp.fields, separators=(',', ':'))
+
+    def index(self):
+        return '{:02}'.format(self.fields.get('msg_type', 0))
+
+    def is_delete(self):
+        return self.fields.get('me_type', 0) == 0
+
+    def delete(self):
+        self.fields['me_type'] = 0
+        return self
+
+
 class Omci(EntityClass):
     class_id = 287
     hidden = True
@@ -1167,21 +1227,15 @@ class Omci(EntityClass):
         ECA(ShortField("managed_entity_id", None), {AA.R},
             range_check=lambda x: x == 0),
 
-        # TODO: Can this be expressed better in SCAPY, probably not?
-        # On the initial, Get request for either the me_type or message_type
-        # attributes, you will receive a 4 octet value (big endian) that is
-        # the number of octets to 'get-next' to fully load the desired
-        # attribute.  For a basic OMCI formatted message, that will be 29
-        # octets per get-request.
-        #
-        # For the me_type_table, these are 16-bit values (ME Class IDs)
-        #
-        # For the message_type_table, these are 8-bit values (Actions)
+        ECA(OmciTableField(
+            PacketLenField("me_type_table", None,
+                           OmciMeTypeTable, length_from=lambda pkt: 2)),
+            {AA.R}),
 
-        ECA(FieldListField("me_type_table", None, ByteField('', 0),
-                           count_from=lambda _: 29), {AA.R}),
-        ECA(FieldListField("message_type_table", None, ByteField('', 0),
-                           count_from=lambda _: 29), {AA.R}),
+        ECA(OmciTableField(
+            PacketLenField("message_type_table", None,
+                           OmciMsgTypeTable, length_from=lambda pkt: 1)),
+            {AA.R}),
     ]
     mandatory_operations = {OP.Get, OP.GetNext}
 

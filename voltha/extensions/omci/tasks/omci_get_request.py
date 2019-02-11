@@ -19,8 +19,7 @@ from twisted.internet.defer import failure, inlineCallbacks, TimeoutError, retur
 from voltha.extensions.omci.omci_defs import ReasonCodes, EntityOperations
 from voltha.extensions.omci.omci_me import MEFrame
 from voltha.extensions.omci.omci_frame import OmciFrame
-from voltha.extensions.omci.omci_cc import DEFAULT_OMCI_TIMEOUT
-from voltha.extensions.omci.omci_messages import OmciGet
+from voltha.extensions.omci.omci_messages import OmciGet, OmciGetNext
 from voltha.extensions.omci.omci_fields import OmciTableField
 
 RC = ReasonCodes
@@ -47,6 +46,7 @@ class OmciGetRequest(Task):
     """
     task_priority = 128
     name = "ONU OMCI Get Task"
+    MAX_TABLE_SIZE = 16 * 1024       # Keep get-next logic reasonable
 
     def __init__(self, omci_agent, device_id, entity_class, entity_id, attributes,
                  exclusive=True, allow_failure=False):
@@ -145,6 +145,11 @@ class OmciGetRequest(Task):
         """
         return self._failed_or_unknown_attributes
 
+    def is_table_attr(self, attr):
+        index = self._entity_class.attribute_name_to_index_map[attr]
+        attr_def = self._entity_class.attributes[index]
+        return isinstance(attr_def.field, OmciTableField)
+
     @inlineCallbacks
     def perform_get_omci(self):
         """
@@ -154,60 +159,61 @@ class OmciGetRequest(Task):
                       entity_id=self._entity_id, attributes=self._attributes)
         try:
             # If one or more attributes is a table attribute, get it separately
-            def is_table_attr(attr):
-                index = self._entity_class.attribute_name_to_index_map[attr]
-                attr_def = self._entity_class.attributes[index]
-                return isinstance(attr_def.field, OmciTableField)
 
-            first_attributes = {attr for attr in self._attributes if not is_table_attr(attr)}
-            table_attributes = {attr for attr in self._attributes if is_table_attr(attr)}
+            first_attributes = {attr for attr in self._attributes if not self.is_table_attr(attr)}
+            table_attributes = {attr for attr in self._attributes if self.is_table_attr(attr)}
 
-            frame = MEFrame(self._entity_class, self._entity_id, first_attributes).get()
-            self.strobe_watchdog()
-            results = yield self._device.omci_cc.send(frame)
+            if len(first_attributes):
+                frame = MEFrame(self._entity_class, self._entity_id, first_attributes).get()
+                self.strobe_watchdog()
+                results = yield self._device.omci_cc.send(frame)
 
-            status = results.fields['omci_message'].fields['success_code']
-            self.log.debug('perform-get-status', status=status)
+                status = results.fields['omci_message'].fields['success_code']
+                self.log.debug('perform-get-status', status=status)
 
-            # Success?
-            if status == RC.Success.value:
-                self._results = results
-                results_omci = results.fields['omci_message'].fields
+                if status == RC.AttributeFailure.value:
+                    # What failed?  Note if only one attribute was attempted, then
+                    # that is an overall failure
 
-                # Were all attributes fetched?
-                missing_attr = frame.fields['omci_message'].fields['attributes_mask'] ^ \
-                    results_omci['attributes_mask']
+                    if not self._allow_failure or len(self._attributes) <= 1:
+                        raise GetException('Get failed with status code: {}'.
+                                           format(RC.AttributeFailure.value))
 
-                if missing_attr > 0 or len(table_attributes) > 0:
-                    self.log.info('perform-get-missing', num_missing=missing_attr,
-                                  table_attr=table_attributes)
                     self.strobe_watchdog()
-                    self._local_deferred = reactor.callLater(0,
-                                                             self.perform_get_missing_attributes,
-                                                             missing_attr,
-                                                             table_attributes)
-                    returnValue(self._local_deferred)
+                    # TODO: update failed & unknown attributes set
 
-            elif status == RC.AttributeFailure.value:
-                # What failed?  Note if only one attribute was attempted, then
-                # that is an overall failure
+                # Success?
+                if status in {RC.Success.value, RC.AttributeFailure.value}:
+                    self._results = results
+                    results_omci = results.fields['omci_message'].fields
 
-                if not self._allow_failure or len(self._attributes) <= 1:
-                    raise GetException('Get failed with status code: {}'.
-                                       format(RC.AttributeFailure.value))
+                    # Were all attributes fetched?
+                    missing_attr = frame.fields['omci_message'].fields['attributes_mask'] ^ \
+                        results_omci['attributes_mask']
 
+                    if missing_attr > 0 or len(table_attributes) > 0:
+                        self.log.info('perform-get-missing', num_missing=missing_attr,
+                                      table_attr=table_attributes)
+                        self.strobe_watchdog()
+                        self._local_deferred = reactor.callLater(0,
+                                                                 self.perform_get_missing_attributes,
+                                                                 missing_attr, table_attributes)
+                        returnValue(self._local_deferred)
+
+                else:
+                    raise GetException('Get failed with status code: {}'.format(status))
+
+                self.log.debug('get-completed')
+                self.deferred.callback(self)
+
+            elif len(table_attributes) > 0:
+                # Here if only table attributes were requested
+                self.log.info('perform-get-table', table_attr=table_attributes)
                 self.strobe_watchdog()
                 self._local_deferred = reactor.callLater(0,
-                                                         self.perform_get_failed_attributes,
-                                                         results,
-                                                         self._attributes)
+                                                         self.process_get_table,
+                                                         table_attributes)
                 returnValue(self._local_deferred)
-
-            else:
-                raise GetException('Get failed with status code: {}'.format(status))
-
-            self.log.debug('get-completed')
-            self.deferred.callback(self)
 
         except TimeoutError as e:
             self.deferred.errback(failure.Failure(e))
@@ -222,10 +228,13 @@ class OmciGetRequest(Task):
         """
         This method is called when the original Get requests completes with success
         but not all attributes were returned.  This can happen if one or more of the
-        attributes would have exceeded the space available in the OMCI frame.
+        attributes would have exceeded the space available in the OMCI frame or if
+        one of the attributes is a table.
 
         This routine iterates through the missing attributes and attempts to retrieve
         the ones that were missing.
+
+        Once missing attributes are recovered, the table attributes are requested
 
         :param missing_attr: (int) Missing attributes bitmask
         :param table_attributes: (set) Attributes that need table get/get-next support
@@ -235,27 +244,34 @@ class OmciGetRequest(Task):
         # Retrieve missing attributes first (if any)
         results_omci = self._results.fields['omci_message'].fields
 
-        for index in xrange(16):
-            attr_mask = 1 << index
+        try:
+            # Get remaining attributes one at a time
+            for index in range(15, 1, -1):
+                attr_mask = 1 << index
 
-            if attr_mask & missing_attr:
-                # Get this attribute
-                frame = OmciFrame(
-                    transaction_id=None,  # OMCI-CC will set
-                    message_type=OmciGet.message_id,
-                    omci_message=OmciGet(
-                        entity_class=self._entity_class.class_id,
-                        entity_id=self._entity_id,
-                        attributes_mask=attr_mask
+                if attr_mask & missing_attr:
+                    # Get this attribute
+                    frame = OmciFrame(
+                        transaction_id=None,  # OMCI-CC will set
+                        message_type=OmciGet.message_id,
+                        omci_message=OmciGet(
+                            entity_class=self._entity_class.class_id,
+                            entity_id=self._entity_id,
+                            attributes_mask=attr_mask
+                        )
                     )
-                )
-                try:
                     self.strobe_watchdog()
                     get_results = yield self._device.omci_cc.send(frame)
 
                     get_omci = get_results.fields['omci_message'].fields
-                    if get_omci['success_code'] != RC.Success.value:
+                    status = get_omci['success_code']
+
+                    if status == RC.AttributeFailure.value:
+                        # TODO: update failed & unknown attributes set
                         continue
+
+                    elif status != RC.Success.value:
+                        raise GetException('Get failed with status code: {}'.format(status))
 
                     assert attr_mask == get_omci['attributes_mask'], 'wrong attribute'
                     results_omci['attributes_mask'] |= attr_mask
@@ -265,92 +281,127 @@ class OmciGetRequest(Task):
 
                     results_omci['data'].update(get_omci['data'])
 
-                except TimeoutError:
-                    self.log.debug('missing-timeout')
+        except TimeoutError as e:
+            self.log.debug('missing-timeout')
+            self.deferred.errback(failure.Failure(e))
 
-                except Exception as e:
-                    self.log.exception('missing-failure', e=e)
+        except Exception as e:
+            self.log.exception('missing-failure', class_id=self._entity_class.class_id,
+                               entity_id=self._entity_id, e=e)
+            self.deferred.errback(failure.Failure(e))
 
-        # Now any table attributes. OMCI_CC handles background get/get-next sequencing
-        for tbl_attr in table_attributes:
-            attr_mask = self._entity_class.mask_for(tbl_attr)
-            frame = OmciFrame(
-                    transaction_id=None,  # OMCI-CC will set
-                    message_type=OmciGet.message_id,
-                    omci_message=OmciGet(
-                            entity_class=self._entity_class.class_id,
-                            entity_id=self._entity_id,
-                            attributes_mask=attr_mask
-                    )
-            )
-            try:
-                timeout = 2 * DEFAULT_OMCI_TIMEOUT  # Multiple frames expected
-                self.strobe_watchdog()
-                get_results = yield self._device.omci_cc.send(frame,
-                                                              timeout=timeout)
-                self.strobe_watchdog()
-                get_omci = get_results.fields['omci_message'].fields
-                if get_omci['success_code'] != RC.Success.value:
-                    continue
-
-                if results_omci.get('data') is None:
-                    results_omci['data'] = dict()
-
-                results_omci['data'].update(get_omci['data'])
-
-            except TimeoutError:
-                self.log.debug('tbl-attr-timeout')
-
-            except Exception as e:
-                self.log.exception('tbl-attr-timeout', e=e)
+        # Now any table attributes
+        if len(table_attributes):
+            self.strobe_watchdog()
+            self._local_deferred = reactor.callLater(0,
+                                                     self.process_get_table,
+                                                     table_attributes)
+            returnValue(self._local_deferred)
 
         self.deferred.callback(self)
 
     @inlineCallbacks
-    def perform_get_failed_attributes(self, tmp_results, attributes):
+    def process_get_table(self, table_attributes):
         """
-
-        :param tmp_results:
-        :param attributes:
-        :return:
+        Special handling for Get Requests that may require additional 'get_next' operations
+        if a table attribute was requested.
         """
-        self.log.debug('perform-get-failed', attrs=attributes)
+        # Retrieve attributes retrieved so far so we can add to them
+        try:
+            results_omci = self._results.fields['omci_message'].fields if self._results is not None else {}
 
-        for attr in attributes:
-            try:
-                frame = MEFrame(self._entity_class, self._entity_id, {attr}).get()
+            for tbl_attr in table_attributes:
+                attr_mask = self._entity_class.mask_for(tbl_attr)
+                attr_index = self._entity_class.attribute_indices_from_mask(attr_mask)[0]
 
+                frame = OmciFrame(
+                        transaction_id=None,  # OMCI-CC will set
+                        message_type=OmciGet.message_id,
+                        omci_message=OmciGet(
+                                entity_class=self._entity_class.class_id,
+                                entity_id=self._entity_id,
+                                attributes_mask=attr_mask
+                        )
+                )
+                # First get will retrieve the size
+                get_results = yield self._device.omci_cc.send(frame)
                 self.strobe_watchdog()
-                results = yield self._device.omci_cc.send(frame)
 
-                status = results.fields['omci_message'].fields['success_code']
+                if self._results is None:
+                    self._results = get_results
+                    results_omci = self._results.fields['omci_message'].fields
 
-                if status == RC.AttributeFailure.value:
-                    self.log.debug('unknown-or-invalid-attribute', attr=attr, status=status)
-                    self._failed_or_unknown_attributes.add(attr)
+                omci_fields = get_results.fields['omci_message'].fields
+                if omci_fields['success_code'] == RC.AttributeFailure.value:
+                    # Copy over any failed or unsupported attribute masks for final result
+                    results_fields = results_omci.fields['omci_message'].fields
+                    results_fields['unsupported_attributes_mask'] |= omci_fields['unsupported_attributes_mask']
+                    results_fields['failed_attributes_mask'] |= omci_fields['failed_attributes_mask']
 
-                elif status != RC.Success.value:
-                    self.log.warn('invalid-get', class_id=self._entity_class,
-                                  attribute=attr, status=status)
-                    self._failed_or_unknown_attributes.add(attr)
+                if omci_fields['success_code'] != RC.Success.value:
+                    raise GetException('Get table attribute failed with status code: {}'.
+                                       format(omci_fields['success_code']))
 
-                else:
-                    # Add to partial results and correct the status
-                    tmp_results.fields['omci_message'].fields['success_code'] = status
-                    tmp_results.fields['omci_message'].fields['attributes_mask'] |= \
-                        results.fields['omci_message'].fields['attributes_mask']
+                eca = self._entity_class.attributes[attr_index]
 
-                    if tmp_results.fields['omci_message'].fields.get('data') is None:
-                        tmp_results.fields['omci_message'].fields['data'] = dict()
+                self.log.debug('omcc-get-table-attribute', table_name=eca.field.name)
+                attr_size = omci_fields['data'][eca.field.name + '_size']
 
-                    tmp_results.fields['omci_message'].fields['data'][attr] = \
-                        results.fields['omci_message'].fields['data'][attr]
+                if attr_size > self.MAX_TABLE_SIZE:
+                    self.log.error('omcc-get-table-huge', count=attr_size, name=eca.field.name)
+                    raise ValueError('Huge Table Size: {}'.format(attr_size))
 
-            except TimeoutError as e:
-                self.log.debug('attr-timeout')
+                # Start the loop
+                seq_no = 0
+                data_buffer = ''
 
-            except Exception as e:
-                self.log.exception('attr-failure', e=e)
+                for offset in xrange(0, attr_size, OmciTableField.PDU_SIZE):
+                    frame = OmciFrame(
+                        transaction_id=None,                    # OMCI-CC will set
+                        message_type=OmciGetNext.message_id,
+                        omci_message=OmciGetNext(
+                            entity_class=self._entity_class.class_id,
+                            entity_id=self._entity_id,
+                            attributes_mask=attr_mask,
+                            command_sequence_number=seq_no
+                        )
+                    )
+                    get_results = yield self._device.omci_cc.send(frame)
 
-        self._results = tmp_results
-        self.deferred.callback(self)
+                    omci_fields = get_results.fields['omci_message'].fields
+                    status = omci_fields['success_code']
+
+                    if status != ReasonCodes.Success.value:
+                        raise Exception('get-next-failure table=' + eca.field.name +
+                                        ' entity_id=' + str(self._entity_id) +
+                                        ' sqn=' + str(seq_no) + ' omci-status ' + str(status))
+
+                    # Extract the data
+                    num_octets = attr_size - offset
+                    if num_octets > OmciTableField.PDU_SIZE:
+                        num_octets = OmciTableField.PDU_SIZE
+
+                    data = omci_fields['data'][eca.field.name]
+                    data_buffer += data[:num_octets]
+                    seq_no += 1
+
+                vals = []
+                while data_buffer:
+                    data_buffer, val = eca.field.getfield(None, data_buffer)
+                    vals.append(val)
+
+                # Save off the retrieved data
+                results_omci['attributes_mask'] |= attr_mask
+                results_omci['data'][eca.field.name] = vals
+
+            self.deferred.callback(self)
+
+        except TimeoutError as e:
+            self.log.debug('tbl-attr-timeout')
+            self.deferred.errback(failure.Failure(e))
+
+        except Exception as e:
+            self.log.exception('tbl-attr-timeout', class_id=self._entity_class.class_id,
+                               entity_id=self._entity_id, e=e)
+            self.deferred.errback(failure.Failure(e))
+

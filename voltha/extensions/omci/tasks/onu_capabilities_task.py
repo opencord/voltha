@@ -20,6 +20,8 @@ from twisted.internet import reactor
 from voltha.extensions.omci.omci_defs import ReasonCodes
 from voltha.extensions.omci.omci_me import OmciFrame
 from voltha.extensions.omci.omci import EntityOperations
+from voltha.extensions.omci.tasks.omci_get_request import OmciGetRequest
+from voltha.extensions.omci.omci_entities import Omci
 
 
 class GetNextException(Exception):
@@ -66,7 +68,9 @@ class OnuCapabilitiesTask(Task):
         super(OnuCapabilitiesTask, self).__init__(OnuCapabilitiesTask.name,
                                                   omci_agent,
                                                   device_id,
-                                                  priority=OnuCapabilitiesTask.task_priority)
+                                                  exclusive=False,
+                                                  priority=OnuCapabilitiesTask.task_priority,
+                                                  watchdog_timeout=2*Task.DEFAULT_WATCHDOG_SECS)
         self._local_deferred = None
         self._device = omci_agent.get_device(device_id)
         self._pdu_size = omci_pdu_size
@@ -139,9 +143,9 @@ class OnuCapabilitiesTask(Task):
         try:
             self.strobe_watchdog()
             self._supported_entities = yield self.get_supported_entities()
-
             self.strobe_watchdog()
             self._supported_msg_types = yield self.get_supported_message_types()
+            self.strobe_watchdog()
 
             self.log.debug('get-success',
                            supported_entities=self.supported_managed_entities,
@@ -166,57 +170,24 @@ class OnuCapabilitiesTask(Task):
     @inlineCallbacks
     def get_supported_entities(self):
         """
-        Get the supported ME Types for this ONU.
+        Get the supported Message Types (actions) for this ONU.
         """
         try:
-            # Get the number of requests needed
-            frame = OmciFrame(me_type_table=True).get()
-            self.strobe_watchdog()
-            results = yield self._device.omci_cc.send(frame)
+            # Use the GetRequest Task to perform table retrieval
+            get_request = OmciGetRequest(self.omci_agent, self.device_id, Omci, 0,
+                                         ["me_type_table"], exclusive=False)
 
-            omci_msg = results.fields['omci_message']
-            status = omci_msg.fields['success_code']
+            results = yield self._device.task_runner.queue_task(get_request)
 
-            if status != ReasonCodes.Success.value:
-                raise GetCapabilitiesFailure('Get count of supported entities failed with status code: {}'.
-                                             format(status))
-            data = omci_msg.fields['data']['me_type_table']
-            count = self.get_count_from_data_buffer(bytearray(data))
+            if results.success_code != ReasonCodes.Success.value:
+                raise GetCapabilitiesFailure('Get supported managed entities table failed with status code: {}'.
+                                             format(results.success_code))
 
-            seq_no = 0
-            data_buffer = bytearray(0)
-            self.log.debug('me-type-count', octets=count, data=hexlify(data))
-
-            # Start the loop
-            for offset in xrange(0, count, self._pdu_size):
-                frame = OmciFrame(me_type_table=seq_no).get_next()
-                seq_no += 1
-                self.strobe_watchdog()
-                results = yield self._device.omci_cc.send(frame)
-
-                omci_msg = results.fields['omci_message']
-                status = omci_msg.fields['success_code']
-
-                if status != ReasonCodes.Success.value:
-                    raise GetCapabilitiesFailure(
-                        'Get supported entities request at offset {} of {} failed with status code: {}'.
-                        format(offset + 1, count, status))
-
-                # Extract the data
-                num_octets = count - offset
-                if num_octets > self._pdu_size:
-                    num_octets = self._pdu_size
-
-                data = omci_msg.fields['data']['me_type_table']
-                data_buffer += bytearray(data[:num_octets])
-
-            me_types = {(data_buffer[x] << 8) + data_buffer[x + 1]
-                        for x in xrange(0, len(data_buffer), 2)}
-            returnValue(me_types)
+            returnValue({attr.fields['me_type'] for attr in results.attributes['me_type_table']})
 
         except Exception as e:
             self.log.exception('get-entities', e=e)
-            self.deferred.errback(failure.Failure(e))
+            raise
 
     @inlineCallbacks
     def get_supported_message_types(self):
@@ -224,59 +195,18 @@ class OnuCapabilitiesTask(Task):
         Get the supported Message Types (actions) for this ONU.
         """
         try:
-            # Get the number of requests needed
-            frame = OmciFrame(message_type_table=True).get()
-            self.strobe_watchdog()
-            results = yield self._device.omci_cc.send(frame)
+            # Use the GetRequest Task to perform table retrieval
+            get_request = OmciGetRequest(self.omci_agent, self.device_id, Omci, 0,
+                                         ["message_type_table"], exclusive=False)
 
-            omci_msg = results.fields['omci_message']
-            status = omci_msg.fields['success_code']
+            results = yield self._device.task_runner.queue_task(get_request)
 
-            if status != ReasonCodes.Success.value:
-                raise GetCapabilitiesFailure('Get count of supported msg types failed with status code: {}'.
-                                             format(status))
+            if results.success_code != ReasonCodes.Success.value:
+                raise GetCapabilitiesFailure('Get supported msg types table failed with status code: {}'.
+                                             format(results.success_code))
 
-            data = omci_msg.fields['data']['message_type_table']
-            count = self.get_count_from_data_buffer(bytearray(data))
-
-            seq_no = 0
-            data_buffer = list()
-            self.log.debug('me-type-count', octets=count, data=hexlify(data))
-
-            # Start the loop
-            for offset in xrange(0, count, self._pdu_size):
-                frame = OmciFrame(message_type_table=seq_no).get_next()
-                seq_no += 1
-                self.strobe_watchdog()
-                results = yield self._device.omci_cc.send(frame)
-
-                omci_msg = results.fields['omci_message']
-                status = omci_msg.fields['success_code']
-
-                if status != ReasonCodes.Success.value:
-                    raise GetCapabilitiesFailure(
-                        'Get supported msg types request at offset {} of {} failed with status code: {}'.
-                        format(offset + 1, count, status))
-
-                # Extract the data
-                num_octets = count - offset
-                if num_octets > self._pdu_size:
-                    num_octets = self._pdu_size
-
-                data = omci_msg.fields['data']['message_type_table']
-                data_buffer += data[:num_octets]
-
-            def buffer_to_message_type(value):
-                """
-                Convert an integer value to the appropriate EntityOperations enumeration
-                :param value: (int) Message type value (4..29)
-                :return: (EntityOperations) Enumeration, None on failure
-                """
-                next((v for k, v in EntityOperations.__members__.items() if v.value == value), None)
-
-            msg_types = {buffer_to_message_type(v) for v in data_buffer if v is not None}
-            returnValue({msg_type for msg_type in msg_types if msg_type is not None})
+            returnValue({attr.fields['msg_type'] for attr in results.attributes['message_type_table']})
 
         except Exception as e:
             self.log.exception('get-msg-types', e=e)
-            self.deferred.errback(failure.Failure(e))
+            raise
