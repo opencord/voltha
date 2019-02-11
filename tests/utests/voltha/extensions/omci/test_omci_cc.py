@@ -625,7 +625,7 @@ class TestOmciCc(TestCase):
         # Note: After successful frame decode, a lookup of the corresponding request by
         #       TID is performed. None should be found, so we should see the Rx Unknown TID
         #       increment.
-        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'])
+        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'] + 1)
         self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'] + 1)
         self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'] + 1)
         self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'])
@@ -668,27 +668,28 @@ class TestOmciCc(TestCase):
         self.assertIsNotNone(decoded_blob)
         self.assertEqual(decoded_blob, blob)
 
-    def test_flush(self):
-        # Test flush of autonomous ONU queues
+    def test_rx_unknown_me_avc(self):
+        # ME without a known decoder but is and attribute value change
         self.setup_one_of_each()
 
         omci_cc = self.onu_handler.omci_cc
         omci_cc.enabled = True
         snapshot = self._snapshot_stats()
 
-        # TODO: add more
-        self.assertTrue(True)  # TODO: Implement
+        msg = '0000110aff78000080000e000000' \
+              '00000000000000000000000000000000000000000000000000000' \
+              '00000028'
 
-    def test_avc_rx(self):
-        # Test flush of autonomous ONU queues
-        self.setup_one_of_each()
+        omci_cc.receive_message(hex2raw(msg))
 
-        omci_cc = self.onu_handler.omci_cc
-        omci_cc.enabled = True
-        snapshot = self._snapshot_stats()
-
-        # TODO: add more
-        self.assertTrue(True)  # TODO: Implement
+        # Blob decode should work and then it should be passed off to the
+        # ONU Autonomous frame processor
+        self.assertEqual(omci_cc.rx_frames, snapshot['rx_frames'])
+        self.assertEqual(omci_cc.rx_unknown_me, snapshot['rx_unknown_me'] + 1)
+        self.assertEqual(omci_cc.rx_unknown_tid, snapshot['rx_unknown_tid'])
+        self.assertEqual(omci_cc.rx_onu_frames, snapshot['rx_onu_frames'] + 1)
+        self.assertEqual(omci_cc.rx_onu_discards, snapshot['rx_onu_discards'])
+        self.assertEqual(omci_cc.consecutive_errors, 0)
 
     def test_rx_discard_if_disabled(self):
         # ME without a known decoder

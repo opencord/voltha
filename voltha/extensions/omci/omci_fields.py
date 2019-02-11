@@ -34,6 +34,7 @@ class FixedLenField(PadField):
             val.remove_payload()
         return remain + s[self._align:], val
 
+
 class StrCompoundField(Field):
     __slots__ = ['flds']
 
@@ -61,6 +62,7 @@ class StrCompoundField(Field):
             data += value
         return s, data
 
+
 class XStrFixedLenField(StrFixedLenField):
     """
     XStrFixedLenField which value is printed as hexadecimal.
@@ -71,6 +73,7 @@ class XStrFixedLenField(StrFixedLenField):
 
     def m2i(self, pkt, x):
         return None if x is None else binascii.b2a_hex(x)
+
 
 class MultipleTypeField(object):
     """MultipleTypeField are used for fields that can be implemented by
@@ -162,14 +165,17 @@ class MultipleTypeField(object):
     def __getattr__(self, attr):
         return getattr(self._find_fld(), attr)
 
+
 class OmciSerialNumberField(StrCompoundField):
     def __init__(self, name, default=None):
         assert default is None or (isinstance(default, str) and len(default) == 12), 'invalid default serial number'
         vendor_default = default[0:4] if default is not None else None
         vendor_serial_default = default[4:12] if default is not None else None
         super(OmciSerialNumberField, self).__init__(name,
-            [StrFixedLenField('vendor_id', vendor_default, 4),
-            XStrFixedLenField('vendor_serial_number', vendor_serial_default, 4)])
+                                                    [StrFixedLenField('vendor_id', vendor_default, 4),
+                                                     XStrFixedLenField('vendor_serial_number',
+                                                                       vendor_serial_default, 4)])
+
 
 class OmciTableField(MultipleTypeField):
     def __init__(self, tblfld):
@@ -178,14 +184,14 @@ class OmciTableField(MultipleTypeField):
         assert hasattr(tblfld.cls, 'is_delete'), 'No delete() method defined for OmciTableField row object'
         super(OmciTableField, self).__init__(
             [
-            (IntField('table_length', 0), (self.cond_pkt, self.cond_pkt_val)),
-            (PadField(StrField('me_type_table', None), OmciTableField.PDU_SIZE),
-                (self.cond_pkt2, self.cond_pkt_val2))
+                (IntField('table_length', 0), (self.cond_pkt, self.cond_pkt_val)),
+                (PadField(StrField('me_type_table', None), OmciTableField.PDU_SIZE),
+                 (self.cond_pkt2, self.cond_pkt_val2))
             ], tblfld)
 
-    PDU_SIZE = 29 # Baseline message set raw get-next PDU size
-    OmciGetResponseMessageId = 0x29 # Ugh circular dependency
-    OmciGetNextResponseMessageId = 0x3a # Ugh circular dependency
+    PDU_SIZE = 29                           # Baseline message set raw get-next PDU size
+    OmciGetResponseMessageId = 0x29         # Ugh circular dependency
+    OmciGetNextResponseMessageId = 0x3a     # Ugh circular dependency
 
     def cond_pkt(self, pkt):
         return pkt is not None and pkt.message_id == self.OmciGetResponseMessageId
@@ -200,8 +206,10 @@ class OmciTableField(MultipleTypeField):
         return pkt is not None and pkt.message_id == self.OmciGetNextResponseMessageId
 
     def to_json(self, new_values, old_values_json):
-        if not isinstance(new_values, list): new_values = [new_values] # If setting a scalar, augment the old table
-        else: old_values_json = None # If setting a vector of new values, erase all old_values
+        if not isinstance(new_values, list):
+            new_values = [new_values]   # If setting a scalar, augment the old table
+        else:
+            old_values_json = None      # If setting a vector of new values, erase all old_values
 
         key_value_pairs = dict()
 
@@ -209,6 +217,7 @@ class OmciTableField(MultipleTypeField):
         for old in old_table:
             index = old.index()
             key_value_pairs[index] = old
+
         for new in new_values:
             index = new.index()
             if new.is_delete():
@@ -226,14 +235,19 @@ class OmciTableField(MultipleTypeField):
         return str_values
 
     def load_json(self, json_str):
-        if json_str is None: json_str = '[]'
+        if json_str is None:
+            json_str = '[]'
+
         json_values = json.loads(json_str)
         key_value_pairs = dict()
+
         for json_value in json_values:
             v = self.default.cls(**json_value)
             index = v.index()
             key_value_pairs[index] = v
+
         table = []
         for k, v in sorted(key_value_pairs.iteritems()):
             table.append(v)
+
         return table

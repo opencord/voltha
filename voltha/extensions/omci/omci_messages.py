@@ -103,7 +103,7 @@ class OmciMaskedData(Field):
                 raise
             if isinstance(pkt, OmciGetResponse) and isinstance(fld, OmciTableField):
                 data[fld.name + '_size'] = value
-                table_attribute_mask = table_attribute_mask | (1 << index)
+                table_attribute_mask = table_attribute_mask | (1 << (16 - index))
             else:
                 data[fld.name] = value
         if table_attribute_mask:
@@ -199,7 +199,14 @@ class OmciGetResponse(OmciMessage):
         ByteField("success_code", 0),
         ShortField("attributes_mask", None),
         ConditionalField(
-            OmciMaskedData("data"), lambda pkt: pkt.success_code == 0)
+            ShortField("unsupported_attributes_mask", 0),
+            lambda pkt: pkt.success_code == 9),
+        ConditionalField(
+            ShortField("failed_attributes_mask", 0),
+            lambda pkt: pkt.success_code == 9),
+        ConditionalField(
+            OmciMaskedData("data"),
+            lambda pkt: pkt.success_code == 0 or pkt.success_code == 9)
     ]
 
 
