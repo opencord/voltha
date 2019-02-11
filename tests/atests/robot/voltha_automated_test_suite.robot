@@ -68,6 +68,7 @@ Olt Onu Discovery
     DConfigure      ${OLT_TYPE}    ${ONU_TYPE}
     Olt Discovery
     Onu Discovery
+    Logical Device
     Olt Ports Should Be Enabled and Active
     Onu Ports Should Be Enabled and Active
     Olt Should Have At Least One Flow
