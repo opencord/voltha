@@ -464,16 +464,23 @@ test: protos test_runner run-as-root-tests
 		nosetests -s tests --exclude-dir=./tests/itests/run_as_root/
 endif
 
+.PHONY: utest-adapters
 TEST_ADAPTERS := $(shell find ./voltha/adapters -name test.mk)
+TESTABLE_ADAPTERS:= $(patsubst %.mk,%_target,$(TEST_ADAPTERS))
+
+%_target : %.mk
+	@ echo Test Adapter \($<\)
+	@ $(MAKE) -f $<
+
+utest-adapters: $(TESTABLE_ADAPTERS)
+	@ echo Completed utest of Testable Adapters
+
 
 ifneq ($(VOLTHA_BUILD),docker)
 utest: venv protos
 	@ echo "Executing all unit tests"
 	@ . ${VENVDIR}/bin/activate && nosetests ./tests/utests
-	@ for test in $(TEST_ADAPTERS); do \
-			echo Adapter Tests $$test:; \
-			$(MAKE) -f $$test; \
-	  done
+	@ $(MAKE) utest-adapters
 else
 utest: protos test_runner
 	docker run \
@@ -486,10 +493,7 @@ utest: protos test_runner
 		${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
 		bash -c \
 		'. ${VENVDIR}/bin/activate && nosetests ./tests/utests; \
-		for test in $(TEST_ADAPTERS); do \
-			echo Adapter Tests $$test:; \
-			$(MAKE) -f $$test; \
-		done'
+		$(MAKE) utest-adapters'
 endif
 
 COVERAGE_OPTS=--with-xcoverage --with-xunit --cover-package=voltha,common,ofagent --cover-html\
@@ -498,10 +502,7 @@ ifneq ($(VOLTHA_BUILD),docker)
 utest-with-coverage: venv protos
 	@ echo "Executing all unit tests and producing coverage results"
 	@ . ${VENVDIR}/bin/activate && nosetests $(COVERAGE_OPTS) ./tests/utests
-	@ for test in $(TEST_ADAPTERS); do \
-		echo Adapter Tests $$test:; \
-		$(MAKE) -f $$test; \
-	done
+	@ $(MAKE) utest-adapters
 else
 utest-with-coverage: protos test_runner
 	@echo "Executing all unit tests and producing coverage results"
@@ -515,10 +516,7 @@ utest-with-coverage: protos test_runner
 		${REGISTRY}${REPSOITORY}voltha-test_runner:${TAG} \
 		bash -c \
 		'nosetests ${COVERAGE_OPTS} ./tests/utests; \
-		 for test in $(TEST_ADAPTERS); do \
-			echo Adapter Tests $$test:; \
-			$(MAKE) -f $$test; \
-		 done'
+		 $(MAKE) utest-adapters'
 endif
 
 ifneq ($(VOLTHA_BUILD),docker)
