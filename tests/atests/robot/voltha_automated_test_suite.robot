@@ -103,7 +103,6 @@ Start Voltha
     Stop Voltha
     Start All Pods
     Sleep    60
-    Collect Pod Logs
     ${pod_status}    Run    kubectl get pods --all-namespaces
     Log To Console    \n ${pod_status}
     Alter Onos NetCfg
@@ -111,5 +110,6 @@ Start Voltha
 Stop Voltha
     [Documentation]     Stop Voltha infrastucture. This includes clearing all installation milestones 
     ...                 files and stopping all Kubernetes pods
+    Collect Pod Logs
     Stop All Pods
     Reset Kube Adm 
