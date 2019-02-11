@@ -104,6 +104,23 @@
     },
     {
       "key": {
+        "uuid": "77113575_d34f91eb",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 242,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T22:23:42Z",
+      "side": 1,
+      "message": "Is there a separate upstream and a downstream meter id? Or does the same meter id used for both upstream and downstream?\n\nFrom the code it looks like us_meter_id \u003d\u003d ds_meter_id.",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8e8c27f7_b2920eca",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 3
@@ -115,6 +132,125 @@
       "writtenOn": "2019-02-11T21:52:39Z",
       "side": 1,
       "message": "function arguments do not match definition and invocation:\n\ndef get_tech_profile_instance(self, tp_id, intf_id, onu_id, uni_id)",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d620f29f_d022f3fc",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 532,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T22:23:42Z",
+      "side": 1,
+      "message": "Will this assumption hold in the case where OLT restarts on its own (i.e. not initiated from voltha). In that case, AFAIK, flows will be pushed back by ONOS. However, schedulers need to be re-created as well.\n\nSolution could be that schedulers are removed from KV when OLT disconnects.",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1774f351_5a93a86a",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 555,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T22:23:42Z",
+      "side": 1,
+      "message": "Is this an error? Cannot multiple flows can reference the same scheduler?",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8692c029_733c5192",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 558,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T22:23:42Z",
+      "side": 1,
+      "message": "Indent this return under the else clause?",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "29b06f41_a8c6db6c",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 587,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T22:23:42Z",
+      "side": 1,
+      "message": "Same comment as create_us_scheduler_.... above.\n\nWill this assumption hold in the case where OLT restarts on its own (i.e. not initiated from voltha). In that case, AFAIK, flows will be pushed back by ONOS. However, schedulers need to be re-created as well.",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "20139b9b_7a158ad7",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 635,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T22:23:42Z",
+      "side": 1,
+      "message": "Will this not overwrite the meter id stored in create_us_scheduler_queues (or vice versa).",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "102f9c17_d2e9b2a2",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 687,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T22:23:42Z",
+      "side": 1,
+      "message": "This function assumes 1 tcont per onu. Maybe good to put in the tcont scaffolding (with support for 1 tcont at present).",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "772ac918_4e1eb4b8",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 690,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-11T22:23:42Z",
+      "side": 1,
+      "message": "Any specific reason for combining getting of tcont and gem port ids in the same function? Why not separate functions for each - they are separate attributes and there may be a case where either one is fetched without the need for the other.",
       "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
