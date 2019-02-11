@@ -35,6 +35,7 @@ ${VOLTHA_DIR}     ${EMPTY}
 ${ONOS_SSH_PORT}  8101
 ${OLT_IP_ADDR}    olt.voltha.svc
 ${OLT_PORT_ID}    50060
+${LOGICAL_TYPE}   olt.voltha.svc
 ${OLT_TYPE}       ponsim_olt
 ${ONU_TYPE}       ponsim_onu
 
@@ -65,9 +66,10 @@ Olt Onu Discovery
     ...                 Olt or Onu device. Functionality to support multiple ONU accomodated
     ...                 The extent of the flow validation is limited to checking whether number of Flows is > 0
     DSet Log Dirs    ${LOG_DIR}
-    DConfigure      ${OLT_TYPE}    ${ONU_TYPE}
+    DConfigure      ${LOGICAL_TYPE}    ${OLT_TYPE}    ${ONU_TYPE}
     Olt Discovery
     Onu Discovery
+    Logical Device
     Olt Ports Should Be Enabled and Active
     Onu Ports Should Be Enabled and Active
     Olt Should Have At Least One Flow

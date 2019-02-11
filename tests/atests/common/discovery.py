@@ -35,10 +35,12 @@ class Discovery(object):
         self.dirs ['log'] = None
         self.dirs ['root'] = None
         self.dirs ['voltha'] = None
-        
+
+        self.__logicalDeviceType = None
         self.__oltType = None
         self.__onuType = None
         self.__fields = []
+        self.__logicalDeviceId = None
         self.__oltDeviceId = None
         self.__onuDeviceIds = []
         self.__peers = None
@@ -46,9 +48,21 @@ class Discovery(object):
     def dSetLogDirs(self, logDir):
         testCaseUtils.configDirs(self, logDir)
 
-    def dConfigure(self, oltType, onuType):
+    def dConfigure(self, logicalDeviceType, oltType, onuType):
+        self.__logicalDeviceType = logicalDeviceType
         self.__oltType = oltType
         self.__onuType = onuType
+
+    def logicalDevice(self):
+        logging.info('Logical Device Info')
+        statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__logicalDeviceType, 'voltha_devices_after_enable.log')
+        assert statusLines, 'No Logical Devices listed under devices'
+        self.__fields = testCaseUtils.parseFields(statusLines)
+        self.__logicalDeviceId = self.__fields[4].strip()
+        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.getDir(self, 'log'),
+            'voltha_logical_device.log', 'logical_device ' + self.__logicalDeviceId, 'voltha_logical_device_ports.log', 'ports', 'voltha_logical_device_flows.log', 'flows')
+        testCaseUtils.printLogFile (self, 'voltha_logical_device_ports.log')
+        testCaseUtils.printLogFile (self, 'voltha_logical_device_flows.log')
 
     def oltDiscovery(self):
         logging.info('Olt Discovery')
@@ -144,12 +158,13 @@ class Discovery(object):
                 assert int(plainNumber) > 0, 'Zero number of flows for Onu %s' % onuDeviceId
                       
 
-def runTest(oltType, onuType, logDir):
+def runTest(logicalDeviceType, oltType, onuType, logDir):
     discovery = Discovery()
     discovery.dSetLogDirs(logDir)
-    discovery.dConfigure(oltType, onuType)
+    discovery.dConfigure(logicalDeviceType, oltType, onuType)
     discovery.oltDiscovery()
     discovery.onuDiscovery()
+    discovery.logicalDevice()
     discovery.olt_ports_should_be_enabled_and_active()                                      
     discovery.onu_ports_should_be_enabled_and_active()
     discovery.olt_should_have_at_least_one_flow()
