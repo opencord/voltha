@@ -247,8 +247,7 @@ class EVCMap(object):
             first_gem_id = True
             gem_ids = gem_ids_and_vid[0]
             vid = gem_ids_and_vid[1]
-            ident = '{}.{}'.format(self._pon_id, onu_or_vlan_id) if vid is None \
-                else onu_or_vlan_id
+            ident = '{}.{}'.format(self._pon_id, onu_or_vlan_id)
 
             for gem_id in gem_ids:
                 xml += '<evc-map{}>'.format('' if not create else ' xc:operation="create"')
