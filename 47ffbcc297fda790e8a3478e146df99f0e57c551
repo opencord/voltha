@@ -22,6 +22,30 @@
       "revId": "47ffbcc297fda790e8a3478e146df99f0e57c551",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f4ad6f9e_52b8c0a9",
+        "filename": "voltha/adapters/adtran_olt/test.mk",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000527
+      },
+      "writtenOn": "2019-02-12T14:21:37Z",
+      "side": 1,
+      "message": "it isn\u0027t particularly harmful, but yes this is \u0027pre-test cleanup\u0027 just to make sure there are no .pyc files lingering before the test is run.",
+      "parentUuid": "5cb79a5e_9cf00c5b",
+      "range": {
+        "startLine": 34,
+        "startChar": 1,
+        "endLine": 34,
+        "endChar": 52
+      },
+      "revId": "47ffbcc297fda790e8a3478e146df99f0e57c551",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
