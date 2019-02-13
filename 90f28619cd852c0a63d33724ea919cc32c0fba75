@@ -36,6 +36,42 @@
     },
     {
       "key": {
+        "uuid": "c1f7af7e_38074dc5",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 583,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-13T16:58:37Z",
+      "side": 1,
+      "message": "The num_of_tconts is not directly specified in the TP. It is represent as us_scheduler attribute.",
+      "parentUuid": "cdd9e8d3_7729df78",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "be7d718f_187dcc0a",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 583,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-13T16:58:37Z",
+      "side": 1,
+      "message": "I don\u0027t think we need the num_of_tconts attribute as each TP has only one us_scheduler (or TCONT). Removing this field.",
+      "parentUuid": "cdd9e8d3_7729df78",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ae2d2ec6_f2d06067",
         "filename": "common/tech_profile/tech_profile.py",
         "patchSetId": 3
@@ -47,6 +83,24 @@
       "writtenOn": "2019-02-11T21:52:39Z",
       "side": 1,
       "message": "Why maintain copies of these TP attributes in the TP instance (num_gem_ports, profile_type, version, instance_control). Is it not better to just reference the parent TP in the TP instance?",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fa4ad09b_cd98d43e",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 588,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-13T16:58:37Z",
+      "side": 1,
+      "message": "Removing all these fields.",
+      "parentUuid": "ae2d2ec6_f2d06067",
       "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "93246f06_0503d183",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 629,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-13T16:58:37Z",
+      "side": 1,
+      "message": "Since adapter deals with tech_profile_instances and not the generic tech_profile, we need the attribute copied to every tech_profile_instance.",
+      "parentUuid": "66bd48c8_954d2dca",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "854deddc_b94ac005",
         "filename": "common/tech_profile/tech_profile.py",
         "patchSetId": 3
@@ -81,6 +153,24 @@
       "writtenOn": "2019-02-11T21:52:39Z",
       "side": 1,
       "message": "Same question - why copy the gem port attributes from the TP when they can be referenced from the TP? The only thing that needs to be stored is the gemport_id.",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f6548044_b0230e6a",
+        "filename": "common/tech_profile/tech_profile.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 637,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-13T16:58:37Z",
+      "side": 1,
+      "message": "Since adapter deals with tech_profile_instances and not the generic tech_profile, we need the attribute copied to every tech_profile_instance.",
+      "parentUuid": "854deddc_b94ac005",
       "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -104,6 +194,24 @@
     },
     {
       "key": {
+        "uuid": "76c067fc_13e250d7",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 232,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-13T16:58:37Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "d42c3f53_66b3dcee",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "77113575_d34f91eb",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 3
@@ -115,6 +223,24 @@
       "writtenOn": "2019-02-11T22:23:42Z",
       "side": 1,
       "message": "Is there a separate upstream and a downstream meter id? Or does the same meter id used for both upstream and downstream?\n\nFrom the code it looks like us_meter_id \u003d\u003d ds_meter_id.",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d261b4bf_21905a4f",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 242,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-13T16:58:37Z",
+      "side": 1,
+      "message": "The shaping parameters can be independently controlled in each direction. So, we can have separate meter_id in both UL and DL. \nThe code above retrieves the us_meter_id if it is an Upstream flow, else retrieves the ds_meter_id.",
+      "parentUuid": "77113575_d34f91eb",
       "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -155,6 +281,24 @@
     },
     {
       "key": {
+        "uuid": "05046578_dbbadd24",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 532,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-13T16:58:37Z",
+      "side": 1,
+      "message": "You are right.",
+      "parentUuid": "d620f29f_d022f3fc",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1774f351_5a93a86a",
         "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
         "patchSetId": 3
@@ -183,6 +327,24 @@
       "writtenOn": "2019-02-11T22:23:42Z",
       "side": 1,
       "message": "Indent this return under the else clause?",
+      "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "373ce576_002009ee",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 558,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-13T16:58:37Z",
+      "side": 1,
+      "message": "yes, you are right.",
+      "parentUuid": "8692c029_733c5192",
       "revId": "90f28619cd852c0a63d33724ea919cc32c0fba75",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
