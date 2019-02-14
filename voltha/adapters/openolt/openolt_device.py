@@ -105,11 +105,6 @@ class OpenoltDevice(object):
 
         self.log.info('openolt-device-init')
 
-        # default device id and device serial number. If device_info provides
-        # better results, they will be updated
-        self.dpid = kwargs.get('dp_id')
-        self.serial_number = self.host_and_port  # FIXME
-
         # Device already set in the event of reconciliation
         if not is_reconciliation:
             self.log.info('updating-device')
@@ -120,7 +115,6 @@ class OpenoltDevice(object):
             device.oper_status = OperStatus.ACTIVATING
             self.adapter_agent.update_device(device)
 
-        self.logical_device_id = None
         # If logical device does exist use it, else create one after connecting
         # to device
         if device.parent_id:
@@ -144,11 +138,6 @@ class OpenoltDevice(object):
     def create_logical_device(self, device_info):
         dpid = device_info.device_id
         serial_number = device_info.device_serial_number
-
-        if dpid is None:
-            dpid = self.dpid
-        if serial_number is None:
-            serial_number = self.serial_number
 
         if dpid is None or dpid == '':
             uri = self.host_and_port.split(":")[0]
@@ -192,9 +181,6 @@ class OpenoltDevice(object):
         device = self.adapter_agent.get_device(self.device_id)
         device.serial_number = serial_number
         self.adapter_agent.update_device(device)
-
-        self.dpid = dpid
-        self.serial_number = serial_number
 
         self.log.info('created-openolt-logical-device',
                       logical_device_id=ld_init.id)
@@ -244,6 +230,11 @@ class OpenoltDevice(object):
     def do_state_connected(self, event):
         self.log.debug("do_state_connected")
 
+        # Check that device_info was successfully retrieved
+        assert(self.device_info is not None
+               and self.device_info.device_serial_number is not None
+               and self.device_info.device_serial_number != '')
+
         device = self.adapter_agent.get_device(self.device_id)
 
         if self.logical_device_id is None:
@@ -255,7 +246,7 @@ class OpenoltDevice(object):
             # TODO - Update logical device with new device_info
             pass
 
-        device.serial_number = self.serial_number
+        device.serial_number = self.device_info.device_serial_number
 
         self.resource_mgr = self.resource_mgr_class(self.device_id,
                                                     self.host_and_port,
