@@ -122,18 +122,24 @@ class OpenoltDevice(object):
             self.adapter_agent.update_device(device)
 
         self.logical_device_id = None
-        # If logical device does exist use it, else create one after connecting to device
+        # If logical device does exist use it, else create one after connecting
+        # to device
         if device.parent_id:
             # logical device already exists
             self.logical_device_id = device.parent_id
             if is_reconciliation:
                 self.adapter_agent.reconcile_logical_device(
                     self.logical_device_id)
+        else:
+            self.logical_device_id = None
 
         # Initialize the OLT state machine
         self.machine = Machine(model=self, states=OpenoltDevice.states,
                                transitions=OpenoltDevice.transitions,
                                send_event=True, initial='state_null')
+
+        self.device_info = None
+
         self.go_state_init()
 
     def create_logical_device(self, device_info):
@@ -182,8 +188,6 @@ class OpenoltDevice(object):
         ld_init = self.adapter_agent.create_logical_device(ld,
                                                            dpid=dpid)
 
-        self.logical_device_id = ld_init.id
-
         device = self.adapter_agent.get_device(self.device_id)
         device.serial_number = serial_number
         self.adapter_agent.update_device(device)
@@ -192,6 +196,8 @@ class OpenoltDevice(object):
         self.serial_number = serial_number
 
         self.log.info('created-openolt-logical-device', logical_device_id=ld_init.id)
+
+        return ld_init.id
 
     def stringToMacAddr(self, uri):
         regex = re.compile('[^a-zA-Z]')
@@ -238,37 +244,21 @@ class OpenoltDevice(object):
 
         device = self.adapter_agent.get_device(self.device_id)
 
-        self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
-
-        delay = 1
-        while True:
-            try:
-                device_info = self.stub.GetDeviceInfo(openolt_pb2.Empty())
-                break
-            except Exception as e:
-                reraise = True
-                if delay > 120:
-                    self.log.error("gRPC failure too many times")
-                else:
-                    self.log.warn("gRPC failure, retry in %ds: %s"
-                                  % (delay, repr(e)))
-                    time.sleep(delay)
-                    delay += delay
-                    reraise = False
-
-                if reraise:
-                    raise
-
-        self.log.info('Device connected', device_info=device_info)
-
-        self.create_logical_device(device_info)
+        if self.logical_device_id is None:
+            # first time connect to olt
+            self.logical_device_id = self.create_logical_device(
+                self.device_info)
+        else:
+            # reconnect to olt (e.g. olt reboot)
+            # TODO - Update logical device with new device_info
+            pass
 
         device.serial_number = self.serial_number
 
         self.resource_mgr = self.resource_mgr_class(self.device_id,
                                                     self.host_and_port,
                                                     self.extra_args,
-                                                    device_info)
+                                                    self.device_info)
         self.platform = self.platform_class(self.log, self.resource_mgr)
         self.flow_mgr = self.flow_mgr_class(self.adapter_agent, self.log,
                                             self.stub, self.device_id,
@@ -282,10 +272,10 @@ class OpenoltDevice(object):
         self.stats_mgr = self.stats_mgr_class(self, self.log, self.platform)
         self.bw_mgr = self.bw_mgr_class(self.log, self.proxy)
 
-        device.vendor = device_info.vendor
-        device.model = device_info.model
-        device.hardware_version = device_info.hardware_version
-        device.firmware_version = device_info.firmware_version
+        device.vendor = self.device_info.vendor
+        device.model = self.device_info.model
+        device.hardware_version = self.device_info.hardware_version
+        device.firmware_version = self.device_info.firmware_version
 
         # TODO: check for uptime and reboot if too long (VOL-1192)
 
@@ -359,8 +349,31 @@ class OpenoltDevice(object):
     def indications_thread(self):
         self.log.debug('starting-indications-thread')
         self.log.debug('connecting to olt', device_id=self.device_id)
-        self.channel_ready_future.result()  # blocking call
-        self.log.info('connected to olt', device_id=self.device_id)
+
+        self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
+
+        timeout = 60*60
+        delay = 1
+        exponential_back_off = False
+        while True:
+            try:
+                self.device_info = self.stub.GetDeviceInfo(openolt_pb2.Empty())
+                break
+            except Exception as e:
+                if delay > timeout:
+                    self.log.error("timed out connecting to olt")
+                    return
+                else:
+                    self.log.warn("retry connecting to olt in %ds: %s"
+                                  % (delay, repr(e)))
+                    time.sleep(delay)
+                    if exponential_back_off:
+                        delay += delay
+                    else:
+                        delay += 1
+
+        self.log.info('connected to olt', device_info=self.device_info)
+
         self.go_state_connected()
 
         self.indications = self.stub.EnableIndication(openolt_pb2.Empty())
