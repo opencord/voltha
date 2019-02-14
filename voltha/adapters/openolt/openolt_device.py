@@ -35,8 +35,6 @@ from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.registry import registry
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
-from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
-from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
 
 from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
 
@@ -107,7 +105,8 @@ class OpenoltDevice(object):
 
         self.log.info('openolt-device-init')
 
-        # default device id and device serial number. If device_info provides better results, they will be updated
+        # default device id and device serial number. If device_info provides
+        # better results, they will be updated
         self.dpid = kwargs.get('dp_id')
         self.serial_number = self.host_and_port  # FIXME
 
@@ -146,27 +145,29 @@ class OpenoltDevice(object):
         dpid = device_info.device_id
         serial_number = device_info.device_serial_number
 
-        if dpid is None: dpid = self.dpid
-        if serial_number is None: serial_number = self.serial_number
+        if dpid is None:
+            dpid = self.dpid
+        if serial_number is None:
+            serial_number = self.serial_number
 
-        if dpid == None or dpid == '':
+        if dpid is None or dpid == '':
             uri = self.host_and_port.split(":")[0]
             try:
                 socket.inet_pton(socket.AF_INET, uri)
                 dpid = '00:00:' + self.ip_hex(uri)
             except socket.error:
                 # this is not an IP
-                dpid = self.stringToMacAddr(uri)
+                dpid = self.string_to_mac(uri)
 
-        if serial_number == None or serial_number == '':
+        if serial_number is None or serial_number == '':
             serial_number = self.host_and_port
 
-        self.log.info('creating-openolt-logical-device', dp_id=dpid, serial_number=serial_number)
+        self.log.info('creating-openolt-logical-device', dp_id=dpid,
+                      serial_number=serial_number)
 
-        mfr_desc = device_info.vendor
-        sw_desc = device_info.firmware_version
         hw_desc = device_info.model
-        if device_info.hardware_version: hw_desc += '-' + device_info.hardware_version
+        if device_info.hardware_version:
+            hw_desc += '-' + device_info.hardware_version
 
         # Create logical OF device
         ld = LogicalDevice(
@@ -195,19 +196,20 @@ class OpenoltDevice(object):
         self.dpid = dpid
         self.serial_number = serial_number
 
-        self.log.info('created-openolt-logical-device', logical_device_id=ld_init.id)
+        self.log.info('created-openolt-logical-device',
+                      logical_device_id=ld_init.id)
 
         return ld_init.id
 
-    def stringToMacAddr(self, uri):
+    def string_to_mac(self, uri):
         regex = re.compile('[^a-zA-Z]')
         uri = regex.sub('', uri)
 
-        l = len(uri)
-        if l > 6:
+        length = len(uri)
+        if length > 6:
             uri = uri[0:6]
         else:
-            uri = uri + uri[0:6 - l]
+            uri = uri + uri[0:6 - length]
 
         print uri
 
@@ -562,7 +564,7 @@ class OpenoltDevice(object):
         try:
             serial_number_str = self.stringify_serial_number(
                 onu_indication.serial_number)
-        except Exception as e:
+        except:  # noqa: E722
             serial_number_str = None
 
         if serial_number_str is not None:
@@ -583,10 +585,11 @@ class OpenoltDevice(object):
 
         if self.platform.intf_id_from_pon_port_no(onu_device.parent_port_no) \
                 != onu_indication.intf_id:
-            self.log.warn('ONU-is-on-a-different-intf-id-now',
-                          previous_intf_id=self.platform.intf_id_from_pon_port_no(
-                              onu_device.parent_port_no),
-                          current_intf_id=onu_indication.intf_id)
+            self.log.warn(
+                'ONU-is-on-a-different-intf-id-now',
+                previous_intf_id=self.platform.intf_id_from_pon_port_no(
+                    onu_device.parent_port_no),
+                current_intf_id=onu_indication.intf_id)
             # FIXME - handle intf_id mismatch (ONU move?)
 
         if onu_device.proxy_address.onu_id != onu_indication.onu_id:
@@ -685,7 +688,8 @@ class OpenoltDevice(object):
             onu_port_id = onu_port.label
             try:
                 onu_logical_port = self.adapter_agent.get_logical_port(
-                    logical_device_id=self.logical_device_id, port_id=onu_port_id)
+                    logical_device_id=self.logical_device_id,
+                    port_id=onu_port_id)
                 onu_logical_port.ofp_port.state = OFPPS_LINK_DOWN
                 self.adapter_agent.update_logical_port(
                     logical_device_id=self.logical_device_id,
@@ -723,23 +727,27 @@ class OpenoltDevice(object):
         if pkt_indication.intf_type == "pon":
             if pkt_indication.port_no:
                 logical_port_num = pkt_indication.port_no
-            else:  # TODO Remove this else block after openolt device has been fully rolled out with cookie protobuf change
+            else:
+                # TODO Remove this else block after openolt device has been
+                # fully rolled out with cookie protobuf change
                 try:
-                    onu_id_uni_id = self.resource_mgr.get_onu_uni_from_ponport_gemport(pkt_indication.intf_id,
-                                                                                       pkt_indication.gemport_id)
+                    onu_id_uni_id = self.resource_mgr. \
+                        get_onu_uni_from_ponport_gemport(
+                            pkt_indication.intf_id, pkt_indication.gemport_id)
                     onu_id = int(onu_id_uni_id[0])
                     uni_id = int(onu_id_uni_id[1])
-                    self.log.debug("packet indication-kv", onu_id=onu_id, uni_id=uni_id)
+                    self.log.debug("packet indication-kv", onu_id=onu_id,
+                                   uni_id=uni_id)
                     if onu_id is None:
                         raise Exception("onu-id-none")
                     if uni_id is None:
                         raise Exception("uni-id-none")
-                    logical_port_num = self.platform.mk_uni_port_num(pkt_indication.intf_id, onu_id, uni_id)
+                    logical_port_num = self.platform.mk_uni_port_num(
+                        pkt_indication.intf_id, onu_id, uni_id)
                 except Exception as e:
                     self.log.error("no-onu-reference-for-gem",
                                    gemport_id=pkt_indication.gemport_id, e=e)
                     return
-
 
         elif pkt_indication.intf_type == "nni":
             logical_port_num = self.platform.intf_id_to_port_no(
@@ -773,7 +781,8 @@ class OpenoltDevice(object):
                 if isinstance(outer_shim.payload, Dot1Q):
                     # If double tag, remove the outer tag
                     payload = (
-                            Ether(src=pkt.src, dst=pkt.dst, type=outer_shim.type) /
+                            Ether(src=pkt.src, dst=pkt.dst,
+                                  type=outer_shim.type) /
                             outer_shim.payload
                     )
                 else:
@@ -849,7 +858,7 @@ class OpenoltDevice(object):
             parent_device_id=self.device_id, parent_port_no=port_no,
             vendor_id=serial_number.vendor_id, proxy_address=proxy_address,
             root=True, serial_number=serial_number_str,
-            admin_state=AdminState.ENABLED#, **{'vlan':4091} # magic still maps to brcm_openomci_onu.pon_port.BRDCM_DEFAULT_VLAN
+            admin_state=AdminState.ENABLED
         )
 
     def port_name(self, port_no, port_type, intf_id=None, serial_number=None):
