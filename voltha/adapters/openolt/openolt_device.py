@@ -1,5 +1,5 @@
 #
-# Copyright 2018 the original author or authors.
+# Copyright 2019 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ import threading
 import binascii
 import grpc
 import socket
-import re
 import structlog
 import time
 from twisted.internet import reactor
@@ -35,6 +34,7 @@ from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.core.logical_device_agent import mac_str_to_tuple
 from voltha.registry import registry
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
+from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 
 from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
 
@@ -143,13 +143,10 @@ class OpenoltDevice(object):
             uri = self.host_and_port.split(":")[0]
             try:
                 socket.inet_pton(socket.AF_INET, uri)
-                dpid = '00:00:' + self.ip_hex(uri)
+                dpid = '00:00:' + OpenoltUtils.ip_hex(uri)
             except socket.error:
                 # this is not an IP
-                dpid = self.string_to_mac(uri)
-
-        if serial_number is None or serial_number == '':
-            serial_number = self.host_and_port
+                dpid = OpenoltUtils.str_to_mac(uri)
 
         self.log.info('creating-openolt-logical-device', dp_id=dpid,
                       serial_number=serial_number)
@@ -186,20 +183,6 @@ class OpenoltDevice(object):
                       logical_device_id=ld_init.id)
 
         return ld_init.id
-
-    def string_to_mac(self, uri):
-        regex = re.compile('[^a-zA-Z]')
-        uri = regex.sub('', uri)
-
-        length = len(uri)
-        if length > 6:
-            uri = uri[0:6]
-        else:
-            uri = uri + uri[0:6 - length]
-
-        print uri
-
-        return ":".join([hex(ord(x))[-2:] for x in uri])
 
     def do_state_init(self, event):
         # Initialize gRPC
@@ -330,10 +313,6 @@ class OpenoltDevice(object):
         device.connect_status = connect_state
 
         reactor.callLater(2, self.adapter_agent.update_device, device)
-
-    # def post_up(self, event):
-    #     self.log.debug('post-up')
-    #     self.flow_mgr.reseed_flows()
 
     def post_down(self, event):
         self.log.debug('post_down')
@@ -479,7 +458,7 @@ class OpenoltDevice(object):
         intf_id = onu_disc_indication.intf_id
         serial_number = onu_disc_indication.serial_number
 
-        serial_number_str = self.stringify_serial_number(serial_number)
+        serial_number_str = OpenoltUtils.stringify_serial_number(serial_number)
 
         self.log.debug("onu discovery indication", intf_id=intf_id,
                        serial_number=serial_number_str)
@@ -553,7 +532,7 @@ class OpenoltDevice(object):
                        oper_state=onu_indication.oper_state,
                        admin_state=onu_indication.admin_state)
         try:
-            serial_number_str = self.stringify_serial_number(
+            serial_number_str = OpenoltUtils.stringify_serial_number(
                 onu_indication.serial_number)
         except:  # noqa: E722
             serial_number_str = None
@@ -843,7 +822,7 @@ class OpenoltDevice(object):
 
         self.log.debug("Adding ONU", proxy_address=proxy_address)
 
-        serial_number_str = self.stringify_serial_number(serial_number)
+        serial_number_str = OpenoltUtils.stringify_serial_number(serial_number)
 
         self.adapter_agent.add_onu_device(
             parent_device_id=self.device_id, parent_port_no=port_no,
@@ -852,18 +831,10 @@ class OpenoltDevice(object):
             admin_state=AdminState.ENABLED
         )
 
-    def port_name(self, port_no, port_type, intf_id=None, serial_number=None):
-        if port_type is Port.ETHERNET_NNI:
-            return "nni-" + str(port_no)
-        elif port_type is Port.PON_OLT:
-            return "pon" + str(intf_id)
-        elif port_type is Port.ETHERNET_UNI:
-            assert False, 'local UNI management not supported'
-
     def add_logical_port(self, port_no, intf_id, oper_state):
         self.log.info('adding-logical-port', port_no=port_no)
 
-        label = self.port_name(port_no, Port.ETHERNET_NNI)
+        label = OpenoltUtils.port_name(port_no, Port.ETHERNET_NNI)
 
         cap = OFPPF_1GB_FD | OFPPF_FIBER
         curr_speed = OFPPF_1GB_FD
@@ -876,7 +847,8 @@ class OpenoltDevice(object):
 
         ofp = ofp_port(
             port_no=port_no,
-            hw_addr=mac_str_to_tuple(self._get_mac_form_port_no(port_no)),
+            hw_addr=mac_str_to_tuple(
+                OpenoltUtils.make_mac_from_port_no(port_no)),
             name=label, config=0, state=of_oper_state, curr=cap,
             advertised=cap, peer=cap, curr_speed=curr_speed,
             max_speed=max_speed)
@@ -891,16 +863,10 @@ class OpenoltDevice(object):
         self.adapter_agent.add_logical_port(self.logical_device_id,
                                             logical_port)
 
-    def _get_mac_form_port_no(self, port_no):
-        mac = ''
-        for i in range(4):
-            mac = ':%02x' % ((port_no >> (i * 8)) & 0xff) + mac
-        return '00:00' + mac
-
     def add_port(self, intf_id, port_type, oper_status):
         port_no = self.platform.intf_id_to_port_no(intf_id, port_type)
 
-        label = self.port_name(port_no, port_type, intf_id)
+        label = OpenoltUtils.port_name(port_no, port_type, intf_id)
 
         self.log.debug('adding-port', port_no=port_no, label=label,
                        port_type=port_type)
@@ -972,39 +938,6 @@ class OpenoltDevice(object):
                 self.log.error('failed to remove flow', flow=flow, e=e)
 
         self.flow_mgr.repush_all_different_flows()
-
-    # There has to be a better way to do this
-    def ip_hex(self, ip):
-        octets = ip.split(".")
-        hex_ip = []
-        for octet in octets:
-            octet_hex = hex(int(octet))
-            octet_hex = octet_hex.split('0x')[1]
-            octet_hex = octet_hex.rjust(2, '0')
-            hex_ip.append(octet_hex)
-        return ":".join(hex_ip)
-
-    def stringify_vendor_specific(self, vendor_specific):
-        return ''.join(str(i) for i in [
-            hex(ord(vendor_specific[0]) >> 4 & 0x0f)[2:],
-            hex(ord(vendor_specific[0]) & 0x0f)[2:],
-            hex(ord(vendor_specific[1]) >> 4 & 0x0f)[2:],
-            hex(ord(vendor_specific[1]) & 0x0f)[2:],
-            hex(ord(vendor_specific[2]) >> 4 & 0x0f)[2:],
-            hex(ord(vendor_specific[2]) & 0x0f)[2:],
-            hex(ord(vendor_specific[3]) >> 4 & 0x0f)[2:],
-            hex(ord(vendor_specific[3]) & 0x0f)[2:]])
-
-    def stringify_serial_number(self, serial_number):
-        return ''.join([serial_number.vendor_id,
-                        self.stringify_vendor_specific(
-                            serial_number.vendor_specific)])
-
-    def destringify_serial_number(self, serial_number_str):
-        serial_number = openolt_pb2.SerialNumber(
-            vendor_id=serial_number_str[:4].encode('utf-8'),
-            vendor_specific=binascii.unhexlify(serial_number_str[4:]))
-        return serial_number
 
     def disable(self):
         self.log.debug('sending-deactivate-olt-message',
@@ -1079,7 +1012,7 @@ class OpenoltDevice(object):
             self.delete_port(child_device.serial_number)
         except Exception as e:
             self.log.error('port delete error', error=e)
-        serial_number = self.destringify_serial_number(
+        serial_number = OpenoltUtils.destringify_serial_number(
             child_device.serial_number)
         # TODO FIXME - For each uni.
         # TODO FIXME - Flows are not deleted
