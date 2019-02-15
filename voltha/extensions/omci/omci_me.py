@@ -75,7 +75,7 @@ class ExtendedVlanTaggingOperationConfigurationDataFrame(MEFrame):
     of its point of attachment, the specified tagging operations refer to the
      upstream direction.
     """
-    def __init__(self, entity_id, attributes):
+    def __init__(self, entity_id, attributes=None):
         """
         :param entity_id: (int) This attribute uniquely identifies each instance of
                                 this managed entity. Its value is the same as that
