@@ -56,7 +56,8 @@ class BrcmOpenomciOnuAdapter(object):
             id=name,
             vendor_ids=['OPEN', 'ALCL', 'BRCM', 'TWSH', 'ALPH', 'ISKT', 'SFAA', 'BBSM'],
             adapter=name,
-            accepts_bulk_flow_update=True
+            accepts_bulk_flow_update=True,
+            accepts_add_remove_flow_updates=True
         )
     ]
 
@@ -208,7 +209,20 @@ class BrcmOpenomciOnuAdapter(object):
         return handler.update_flow_table(device, flows.items)
 
     def update_flows_incrementally(self, device, flow_changes, group_changes):
-        raise NotImplementedError()
+        log.info('incremental-flow-update', device_id=device.id,
+                 flows=flow_changes, groups=group_changes)
+        # For now, there is no support for group changes
+        assert len(group_changes.to_add.items) == 0
+        assert len(group_changes.to_remove.items) == 0
+
+        handler = self.devices_handlers[device.id]
+        # Remove flows
+        if len(flow_changes.to_remove.items) != 0:
+            handler.remove_onu_flows(device, flow_changes.to_remove.items)
+
+        # Add flows
+        if len(flow_changes.to_add.items) != 0:
+            handler.add_onu_flows(device, flow_changes.to_add.items)
 
     def send_proxied_message(self, proxy_address, msg):
         log.debug('send-proxied-message', proxy_address=proxy_address, msg=msg)

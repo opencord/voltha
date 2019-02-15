@@ -602,31 +602,254 @@ class BrcmOpenomciOnuHandler(object):
                 if _type is not None:
                     self.log.warn('ignoring-flow-with-ethType', ethType=_type)
                 elif _set_vlan_vid is None or _set_vlan_vid == 0:
-                    self.log.warn('ignorning-flow-that-does-not-set-vlanid')
+                    self.log.warn('ignoring-flow-that-does-not-set-vlanid')
                 else:
                     self.log.warn('set-vlanid', uni_id=uni_port.port_number, set_vlan_vid=_set_vlan_vid)
-                    self._add_vlan_filter_task(device, uni_port, _set_vlan_vid)
+                    self._do_vlan_filter_task(device, flow.cookie, add_tag=True,
+                                              uni_port=uni_port, _set_vlan_vid=_set_vlan_vid)
 
             except Exception as e:
                 self.log.exception('failed-to-install-flow', e=e, flow=flow)
 
+    def add_onu_flows(self, device, flows):
+        self.log.debug('function-entry', device=device, flows=flows)
 
-    def _add_vlan_filter_task(self, device, uni_port, _set_vlan_vid):
-        assert uni_port is not None
+        #
+        # We need to proxy through the OLT to get to the ONU
+        # Configuration from here should be using OMCI
+        #
+        # self.log.info('bulk-flow-update', device_id=device.id, flows=flows)
+
+        # no point in pushing omci flows if the device isnt reachable
+        if device.connect_status != ConnectStatus.REACHABLE or \
+           device.admin_state != AdminState.ENABLED:
+            self.log.warn("device-disabled-or-offline-skipping-flow-update",
+                          admin=device.admin_state, connect=device.connect_status)
+            return
+
+        for flow in flows:
+            # if incoming flow contains cookie, then add to ONU
+            if flow.cookie:
+                _type = None
+                _port = None
+                _vlan_vid = None
+                _udp_dst = None
+                _udp_src = None
+                _ipv4_dst = None
+                _ipv4_src = None
+                _metadata = None
+                _output = None
+                _push_tpid = None
+                _field = None
+                _set_vlan_vid = None
+                self.log.debug("add-flow", device_id=device.id, flow=flow)
+
+                def is_downstream(port):
+                    return port == self._pon_port_number
+
+                def is_upstream(port):
+                    return not is_downstream(port)
+
+                try:
+                    _in_port = fd.get_in_port(flow)
+                    assert _in_port is not None
+
+                    _out_port = fd.get_out_port(flow)  # may be None
+
+                    if is_downstream(_in_port):
+                        self.log.debug('downstream-flow', in_port=_in_port, out_port=_out_port)
+                        uni_port = self.uni_port(_out_port)
+                    elif is_upstream(_in_port):
+                        self.log.debug('upstream-flow', in_port=_in_port, out_port=_out_port)
+                        uni_port = self.uni_port(_in_port)
+                    else:
+                        raise Exception('port should be 1 or 2 by our convention')
+
+                    self.log.debug('flow-ports', in_port=_in_port, out_port=_out_port, uni_port=str(uni_port))
+
+                    for field in fd.get_ofb_fields(flow):
+                        if field.type == fd.ETH_TYPE:
+                            _type = field.eth_type
+                            self.log.debug('field-type-eth-type',
+                                           eth_type=_type)
+
+                        elif field.type == fd.IP_PROTO:
+                            _proto = field.ip_proto
+                            self.log.debug('field-type-ip-proto',
+                                           ip_proto=_proto)
+
+                        elif field.type == fd.IN_PORT:
+                            _port = field.port
+                            self.log.debug('field-type-in-port',
+                                           in_port=_port)
+
+                        elif field.type == fd.VLAN_VID:
+                            _vlan_vid = field.vlan_vid & 0xfff
+                            self.log.debug('field-type-vlan-vid',
+                                           vlan=_vlan_vid)
+
+                        elif field.type == fd.VLAN_PCP:
+                            _vlan_pcp = field.vlan_pcp
+                            self.log.debug('field-type-vlan-pcp',
+                                           pcp=_vlan_pcp)
+
+                        elif field.type == fd.UDP_DST:
+                            _udp_dst = field.udp_dst
+                            self.log.debug('field-type-udp-dst',
+                                           udp_dst=_udp_dst)
+
+                        elif field.type == fd.UDP_SRC:
+                            _udp_src = field.udp_src
+                            self.log.debug('field-type-udp-src',
+                                           udp_src=_udp_src)
+
+                        elif field.type == fd.IPV4_DST:
+                            _ipv4_dst = field.ipv4_dst
+                            self.log.debug('field-type-ipv4-dst',
+                                           ipv4_dst=_ipv4_dst)
+
+                        elif field.type == fd.IPV4_SRC:
+                            _ipv4_src = field.ipv4_src
+                            self.log.debug('field-type-ipv4-src',
+                                           ipv4_dst=_ipv4_src)
+
+                        elif field.type == fd.METADATA:
+                            _metadata = field.table_metadata
+                            self.log.debug('field-type-metadata',
+                                           metadata=_metadata)
+
+                        else:
+                            raise NotImplementedError('field.type={}'.format(
+                                field.type))
+
+                    for action in fd.get_actions(flow):
+
+                        if action.type == fd.OUTPUT:
+                            _output = action.output.port
+                            self.log.debug('action-type-output',
+                                           output=_output, in_port=_in_port)
+
+                        elif action.type == fd.POP_VLAN:
+                            self.log.debug('action-type-pop-vlan',
+                                           in_port=_in_port)
+
+                        elif action.type == fd.PUSH_VLAN:
+                            _push_tpid = action.push.ethertype
+                            self.log.debug('action-type-push-vlan',
+                                           push_tpid=_push_tpid, in_port=_in_port)
+                            if action.push.ethertype != 0x8100:
+                                self.log.error('unhandled-tpid',
+                                               ethertype=action.push.ethertype)
+
+                        elif action.type == fd.SET_FIELD:
+                            _field = action.set_field.field.ofb_field
+                            assert (action.set_field.field.oxm_class ==
+                                    OFPXMC_OPENFLOW_BASIC)
+                            self.log.debug('action-type-set-field',
+                                           field=_field, in_port=_in_port)
+                            if _field.type == fd.VLAN_VID:
+                                _set_vlan_vid = _field.vlan_vid & 0xfff
+                                self.log.debug('set-field-type-vlan-vid',
+                                               vlan_vid=_set_vlan_vid)
+                            else:
+                                self.log.error('unsupported-action-set-field-type',
+                                               field_type=_field.type)
+                        else:
+                            self.log.error('unsupported-action-type',
+                                           action_type=action.type, in_port=_in_port)
+
+                    # TODO: We only set vlan omci flows.  Handle omci matching ethertypes at some point in another task
+                    if _type is not None:
+                        self.log.warn('ignoring-flow-with-ethType', ethType=_type)
+                    elif _set_vlan_vid is None or _set_vlan_vid == 0:
+                        self.log.warn('ignoring-flow-that-does-not-set-vlanid')
+                    else:
+                        self.log.warn('set-vlanid', uni_id=uni_port.port_number, set_vlan_vid=_set_vlan_vid)
+                        self._do_vlan_filter_task(device, flow.cookie, add_tag=True,
+                                                  uni_port=uni_port, _set_vlan_vid=_set_vlan_vid)
+
+                except Exception as e:
+                    self.log.exception('failed-to-install-flow', e=e, flow=flow)
+
+    def remove_onu_flows(self, device, flows):
+        self.log.debug('function-entry', device=device, flows=flows)
+
+        # no point in removing omci flows if the device isnt reachable
+        if device.connect_status != ConnectStatus.REACHABLE or \
+           device.admin_state != AdminState.ENABLED:
+            self.log.warn("device-disabled-or-offline-skipping-remove-flow",
+                          admin=device.admin_state, connect=device.connect_status)
+            return
+
+        for flow in flows:
+            # if incoming flow contains cookie, then remove from ONU
+            if flow.cookie:
+                self.log.debug("remove-flow", device_id=device.id, flow=flow)
+
+                def is_downstream(port):
+                    return port == self._pon_port_number
+
+                def is_upstream(port):
+                    return not is_downstream(port)
+
+                try:
+                    _in_port = fd.get_in_port(flow)
+                    assert _in_port is not None
+
+                    _out_port = fd.get_out_port(flow)  # may be None
+
+                    if is_downstream(_in_port):
+                        self.log.debug('downstream-flow', in_port=_in_port, out_port=_out_port)
+                        uni_port = self.uni_port(_out_port)
+                    elif is_upstream(_in_port):
+                        self.log.debug('upstream-flow', in_port=_in_port, out_port=_out_port)
+                        uni_port = self.uni_port(_in_port)
+                    else:
+                        raise Exception('port should be 1 or 2 by our convention')
+
+                    self.log.debug('flow-ports', in_port=_in_port, out_port=_out_port, uni_port=str(uni_port))
+
+                    # Deleting flow from ONU.
+                    self._do_vlan_filter_task(device, flow.cookie, add_tag=False, uni_port=uni_port)
+                except Exception as e:
+                    self.log.exception('failed-to-remove-flow', e=e)
+
+    def _do_vlan_filter_task(self, device, flow_cookie, add_tag=True, uni_port=None, _set_vlan_vid=None):
+        task_name = 'removing-vlan-tag'
+        if add_tag:
+            assert uni_port is not None
+            task_name = 'setting-vlan-tag'
 
         def success(_results):
-            self.log.info('vlan-tagging-success', uni_port=uni_port, vlan=_set_vlan_vid)
-            device.reason = 'omci-flows-pushed'
+            if add_tag:
+                self.log.info('vlan-tagging-success', _results=_results)
+                device.reason = 'omci-flows-pushed'
+                self.log.debug('Flow-addition-success', cookie=flow_cookie)
+            else:
+                self.log.info('vlan-untagging-success', _results=_results)
+                device.reason = 'omci-flows-deleted'
+                self.log.debug('Flow-removal-success', cookie=flow_cookie)
+
             self._vlan_filter_task = None
 
         def failure(_reason):
-            self.log.warn('vlan-tagging-failure', uni_port=uni_port, vlan=_set_vlan_vid)
-            device.reason = 'omci-flows-failed-retrying'
-            self._vlan_filter_task = reactor.callLater(_STARTUP_RETRY_WAIT,
-                                                       self._add_vlan_filter_task, device, uni_port, _set_vlan_vid)
+            if add_tag:
+                self.log.warn('vlan-tagging-failure', _reason=_reason)
+                device.reason = 'omci-flows-addition-failed-retrying'
+                self._vlan_filter_task = reactor.callLater(_STARTUP_RETRY_WAIT,
+                                                           self._do_vlan_filter_task, device, flow_cookie,
+                                                           add_tag=True, uni_port=uni_port,
+                                                           _set_vlan_vid=_set_vlan_vid)
+            else:
+                self.log.warn('vlan-untagging-failure', _reason=_reason)
+                device.reason = 'omci-flows-deletion-failed-retrying'
+                self._vlan_filter_task = reactor.callLater(_STARTUP_RETRY_WAIT,
+                                                           self._do_vlan_filter_task, device, flow_cookie,
+                                                           add_tag=False)
 
-        self.log.info('setting-vlan-tag')
-        self._vlan_filter_task = BrcmVlanFilterTask(self.omci_agent, self.device_id, uni_port, _set_vlan_vid)
+        self.log.info(task_name)
+        self._vlan_filter_task = BrcmVlanFilterTask(self.omci_agent, self.device_id, uni_port, _set_vlan_vid,
+                                                    add_tag=add_tag)
         self._deferred = self._onu_omci_device.task_runner.queue_task(self._vlan_filter_task)
         self._deferred.addCallbacks(success, failure)
 
