@@ -46,6 +46,30 @@
       "revId": "61f491ff2fe609dee22f4842a004e1a478677f5c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a77a2f6d_8706b17e",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-15T06:03:30Z",
+      "side": 1,
+      "message": "Fixed in subsequent commit.",
+      "parentUuid": "fb14600b_0ca58025",
+      "range": {
+        "startLine": 151,
+        "startChar": 0,
+        "endLine": 152,
+        "endChar": 46
+      },
+      "revId": "61f491ff2fe609dee22f4842a004e1a478677f5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
