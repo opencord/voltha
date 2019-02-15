@@ -35,6 +35,7 @@ from voltha.adapters.openolt.openolt_statistics import OpenOltStatisticsMgr
 from voltha.adapters.openolt.openolt_bw import OpenOltBW
 from voltha.adapters.openolt.openolt_platform import OpenOltPlatform
 from voltha.adapters.openolt.openolt_resource_manager import OpenOltResourceMgr
+from voltha.adapters.openolt.openolt_data_model import OpenOltDataModel
 
 _ = third_party
 log = structlog.get_logger()
@@ -79,6 +80,7 @@ class OpenoltAdapter(object):
         self.interface = registry('main').get_args().interface
         self.logical_device_id_to_root_device_id = dict()
         self.num_devices = 0
+        self.data_model = OpenOltDataModel(adapter_agent)
 
     def start(self):
         log.info('started', interface=self.interface)
@@ -109,6 +111,7 @@ class OpenoltAdapter(object):
 
         kwargs = {
             'support_classes': OpenOltDefaults['support_classes'],
+            'data_model': self.data_model,
             'adapter_agent': self.adapter_agent,
             'device': device,
             'device_num': self.num_devices + 1
