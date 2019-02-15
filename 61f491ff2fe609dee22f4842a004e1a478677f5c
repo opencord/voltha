@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9cdb1e04_efc55480",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-15T03:17:00Z",
+      "side": 1,
+      "message": "Since we are asserting serial_number cannot be null, this code may seem redundant. \nAlso can the can dp_id above be null. Should we keep that code.",
+      "range": {
+        "startLine": 151,
+        "startChar": 0,
+        "endLine": 152,
+        "endChar": 46
+      },
+      "revId": "61f491ff2fe609dee22f4842a004e1a478677f5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
