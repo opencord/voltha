@@ -40,6 +40,7 @@ IGMP_PROTO = 2
 
 # FIXME - see also BRDCM_DEFAULT_VLAN in broadcom_onu.py
 DEFAULT_MGMT_VLAN = 4091
+RESERVED_VLAN = 4095
 
 # Openolt Flow
 UPSTREAM = "upstream"
@@ -803,10 +804,12 @@ class OpenOltFlowMgr(object):
             classifier.eth_type = classifier_info[ETH_TYPE]
         if IP_PROTO in classifier_info:
             classifier.ip_proto = classifier_info[IP_PROTO]
-        if VLAN_VID in classifier_info:
-            classifier.o_vid = classifier_info[VLAN_VID]
-        if METADATA in classifier_info:
-            classifier.i_vid = classifier_info[METADATA]
+        if VLAN_VID in classifier_info and \
+                classifier_info[VLAN_VID] != RESERVED_VLAN:
+             classifier.o_vid = classifier_info[VLAN_VID]
+        if METADATA in classifier_info and \
+                classifier_info[METADATA] != RESERVED_VLAN:
+             classifier.i_vid = classifier_info[METADATA]
         if VLAN_PCP in classifier_info:
             classifier.o_pbits = classifier_info[VLAN_PCP]
         if UDP_SRC in classifier_info:
