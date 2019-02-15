@@ -26,16 +26,12 @@ from transitions import Machine
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
 from voltha.protos.logical_device_pb2 import LogicalDevice
-from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
-    OFPPS_LINK_DOWN, OFPPF_1GB_FD, OFPC_GROUP_STATS, OFPC_PORT_STATS, \
-    OFPC_TABLE_STATS, OFPC_FLOW_STATS, ofp_switch_features, ofp_port, \
-    ofp_port_stats, ofp_desc
-from voltha.protos.logical_device_pb2 import LogicalPort
-from voltha.core.logical_device_agent import mac_str_to_tuple
+from voltha.protos.openflow_13_pb2 import OFPPS_LINK_DOWN, OFPC_GROUP_STATS, \
+    OFPC_PORT_STATS, OFPC_TABLE_STATS, OFPC_FLOW_STATS, ofp_switch_features, \
+    ofp_desc
 from voltha.registry import registry
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
-
 from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
 
 
@@ -84,6 +80,7 @@ class OpenoltDevice(object):
 
         self.admin_state = "up"
 
+        self.data_model = kwargs['data_model']
         self.adapter_agent = kwargs['adapter_agent']
         self.device_num = kwargs['device_num']
         device = kwargs['device']
@@ -406,13 +403,6 @@ class OpenoltDevice(object):
                     self.log.warn('unknown indication type')
 
     def olt_indication(self, olt_indication):
-        '''
-        if self.admin_state is "up":
-            if olt_indication.oper_state == "up":
-                self.go_state_up()
-            elif olt_indication.oper_state == "down":
-                self.go_state_down()
-        '''
         if olt_indication.oper_state == "up":
             self.go_state_up()
         elif olt_indication.oper_state == "down":
@@ -447,8 +437,10 @@ class OpenoltDevice(object):
             port_no, label = self.add_port(intf_oper_indication.intf_id,
                                            Port.ETHERNET_NNI, oper_state)
             self.log.debug("int_oper_indication", port_no=port_no, label=label)
-            self.add_logical_port(port_no, intf_oper_indication.intf_id,
-                                  oper_state)
+            self.data_model.add_logical_port(self.logical_device_id,
+                                             self.device_id, port_no,
+                                             intf_oper_indication.intf_id,
+                                             oper_state)
 
         elif intf_oper_indication.type == "pon":
             # FIXME - handle PON oper state change
@@ -830,38 +822,6 @@ class OpenoltDevice(object):
             root=True, serial_number=serial_number_str,
             admin_state=AdminState.ENABLED
         )
-
-    def add_logical_port(self, port_no, intf_id, oper_state):
-        self.log.info('adding-logical-port', port_no=port_no)
-
-        label = OpenoltUtils.port_name(port_no, Port.ETHERNET_NNI)
-
-        cap = OFPPF_1GB_FD | OFPPF_FIBER
-        curr_speed = OFPPF_1GB_FD
-        max_speed = OFPPF_1GB_FD
-
-        if oper_state == OperStatus.ACTIVE:
-            of_oper_state = OFPPS_LIVE
-        else:
-            of_oper_state = OFPPS_LINK_DOWN
-
-        ofp = ofp_port(
-            port_no=port_no,
-            hw_addr=mac_str_to_tuple(
-                OpenoltUtils.make_mac_from_port_no(port_no)),
-            name=label, config=0, state=of_oper_state, curr=cap,
-            advertised=cap, peer=cap, curr_speed=curr_speed,
-            max_speed=max_speed)
-
-        ofp_stats = ofp_port_stats(port_no=port_no)
-
-        logical_port = LogicalPort(
-            id=label, ofp_port=ofp, device_id=self.device_id,
-            device_port_no=port_no, root_port=True,
-            ofp_port_stats=ofp_stats)
-
-        self.adapter_agent.add_logical_port(self.logical_device_id,
-                                            logical_port)
 
     def add_port(self, intf_id, port_type, oper_status):
         port_no = self.platform.intf_id_to_port_no(intf_id, port_type)
