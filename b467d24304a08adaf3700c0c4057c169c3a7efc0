@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "fd1baf5d_c9fc8e26",
+        "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_vlan_filter_task.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2019-02-18T20:24:33Z",
+      "side": 1,
+      "message": "Also this needs to stay omci_msg\u003dmsg given the logger has reserved msg.  Note sure how msg\u003dmsg came back...",
+      "range": {
+        "startLine": 142,
+        "startChar": 43,
+        "endLine": 142,
+        "endChar": 51
+      },
+      "revId": "b467d24304a08adaf3700c0c4057c169c3a7efc0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5ca350ff_7b9cc59a",
         "filename": "voltha/adapters/brcm_openomci_onu/omci/brcm_vlan_filter_task.py",
         "patchSetId": 2
