@@ -90,11 +90,14 @@ class VolthaMngr(object):
         for nsName in allRunningPods:
             Namespace = nsName.get('NS')
             podName = nsName.get('Name')
-            if 'onos' not in podName:
-                os.system('/usr/bin/kubectl logs -n %s -f %s > %s/%s.log 2>&1 &' %
-                          (Namespace, podName, testCaseUtils.get_dir(self, 'log'), podName))
-            else:
+            if 'onos' in podName:
                 os.system('/usr/bin/kubectl logs -n %s -f %s onos > %s/%s.log 2>&1 &' %
+                          (Namespace, podName, testCaseUtils.get_dir(self, 'log'), podName))
+            elif 'calico-node' in podName:
+                    os.system('/usr/bin/kubectl logs -n %s -f %s calico-node > %s/%s.log 2>&1 &' %
+                              (Namespace, podName, testCaseUtils.get_dir(self, 'log'), podName))
+            else:
+                os.system('/usr/bin/kubectl logs -n %s -f %s > %s/%s.log 2>&1 &' %
                           (Namespace, podName, testCaseUtils.get_dir(self, 'log'), podName))
 
         

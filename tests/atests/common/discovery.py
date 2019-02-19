@@ -20,6 +20,7 @@ vOLT-HA Discovery Test Case module
 
 import testCaseUtils
 import logging
+import os
 
 
 class Discovery(object):
@@ -60,8 +61,34 @@ class Discovery(object):
         testCaseUtils.send_command_to_voltha_cli(testCaseUtils.get_dir(self, 'log'),
                                                  'voltha_logical_device.log', 'logical_device ' + self.__logicalDeviceId,
                                                  'voltha_logical_device_ports.log', 'ports', 'voltha_logical_device_flows.log', 'flows')
+        assert os.path.exists(testCaseUtils.get_dir(self, 'log') + '/voltha_logical_device.log') and \
+            (os.path.getsize(testCaseUtils.get_dir(self, 'log') + '/voltha_logical_device.log') is 0), \
+            'voltha_logical_device.log is not 0 length'
         testCaseUtils.print_log_file(self, 'voltha_logical_device_ports.log')
         testCaseUtils.print_log_file(self, 'voltha_logical_device_flows.log')
+
+    def logical_device_ports_should_exist(self):
+        statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__oltDeviceId, 'voltha_logical_device_ports.log')
+        assert statusLines, 'No Olt device listed under logical device ports'
+        self.__fields = testCaseUtils.parse_fields(statusLines)
+        portType = self.__fields[1].strip()
+        assert portType == 'nni', 'Port type for %s does not match expected nni' % self.__oltDeviceId
+        for onuDeviceId in self.__onuDeviceIds:
+            statusLines = testCaseUtils.get_fields_from_grep_command(self, onuDeviceId, 'voltha_logical_device_ports.log')
+            assert statusLines, 'No Onu device %s listed under logical device ports' % onuDeviceId
+            lines = statusLines.splitlines()
+            for line in lines:
+                self.__fields = testCaseUtils.parse_fields(line)
+                portType = self.__fields[1].strip()
+                assert portType == 'uni-128', 'Port type for %s does not match expected uni-128' % onuDeviceId
+
+    def logical_device_should_have_at_least_one_flow(self):
+        statusLines = testCaseUtils.get_fields_from_grep_command(self, 'Flows', 'voltha_logical_device_flows.log')
+        assert statusLines, 'No Logical device flows listed for logical device'
+        before, flows, numFlows = statusLines.partition('Flows')
+        plainNumber = numFlows.strip().strip('():')
+        if plainNumber.isdigit():
+            assert int(plainNumber) > 0, 'Zero number of flows for logical device'
 
     def olt_discovery(self):
         logging.info('Olt Discovery')
@@ -165,6 +192,8 @@ def run_test(logical_device_type, olt_type, onu_type, log_dir):
     discovery.olt_discovery()
     discovery.onu_discovery()
     discovery.logical_device()
+    discovery.logical_device_ports_should_exist()
+    discovery.logical_device_should_have_at_least_one_flow()
     discovery.olt_ports_should_be_enabled_and_active()
     discovery.onu_ports_should_be_enabled_and_active()
     discovery.olt_should_have_at_least_one_flow()
