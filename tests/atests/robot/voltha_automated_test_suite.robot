@@ -70,6 +70,8 @@ Olt Onu Discovery
     Olt Discovery
     Onu Discovery
     Logical Device
+    Logical Device Ports Should Exist
+    Logical Device Should Have At Least One Flow
     Olt Ports Should Be Enabled and Active
     Onu Ports Should Be Enabled and Active
     Olt Should Have At Least One Flow
