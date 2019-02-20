@@ -86,6 +86,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self._flows_ids_to_add = []
             self._flows_ids_to_remove = []
             self._flows_to_remove = []
+            self._flow_with_unknown_meter = dict()
 
             self.accepts_direct_logical_flows = False
             self.device_id = self.self_proxy.get('/').root_device_id
@@ -224,6 +225,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.signal_meter_mod_error(ofp.OFPMMFC_METER_EXISTS, meter_mod)
         else:
             meter_entry = meter_entry_from_meter_mod(meter_mod)
+            meter_entry.stats.flow_count = self._flow_with_unknown_meter.get(meter_mod.meter_id, 0)
+            self._flow_with_unknown_meter.pop(meter_mod.meter_id, None)
             meters[meter_mod.meter_id] = meter_entry
             changed = True
 
@@ -352,6 +355,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                                meters=meters.values())
             except KeyError:
                 self.log.warn("meter id is not found in meters", meter_id=meter_id)
+                self._flow_with_unknown_meter[meter_id] = \
+                    self._flow_with_unknown_meter.get(meter_id, 0) + 1
 
 
     def flow_delete(self, mod):
