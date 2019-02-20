@@ -66,6 +66,14 @@ def ofp_port_status_to_loxi_port_status(pb):
         desc=ofp_port_to_loxi_port_desc(pb.desc)
     )
 
+def ofp_flow_removed_to_loxi_flow_removed(pb):
+    return of13.message.flow_removed(
+        cookie=pb.cookie,
+        priority=pb.priority,
+        reason=pb.reason,
+        table_id=pb.table_id,
+        match=make_loxi_match(pb2dict(pb.match))
+    )
 
 def ofp_port_stats_to_loxi_port_stats(pb):
     kw = pb2dict(pb)
@@ -265,6 +273,7 @@ def ofp_bucket_to_loxi_bucket(pb):
 to_loxi_converters = {
     'ofp_port': ofp_port_to_loxi_port_desc,
     'ofp_port_status': ofp_port_status_to_loxi_port_status,
+    'ofp_flow_removed': ofp_flow_removed_to_loxi_flow_removed,
     'ofp_flow_stats': ofp_flow_stats_to_loxi_flow_stats,
     'ofp_packet_in': ofp_packet_in_to_loxi_packet_in,
     'ofp_group_stats': ofp_group_stats_to_loxi_group_stats,

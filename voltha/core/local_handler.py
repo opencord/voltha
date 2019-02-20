@@ -25,7 +25,7 @@ from twisted.internet import task
 from common.utils.id_generation import create_cluster_device_id
 from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups, \
-    Meters, ofp_port_status
+    Meters, ofp_port_status, ofp_flow_removed
 from voltha.protos.voltha_pb2_grpc import \
     add_VolthaLocalServiceServicer_to_server, VolthaLocalServiceServicer
 from voltha.protos.voltha_pb2 import \
@@ -1156,6 +1156,10 @@ class LocalHandler(VolthaLocalServiceServicer):
         event = ChangeEvent(id=device_id, port_status=port_status)
         self.core.change_event_queue.put(event)
 
+    def send_flow_removed_event(self, device_id, flow_removed):
+        assert isinstance(flow_removed, ofp_flow_removed)
+        event = ChangeEvent(id=device_id, flow_removed=flow_removed)
+        self.core.change_event_queue.put(event)
 
     @twisted_async
     def ListAlarmFilters(self, request, context):

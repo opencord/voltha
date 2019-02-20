@@ -2305,5 +2305,6 @@ message ChangeEvent {
     string id = 1; // LogicalDevice.id
     oneof event {
         ofp_port_status port_status = 2;
+        ofp_flow_removed flow_removed = 3;
     }
 }

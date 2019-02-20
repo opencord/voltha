@@ -160,9 +160,11 @@ class Agent(protocol.ClientFactory):
     def forward_change_event(self, event):
         # assert isinstance(event, ChangeEvent)
         log.info('got-change-event', change_event=event)
-        if event.HasField("port_status"):
-            if self.proto_handler is not None:
+        if self.proto_handler is not None:
+            if event.HasField("port_status"):
                 self.proto_handler.forward_port_status(event.port_status)
+            elif event.HasField("flow_removed"):
+                self.proto_handler.forward_flow_removed(event.flow_removed)
         else:
             log.error('unknown-change-event', change_event=event)
 
