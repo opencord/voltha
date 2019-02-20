@@ -347,6 +347,10 @@ def get_egress_port_number_from_metadata(flow):
     return None
 
 
+def get_tp_id_from_metadata(write_metadata_value):
+    return (write_metadata_value >> 32) & 0xffff
+
+
 def get_inner_tag_from_write_metadata(flow):
     """
     Write metadata instruction value (metadata) is 8 bytes:
@@ -359,7 +363,7 @@ def get_inner_tag_from_write_metadata(flow):
     metadata = get_metadata_from_write_metadata(flow)
     log.debug("The metadata for inner tag", metadata=metadata)
     if metadata is not None:
-        inner_tag = (metadata >> 48) & 0xffffffff
+        inner_tag = (metadata >> 48) & 0xffff
         log.debug("Found inner tag", inner_tag=inner_tag)
         return inner_tag
     return None

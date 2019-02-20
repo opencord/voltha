@@ -347,3 +347,6 @@ class OpenFlowProtocolHandler(object):
 
     def forward_port_status(self, ofp_port_status):
         self.cxn.send(to_loxi(ofp_port_status))
+
+    def forward_flow_removed(self, ofp_flow_removed):
+        self.cxn.send(to_loxi(ofp_flow_removed))

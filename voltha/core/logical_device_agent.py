@@ -86,6 +86,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self._flows_ids_to_add = []
             self._flows_ids_to_remove = []
             self._flows_to_remove = []
+            self._flow_with_unknown_meter = dict()
 
             self.accepts_direct_logical_flows = False
             self.device_id = self.self_proxy.get('/').root_device_id
@@ -141,13 +142,22 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         self.log.debug('stopped')
 
-    def announce_flows_deleted(self, flows):
+    def announce_flows_deleted(self, flows, reason=ofp.OFPRR_DELETE):
         for f in flows:
-            self.announce_flow_deleted(f)
+            self.announce_flow_deleted(f, reason)
 
-    def announce_flow_deleted(self, flow):
+    def announce_flow_deleted(self, flow, reason=ofp.OFPRR_DELETE):
         if flow.flags & ofp.OFPFF_SEND_FLOW_REM:
-            raise NotImplementedError("announce_flow_deleted")
+            self.local_handler.send_flow_removed_event(
+                device_id=self.logical_device_id,
+                flow_removed=ofp.ofp_flow_removed(
+                    cookie=flow.cookie,
+                    priority=flow.priority,
+                    reason=reason,
+                    table_id=flow.table_id,
+                    match=flow.match
+                )
+            )
 
     def signal_flow_mod_error(self, code, flow_mod):
         pass  # TODO
@@ -224,6 +234,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.signal_meter_mod_error(ofp.OFPMMFC_METER_EXISTS, meter_mod)
         else:
             meter_entry = meter_entry_from_meter_mod(meter_mod)
+            meter_entry.stats.flow_count = self._flow_with_unknown_meter.get(meter_mod.meter_id, 0)
+            self._flow_with_unknown_meter.pop(meter_mod.meter_id, None)
             meters[meter_mod.meter_id] = meter_entry
             changed = True
 
@@ -352,6 +364,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                                meters=meters.values())
             except KeyError:
                 self.log.warn("meter id is not found in meters", meter_id=meter_id)
+                self._flow_with_unknown_meter[meter_id] = \
+                    self._flow_with_unknown_meter.get(meter_id, 0) + 1
 
 
     def flow_delete(self, mod):
@@ -402,6 +416,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         if changed:
             self.flows_proxy.update('/', Flows(items=flows))
             self.log.debug("flow deleted strictly", mod=mod)
+            if isinstance(mod, ofp.ofp_flow_mod):
+                self.announce_flow_deleted(flow)
 
     def flow_modify(self, mod):
         raise NotImplementedError()
@@ -552,7 +568,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         flows = to_keep
 
         # send notification to deleted ones
-        self.announce_flows_deleted(to_delete)
+        self.announce_flows_deleted(to_delete, reason=ofp.OFPRR_GROUP_DELETE)
 
         return bool(to_delete), flows
 
@@ -567,6 +583,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 to_keep.append(f)
 
         flows = to_keep
+        # we cant use OFPRR_MELETE_DELETE for 1.3.x
         self.announce_flows_deleted(flows)
         return bool(to_delete), flows
 
