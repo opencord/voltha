@@ -179,7 +179,7 @@ class OpenoltDevice(object):
                                                     self.host_and_port,
                                                     self.extra_args,
                                                     self.device_info)
-        self.platform = self.platform_class(self.log, self.resource_mgr)
+        self.platform = self.platform_class()
         self.flow_mgr = self.flow_mgr_class(self.adapter_agent, self.log,
                                             self.stub, self.device_id,
                                             self.logical_device_id,

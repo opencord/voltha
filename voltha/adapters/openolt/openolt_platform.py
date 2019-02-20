@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+import structlog
 from voltha.protos.device_pb2 import Port
 import voltha.protos.device_pb2 as dev_pb2
 
@@ -76,24 +77,17 @@ PON OLT (OF) port number
 
 """
 
+
 class OpenOltPlatform(object):
     MAX_PONS_PER_OLT = 16
-    MAX_ONUS_PER_PON = 32
+    MAX_ONUS_PER_PON = 128
     MAX_UNIS_PER_ONU = 16
-
-    def __init__(self, log, resource_mgr):
-        self.log = log
-        self.resource_mgr = resource_mgr
 
     def mk_uni_port_num(self, intf_id, onu_id, uni_id):
         assert intf_id < OpenOltPlatform.MAX_PONS_PER_OLT
         assert onu_id < OpenOltPlatform.MAX_ONUS_PER_PON
         assert uni_id < OpenOltPlatform.MAX_UNIS_PER_ONU
-        self.resource_mgr.assert_uni_id_limit(intf_id, onu_id, uni_id)
         return intf_id << 11 | onu_id << 4 | uni_id
-
-    #def mk_flow_id(self, intf_id, onu_id, idx):
-    #    return intf_id << 9 | onu_id << 4 | idx
 
     def uni_id_from_port_num(self, port_num):
         return port_num & 0xF
@@ -101,14 +95,11 @@ class OpenOltPlatform(object):
     def onu_id_from_port_num(self, port_num):
         return (port_num >> 4) & 0x7F
 
-
     def intf_id_from_uni_port_num(self, port_num):
         return (port_num >> 11) & 0xF
 
-
     def intf_id_from_pon_port_no(self, port_no):
         return port_no & 0xF
-
 
     def intf_id_to_port_no(self, intf_id, intf_type):
         if intf_type is Port.ETHERNET_NNI:
@@ -118,10 +109,8 @@ class OpenOltPlatform(object):
         else:
             raise Exception('Invalid port type')
 
-
     def intf_id_from_nni_port_num(self, port_num):
         return port_num & 0xFFFF
-
 
     def intf_id_to_port_type_name(self, intf_id):
         if (2 << 28 ^ intf_id) < 16:
@@ -150,15 +139,10 @@ class OpenOltPlatform(object):
                     self.uni_id_from_port_num(out_port))
 
     def is_upstream(self, out_port):
-
         if out_port in [0xfffd, 0xfffffffd]:
             # To Controller
             return True
         if (out_port & (0x1 << 16)) == (0x1 << 16):
             # NNI interface
             return True
-
         return False
-    #
-    #def max_onus_per_pon(self):
-    #    return OpenOltPlatform.MAX_ONUS_PER_PON
