@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-import structlog
 from voltha.protos.device_pb2 import Port
 import voltha.protos.device_pb2 as dev_pb2
 
@@ -87,6 +86,8 @@ class OpenOltPlatform(object):
         assert intf_id < OpenOltPlatform.MAX_PONS_PER_OLT
         assert onu_id < OpenOltPlatform.MAX_ONUS_PER_PON
         assert uni_id < OpenOltPlatform.MAX_UNIS_PER_ONU
+        # Multiple unis not supported. Physical ONU equates to single UNI.
+        assert uni_id == 0
         return intf_id << 11 | onu_id << 4 | uni_id
 
     def uni_id_from_port_num(self, port_num):
