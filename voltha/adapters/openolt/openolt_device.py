@@ -744,6 +744,15 @@ class OpenoltDevice(object):
 
         return port_no, label
 
+    def get_uni_ofp_port_name(self, child_device):
+        logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
+            self.logical_device_id))
+        for logical_port in logical_ports:
+            if logical_port.device_id == child_device.id:
+                return logical_port.ofp_port.name
+        return None
+
+
     def delete_logical_port(self, child_device):
         logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
             self.logical_device_id))
@@ -870,6 +879,12 @@ class OpenoltDevice(object):
                                                    child_device)
         except Exception as e:
             self.log.error('adapter_agent error', error=e)
+
+        ofp_port_name = self.get_uni_ofp_port_name(child_device)
+        if ofp_port_name is None:
+            self.log.exception("uni-ofp-port-not-found")
+            return
+
         try:
             self.delete_logical_port(child_device)
         except Exception as e:
@@ -883,21 +898,32 @@ class OpenoltDevice(object):
         # TODO FIXME - For each uni.
         # TODO FIXME - Flows are not deleted
         uni_id = 0  # FIXME
-        self.flow_mgr.delete_tech_profile_instance(
-                    child_device.proxy_address.channel_id,
-                    child_device.proxy_address.onu_id,
-                    uni_id
-        )
-        pon_intf_id_onu_id = (child_device.proxy_address.channel_id,
-                              child_device.proxy_address.onu_id,
-                              uni_id)
-        # Free any PON resources that were reserved for the ONU
-        self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
+        try:
+            self.flow_mgr.delete_tech_profile_instance(
+                        child_device.proxy_address.channel_id,
+                        child_device.proxy_address.onu_id,
+                        uni_id,
+                        ofp_port_name
+            )
+        except Exception as e:
+            self.log.exception("error-removing-tp-instance")
 
-        onu = openolt_pb2.Onu(intf_id=child_device.proxy_address.channel_id,
-                              onu_id=child_device.proxy_address.onu_id,
-                              serial_number=serial_number)
-        self.stub.DeleteOnu(onu)
+        try:
+            pon_intf_id_onu_id = (child_device.proxy_address.channel_id,
+                                  child_device.proxy_address.onu_id,
+                                  uni_id)
+            # Free any PON resources that were reserved for the ONU
+            self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
+        except Exception as e:
+            self.log.exception("error-removing-pon-resources-for-onu")
+
+        try:
+            onu = openolt_pb2.Onu(intf_id=child_device.proxy_address.channel_id,
+                                  onu_id=child_device.proxy_address.onu_id,
+                                  serial_number=serial_number)
+            self.stub.DeleteOnu(onu)
+        except Exception as e:
+            self.log.exception("error-deleting-the-onu-on-olt-device")
 
     def reboot(self):
         self.log.debug('rebooting openolt device', device_id=self.device_id)
