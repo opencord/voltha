@@ -28,6 +28,7 @@ from voltha.adapters.openolt.openolt_platform import OpenOltPlatform
 
 class OpenOltResourceMgr(object):
     BASE_PATH_KV_STORE = "service/voltha/openolt/{}"  # service/voltha/openolt/<device_id>
+    TP_ID_PATH_SUFFIX = 'tp_id/{}'
 
     def __init__(self, device_id, host_and_port, extra_args, device_info):
         self.log = structlog.get_logger(id=device_id,
@@ -132,11 +133,6 @@ class OpenOltResourceMgr(object):
     def get_onu_id(self, pon_intf_id):
         onu_id = self.resource_mgrs[pon_intf_id].get_resource_id(
             pon_intf_id, PONResourceManager.ONU_ID, 1)
-
-        if onu_id is not None:
-            pon_intf_onu_id = (pon_intf_id, onu_id)
-            self.resource_mgrs[pon_intf_id].init_resource_map(
-                pon_intf_onu_id)
 
         return onu_id
 
@@ -466,3 +462,12 @@ class OpenOltResourceMgr(object):
             self.log.error("error-retrieving-flow-info", e=e)
 
         return False
+
+    def get_tech_profile_id_for_onu(self, intf_id, onu_id, uni_id):
+        intf_id_onu_id_uni_id = (intf_id, onu_id, uni_id)
+        try:
+            kv_path = OpenOltResourceMgr.TP_ID_PATH_SUFFIX.format(str(intf_id_onu_id_uni_id))
+            return int(self.kv_store[kv_path])
+        except Exception as e:
+            self.log.warn("tp-id-not-found-on-kv-store", e=e)
+            return DEFAULT_TECH_PROFILE_TABLE_ID
