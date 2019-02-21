@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "075618f1_9d09e6e1",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 366,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-21T06:50:09Z",
+      "side": 1,
+      "message": "While this would work, to be really correct, it should also be 0xffff",
+      "revId": "3e56094a4572d1de04917903093852b50e475f4a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
