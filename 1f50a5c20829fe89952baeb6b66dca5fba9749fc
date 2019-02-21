@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ac2b4fe7_6c17cabd",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 351,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-02-21T06:10:51Z",
+      "side": 1,
+      "message": "Is this right? Shouldn\u0027t u and it with just 0xffff",
+      "revId": "1f50a5c20829fe89952baeb6b66dca5fba9749fc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
