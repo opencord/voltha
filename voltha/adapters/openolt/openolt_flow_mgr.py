@@ -327,20 +327,18 @@ class OpenOltFlowMgr(object):
         ofp_port_name = (logical_port.ofp_port.name, logical_port.ofp_port.port_no)
         return ofp_port_name
 
-    def get_tp_path(self, intf_id, ofp_port_name):
-        # FIXME Should get Table id form the flow, as of now hardcoded to
-        # DEFAULT_TECH_PROFILE_TABLE_ID (64)
-        # 'tp_path' contains the suffix part of the tech_profile_instance path.
-        # The prefix to the 'tp_path' should be set to \
-        # TechProfile.KV_STORE_TECH_PROFILE_PATH_PREFIX by the ONU adapter.
+    def get_tp_path(self, intf_id, ofp_port_name, techprofile_id):
         return self.tech_profile[intf_id]. \
-            get_tp_path(DEFAULT_TECH_PROFILE_TABLE_ID,
+            get_tp_path(techprofile_id,
                         ofp_port_name)
 
-    def delete_tech_profile_instance(self, intf_id, onu_id, uni_id):
+    def delete_tech_profile_instance(self, intf_id, onu_id, uni_id, ofp_port_name):
         # Remove the TP instance associated with the ONU
-        ofp_port_name = self._get_ofp_port_name(intf_id, onu_id, uni_id)
-        tp_path = self.get_tp_path(intf_id, ofp_port_name)
+        if ofp_port_name is None:
+            ofp_port_name, ofp_port_no = self._get_ofp_port_name(intf_id, onu_id, uni_id)
+        tp_id = self.resource_mgr.get_tech_profile_id_for_onu(intf_id, onu_id, uni_id)
+        tp_path = self.get_tp_path(intf_id, ofp_port_name, tp_id)
+        self.log.debug(" tp-path-in-delete",tp_path=tp_path)
         return self.tech_profile[intf_id].delete_tech_profile_instance(tp_path)
 
     def divide_and_add_flow(self, intf_id, onu_id, uni_id, port_no, classifier,
@@ -391,8 +389,8 @@ class OpenOltFlowMgr(object):
                     if ofp_port_name is None:
                         self.log.error("port-name-not-found")
                         return
-
-                    tp_path = self.get_tp_path(intf_id, ofp_port_name)
+                    tp_id = self.resource_mgr.get_tech_profile_id_for_onu(intf_id, onu_id, uni_id)
+                    tp_path = self.get_tp_path(intf_id, ofp_port_name, tp_id)
 
                     self.log.debug('Load-tech-profile-request-to-brcm-handler',
                                    tp_path=tp_path)
@@ -980,16 +978,17 @@ class OpenOltFlowMgr(object):
         port_no = logical_port.ofp_port.port_no
         pon_port = child_device.proxy_address.channel_id
         onu_id = child_device.proxy_address.onu_id
-        uni_id = self.platform.uni_id_from_port_num(logical_port)
+        uni_id = self.platform.uni_id_from_port_num(port_no)
 
         # TODO: The DEFAULT_TECH_PROFILE_ID is assumed. Right way to do,
         # is probably to maintain a list of Tech-profile table IDs associated
         # with the UNI logical_port. This way, when the logical port is deleted,
         # all the associated tech-profile configuration with the UNI logical_port
         # can be cleared.
+        tp_id = self.resource_mgr.get_tech_profile_id_for_onu(pon_port, onu_id, uni_id)
         tech_profile_instance = self.tech_profile[pon_port]. \
             get_tech_profile_instance(
-            DEFAULT_TECH_PROFILE_TABLE_ID,
+            tp_id,
             ofp_port_name)
         flow_ids = self.resource_mgr.get_current_flow_ids(pon_port, onu_id, uni_id)
         self.log.debug("outstanding-flows-to-be-cleared", flow_ids=flow_ids)
