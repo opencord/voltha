@@ -20,24 +20,28 @@ Library           ../common/volthaMngr.py
 Library           ../common/preprovisioning.py
 Library           ../common/discovery.py
 Library           ../common/authentication.py
+Library           ../common/dhcp.py
 Library           volthaMngr.VolthaMngr
 Library           preprovisioning.Preprovisioning
 Library           discovery.Discovery
 Library           authentication.Authentication
+Library           dhcp.DHCP
 
 Suite Setup        Start Voltha      
 Suite Teardown     Stop Voltha
 
 *** Variables ***
-${LOG_DIR}        /tmp/voltha_test_results
-${ROOT_DIR}       ${EMPTY}
-${VOLTHA_DIR}     ${EMPTY}
-${ONOS_SSH_PORT}  8101
-${OLT_IP_ADDR}    olt.voltha.svc
-${OLT_PORT_ID}    50060
-${LOGICAL_TYPE}   olt.voltha.svc
-${OLT_TYPE}       ponsim_olt
-${ONU_TYPE}       ponsim_onu
+${LOG_DIR}              /tmp/voltha_test_results
+${ROOT_DIR}             ${EMPTY}
+${VOLTHA_DIR}           ${EMPTY}
+${ONOS_SSH_PORT}        8101
+${OLT_IP_ADDR}          olt.voltha.svc
+${OLT_PORT_ID}          50060
+${LOGICAL_TYPE}         olt.voltha.svc
+${OLT_TYPE}             ponsim_olt
+${ONU_TYPE}             ponsim_onu
+${RETRY_TIMEOUT_60}     60s
+${RETRY_INTERVAL_2}     2s
 
 *** Test Cases ***
 Olt Pre Provisioning
@@ -49,11 +53,11 @@ Olt Pre Provisioning
     P Set Log Dirs      ${LOG_DIR}
     P Configure         ${OLT_IP_ADDR}    ${OLT_PORT_ID}    ${OLT_TYPE}    ${ONU_TYPE}
     Preprovision Olt
-    Wait Until Keyword Succeeds    60s    2s    Query Devices Before Enabling
+    Wait Until Keyword Succeeds    ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Query Devices Before Enabling
     Status Should Be Success After Preprovision Command
     Check Olt Fields Before Enabling
     Enable
-    Wait Until Keyword Succeeds    60s    2s    Query Devices After Enabling
+    Wait Until Keyword Succeeds    ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Query Devices After Enabling
     Status Should Be Success After Enable Command
     Check Olt Fields After Enabling
     Check Onu Fields After Enabling
@@ -61,7 +65,8 @@ Olt Pre Provisioning
 Olt Onu Discovery
     [Documentation]     Olt Onu Discovery
     ...                 This test covers both Onu Discovery and yet to be developped Olt Discovery
-    ...                 It aims to verify the integrity of all port fields under each discrete device.
+    ...                 It aims to verify the integrity of all port fields under each discrete device, including
+    ...                 Logical Device.
     ...                 It also insures that the peers fields contains device Id entries for the corresponding 
     ...                 Olt or Onu device. Functionality to support multiple ONU accomodated
     ...                 The extent of the flow validation is limited to checking whether number of Flows is > 0
@@ -93,6 +98,28 @@ Radius Authentication
     Verify Authentication Should Have Completed
     Verify Authentication Should Have Disconnected
     Verify Authentication Should Have Terminated    
+
+Dhcp IP Address Assignment on RG
+    [Documentation]     DHCP assigned IP Address
+    ...                 A DHCP server is configured and Activated on Onos. We need to change
+    ...                 the Firewall rules so as to allow packets to flow between RG and OLT/ONU
+    ...                 We also must add a second DHCP flow rule in onos in the direction from NNI
+    ...                 by calling 'add subscriber access' on onos. We then deassign the default
+    ...                 IP address granted to RG upon instantiating the RG pod. Finally we invoke
+    ...                 'dhclient' on RG to request a DHCP IP address.
+    H Set Log Dirs      ${ROOT_DIR}     ${VOLTHA_DIR}    ${LOG_DIR}
+    Lookup Rg Pod Name
+    Set Firewall Rules
+    Discover Authorized Users
+    Retrieve Authorized Users Device Id And Port Number
+    Add Subscriber Access
+    Should Now Have Two Dhcp Flows
+    Add Dhcp Server Configuration Data In Onos
+    Activate Dhcp Server In Onos
+    Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Query For Default Ip On Rg
+    De Assign Default Ip On Rg
+    Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Assign Dhcp Ip Addr To Rg
+    Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Should Have Dhcp Assigned Ip
 
 *** Keywords ***
 Start Voltha

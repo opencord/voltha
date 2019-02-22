@@ -26,6 +26,7 @@ import volthaMngr
 import preprovisioning
 import discovery
 import authentication
+import dhcp
 import logging
 
 DEFAULT_LOG_DIR = '/tmp/voltha_test_results'
@@ -78,5 +79,7 @@ if __name__ == "__main__":
     discovery.run_test('olt.voltha.svc', 'ponsim_olt', 'ponsim_onu', LOG_DIR)
 
     authentication.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
+
+    dhcp.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
     time.sleep(5)
