@@ -76,12 +76,13 @@ class OpenoltDevice(object):
 
         self.admin_state = "up"
 
-        self.data_model = kwargs['data_model']
         self.adapter_agent = kwargs['adapter_agent']
         self.device_num = kwargs['device_num']
         device = kwargs['device']
 
+        self.data_model_class = kwargs['support_classes']['data_model']
         self.platform_class = kwargs['support_classes']['platform']
+        self.platform = self.platform_class()
         self.resource_mgr_class = kwargs['support_classes']['resource_mgr']
         self.flow_mgr_class = kwargs['support_classes']['flow_mgr']
         self.alarm_mgr_class = kwargs['support_classes']['alarm_mgr']
@@ -98,26 +99,16 @@ class OpenoltDevice(object):
 
         self.log.info('openolt-device-init')
 
-        # Device already set in the event of reconciliation
         if not is_reconciliation:
-            self.log.info('updating-device')
-            # It is a new device
-            # Update device
-            device.root = True
-            device.connect_status = ConnectStatus.UNREACHABLE
-            device.oper_status = OperStatus.ACTIVATING
-            self.adapter_agent.update_device(device)
-
-        # If logical device does exist use it, else create one after connecting
-        # to device
-        if device.parent_id:
-            # logical device already exists
-            self.logical_device_id = device.parent_id
-            if is_reconciliation:
-                self.adapter_agent.reconcile_logical_device(
-                    self.logical_device_id)
+            self.log.info('create data model')
+            self.data_model = self.data_model_class(device,
+                                                    self.adapter_agent,
+                                                    self.platform)
         else:
-            self.logical_device_id = None
+            self.log.info('reconcile data model')
+            assert device.parent_id is not None
+            assert self.data_model is not None
+            self.data_mode.reconcile()
 
         # Initialize the OLT state machine
         self.machine = Machine(model=self, states=OpenoltDevice.states,
@@ -162,60 +153,30 @@ class OpenoltDevice(object):
                and self.device_info.device_serial_number is not None
                and self.device_info.device_serial_number != '')
 
-        device = self.adapter_agent.get_device(self.device_id)
-
-        if self.logical_device_id is None:
-            # first time connect to olt
-            self.logical_device_id = self.data_model.create_logical_device(
-                self.device_id, self.device_info)
-        else:
-            # reconnect to olt (e.g. olt reboot)
-            # TODO - Update logical device with new device_info
-            pass
-
-        device.serial_number = self.device_info.device_serial_number
+        self.data_model.olt_create(self.device_info)
 
         self.resource_mgr = self.resource_mgr_class(self.device_id,
                                                     self.host_and_port,
                                                     self.extra_args,
                                                     self.device_info)
-        self.platform = self.platform_class()
         self.flow_mgr = self.flow_mgr_class(self.adapter_agent, self.log,
                                             self.stub, self.device_id,
-                                            self.logical_device_id,
+                                            self.data_model.logical_device_id,
                                             self.platform, self.resource_mgr)
 
-        self.alarm_mgr = self.alarm_mgr_class(self.log, self.adapter_agent,
-                                              self.device_id,
-                                              self.logical_device_id,
-                                              self.platform)
+        self.alarm_mgr = self.alarm_mgr_class(
+            self.log, self.adapter_agent, self.device_id,
+            self.data_model.logical_device_id, self.platform)
         self.stats_mgr = self.stats_mgr_class(self, self.log, self.platform)
         self.bw_mgr = self.bw_mgr_class(self.log, self.proxy)
 
-        device.vendor = self.device_info.vendor
-        device.model = self.device_info.model
-        device.hardware_version = self.device_info.hardware_version
-        device.firmware_version = self.device_info.firmware_version
-
-        # TODO: check for uptime and reboot if too long (VOL-1192)
-
-        device.connect_status = ConnectStatus.REACHABLE
-        self.adapter_agent.update_device(device)
-
     def do_state_up(self, event):
         self.log.debug("do_state_up")
-
-        device = self.adapter_agent.get_device(self.device_id)
-
-        # Update phys OF device
-        device.parent_id = self.logical_device_id
-        device.oper_status = OperStatus.ACTIVE
-        self.adapter_agent.update_device(device)
+        self.data_model.olt_oper_up()
 
     def do_state_down(self, event):
         self.log.debug("do_state_down")
-
-        self.data_model.disable_logical_device(self.device_id)
+        self.data_model.olt_oper_down()
 
     def post_down(self, event):
         self.log.debug('post_down')
@@ -343,8 +304,7 @@ class OpenoltDevice(object):
             port_no, label = self.add_port(intf_oper_indication.intf_id,
                                            Port.ETHERNET_NNI, oper_state)
             self.log.debug("int_oper_indication", port_no=port_no, label=label)
-            self.data_model.add_logical_port(self.logical_device_id,
-                                             self.device_id, port_no,
+            self.data_model.add_logical_port(port_no,
                                              intf_oper_indication.intf_id,
                                              oper_state)
 
@@ -380,10 +340,7 @@ class OpenoltDevice(object):
                 if onu_id is None:
                     raise Exception("onu-id-unavailable")
 
-                self.add_onu_device(
-                    intf_id,
-                    self.platform.intf_id_to_port_no(intf_id, Port.PON_OLT),
-                    onu_id, serial_number)
+                self.data_model.onu_create(intf_id, onu_id, serial_number)
                 self.activate_onu(intf_id, onu_id, serial_number,
                                   serial_number_str)
             except Exception as e:
@@ -429,22 +386,12 @@ class OpenoltDevice(object):
                        serial_number=onu_indication.serial_number,
                        oper_state=onu_indication.oper_state,
                        admin_state=onu_indication.admin_state)
-        try:
-            serial_number_str = OpenoltUtils.stringify_serial_number(
-                onu_indication.serial_number)
-        except:  # noqa: E722
-            serial_number_str = None
 
-        if serial_number_str is not None:
-            onu_device = self.adapter_agent.get_child_device(
-                self.device_id,
-                serial_number=serial_number_str)
-        else:
-            onu_device = self.adapter_agent.get_child_device(
-                self.device_id,
-                parent_port_no=self.platform.intf_id_to_port_no(
-                    onu_indication.intf_id, Port.PON_OLT),
-                onu_id=onu_indication.onu_id)
+        onu_device = self.adapter_agent.get_child_device(
+            self.device_id,
+            parent_port_no=self.platform.intf_id_to_port_no(
+                onu_indication.intf_id, Port.PON_OLT),
+            onu_id=onu_indication.onu_id)
 
         if onu_device is None:
             self.log.error('onu not found', intf_id=onu_indication.intf_id,
@@ -556,11 +503,11 @@ class OpenoltDevice(object):
             onu_port_id = onu_port.label
             try:
                 onu_logical_port = self.adapter_agent.get_logical_port(
-                    logical_device_id=self.logical_device_id,
+                    logical_device_id=self.data_model.logical_device_id,
                     port_id=onu_port_id)
                 onu_logical_port.ofp_port.state = OFPPS_LINK_DOWN
                 self.adapter_agent.update_logical_port(
-                    logical_device_id=self.logical_device_id,
+                    logical_device_id=self.data_model.logical_device_id,
                     port=onu_logical_port)
                 self.log.debug('cascading-oper-state-to-port-and-logical-port')
             except KeyError as e:
@@ -625,11 +572,11 @@ class OpenoltDevice(object):
         pkt = Ether(pkt_indication.pkt)
 
         self.log.debug("packet indication",
-                       logical_device_id=self.logical_device_id,
+                       logical_device_id=self.data_model.logical_device_id,
                        logical_port_no=logical_port_num)
 
         self.adapter_agent.send_packet_in(
-            logical_device_id=self.logical_device_id,
+            logical_device_id=self.data_model.logical_device_id,
             logical_port_no=logical_port_num,
             packet=str(pkt))
 
@@ -637,7 +584,7 @@ class OpenoltDevice(object):
         pkt = Ether(msg)
         self.log.debug('packet out', egress_port=egress_port,
                        device_id=self.device_id,
-                       logical_device_id=self.logical_device_id,
+                       logical_device_id=self.data_model.logical_device_id,
                        packet=str(pkt).encode("HEX"))
 
         # Find port type
@@ -746,16 +693,15 @@ class OpenoltDevice(object):
 
     def get_uni_ofp_port_name(self, child_device):
         logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
-            self.logical_device_id))
+            self.data_model.logical_device_id))
         for logical_port in logical_ports:
             if logical_port.device_id == child_device.id:
                 return logical_port.ofp_port.name
         return None
 
-
     def delete_logical_port(self, child_device):
         logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
-            self.logical_device_id))
+            self.data_model.logical_device_id))
         for logical_port in logical_ports:
             if logical_port.device_id == child_device.id:
                 self.log.debug('delete-logical-port',
@@ -764,7 +710,7 @@ class OpenoltDevice(object):
                 self.flow_mgr.clear_flows_and_scheduler_for_logical_port(
                     child_device, logical_port)
                 self.adapter_agent.delete_logical_port(
-                    self.logical_device_id, logical_port)
+                    self.data_model.logical_device_id, logical_port)
                 return
 
     def delete_port(self, child_serial_number):
@@ -828,7 +774,7 @@ class OpenoltDevice(object):
 
     def delete(self):
         self.log.info('deleting-olt', device_id=self.device_id,
-                      logical_device_id=self.logical_device_id)
+                      logical_device_id=self.data_model.logical_device_id)
 
         # Clears up the data from the resource manager KV store
         # for the device
@@ -838,7 +784,8 @@ class OpenoltDevice(object):
             # Rebooting to reset the state
             self.reboot()
             # Removing logical device
-            ld = self.adapter_agent.get_logical_device(self.logical_device_id)
+            ld = self.adapter_agent.get_logical_device(
+                self.data_model.logical_device_id)
             self.adapter_agent.delete_logical_device(ld)
         except Exception as e:
             self.log.error('Failure to delete openolt device', error=e)
@@ -918,9 +865,10 @@ class OpenoltDevice(object):
             self.log.exception("error-removing-pon-resources-for-onu")
 
         try:
-            onu = openolt_pb2.Onu(intf_id=child_device.proxy_address.channel_id,
-                                  onu_id=child_device.proxy_address.onu_id,
-                                  serial_number=serial_number)
+            onu = openolt_pb2.Onu(
+                intf_id=child_device.proxy_address.channel_id,
+                onu_id=child_device.proxy_address.onu_id,
+                serial_number=serial_number)
             self.stub.DeleteOnu(onu)
         except Exception as e:
             self.log.exception("error-deleting-the-onu-on-olt-device")
