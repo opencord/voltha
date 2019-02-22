@@ -16,6 +16,24 @@
       "revId": "944eca1d1429709ca2e4e4455e29f91e66efa3c0",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ea98873d_5d4def09",
+        "filename": "voltha/adapters/openolt/openolt_resource_manager.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 469,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-22T04:47:10Z",
+      "side": 1,
+      "message": "The BASE_PATH_KV_STORE has the OLT device id.",
+      "parentUuid": "18c97eea_a184a14a",
+      "revId": "944eca1d1429709ca2e4e4455e29f91e66efa3c0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
