@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ef156c22_f8256673",
+        "filename": "voltha/core/flow_decomposer.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1000405
+      },
+      "writtenOn": "2019-02-22T09:30:50Z",
+      "side": 1,
+      "message": "Girish, could you delete this method? please note that I\u0027ve updated it:\n\ndef get_tp_id_from_metadata(write_metadata_value):\n    return (write_metadata_value \u003e\u003e 32) \u0026 0xffff",
+      "revId": "311fade2bd33a7ff75c48080d4a17174eab32633",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
