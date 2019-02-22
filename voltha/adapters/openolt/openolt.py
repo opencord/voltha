@@ -44,6 +44,7 @@ log = structlog.get_logger()
 OpenOltDefaults = {
     'support_classes': {
         'platform': OpenOltPlatform,
+        'data_model': OpenOltDataModel,
         'resource_mgr': OpenOltResourceMgr,
         'flow_mgr': OpenOltFlowMgr,
         'alarm_mgr': OpenOltAlarmMgr,
@@ -80,7 +81,6 @@ class OpenoltAdapter(object):
         self.interface = registry('main').get_args().interface
         self.logical_device_id_to_root_device_id = dict()
         self.num_devices = 0
-        self.data_model = OpenOltDataModel(adapter_agent)
 
     def start(self):
         log.info('started', interface=self.interface)
@@ -111,7 +111,6 @@ class OpenoltAdapter(object):
 
         kwargs = {
             'support_classes': OpenOltDefaults['support_classes'],
-            'data_model': self.data_model,
             'adapter_agent': self.adapter_agent,
             'device': device,
             'device_num': self.num_devices + 1

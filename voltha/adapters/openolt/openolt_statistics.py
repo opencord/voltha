@@ -20,9 +20,9 @@
 # from voltha.adapters.openolt.pon_port import PonPort
 # from voltha.protos.device_pb2 import Port
 
-from twisted.internet import reactor, defer
+from twisted.internet import reactor
 from voltha.extensions.kpi.olt.olt_pm_metrics import OltPmMetrics
-from voltha.protos.device_pb2 import PmConfig, PmConfigs, PmGroupConfig, Port
+from voltha.protos.device_pb2 import PmConfig, Port
 
 
 class OpenOltStatisticsMgr(object):
@@ -46,37 +46,44 @@ class OpenOltStatisticsMgr(object):
         # The following can be used to allow a standalone test routine to start
         # the metrics independently
         self.metrics_init = kargs.pop("metrics_init", True)
-        if self.metrics_init == True:
+        if self.metrics_init is True:
             self.init_pm_metrics()
 
     def init_pm_metrics(self):
         # Setup PM configuration for this device
         if self.pm_metrics is None:
             try:
-                self.device.reason = 'setting up Performance Monitoring configuration'
+                self.device.reason = \
+                    'setting up Performance Monitoring configuration'
                 kwargs = {
                     'nni-ports': self.northbound_ports.values(),
                     'pon-ports': self.southbound_ports.values()
                 }
-                self.pm_metrics = OltPmMetrics(self.device.adapter_agent, self.device.device_id,
-                                               self.device.logical_device_id,
-                                               grouped=True, freq_override=False,
-                                               **kwargs)
+                self.pm_metrics = OltPmMetrics(
+                    self.device.adapter_agent, self.device.device_id,
+                    self.device.data_model.logical_device_id,
+                    grouped=True, freq_override=False, **kwargs)
                 """
-                    override the default naming structures in the OltPmMetrics class.
-                    This is being done until the protos can be modified in the BAL driver
+                override the default naming structures in the OltPmMetrics
+                class. This is being done until the protos can be modified in
+                the BAL driver
 
                 """
-                self.pm_metrics.nni_pm_names = (self.get_openolt_port_pm_names())['nni_pm_names']
-                self.pm_metrics.nni_metrics_config = {m: PmConfig(name=m, type=t, enabled=True)
-                                                 for (m, t) in self.pm_metrics.nni_pm_names}
+                self.pm_metrics.nni_pm_names = \
+                    (self.get_openolt_port_pm_names())['nni_pm_names']
+                self.pm_metrics.nni_metrics_config = \
+                    {m: PmConfig(name=m, type=t, enabled=True)
+                     for (m, t) in self.pm_metrics.nni_pm_names}
 
-                self.pm_metrics.pon_pm_names = (self.get_openolt_port_pm_names())['pon_pm_names']
-                self.pm_metrics.pon_metrics_config = {m: PmConfig(name=m, type=t, enabled=True)
-                                                 for (m, t) in self.pm_metrics.pon_pm_names}
+                self.pm_metrics.pon_pm_names = \
+                    (self.get_openolt_port_pm_names())['pon_pm_names']
+                self.pm_metrics.pon_metrics_config = \
+                    {m: PmConfig(name=m, type=t, enabled=True)
+                     for (m, t) in self.pm_metrics.pon_pm_names}
                 pm_config = self.pm_metrics.make_proto()
                 self.log.info("initial-pm-config", pm_config=pm_config)
-                self.device.adapter_agent.update_device_pm_config(pm_config, init=True)
+                self.device.adapter_agent.update_device_pm_config(pm_config,
+                                                                  init=True)
                 # Start collecting stats from the device after a brief pause
                 reactor.callLater(10, self.pm_metrics.start_collector)
             except Exception as e:
@@ -85,7 +92,7 @@ class OpenOltStatisticsMgr(object):
     def port_statistics_indication(self, port_stats):
         # self.log.info('port-stats-collected', stats=port_stats)
         self.ports_statistics_kpis(port_stats)
-        #FIXME: etcd problem, do not update objects for now
+        # FIXME: etcd problem, do not update objects for now
 
         #
         #
@@ -118,7 +125,7 @@ class OpenOltStatisticsMgr(object):
         # FIXME: etcd problem, do not update objects for now
         # # UNTESTED : the openolt driver does not yet provide flow stats
         # self.device.adapter_agent.update_flow_stats(
-        #       self.device.logical_device_id,
+        #       self.device.data_model.logical_device_id,
         #       flow_id=flow_stats.flow_id, packet_count=flow_stats.tx_packets,
         #       byte_count=flow_stats.tx_bytes)
 
@@ -134,8 +141,9 @@ class OpenOltStatisticsMgr(object):
         try:
             intf_id = port_stats.intf_id
 
-            if self.platform.intf_id_to_port_no(0, Port.ETHERNET_NNI) < intf_id < \
-                    self.platform.intf_id_to_port_no(4, Port.ETHERNET_NNI) :
+            if self.platform.intf_id_to_port_no(0, Port.ETHERNET_NNI) \
+                    < intf_id \
+                    < self.platform.intf_id_to_port_no(4, Port.ETHERNET_NNI):
                 """
                 for this release we are only interested in the first NNI for
                 Northbound.
@@ -163,42 +171,47 @@ class OpenOltStatisticsMgr(object):
                 pm_data["intf_id"] = intf_id
 
                 """
-                   Based upon the intf_id map to an nni port or a pon port
-                    the intf_id is the key to the north or south bound collections
+                Based upon the intf_id map to an nni port or a pon port the
+                intf_id is the key to the north or south bound collections
 
-                    Based upon the intf_id the port object (nni_port or pon_port) will
-                    have its data attr. updated by the current dataset collected.
+                Based upon the intf_id the port object (nni_port or pon_port)
+                will have its data attr. updated by the current dataset
+                collected.
 
-                    For prefixing the rule is currently to use the port number and not the intf_id
-
+                For prefixing the rule is currently to use the port number and
+                not the intf_id
                 """
-                #FIXME : Just use first NNI for now
-                if intf_id == self.platform.intf_id_to_port_no(0,
-                                                          Port.ETHERNET_NNI):
-                    #NNI port (just the first one)
+                # FIXME : Just use first NNI for now
+                if intf_id == self.platform.intf_id_to_port_no(
+                        0, Port.ETHERNET_NNI):
+                    # NNI port (just the first one)
                     self.update_port_object_kpi_data(
-                        port_object=self.northbound_ports[port_stats.intf_id], datadict=pm_data)
+                        port_object=self.northbound_ports[port_stats.intf_id],
+                        datadict=pm_data)
                 else:
-                    #PON ports
+                    # PON ports
                     self.update_port_object_kpi_data(
-                        port_object=self.southbound_ports[port_stats.intf_id],datadict=pm_data)
+                        port_object=self.southbound_ports[port_stats.intf_id],
+                        datadict=pm_data)
         except Exception as err:
-            self.log.exception("Error publishing kpi statistics. ", errmessage=err)
+            self.log.exception("Error publishing kpi statistics. ",
+                               errmessage=err)
 
     def update_logical_port_stats(self, port_stats):
         try:
             label = 'nni-{}'.format(port_stats.intf_id)
             logical_port = self.device.adapter_agent.get_logical_port(
-                self.device.logical_device_id, label)
+                self.device.data_model.logical_device_id, label)
         except KeyError as e:
             self.log.warn('logical port was not found, it may not have been '
                           'created yet', exception=e)
             return
 
         if logical_port is None:
-            self.log.error('logical-port-is-None',
-                logical_device_id=self.device.logical_device_id, label=label,
-                port_stats=port_stats)
+            self.log.error(
+                'logical-port-is-None',
+                logical_device_id=self.device.data_model.logical_device_id,
+                label=label, port_stats=port_stats)
             return
 
         logical_port.ofp_port_stats.rx_packets = port_stats.rx_packets
@@ -212,13 +225,14 @@ class OpenOltStatisticsMgr(object):
         self.log.debug('after-stats-update', port=logical_port)
 
         self.device.adapter_agent.update_logical_port(
-            self.device.logical_device_id, logical_port)
+            self.device.data_model.logical_device_id, logical_port)
 
     """
-    The following 4 methods customer naming, the generation of the port objects, building of those
-    objects and populating new data.   The pm metrics operate on the value that are contained in the Port objects.
-    This class updates those port objects with the current data from the grpc indication and
-    post the data on a fixed interval.
+    The following 4 methods customer naming, the generation of the port
+    objects, building of those objects and populating new data.
+    The pm metrics operate on the value that are contained in the Port objects.
+    This class updates those port objects with the current data from the grpc
+    indication and post the data on a fixed interval.
 
     """
     def get_openolt_port_pm_names(self):
@@ -226,15 +240,16 @@ class OpenOltStatisticsMgr(object):
         This collects a dictionary of the custom port names
         used by the openolt.
 
-        Some of these are the same as the pm names used by the olt_pm_metrics class
-        if the set is the same then there is no need to call this method.   However, when
-        custom names are used in the protos then the specific names should be pushed into
-        the olt_pm_metrics class.
+        Some of these are the same as the pm names used by the olt_pm_metrics
+        class if the set is the same then there is no need to call this
+        method. However, when custom names are used in the protos then the
+        specific names should be pushed into the olt_pm_metrics class.
 
         :return:
         """
         nni_pm_names = {
-            ('intf_id', PmConfig.CONTEXT),  # Physical device interface ID/Port number
+            # Physical device interface ID/Port number
+            ('intf_id', PmConfig.CONTEXT),
 
             ('admin_state', PmConfig.STATE),
             ('oper_status', PmConfig.STATE),
@@ -252,8 +267,10 @@ class OpenOltStatisticsMgr(object):
             ('tx_bcast_packets', PmConfig.COUNTER),
             ('tx_error_packets', PmConfig.COUNTER)
         }
+        '''
         nni_pm_names_from_kpi_extension = {
-            ('intf_id', PmConfig.CONTEXT),  # Physical device interface ID/Port number
+            # Physical device interface ID/Port number
+            ('intf_id', PmConfig.CONTEXT),
 
             ('admin_state', PmConfig.STATE),
             ('oper_status', PmConfig.STATE),
@@ -274,8 +291,10 @@ class OpenOltStatisticsMgr(object):
             ('rx_crc_errors', PmConfig.COUNTER),
             ('bip_errors', PmConfig.COUNTER),
         }
+        '''
 
-        # pon_names uses same structure as nmi_names with the addition of pon_id to context
+        # pon_names uses same structure as nmi_names with the addition of
+        # pon_id to context
         pon_pm_names = {
             ('pon_id', PmConfig.CONTEXT),  # PON ID (0..n)
             ('port_no', PmConfig.CONTEXT),
@@ -296,8 +315,8 @@ class OpenOltStatisticsMgr(object):
             ('tx_error_packets', PmConfig.COUNTER)
         }
         pon_pm_names_from_kpi_extension = {
-            ('intf_id', PmConfig.CONTEXT),        # Physical device port number (PON)
-            ('pon_id', PmConfig.CONTEXT),         # PON ID (0..n)
+            ('intf_id', PmConfig.CONTEXT),  # Physical device port number (PON)
+            ('pon_id', PmConfig.CONTEXT),   # PON ID (0..n)
 
             ('admin_state', PmConfig.STATE),
             ('oper_status', PmConfig.STATE),
@@ -310,7 +329,7 @@ class OpenOltStatisticsMgr(object):
             ('closest_onu_distance', PmConfig.GAUGE)
         }
         onu_pm_names = {
-            ('intf_id', PmConfig.CONTEXT),        # Physical device port number (PON)
+            ('intf_id', PmConfig.CONTEXT),  # Physical device port number (PON)
             ('pon_id', PmConfig.CONTEXT),
             ('onu_id', PmConfig.CONTEXT),
 
@@ -319,7 +338,7 @@ class OpenOltStatisticsMgr(object):
             ('rssi', PmConfig.GAUGE),
         }
         gem_pm_names = {
-            ('intf_id', PmConfig.CONTEXT),        # Physical device port number (PON)
+            ('intf_id', PmConfig.CONTEXT),  # Physical device port number (PON)
             ('pon_id', PmConfig.CONTEXT),
             ('onu_id', PmConfig.CONTEXT),
             ('gem_id', PmConfig.CONTEXT),
@@ -330,7 +349,8 @@ class OpenOltStatisticsMgr(object):
             ('tx_packets', PmConfig.COUNTER),
             ('tx_bytes', PmConfig.COUNTER),
         }
-        # Build a dict for the names.  The caller will index to the correct values
+        # Build a dict for the names. The caller will index to the correct
+        # values
         names_dict = {"nni_pm_names": nni_pm_names,
                       "pon_pm_names": pon_pm_names,
                       "pon_pm_names_orig": pon_pm_names_from_kpi_extension,
@@ -343,12 +363,12 @@ class OpenOltStatisticsMgr(object):
 
     def init_ports(self,  device_id=12345, type="nni", log=None):
         """
-        This method collects the port objects:  nni and pon that are updated with the
-        current data from the OLT
+        This method collects the port objects:  nni and pon that are updated
+        with the current data from the OLT
 
-        Both the northbound (nni) and southbound ports are indexed by the interface id (intf_id)
-        and NOT the port number. When the port object is instantiated it will contain the intf_id and
-        port_no values
+        Both the northbound (nni) and southbound ports are indexed by the
+        interface id (intf_id) and NOT the port number. When the port object
+        is instantiated it will contain the intf_id and port_no values
 
         :param type:
         :param device_id:
@@ -369,7 +389,8 @@ class OpenOltStatisticsMgr(object):
                     pon_ports[pon_port.intf_id] = pon_port
                 return pon_ports
             else:
-                self.log.exception("Unmapped port type requested = " , type=type)
+                self.log.exception("Unmapped port type requested = ",
+                                   type=type)
                 raise Exception("Unmapped port type requested = " + type)
 
         except Exception as err:
@@ -392,12 +413,12 @@ class OpenOltStatisticsMgr(object):
             if type == "nni":
                 kwargs = {
                     'port_no': port_num,
-                    'intf_id': self.platform.intf_id_to_port_no(port_num,
-                                                           Port.ETHERNET_NNI),
+                    'intf_id': self.platform.intf_id_to_port_no(
+                        port_num, Port.ETHERNET_NNI),
                     "device_id": self.device.device_id
                 }
                 nni_port = NniPort
-                port = nni_port( **kwargs)
+                port = nni_port(**kwargs)
                 return port
             elif type == "pon":
                 # PON ports require a different configuration
@@ -405,9 +426,9 @@ class OpenOltStatisticsMgr(object):
                 kwargs = {
                     'port_no': port_num,
                     'intf_id':  self.platform.intf_id_to_port_no(port_num,
-                                                           Port.PON_OLT),
+                                                                 Port.PON_OLT),
                     'pon-id':  self.platform.intf_id_to_port_no(port_num,
-                                                           Port.PON_OLT),
+                                                                Port.PON_OLT),
                     "device_id": self.device.device_id
                 }
                 pon_port = PonPort
@@ -449,7 +470,8 @@ class OpenOltStatisticsMgr(object):
                 raise Exception("Must be either PON or NNI port.")
             return
         except Exception as err:
-            self.log.exception("Caught error updating port data: ", cur_attr=cur_attr, errormsg=err.message)
+            self.log.exception("Caught error updating port data: ",
+                               cur_attr=cur_attr, errormsg=err.message)
             raise Exception(err)
 
 
@@ -488,10 +510,11 @@ class PonPort(object):
         self.port_no = 0  #handled by getter
         self.port_id = 0  #handled by getter
 
-        Note:  In the current implementation of the kpis coming from the BAL the stats are the
-        samne model for NNI and PON.
+        Note:  In the current implementation of the kpis coming from the BAL
+        the stats are the same model for NNI and PON.
 
-        TODO:   Integrate additional kpis for the PON and other southbound port objecgts.
+        TODO: Integrate additional kpis for the PON and other southbound port
+        objects.
 
         """
 
@@ -509,10 +532,8 @@ class PonPort(object):
         return
 
     def __str__(self):
-        return "PonPort-{}: Admin: {}, Oper: {}, OLT: {}".format(self._label,
-                                                                 self._admin_state,
-                                                                 self._oper_status,
-                                                                 self.olt)
+        return "PonPort-{}: Admin: {}, Oper: {}, OLT: {}".format(
+            self._label, self._admin_state, self._oper_status, self.olt)
 
     @property
     def intf_id(self):
@@ -549,12 +570,13 @@ class PonPort(object):
     @property
     def onus(self):
         """
-        Get a set of all ONUs.  While the set is immutable, do not use this method
-        to get a collection that you will iterate through that my yield the CPU
-        such as inline callback.  ONUs may be deleted at any time and they will
-        set some references to other objects to NULL during the 'delete' call.
-        Instead, get a list of ONU-IDs and iterate on these and call the 'onu'
-        method below (which will return 'None' if the ONU has been deleted.
+        Get a set of all ONUs.  While the set is immutable, do not use this
+        method to get a collection that you will iterate through that my yield
+        the CPU such as inline callback.  ONUs may be deleted at any time and
+        they will set some references to other objects to NULL during the
+        'delete' call. Instead, get a list of ONU-IDs and iterate on these and
+        call the 'onu' method below (which will return 'None' if the ONU has
+        been deleted.
 
         :return: (frozenset) collection of ONU objects on this PON
         """
@@ -600,7 +622,5 @@ class NniPort(object):
         return
 
     def __str__(self):
-        return "NniPort-{}: Admin: {}, Oper: {}, parent: {}".format(self._port_no,
-                                                                    self._admin_state,
-                                                                    self._oper_status,
-                                                                    self._parent)
+        return "NniPort-{}: Admin: {}, Oper: {}, parent: {}".format(
+            self._port_no, self._admin_state, self._oper_status, self._parent)
