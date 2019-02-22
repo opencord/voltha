@@ -56,7 +56,7 @@ class Discovery(object):
         logging.info('Logical Device Info')
         statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__logicalDeviceType, 'voltha_devices_after_enable.log')
         assert statusLines, 'No Logical Devices listed under devices'
-        self.__fields = testCaseUtils.parse_fields(statusLines)
+        self.__fields = testCaseUtils.parse_fields(statusLines, '|')
         self.__logicalDeviceId = self.__fields[4].strip()
         testCaseUtils.send_command_to_voltha_cli(testCaseUtils.get_dir(self, 'log'),
                                                  'voltha_logical_device.log', 'logical_device ' + self.__logicalDeviceId,
@@ -70,7 +70,7 @@ class Discovery(object):
     def logical_device_ports_should_exist(self):
         statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__oltDeviceId, 'voltha_logical_device_ports.log')
         assert statusLines, 'No Olt device listed under logical device ports'
-        self.__fields = testCaseUtils.parse_fields(statusLines)
+        self.__fields = testCaseUtils.parse_fields(statusLines, '|')
         portType = self.__fields[1].strip()
         assert portType == 'nni', 'Port type for %s does not match expected nni' % self.__oltDeviceId
         for onuDeviceId in self.__onuDeviceIds:
@@ -78,7 +78,7 @@ class Discovery(object):
             assert statusLines, 'No Onu device %s listed under logical device ports' % onuDeviceId
             lines = statusLines.splitlines()
             for line in lines:
-                self.__fields = testCaseUtils.parse_fields(line)
+                self.__fields = testCaseUtils.parse_fields(line, '|')
                 portType = self.__fields[1].strip()
                 assert portType == 'uni-128', 'Port type for %s does not match expected uni-128' % onuDeviceId
 
@@ -94,7 +94,7 @@ class Discovery(object):
         logging.info('Olt Discovery')
         statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__oltType, 'voltha_devices_after_enable.log')
         assert statusLines, 'No Olt listed under devices'
-        self.__fields = testCaseUtils.parse_fields(statusLines)
+        self.__fields = testCaseUtils.parse_fields(statusLines, '|')
         self.__oltDeviceId = self.__fields[1].strip()
         testCaseUtils.send_command_to_voltha_cli(testCaseUtils.get_dir(self, 'log'),
                                                  'voltha_olt_device.log', 'device ' + self.__oltDeviceId, 'voltha_olt_ports.log',
@@ -108,7 +108,7 @@ class Discovery(object):
         assert statusLines, 'No Onu listed under devices'
         lines = statusLines.splitlines()
         for line in lines:
-            self.__fields = testCaseUtils.parse_fields(line)
+            self.__fields = testCaseUtils.parse_fields(line, '|')
             onuDeviceId = self.__fields[1].strip()
             self.__onuDeviceIds.append(onuDeviceId)
             testCaseUtils.send_command_to_voltha_cli(testCaseUtils.get_dir(self, 'log'),
@@ -124,7 +124,7 @@ class Discovery(object):
         assert statusLines, 'No Olt device listed under ports'
         lines = statusLines.splitlines()
         for line in lines:
-            self.__fields = testCaseUtils.parse_fields(line)
+            self.__fields = testCaseUtils.parse_fields(line, '|')
             assert (self.check_states(self.__oltDeviceId) is True), 'States of %s does match expected ' % self.__oltDeviceId
             portType = self.__fields[3].strip()
             assert (portType == 'ETHERNET_NNI' or portType == 'PON_OLT'),\
@@ -145,7 +145,7 @@ class Discovery(object):
             assert statusLines, 'No Onu device listed under ports'
             lines = statusLines.splitlines()
             for line in lines:
-                self.__fields = testCaseUtils.parse_fields(line)
+                self.__fields = testCaseUtils.parse_fields(line, '|')
                 assert (self.check_states(onuDeviceId) is True), 'States of %s does match expected ' % onuDeviceId
                 portType = self.__fields[3].strip()
                 assert (portType == 'ETHERNET_UNI' or portType == 'PON_ONU'),\
