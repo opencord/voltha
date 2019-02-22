@@ -71,7 +71,7 @@ class Preprovisioning(object):
     def check_olt_fields_before_enabling(self):
         statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__oltType, 'voltha_devices_before_enable.log')
         assert statusLines, 'No Olt listed under devices'
-        self.__fields = testCaseUtils.parse_fields(statusLines)
+        self.__fields = testCaseUtils.parse_fields(statusLines, '|')
         self.__oltDeviceId = self.__fields[1].strip()
         logging.debug("OLT device id = %s" % self.__oltDeviceId)
         adminState = self.__fields[3].strip()
@@ -95,7 +95,7 @@ class Preprovisioning(object):
     def check_olt_fields_after_enabling(self):
         statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__oltType, 'voltha_devices_after_enable.log')
         assert statusLines, 'No Olt listed under devices'
-        self.__fields = testCaseUtils.parse_fields(statusLines)
+        self.__fields = testCaseUtils.parse_fields(statusLines, '|')
         assert self.check_states(self.__oltType), 'States of %s does match expected' % self.__oltType
         hostPort = self.__fields[11].strip()
         assert hostPort, 'hostPort field is empty'
@@ -110,7 +110,7 @@ class Preprovisioning(object):
         lenLines = len(lines)
         assert lenLines == 1, 'Fixed single onu does not match, ONU Count was %d' % lenLines
         for line in lines:
-            self.__fields = testCaseUtils.parse_fields(line)
+            self.__fields = testCaseUtils.parse_fields(line, '|')
             assert (self.check_states(self.__onuType) is True), 'States of %s does match expected' % self.__onuType
         
     def enable(self):
