@@ -251,3 +251,30 @@ class OmciTableField(MultipleTypeField):
             table.append(v)
 
         return table
+
+
+class OmciVariableLenZeroPadField(Field):
+    __slots__ = ["_pad_to", "_omci_hdr_len"]
+
+    def __init__(self, name, pad_to):
+        Field.__init__(self, name, 0, 'B')
+        self._pad_to = pad_to
+        self._omci_hdr_len = 4
+
+    def addfield(self, pkt, s, _val):
+        count = self._pad_to - self._omci_hdr_len - len(s)
+        if count < 0:
+            from scapy.error import Scapy_Exception
+            raise Scapy_Exception("%s: Already past pad_to offset" %
+                                  self.__class__.__name__)
+        padding = bytearray(count)
+        import struct
+        return s + struct.pack("%iB" % count, *padding)
+
+    def getfield(self, pkt, s):
+        count = len(s) - self._omci_hdr_len
+        if count < 0:
+            from scapy.error import Scapy_Exception
+            raise Scapy_Exception("%s: Already past pad_to offset" %
+                                  self.__class__.__name__)
+        return s[count:], s[-count:]
