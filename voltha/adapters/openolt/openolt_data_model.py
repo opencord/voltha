@@ -29,21 +29,34 @@ from voltha.registry import registry
 
 
 class OpenOltDataModel(object):
-    log = structlog.get_logger()
 
-    def __init__(self, adapter_agent):
-        self.adapter_agent = adapter_agent
+    def __init__(self, device, adapter_agent):
         self.log = structlog.get_logger()
 
-    def create_logical_device(self, device_id, device_info):
+        self.device = device
+        self.adapter_agent = adapter_agent
+        self.logical_device_id = None
+
+        self.device.root = True
+        self.device.connect_status = ConnectStatus.UNREACHABLE
+        self.device.oper_status = OperStatus.ACTIVATING
+
+        self.adapter_agent.update_device(device)
+
+    def reconcile(self):
+        assert self.logical_device_id is not None
+        self.adapter_agent.reconcile_logical_device(
+            self.logical_device_id)
+
+    def olt_create(self, device_info):
+        if self.logical_device_id is not None:
+            return
+
         dpid = device_info.device_id
         serial_number = device_info.device_serial_number
 
-        device = self.adapter_agent.get_device(device_id)
-        host_and_port = device.host_and_port
-
         if dpid is None or dpid == '':
-            uri = host_and_port.split(":")[0]
+            uri = self.device.host_and_port.split(":")[0]
             try:
                 socket.inet_pton(socket.AF_INET, uri)
                 dpid = '00:00:' + OpenoltUtils.ip_hex(uri)
@@ -60,7 +73,7 @@ class OpenOltDataModel(object):
 
         # Create logical OF device
         ld = LogicalDevice(
-            root_device_id=device_id,
+            root_device_id=self.device.id,
             switch_features=ofp_switch_features(
                 n_buffers=256,  # TODO fake for now
                 n_tables=2,  # TODO ditto
@@ -75,28 +88,29 @@ class OpenOltDataModel(object):
                 serial_num=serial_number
             )
         )
-        ld_init = self.adapter_agent.create_logical_device(ld,
-                                                           dpid=dpid)
+        self.logical_device_id = \
+            self.adapter_agent.create_logical_device(ld, dpid=dpid).id
 
-        device = self.adapter_agent.get_device(device_id)
-        device.serial_number = serial_number
-        self.adapter_agent.update_device(device)
+        self.device.vendor = device_info.vendor
+        self.device.model = device_info.model
+        self.device.hardware_version = device_info.hardware_version
+        self.device.firmware_version = device_info.firmware_version
+        self.device.connect_status = ConnectStatus.REACHABLE
+        self.device.serial_number = serial_number
+
+        self.adapter_agent.update_device(self.device)
 
         self.log.info('created-openolt-logical-device',
-                      logical_device_id=ld_init.id)
+                      logical_device_id=self.logical_device_id)
 
-        return ld_init.id
+        return self.logical_device_id
 
-    def disable_logical_device(self, device_id):
+    def disable_logical_device(self):
 
         oper_state = OperStatus.UNKNOWN
         connect_state = ConnectStatus.UNREACHABLE
 
-        device = self.adapter_agent.get_device(device_id)
-
-        logical_device_id = device.parent_id
-
-        child_devices = self.adapter_agent.get_child_devices(device_id)
+        child_devices = self.adapter_agent.get_child_devices(self.device.id)
         for onu_device in child_devices:
             onu_adapter_agent = \
                 registry('adapter_loader').get_agent(onu_device.adapter)
@@ -106,32 +120,31 @@ class OpenOltDataModel(object):
 
         # Children devices
         self.adapter_agent.update_child_devices_state(
-            device_id, oper_status=oper_state,
+            self.device.id, oper_status=oper_state,
             connect_status=connect_state)
         # Device Ports
-        device_ports = self.adapter_agent.get_ports(device_id,
+        device_ports = self.adapter_agent.get_ports(self.device.id,
                                                     Port.ETHERNET_NNI)
         logical_ports_ids = [port.label for port in device_ports]
-        device_ports += self.adapter_agent.get_ports(device_id,
+        device_ports += self.adapter_agent.get_ports(self.device.id,
                                                      Port.PON_OLT)
 
         for port in device_ports:
             port.oper_status = oper_state
-            self.adapter_agent.add_port(device_id, port)
+            self.adapter_agent.add_port(self.device.id, port)
 
         # Device logical port
         for logical_port_id in logical_ports_ids:
             logical_port = self.adapter_agent.get_logical_port(
-                logical_device_id, logical_port_id)
+                self.logical_device_id, logical_port_id)
             logical_port.ofp_port.state = OFPPS_LINK_DOWN
             self.adapter_agent.update_logical_port(self.logical_device_id,
                                                    logical_port)
-        device.oper_status = oper_state
-        device.connect_status = connect_state
-        self.adapter_agent.update_device(device)
+        self.device.oper_status = oper_state
+        self.device.connect_status = connect_state
+        self.adapter_agent.update_device(self.device)
 
-    def add_logical_port(self, logical_device_id, device_id, port_no, intf_id,
-                         oper_state):
+    def add_logical_port(self, port_no, intf_id, oper_state):
         self.log.info('adding-logical-port', port_no=port_no)
 
         label = OpenoltUtils.port_name(port_no, Port.ETHERNET_NNI)
@@ -156,8 +169,17 @@ class OpenOltDataModel(object):
         ofp_stats = ofp_port_stats(port_no=port_no)
 
         logical_port = LogicalPort(
-            id=label, ofp_port=ofp, device_id=device_id,
+            id=label, ofp_port=ofp, device_id=self.device.id,
             device_port_no=port_no, root_port=True,
             ofp_port_stats=ofp_stats)
 
-        self.adapter_agent.add_logical_port(logical_device_id, logical_port)
+        self.adapter_agent.add_logical_port(self.logical_device_id,
+                                            logical_port)
+
+    def olt_oper_up(self):
+        self.device.parent_id = self.logical_device_id
+        self.device.oper_status = OperStatus.ACTIVE
+        self.adapter_agent.update_device(self.device)
+
+    def olt_oper_down(self):
+        self.data_model.disable_logical_device()
