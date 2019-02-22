@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 from unittest import TestCase, main
+from binascii import unhexlify
 
 from voltha.extensions.omci.omci import *
 
@@ -1136,7 +1137,7 @@ class TestSelectMessageGeneration(TestCase):
             message_type=OmciReboot.message_id,
             omci_message=OmciReboot(
                 entity_class=OntG.class_id,
-                 entity_id=0
+                entity_id=0
             )
         )
         self.assertGeneratedFrameEquals(frame, ref)
@@ -1156,6 +1157,128 @@ class TestSelectMessageGeneration(TestCase):
             self.assertIsNotNone(mei_attr)
             self.assertTrue(AA.SBC not in mei_attr.access or
                             mei_attr.field.name == 'managed_entity_id')
+
+    def test_get_response_without_error_but_too_big(self):
+        # This test is related to a bug that I believe is in the BroadCom
+        # ONU stack software, or at least it was seen on both an Alpha and
+        # an T&W BCM-based onu.  The IEEE 802.1p Mapper Service Profile ME
+        # (#130) sent by the ONUs have a payload of 27 octets based on the
+        # Attribute Mask in the encoding.  However, get-response baseline
+        # messages have the last 4 octets reserved for failed/errored attribute
+        # masks so only 25 octets should be allowed.  Of course the 4 octets
+        # are only valid if the status code == 9, but they still should
+        # be reserved.
+        #
+        # This test verifies that we can still parse the 27 octet payload
+        # since the first rule of interoperability is to be lenient with
+        # what you receive and strict with what you transmit.
+        #
+        ref = '017d290a008280020000780000000000000000000000' +\
+              '0000000000000000000000000000' +\
+              '01' +\
+              '02' +\
+              '0000' +\
+              '00000028'
+        zeros_24 = '000000000000000000000000000000000000000000000000'
+        bytes_24 = unhexlify(zeros_24)
+        attributes = {
+            "unmarked_frame_option": 0,         # 1 octet
+            "dscp_to_p_bit_mapping": bytes_24,  # 24 octets
+            "default_p_bit_marking": 1,         # 1 octet   - This is too much
+            "tp_type": 2,                       # 1 octet
+        }
+        frame = OmciFrame(
+            transaction_id=0x017d,
+            message_type=OmciGetResponse.message_id,
+            omci_message=OmciGetResponse(
+                entity_class=Ieee8021pMapperServiceProfile.class_id,
+                success_code=0,
+                entity_id=0x8002,
+                attributes_mask=Ieee8021pMapperServiceProfile.mask_for(*attributes.keys()),
+                data=attributes
+            )
+        )
+        self.assertGeneratedFrameEquals(frame, ref)
+
+    def test_get_response_with_errors_max_data(self):
+        # First a frame with maximum data used up. This aligns the fields up perfectly
+        # with the simplest definition of a Get Response
+        ref = '017d290a008280020900600000000000000000000000' +\
+              '0000000000000000000000000000' +\
+              '0010' +\
+              '0008' +\
+              '00000028'
+        zeros_24 = '000000000000000000000000000000000000000000000000'
+        bytes_24 = unhexlify(zeros_24)
+        good_attributes = {
+            "unmarked_frame_option": 0,         # 1 octet
+            "dscp_to_p_bit_mapping": bytes_24,  # 24 octets
+        }
+        unsupported_attributes = ["default_p_bit_marking"]
+        failed_attributes_mask = ["tp_type"]
+
+        the_class = Ieee8021pMapperServiceProfile
+        frame = OmciFrame(
+            transaction_id=0x017d,
+            message_type=OmciGetResponse.message_id,
+            omci_message=OmciGetResponse(
+                entity_class=the_class.class_id,
+                success_code=9,
+                entity_id=0x8002,
+                attributes_mask=the_class.mask_for(*good_attributes.keys()),
+                unsupported_attributes_mask=the_class.mask_for(*unsupported_attributes),
+                failed_attributes_mask=the_class.mask_for(*failed_attributes_mask),
+                data=good_attributes
+            )
+        )
+        self.assertGeneratedFrameEquals(frame, ref)
+
+    def test_get_response_with_errors_min_data(self):
+        # Next a frame with only a little data used up. This aligns will require
+        # the encoder and decoder to skip to the last 8 octets of the data field
+        # and encode the failed masks there
+        ref = '017d290a00828002090040' +\
+              '01' + '00000000000000000000' +\
+              '0000000000000000000000000000' +\
+              '0010' +\
+              '0028' +\
+              '00000028'
+
+        good_attributes = {
+            "unmarked_frame_option": 1,         # 1 octet
+        }
+        unsupported_attributes = ["default_p_bit_marking"]
+        failed_attributes_mask = ["dscp_to_p_bit_mapping", "tp_type"]
+
+        the_class = Ieee8021pMapperServiceProfile
+        frame = OmciFrame(
+            transaction_id=0x017d,
+            message_type=OmciGetResponse.message_id,
+            omci_message=OmciGetResponse(
+                entity_class=the_class.class_id,
+                success_code=9,
+                entity_id=0x8002,
+                attributes_mask=the_class.mask_for(*good_attributes.keys()),
+                unsupported_attributes_mask=the_class.mask_for(*unsupported_attributes),
+                failed_attributes_mask=the_class.mask_for(*failed_attributes_mask),
+                data=good_attributes
+            )
+        )
+        self.assertGeneratedFrameEquals(frame, ref)
+
+        # Now test decode of the packet
+        decoded = OmciFrame(unhexlify(ref))
+
+        orig_fields = frame.fields['omci_message'].fields
+        omci_fields = decoded.fields['omci_message'].fields
+
+        for field in ['entity_class', 'entity_id', 'attributes_mask',
+                      'success_code', 'unsupported_attributes_mask',
+                      'failed_attributes_mask']:
+            self.assertEqual(omci_fields[field], orig_fields[field])
+
+        self.assertEqual(omci_fields['data']['unmarked_frame_option'],
+                         orig_fields['data']['unmarked_frame_option'])
 
 
 if __name__ == '__main__':
