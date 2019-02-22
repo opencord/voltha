@@ -77,14 +77,14 @@ def send_command_to_voltha_cli(log_dir, log_file1, cmd1, log_file2=None, cmd2=No
     child.close()
 
 
-def send_command_to_onos_cli(log_dir, cmd, log_file):
+def send_command_to_onos_cli(log_dir, log_file, cmd):
     output = open(log_dir + '/' + log_file, 'w')
     child = pexpect.spawn('ssh -p 30115 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost')
     child.expect('[pP]assword:')
     child.sendline('karaf')
-    child.expect('(\\x1b\[\d*;?\d+m){1,2}onos>(\\x1b\[\d*;?\d+m){1,2}')
+    child.expect('(\\x1b\[\d*;?\d+m){1,2}onos> (\\x1b\[\d*;?\d+m){1,2}')
     child.sendline(cmd)
-    child.expect('(\\x1b\[\d*;?\d+m){1,2}onos>(\\x1b\[\d*;?\d+m){1,2}')
+    child.expect('(\\x1b\[\d*;?\d+m){1,2}onos> (\\x1b\[\d*;?\d+m){1,2}')
 
     output.write(child.before)
     
@@ -99,8 +99,8 @@ def get_fields_from_grep_command(self, search_word, log_file):
     return statusLines
     
 
-def parse_fields(status_line):
-    statusList = status_line.split("|")
+def parse_fields(status_line, delimiter):
+    statusList = status_line.split(delimiter)
     return statusList
 
 
