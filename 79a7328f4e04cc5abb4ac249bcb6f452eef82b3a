@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "65c09768_882d65d6",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-23T18:22:17Z",
+      "side": 1,
+      "message": "I expect that data_model will exist from earlier init and can be reused.\n\nThat said, as is obvious from the patch, I have not tested reconciliation yet.",
+      "parentUuid": "4d2ac0c1_8330a547",
+      "revId": "79a7328f4e04cc5abb4ac249bcb6f452eef82b3a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d8c68d14_11c97b3a",
         "filename": "voltha/adapters/openolt/openolt_device.py",
         "patchSetId": 9
@@ -30,6 +48,24 @@
       "writtenOn": "2019-02-23T10:18:03Z",
       "side": 1,
       "message": "self.data_mode \u003d\u003e self.data_model\nSpelling mistake",
+      "revId": "79a7328f4e04cc5abb4ac249bcb6f452eef82b3a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "65fc0159_bbf24847",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-02-23T18:22:17Z",
+      "side": 1,
+      "message": "Fixed",
+      "parentUuid": "d8c68d14_11c97b3a",
       "revId": "79a7328f4e04cc5abb4ac249bcb6f452eef82b3a",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
