@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4d2ac0c1_8330a547",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-23T10:18:03Z",
+      "side": 1,
+      "message": "Where does data_model get initialized in case of reconciliation",
+      "revId": "79a7328f4e04cc5abb4ac249bcb6f452eef82b3a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d8c68d14_11c97b3a",
+        "filename": "voltha/adapters/openolt/openolt_device.py",
+        "patchSetId": 9
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-02-23T10:18:03Z",
+      "side": 1,
+      "message": "self.data_mode \u003d\u003e self.data_model\nSpelling mistake",
+      "revId": "79a7328f4e04cc5abb4ac249bcb6f452eef82b3a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
