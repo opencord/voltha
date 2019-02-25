@@ -44,6 +44,9 @@ class OpenOltDataModel(object):
 
         self.adapter_agent.update_device(device)
 
+    def __del__(self):
+        pass
+
     def reconcile(self):
         assert self.logical_device_id is not None
         self.adapter_agent.reconcile_logical_device(
@@ -106,18 +109,186 @@ class OpenOltDataModel(object):
 
         return self.logical_device_id
 
-    def disable_logical_device(self):
+    def olt_oper_up(self):
+        self.device.parent_id = self.logical_device_id
+        self.device.oper_status = OperStatus.ACTIVE
+        self.adapter_agent.update_device(self.device)
 
+    def olt_oper_down(self):
+        self._disable_logical_device()
+
+    def olt_delete(self):
+        ld = self.adapter_agent.get_logical_device(self.logical_device_id)
+        self.adapter_agent.delete_logical_device(ld)
+
+    def onu_create(self, intf_id, onu_id, serial_number):
+        onu_device = self.adapter_agent.get_child_device(
+            self.device.id,
+            serial_number=serial_number)
+
+        if onu_device:
+            self.log.debug("data_model onu update", intf_id=intf_id,
+                           onu_id=onu_id, serial_number=serial_number)
+            onu_device.oper_status = OperStatus.DISCOVERED
+            onu_device.connect_status = ConnectStatus.REACHABLE
+            self.adapter_agent.update_device(onu_device)
+            return
+
+        self.log.debug("data_model onu create", intf_id=intf_id,
+                       onu_id=onu_id, serial_number=serial_number)
+
+        # NOTE - channel_id of onu is set to intf_id
+        proxy_address = Device.ProxyAddress(device_id=self.device.id,
+                                            channel_id=intf_id, onu_id=onu_id,
+                                            onu_session_id=onu_id)
+        port_no = self.platform.intf_id_to_port_no(intf_id, Port.PON_OLT)
+        vendor_id = serial_number[:4]
+        self.adapter_agent.add_onu_device(
+            parent_device_id=self.device.id, parent_port_no=port_no,
+            vendor_id=vendor_id, proxy_address=proxy_address,
+            root=False, serial_number=serial_number,
+            admin_state=AdminState.ENABLED,
+            connect_status=ConnectStatus.REACHABLE
+        )
+
+    def onu_delete(self, serial_number):
+        onu_device = self.adapter_agent.get_child_device(
+            self.device.id,
+            serial_number=serial_number)
+        try:
+            self.adapter_agent.delete_child_device(self.device_id,
+                                                   onu_device.id, onu_device)
+        except Exception as e:
+            self.log.error('adapter_agent error', error=e)
+
+        ofp_port_name = self._get_uni_ofp_port_name(onu_device)
+        if ofp_port_name is None:
+            self.log.exception("uni-ofp-port-not-found")
+            return
+
+        try:
+            self._delete_logical_port(onu_device)
+        except Exception as e:
+            self.log.error('logical_port delete error', error=e)
+        try:
+            self.delete_port(onu_device.serial_number)
+        except Exception as e:
+            self.log.error('port delete error', error=e)
+
+    def onu_id(self, serial_number):
+        onu_device = self.adapter_agent.get_child_device(
+            self.device.id,
+            serial_number=serial_number)
+
+        if onu_device:
+            return onu_device.proxy_address.onu_id
+        else:
+            return 0  # Invalid onu id
+
+    def onu_oper_down(self, intf_id, onu_id):
+
+        onu_device = self.adapter_agent.get_child_device(
+            self.device.id,
+            parent_port_no=self.platform.intf_id_to_port_no(intf_id,
+                                                            Port.PON_OLT),
+            onu_id=onu_id)
+
+        if onu_device is None:
+            self.log.error('onu not found', intf_id=intf_id, onu_id=onu_id)
+            return
+
+        onu_adapter_agent = \
+            registry('adapter_loader').get_agent(onu_device.adapter)
+        if onu_adapter_agent is None:
+            self.log.error('onu_adapter_agent-could-not-be-retrieved',
+                           onu_device=onu_device)
+            return
+
+        if onu_device.connect_status != ConnectStatus.UNREACHABLE:
+            onu_device.connect_status = ConnectStatus.UNREACHABLE
+            self.adapter_agent.update_device(onu_device)
+
+        # Move to discovered state
+        self.log.debug('onu-oper-state-is-down')
+
+        if onu_device.oper_status != OperStatus.DISCOVERED:
+            onu_device.oper_status = OperStatus.DISCOVERED
+            self.adapter_agent.update_device(onu_device)
+        # Set port oper state to Discovered
+        self.data_model._onu_ports_down(onu_device)
+
+        onu_adapter_agent.update_interface(onu_device,
+                                           {'oper_state': 'down'})
+
+    def onu_oper_up(self, intf_id, onu_id):
+
+        class _OnuIndication:
+            def __init__(self, intf_id, onu_id):
+                self.intf_id = intf_id
+                self.onu_id = onu_id
+
+        onu_device = self.adapter_agent.get_child_device(
+            self.device.id,
+            parent_port_no=self.platform.intf_id_to_port_no(intf_id,
+                                                            Port.PON_OLT),
+            onu_id=onu_id)
+
+        if onu_device is None:
+            self.log.error('onu not found', intf_id=intf_id, onu_id=onu_id)
+            return
+
+        onu_adapter_agent = \
+            registry('adapter_loader').get_agent(onu_device.adapter)
+        if onu_adapter_agent is None:
+            self.log.error('onu_adapter_agent-could-not-be-retrieved',
+                           onu_device=onu_device)
+            return
+        if onu_device.connect_status != ConnectStatus.REACHABLE:
+            onu_device.connect_status = ConnectStatus.REACHABLE
+            self.adapter_agent.update_device(onu_device)
+
+        if onu_device.oper_status != OperStatus.DISCOVERED:
+            self.log.debug("ignore onu indication",
+                           intf_id=intf_id,
+                           onu_id=onu_id,
+                           state=onu_device.oper_status,
+                           msg_oper_state="up")
+            return
+
+        onu_adapter_agent.create_interface(onu_device,
+                                           _OnuIndication(intf_id, onu_id))
+
+    def olt_port_add_update(self, intf_id, intf_type, oper):
+        if oper == "up":
+            oper_status = OperStatus.ACTIVE
+        else:
+            oper_status = OperStatus.DISCOVERED
+
+        if intf_type == "nni":
+            port_type = Port.ETHERNET_NNI
+        elif intf_type == "pon":
+            port_type = Port.PON_OLT
+
+        port_no, label = self._add_port(intf_id, port_type, oper_status)
+
+        if intf_type == "nni":
+            self._add_logical_port(port_no, intf_id, oper)
+
+    # #################
+    # Private functions
+    # #################
+
+    def _disable_logical_device(self):
         oper_state = OperStatus.UNKNOWN
         connect_state = ConnectStatus.UNREACHABLE
 
-        child_devices = self.adapter_agent.get_child_devices(self.device.id)
-        for onu_device in child_devices:
+        onu_devices = self.adapter_agent.get_child_devices(self.device.id)
+        for onu_device in onu_devices:
             onu_adapter_agent = \
                 registry('adapter_loader').get_agent(onu_device.adapter)
             onu_adapter_agent.update_interface(onu_device,
                                                {'oper_state': 'down'})
-            self.onu_ports_down(onu_device, oper_state)
+            self.onu_ports_down(onu_device)
 
         # Children devices
         self.adapter_agent.update_child_devices_state(
@@ -145,7 +316,7 @@ class OpenOltDataModel(object):
         self.device.connect_status = connect_state
         self.adapter_agent.update_device(self.device)
 
-    def add_logical_port(self, port_no, intf_id, oper_state):
+    def _add_logical_port(self, port_no, intf_id, oper_state):
         self.log.info('adding-logical-port', port_no=port_no)
 
         label = OpenoltUtils.port_name(port_no, Port.ETHERNET_NNI)
@@ -177,51 +348,59 @@ class OpenOltDataModel(object):
         self.adapter_agent.add_logical_port(self.logical_device_id,
                                             logical_port)
 
-    def olt_oper_up(self):
-        self.device.parent_id = self.logical_device_id
-        self.device.oper_status = OperStatus.ACTIVE
-        self.adapter_agent.update_device(self.device)
+    def _delete_logical_port(self, child_device):
+        logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
+            self.data_model.logical_device_id))
+        for logical_port in logical_ports:
+            if logical_port.device_id == child_device.id:
+                self.log.debug('delete-logical-port',
+                               onu_device_id=child_device.id,
+                               logical_port=logical_port)
+                self.flow_mgr.clear_flows_and_scheduler_for_logical_port(
+                    child_device, logical_port)
+                self.adapter_agent.delete_logical_port(
+                    self.data_model.logical_device_id, logical_port)
+                return
 
-    def olt_oper_down(self):
-        self.disable_logical_device()
+    def _onu_ports_down(self, onu_device):
+        onu_ports = self.proxy.get('devices/{}/ports'.format(onu_device.id))
+        for onu_port in onu_ports:
+            self.log.debug('onu-ports-down', onu_port=onu_port)
+            onu_port_id = onu_port.label
+            try:
+                onu_logical_port = self.adapter_agent.get_logical_port(
+                    logical_device_id=self.data_model.logical_device_id,
+                    port_id=onu_port_id)
+                onu_logical_port.ofp_port.state = OFPPS_LINK_DOWN
+                self.adapter_agent.update_logical_port(
+                    logical_device_id=self.data_model.logical_device_id,
+                    port=onu_logical_port)
+                self.log.debug('cascading-oper-state-to-port-and-logical-port')
+            except KeyError as e:
+                self.log.error('matching-onu-port-label-invalid',
+                               onu_id=onu_device.id, olt_id=self.device.id,
+                               onu_ports=onu_ports, onu_port_id=onu_port_id,
+                               error=e)
 
-    def onu_create(self, intf_id, onu_id, serial_number):
+    def _add_port(self, intf_id, port_type, oper_status):
+        port_no = self.platform.intf_id_to_port_no(intf_id, port_type)
 
-        onu_device = self.adapter_agent.get_child_device(
-            self.device.id,
-            serial_number=serial_number)
+        label = OpenoltUtils.port_name(port_no, port_type, intf_id)
 
-        if onu_device:
-            self.log.debug("data_model onu update", intf_id=intf_id,
-                           onu_id=onu_id, serial_number=serial_number)
-            onu_device.oper_status = OperStatus.DISCOVERED
-            onu_device.connect_status = ConnectStatus.REACHABLE
-            self.adapter_agent.update_device(onu_device)
-            return
+        self.log.debug('adding-port', port_no=port_no, label=label,
+                       port_type=port_type)
 
-        self.log.debug("data_model onu create", intf_id=intf_id,
-                       onu_id=onu_id, serial_number=serial_number)
+        port = Port(port_no=port_no, label=label, type=port_type,
+                    admin_state=AdminState.ENABLED, oper_status=oper_status)
 
-        # NOTE - channel_id of onu is set to intf_id
-        proxy_address = Device.ProxyAddress(device_id=self.device.id,
-                                            channel_id=intf_id, onu_id=onu_id,
-                                            onu_session_id=onu_id)
-        port_no = self.platform.intf_id_to_port_no(intf_id, Port.PON_OLT)
-        vendor_id = serial_number[:4]
-        self.adapter_agent.add_onu_device(
-            parent_device_id=self.device.id, parent_port_no=port_no,
-            vendor_id=vendor_id, proxy_address=proxy_address,
-            root=False, serial_number=serial_number,
-            admin_state=AdminState.ENABLED,
-            connect_status=ConnectStatus.REACHABLE
-        )
+        self.adapter_agent.add_port(self.device.id, port)
 
-    def onu_id(self, serial_number):
-        onu_device = self.adapter_agent.get_child_device(
-            self.device.id,
-            serial_number=serial_number)
+        return port_no, label
 
-        if onu_device:
-            return onu_device.proxy_address.onu_id
-        else:
-            return 0  # Invalid onu id
+    def _get_uni_ofp_port_name(self, child_device):
+        logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
+            self.data_model.logical_device_id))
+        for logical_port in logical_ports:
+            if logical_port.device_id == child_device.id:
+                return logical_port.ofp_port.name
+        return None

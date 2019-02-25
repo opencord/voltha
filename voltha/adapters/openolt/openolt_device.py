@@ -23,8 +23,7 @@ from scapy.layers.l2 import Ether, Dot1Q
 from transitions import Machine
 
 from voltha.protos.device_pb2 import Port
-from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
-from voltha.protos.openflow_13_pb2 import OFPPS_LINK_DOWN
+from voltha.protos.common_pb2 import ConnectStatus
 from voltha.registry import registry
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
@@ -278,39 +277,20 @@ class OpenoltDevice(object):
     def intf_indication(self, intf_indication):
         self.log.debug("intf indication", intf_id=intf_indication.intf_id,
                        oper_state=intf_indication.oper_state)
-
-        if intf_indication.oper_state == "up":
-            oper_status = OperStatus.ACTIVE
-        else:
-            oper_status = OperStatus.DISCOVERED
-
-        # add_port update the port if it exists
-        self.add_port(intf_indication.intf_id, Port.PON_OLT, oper_status)
+        # NOTE - BAL only sends interface indications for PON ports,
+        # not for NNI ports.
+        self.data_model.olt_port_add_update(intf_indication.intf_id,
+                                            "pon",
+                                            intf_indication.oper_state)
 
     def intf_oper_indication(self, intf_oper_indication):
         self.log.debug("Received interface oper state change indication",
                        intf_id=intf_oper_indication.intf_id,
                        type=intf_oper_indication.type,
                        oper_state=intf_oper_indication.oper_state)
-
-        if intf_oper_indication.oper_state == "up":
-            oper_state = OperStatus.ACTIVE
-        else:
-            oper_state = OperStatus.DISCOVERED
-
-        if intf_oper_indication.type == "nni":
-
-            # add_(logical_)port update the port if it exists
-            port_no, label = self.add_port(intf_oper_indication.intf_id,
-                                           Port.ETHERNET_NNI, oper_state)
-            self.log.debug("int_oper_indication", port_no=port_no, label=label)
-            self.data_model.add_logical_port(port_no,
-                                             intf_oper_indication.intf_id,
-                                             oper_state)
-
-        elif intf_oper_indication.type == "pon":
-            # FIXME - handle PON oper state change
-            pass
+        self.data_model.olt_port_add_update(intf_oper_indication.intf_id,
+                                            intf_oper_indication.type,
+                                            intf_oper_indication.oper_state)
 
     def onu_discovery_indication(self, onu_disc_indication):
         intf_id = onu_disc_indication.intf_id
@@ -347,33 +327,6 @@ class OpenoltDevice(object):
                        oper_state=onu_indication.oper_state,
                        admin_state=onu_indication.admin_state)
 
-        onu_device = self.adapter_agent.get_child_device(
-            self.device_id,
-            parent_port_no=self.platform.intf_id_to_port_no(
-                onu_indication.intf_id, Port.PON_OLT),
-            onu_id=onu_indication.onu_id)
-
-        if onu_device is None:
-            self.log.error('onu not found', intf_id=onu_indication.intf_id,
-                           onu_id=onu_indication.onu_id)
-            return
-
-        if self.platform.intf_id_from_pon_port_no(onu_device.parent_port_no) \
-                != onu_indication.intf_id:
-            self.log.warn(
-                'ONU-is-on-a-different-intf-id-now',
-                previous_intf_id=self.platform.intf_id_from_pon_port_no(
-                    onu_device.parent_port_no),
-                current_intf_id=onu_indication.intf_id)
-            # FIXME - handle intf_id mismatch (ONU move?)
-
-        if onu_device.proxy_address.onu_id != onu_indication.onu_id:
-            # FIXME - handle onu id mismatch
-            self.log.warn('ONU-id-mismatch, can happen if both voltha and '
-                          'the olt rebooted',
-                          expected_onu_id=onu_device.proxy_address.onu_id,
-                          received_onu_id=onu_indication.onu_id)
-
         # Admin state
         if onu_indication.admin_state == 'down':
             if onu_indication.oper_state != 'down':
@@ -384,97 +337,16 @@ class OpenoltDevice(object):
 
             # Port and logical port update is taken care of by oper state block
 
-        elif onu_indication.admin_state == 'up':
-            pass
-
-        else:
-            self.log.warn('Invalid-or-not-implemented-admin-state',
-                          received_admin_state=onu_indication.admin_state)
-
         self.log.debug('admin-state-dealt-with')
-
-        onu_adapter_agent = \
-            registry('adapter_loader').get_agent(onu_device.adapter)
-        if onu_adapter_agent is None:
-            self.log.error('onu_adapter_agent-could-not-be-retrieved',
-                           onu_device=onu_device)
-            return
 
         # Operating state
         if onu_indication.oper_state == 'down':
-
-            if onu_device.connect_status != ConnectStatus.UNREACHABLE:
-                onu_device.connect_status = ConnectStatus.UNREACHABLE
-                self.adapter_agent.update_device(onu_device)
-
-            # Move to discovered state
-            self.log.debug('onu-oper-state-is-down')
-
-            if onu_device.oper_status != OperStatus.DISCOVERED:
-                onu_device.oper_status = OperStatus.DISCOVERED
-                self.adapter_agent.update_device(onu_device)
-            # Set port oper state to Discovered
-            self.onu_ports_down(onu_device, OperStatus.DISCOVERED)
-
-            onu_adapter_agent.update_interface(onu_device,
-                                               {'oper_state': 'down'})
+            self.data_model.onu_oper_down(onu_indication.intf_id,
+                                          onu_indication.onu_id)
 
         elif onu_indication.oper_state == 'up':
-
-            if onu_device.connect_status != ConnectStatus.REACHABLE:
-                onu_device.connect_status = ConnectStatus.REACHABLE
-                self.adapter_agent.update_device(onu_device)
-
-            if onu_device.oper_status != OperStatus.DISCOVERED:
-                self.log.debug("ignore onu indication",
-                               intf_id=onu_indication.intf_id,
-                               onu_id=onu_indication.onu_id,
-                               state=onu_device.oper_status,
-                               msg_oper_state=onu_indication.oper_state)
-                return
-
-            # Device was in Discovered state, setting it to active
-
-            # Prepare onu configuration
-
-            onu_adapter_agent.create_interface(onu_device, onu_indication)
-
-        else:
-            self.log.warn('Not-implemented-or-invalid-value-of-oper-state',
-                          oper_state=onu_indication.oper_state)
-
-    def onu_ports_down(self, onu_device, oper_state):
-        # Set port oper state to Discovered
-        # add port will update port if it exists
-        # self.adapter_agent.add_port(
-        #    self.device_id,
-        #    Port(
-        #        port_no=uni_no,
-        #        label=uni_name,
-        #        type=Port.ETHERNET_UNI,
-        #        admin_state=onu_device.admin_state,
-        #        oper_status=oper_state))
-        # TODO this should be downning ports in onu adatper
-
-        # Disable logical port
-        onu_ports = self.proxy.get('devices/{}/ports'.format(onu_device.id))
-        for onu_port in onu_ports:
-            self.log.debug('onu-ports-down', onu_port=onu_port)
-            onu_port_id = onu_port.label
-            try:
-                onu_logical_port = self.adapter_agent.get_logical_port(
-                    logical_device_id=self.data_model.logical_device_id,
-                    port_id=onu_port_id)
-                onu_logical_port.ofp_port.state = OFPPS_LINK_DOWN
-                self.adapter_agent.update_logical_port(
-                    logical_device_id=self.data_model.logical_device_id,
-                    port=onu_logical_port)
-                self.log.debug('cascading-oper-state-to-port-and-logical-port')
-            except KeyError as e:
-                self.log.error('matching-onu-port-label-invalid',
-                               onu_id=onu_device.id, olt_id=self.device_id,
-                               onu_ports=onu_ports, onu_port_id=onu_port_id,
-                               error=e)
+            self.data_model.onu_oper_up(onu_indication.intf_id,
+                                        onu_indication.onu_id)
 
     def omci_indication(self, omci_indication):
 
@@ -616,54 +488,6 @@ class OpenoltDevice(object):
                                    onu_id=proxy_address.onu_id, pkt=str(msg))
         self.stub.OmciMsgOut(omci)
 
-    def add_port(self, intf_id, port_type, oper_status):
-        port_no = self.platform.intf_id_to_port_no(intf_id, port_type)
-
-        label = OpenoltUtils.port_name(port_no, port_type, intf_id)
-
-        self.log.debug('adding-port', port_no=port_no, label=label,
-                       port_type=port_type)
-
-        port = Port(port_no=port_no, label=label, type=port_type,
-                    admin_state=AdminState.ENABLED, oper_status=oper_status)
-
-        self.adapter_agent.add_port(self.device_id, port)
-
-        return port_no, label
-
-    def get_uni_ofp_port_name(self, child_device):
-        logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
-            self.data_model.logical_device_id))
-        for logical_port in logical_ports:
-            if logical_port.device_id == child_device.id:
-                return logical_port.ofp_port.name
-        return None
-
-    def delete_logical_port(self, child_device):
-        logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
-            self.data_model.logical_device_id))
-        for logical_port in logical_ports:
-            if logical_port.device_id == child_device.id:
-                self.log.debug('delete-logical-port',
-                               onu_device_id=child_device.id,
-                               logical_port=logical_port)
-                self.flow_mgr.clear_flows_and_scheduler_for_logical_port(
-                    child_device, logical_port)
-                self.adapter_agent.delete_logical_port(
-                    self.data_model.logical_device_id, logical_port)
-                return
-
-    def delete_port(self, child_serial_number):
-        ports = self.proxy.get('/devices/{}/ports'.format(
-            self.device_id))
-        for port in ports:
-            if port.label == child_serial_number:
-                self.log.debug('delete-port',
-                               onu_serial_number=child_serial_number,
-                               port=port)
-                self.adapter_agent.delete_port(self.device_id, port)
-                return
-
     def update_flow_table(self, flows):
         self.log.debug('No updates here now, all is done in logical flows '
                        'update')
@@ -723,10 +547,8 @@ class OpenoltDevice(object):
         try:
             # Rebooting to reset the state
             self.reboot()
-            # Removing logical device
-            ld = self.adapter_agent.get_logical_device(
-                self.data_model.logical_device_id)
-            self.adapter_agent.delete_logical_device(ld)
+            self.data_model.olt_delete()
+            del self.data_model
         except Exception as e:
             self.log.error('Failure to delete openolt device', error=e)
             raise e
@@ -755,33 +577,16 @@ class OpenoltDevice(object):
         self.stub.ActivateOnu(onu)
         self.log.info('onu-activated', serial_number=serial_number_str)
 
+    # FIXME - instead of passing child_device around, delete_child_device
+    # needs to change to use serial_number.
     def delete_child_device(self, child_device):
         self.log.debug('sending-deactivate-onu',
                        olt_device_id=self.device_id,
                        onu_device=child_device,
                        onu_serial_number=child_device.serial_number)
-        try:
-            self.adapter_agent.delete_child_device(self.device_id,
-                                                   child_device.id,
-                                                   child_device)
-        except Exception as e:
-            self.log.error('adapter_agent error', error=e)
 
-        ofp_port_name = self.get_uni_ofp_port_name(child_device)
-        if ofp_port_name is None:
-            self.log.exception("uni-ofp-port-not-found")
-            return
+        self.data_model.onu_delete(child_device.serial_number)
 
-        try:
-            self.delete_logical_port(child_device)
-        except Exception as e:
-            self.log.error('logical_port delete error', error=e)
-        try:
-            self.delete_port(child_device.serial_number)
-        except Exception as e:
-            self.log.error('port delete error', error=e)
-        serial_number = OpenoltUtils.destringify_serial_number(
-            child_device.serial_number)
         # TODO FIXME - For each uni.
         # TODO FIXME - Flows are not deleted
         uni_id = 0  # FIXME
@@ -789,9 +594,7 @@ class OpenoltDevice(object):
             self.flow_mgr.delete_tech_profile_instance(
                         child_device.proxy_address.channel_id,
                         child_device.proxy_address.onu_id,
-                        uni_id,
-                        ofp_port_name
-            )
+                        uni_id, None)
         except Exception as e:
             self.log.exception("error-removing-tp-instance")
 
@@ -804,6 +607,8 @@ class OpenoltDevice(object):
         except Exception as e:
             self.log.exception("error-removing-pon-resources-for-onu")
 
+        serial_number = OpenoltUtils.destringify_serial_number(
+            child_device.serial_number)
         try:
             onu = openolt_pb2.Onu(
                 intf_id=child_device.proxy_address.channel_id,
@@ -811,7 +616,7 @@ class OpenoltDevice(object):
                 serial_number=serial_number)
             self.stub.DeleteOnu(onu)
         except Exception as e:
-            self.log.exception("error-deleting-the-onu-on-olt-device")
+            self.log.exception("error-deleting-the-onu-on-olt-device", error=e)
 
     def reboot(self):
         self.log.debug('rebooting openolt device', device_id=self.device_id)
