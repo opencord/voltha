@@ -200,7 +200,8 @@ class Dispatcher(object):
         log.debug('local-dispatch', core_id=core_id)
         method = getattr(self.local_handler, method_name)
         res = method(request, context=context)
-        log.debug('local-dispatch-result', res=res, context=context)
+        # log.debug('local-dispatch-result', res=res, context=context)
+        log.debug('local-dispatch-result', context=context)
         return res
 
     @inlineCallbacks

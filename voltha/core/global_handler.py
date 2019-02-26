@@ -166,7 +166,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.debug('grpc-response', response=response)
+        # log.debug('grpc-response', response=response)
         returnValue(response)
 
     @twisted_async
@@ -178,7 +178,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                 Empty(),
                 context,
                 broadcast=True)
-        log.debug('grpc-response', response=response)
+        # log.debug('grpc-response', response=response)
         returnValue(response)
 
     @twisted_async
@@ -190,7 +190,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+        # log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -198,7 +198,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(LogicalDevice())
         else:
-            log.debug('grpc-success-response', response=response)
+            # log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -210,7 +210,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+        # log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -218,7 +218,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Ports())
         else:
-            log.debug('grpc-success-response', response=response)
+            # log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -230,7 +230,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+        # log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -238,7 +238,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(LogicalPort())
         else:
-            log.debug('grpc-success-response', response=response)
+            # log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -249,7 +249,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+        # log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details(
@@ -257,7 +257,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
             context.set_code(response.error_code)
             returnValue(Flows())
         else:
-            log.debug('grpc-success-response', response=response)
+            # log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async
@@ -408,7 +408,7 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   Empty(),
                                                   context,
                                                   broadcast=True)
-        log.debug('grpc-response', response=response)
+        # log.debug('grpc-response', response=response)
         returnValue(response)
 
     @twisted_async
@@ -537,14 +537,14 @@ class GlobalHandler(VolthaGlobalServiceServicer):
                                                   request,
                                                   context,
                                                   id=request.id)
-        log.debug('grpc-response', response=response)
+        # log.debug('grpc-response', response=response)
         if isinstance(response, DispatchError):
             log.warn('grpc-error-response', error=response.error_code)
             context.set_details('Device \'{}\' error'.format(request.id))
             context.set_code(response.error_code)
             returnValue(Ports())
         else:
-            log.debug('grpc-success-response', response=response)
+            # log.debug('grpc-success-response', response=response)
             returnValue(response)
 
     @twisted_async

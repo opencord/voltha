@@ -82,7 +82,7 @@ class AdapterAgent(object):
     @property
     def name(self):
         return self.adapter_name
-        
+
     @inlineCallbacks
     def start(self):
         self.log.debug('starting')
@@ -661,7 +661,8 @@ class AdapterAgent(object):
         out_port = get_port_out(ofp_packet_out)
         frame = ofp_packet_out.data
         self.log.debug('rcv-packet-out', logical_device_id=logical_device_id,
-                       egress_port_no=out_port, adapter_name=self.adapter_name)
+                       egress_port_no=out_port, adapter_name=self.adapter_name,
+                       data=hexify(ofp_packet_out.data))
         self.adapter.receive_packet_out(logical_device_id, out_port, frame)
 
     def add_logical_port(self, logical_device_id, port):
@@ -1053,4 +1054,3 @@ class AdapterAgent(object):
     def forward_onu_detect_state(self, device_id, state):
         topic = self._gen_onu_detect_proxy_address_topic(device_id)
         self.event_bus.publish(topic, state)
-
