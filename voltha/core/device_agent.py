@@ -450,10 +450,10 @@ class DeviceAgent(object):
         :return: None
         """
         self.current_flows = self.flows_proxy.get('/')
-        self.log.debug('pre-processing-flows',
-                       logical_device_id=self.last_data.id,
-                       desired_flows=flows,
-                       existing_flows=self.current_flows)
+        # self.log.debug('pre-processing-flows',
+        #                logical_device_id=self.last_data.id,
+        #                desired_flows=flows,
+        #                existing_flows=self.current_flows)
 
         if self.flow_changes is None:
             self.flow_changes = FlowChanges()
@@ -477,14 +477,15 @@ class DeviceAgent(object):
 
         self.log.debug('pre-processed-flows',
                        logical_device_id=self.last_data.id,
-                       flow_changes=self.flow_changes)
+                       flows_to_add=len(self.flow_changes.to_add.items),
+                       flows_to_remove=len(self.flow_changes.to_remove.items))
 
 
     @inlineCallbacks
     def _flow_table_updated(self, flows):
         try:
             self.log.debug('flow-table-updated',
-                        logical_device_id=self.last_data.id, flows=flows)
+                        logical_device_id=self.last_data.id)
             if self.flow_changes is not None and (len(self.flow_changes.to_remove.items) == 0) and (len(
                     self.flow_changes.to_add.items) == 0):
                 self.log.debug('no-flow-update-required',
