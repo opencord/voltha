@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "296b6f7d_71725c20",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-02-26T20:12:31Z",
+      "side": 1,
+      "message": "I think you need to wrap this around a \"Wait until keyword succeeds\"",
+      "revId": "a4db025e63dd03fed24bccf1afb9fbff6a01d2fc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
