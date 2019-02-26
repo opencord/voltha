@@ -272,7 +272,7 @@ class OpenOltDataModel(object):
         port_no, label = self._add_port(intf_id, port_type, oper_status)
 
         if intf_type == "nni":
-            self._add_logical_port(port_no, intf_id, oper)
+            self._add_logical_port(port_no, intf_id, oper_status)
 
     # #################
     # Private functions
