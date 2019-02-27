@@ -150,6 +150,28 @@ class OmciGetRequest(Task):
         attr_def = self._entity_class.attributes[index]
         return isinstance(attr_def.field, OmciTableField)
 
+    def select_first_attributes(self):
+        """
+        For the requested attributes, get as many as possible in the first requst
+        :return: (set) attributes that will fit in one frame
+        """
+        octets_available = 25   # Max GET Response baseline payload size
+        first_attributes = set()
+
+        for attr in self._attributes:
+            index = self._entity_class.attribute_name_to_index_map[attr]
+            attr_def = self._entity_class.attributes[index]
+
+            if isinstance(attr_def.field, OmciTableField):
+                continue   # No table attributes
+
+            size = attr_def.field.sz
+            if size <= octets_available:
+                first_attributes.add(attr)
+                octets_available -= size
+
+        return first_attributes
+
     @inlineCallbacks
     def perform_get_omci(self):
         """
@@ -159,8 +181,7 @@ class OmciGetRequest(Task):
                       entity_id=self._entity_id, attributes=self._attributes)
         try:
             # If one or more attributes is a table attribute, get it separately
-
-            first_attributes = {attr for attr in self._attributes if not self.is_table_attr(attr)}
+            first_attributes = self.select_first_attributes()
             table_attributes = {attr for attr in self._attributes if self.is_table_attr(attr)}
 
             if len(first_attributes):
@@ -188,10 +209,14 @@ class OmciGetRequest(Task):
                     results_omci = results.fields['omci_message'].fields
 
                     # Were all attributes fetched?
-                    missing_attr = frame.fields['omci_message'].fields['attributes_mask'] ^ \
-                        results_omci['attributes_mask']
+                    requested_attr = frame.fields['omci_message'].fields['attributes_mask']
+                    retrieved_attr = results_omci['attributes_mask']
+                    unsupported_attr = results_omci.get('unsupported_attributes_mask', 0) or 0
+                    failed_attr = results_omci.get('failed_attributes_mask', 0) or 0
+                    not_avail_attr = unsupported_attr | failed_attr
+                    missing_attr = requested_attr & ~(retrieved_attr | not_avail_attr)
 
-                    if missing_attr > 0 or len(table_attributes) > 0:
+                    if missing_attr != 0 or len(table_attributes) > 0:
                         self.log.info('perform-get-missing', num_missing=missing_attr,
                                       table_attr=table_attributes)
                         self.strobe_watchdog()
@@ -267,7 +292,10 @@ class OmciGetRequest(Task):
                     status = get_omci['success_code']
 
                     if status == RC.AttributeFailure.value:
-                        # TODO: update failed & unknown attributes set
+                        unsupported_attr = get_omci.get('unsupported_attributes_mask', 0) or 0
+                        failed_attr = get_omci.get('failed_attributes_mask', 0) or 0
+                        results_omci['unsupported_attributes_mask'] |= unsupported_attr
+                        results_omci['failed_attributes_mask'] |= failed_attr
                         continue
 
                     elif status != RC.Success.value:
@@ -293,8 +321,7 @@ class OmciGetRequest(Task):
         # Now any table attributes
         if len(table_attributes):
             self.strobe_watchdog()
-            self._local_deferred = reactor.callLater(0,
-                                                     self.process_get_table,
+            self._local_deferred = reactor.callLater(0, self.process_get_table,
                                                      table_attributes)
             returnValue(self._local_deferred)
 
@@ -335,8 +362,10 @@ class OmciGetRequest(Task):
                 if omci_fields['success_code'] == RC.AttributeFailure.value:
                     # Copy over any failed or unsupported attribute masks for final result
                     results_fields = results_omci.fields['omci_message'].fields
-                    results_fields['unsupported_attributes_mask'] |= omci_fields['unsupported_attributes_mask']
-                    results_fields['failed_attributes_mask'] |= omci_fields['failed_attributes_mask']
+                    unsupported_attr = results_omci.get('unsupported_attributes_mask', 0) or 0
+                    failed_attr = results_omci.get('failed_attributes_mask', 0) or 0
+                    results_fields['unsupported_attributes_mask'] |= unsupported_attr
+                    results_fields['failed_attributes_mask'] |= failed_attr
 
                 if omci_fields['success_code'] != RC.Success.value:
                     raise GetException('Get table attribute failed with status code: {}'.

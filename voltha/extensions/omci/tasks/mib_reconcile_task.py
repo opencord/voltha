@@ -615,6 +615,17 @@ class MibReconcileTask(Task):
         returnValue((successes, failures))
 
     @inlineCallbacks
+    def _get_current_mds(self):
+        self.strobe_watchdog()
+        results = yield self._device.omci_cc.send(OntDataFrame().get())
+
+        omci_msg = results.fields['omci_message'].fields
+        status = omci_msg['success_code']
+        mds = (omci_msg['data']['mib_data_sync'] >> 8) & 0xFF \
+            if status == 0 and 'data' in omci_msg and 'mib_data_sync' in omci_msg['data'] else -1
+        returnValue(mds)
+
+    @inlineCallbacks
     def update_mib_data_sync(self):
         """
         As the final step of MIB resynchronization, the OLT sets the MIB data sync
@@ -624,21 +635,27 @@ class MibReconcileTask(Task):
 
         :return: (int, int) success, failure counts
         """
-        # Get MDS to set, do not user zero
-
+        # Get MDS to set
+        self._sync_sm.increment_mib_data_sync()
         new_mds_value = self._sync_sm.mib_data_sync
-        if new_mds_value == 0:
-            self._sync_sm.increment_mib_data_sync()
-            new_mds_value = self._sync_sm.mib_data_sync
 
         # Update it.  The set response will be sent on the OMCI-CC pub/sub bus
         # and the MIB Synchronizer will update this MDS value in the database
         # if successful.
         try:
+            # previous_mds = yield self._get_current_mds()
+
             frame = OntDataFrame(mib_data_sync=new_mds_value).set()
 
             results = yield self._device.omci_cc.send(frame)
             self.check_status_and_state(results, 'ont-data-mbs-update')
+
+            #########################################
+            # Debug.  Verify new MDS value was received. Should be 1 greater
+            #         than what was sent
+            # new_mds = yield self._get_current_mds()
+            # self.log.info('mds-update', previous=previous_mds, new=new_mds_value, now=new_mds)
+            # Done
             returnValue((1, 0))
 
         except TimeoutError as e:

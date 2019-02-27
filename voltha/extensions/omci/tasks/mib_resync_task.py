@@ -18,11 +18,14 @@ from twisted.internet.defer import inlineCallbacks, TimeoutError, failure, retur
 from twisted.internet import reactor
 from common.utils.asleep import asleep
 from voltha.extensions.omci.database.mib_db_dict import *
-from voltha.extensions.omci.omci_entities import OntData
+from voltha.extensions.omci.omci_entities import OntData, Omci
 from voltha.extensions.omci.omci_defs import AttributeAccess, EntityOperations
+from voltha.extensions.omci.omci_fields import OmciTableField
+from voltha.extensions.omci.omci_me import OntDataFrame
 
 AA = AttributeAccess
 OP = EntityOperations
+
 
 class MibCopyException(Exception):
     pass
@@ -230,6 +233,13 @@ class MibResyncTask(Task):
             if number_of_commands is None or number_of_commands <= 0:
                 raise ValueError('Number of commands was {}'.format(number_of_commands))
 
+            # Get the current MIB-DATA-SYNC on the ONU
+            self.strobe_watchdog()
+            results = yield self._device.omci_cc.send(OntDataFrame().get())
+            omci_msg = results.fields['omci_message'].fields
+            mds = (omci_msg['data']['mib_data_sync'] >> 8) & 0xFF
+            self._db_active.save_mib_data_sync(self.device_id, mds)
+
             returnValue(number_of_commands)
 
         except TimeoutError as e:
@@ -258,7 +268,7 @@ class MibResyncTask(Task):
                     # the device level and do not want it showing up during a re-sync
                     # during data comparison
                     from binascii import hexlify
-                    if class_id == OntData.class_id:
+                    if class_id in (OntData.class_id, Omci.class_id):
                         break
 
                     # The T&W ONU reports an ME with class ID 0 but only on audit. Perhaps others do as well.
@@ -395,13 +405,16 @@ class MibResyncTask(Task):
             olt_cls = omci_copy[cls_id]
             onu_cls = onu_copy[cls_id]
 
-            # Weed out read-only attributes. Attributes on onu may be read-only. These
-            # will only show up it the OpenOMCI (OLT-side) database if it changed and
-            # an AVC Notification was sourced by the ONU
+            # Weed out read-only and table attributes. Attributes on onu may be read-only.
+            # These will only show up it the OpenOMCI (OLT-side) database if it changed
+            # and an AVC Notification was sourced by the ONU
             # TODO: These class IDs could be calculated once at ONU startup (at device add)
             if cls_id in me_map:
                 ro_attrs = {attr.field.name for attr in me_map[cls_id].attributes
                             if attr.access == ro_set}
+                table_attrs = {attr.field.name for attr in me_map[cls_id].attributes
+                               if isinstance(attr.field, OmciTableField)}
+
             else:
                 # Here if partially defined ME (not defined in ME Map)
                 from voltha.extensions.omci.omci_cc import UNKNOWN_CLASS_ATTRIBUTE_KEY
@@ -416,11 +429,11 @@ class MibResyncTask(Task):
                 onu_attributes = {k for k in onu_cls[inst_id][ATTRIBUTES_KEY].iterkeys()}
 
                 # Get attributes that exist in one database, but not the other
-                sym_diffs = (omci_attributes ^ onu_attributes) - ro_attrs
+                sym_diffs = (omci_attributes ^ onu_attributes) - ro_attrs - table_attrs
                 results.extend([(cls_id, inst_id, attr) for attr in sym_diffs])
 
                 # Get common attributes with different values
-                common_attributes = (omci_attributes & onu_attributes) - ro_attrs
+                common_attributes = (omci_attributes & onu_attributes) - ro_attrs - table_attrs
                 results.extend([(cls_id, inst_id, attr) for attr in common_attributes
                                if olt_cls[inst_id][ATTRIBUTES_KEY][attr] !=
                                 onu_cls[inst_id][ATTRIBUTES_KEY][attr]])
