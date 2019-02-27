@@ -188,10 +188,13 @@ class OmciGetRequest(Task):
                     results_omci = results.fields['omci_message'].fields
 
                     # Were all attributes fetched?
-                    missing_attr = frame.fields['omci_message'].fields['attributes_mask'] ^ \
-                        results_omci['attributes_mask']
+                    requested_attr = frame.fields['omci_message'].fields['attributes_mask']
+                    retrieved_attr = results_omci['attributes_mask']
+                    not_avail_attr = results_omci['unsupported_attributes_mask'] | \
+                                     results_omci['failed_attributes_mask']
+                    missing_attr = requested_attr & ~(retrieved_attr | not_avail_attr)
 
-                    if missing_attr > 0 or len(table_attributes) > 0:
+                    if missing_attr != 0 or len(table_attributes) > 0:
                         self.log.info('perform-get-missing', num_missing=missing_attr,
                                       table_attr=table_attributes)
                         self.strobe_watchdog()
@@ -267,7 +270,8 @@ class OmciGetRequest(Task):
                     status = get_omci['success_code']
 
                     if status == RC.AttributeFailure.value:
-                        # TODO: update failed & unknown attributes set
+                        results_omci['unsupported_attributes_mask'] |= get_omci['unsupported_attributes_mask']
+                        results_omci['failed_attributes_mask'] |= get_omci['failed_attributes_mask']
                         continue
 
                     elif status != RC.Success.value:
@@ -293,8 +297,7 @@ class OmciGetRequest(Task):
         # Now any table attributes
         if len(table_attributes):
             self.strobe_watchdog()
-            self._local_deferred = reactor.callLater(0,
-                                                     self.process_get_table,
+            self._local_deferred = reactor.callLater(0, self.process_get_table,
                                                      table_attributes)
             returnValue(self._local_deferred)
 
