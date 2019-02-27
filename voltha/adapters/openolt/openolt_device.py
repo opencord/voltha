@@ -574,8 +574,19 @@ class OpenoltDevice(object):
                        serial_number=serial_number, pir=pir)
         onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
                               serial_number=serial_number, pir=pir)
-        self.stub.ActivateOnu(onu)
-        self.log.info('onu-activated', serial_number=serial_number_str)
+        try:
+            self.stub.ActivateOnu(onu)
+        except grpc.RpcError as grpc_e:
+            if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
+                self.log.info('onu activation in progress',
+                              serial_number=serial_number_str,
+                              e=grpc_e)
+            else:
+                self.log.error('onu activation failed',
+                               serial_number=serial_number_str,
+                               grpc_error=grpc_e)
+        else:
+            self.log.info('onu-activated', serial_number=serial_number_str)
 
     # FIXME - instead of passing child_device around, delete_child_device
     # needs to change to use serial_number.
