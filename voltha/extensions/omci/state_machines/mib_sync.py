@@ -72,9 +72,9 @@ class MibSynchronizer(object):
         # Do wildcard 'stop' trigger last so it covers all previous states
         {'trigger': 'stop', 'source': '*', 'dest': 'disabled'},
     ]
-    DEFAULT_TIMEOUT_RETRY = 5      # Seconds to delay after task failure/timeout
-    DEFAULT_AUDIT_DELAY = 60       # Periodic tick to audit the MIB Data Sync
-    DEFAULT_RESYNC_DELAY = 300     # Periodically force a resync
+    DEFAULT_TIMEOUT_RETRY = 5     # Seconds to delay after task failure/timeout
+    DEFAULT_AUDIT_DELAY = 60      # Periodic tick to audit the MIB Data Sync
+    DEFAULT_RESYNC_DELAY = 300    # Periodically force a resync
 
     def __init__(self, agent, device_id, mib_sync_tasks, db,
                  advertise_events=False,
@@ -143,6 +143,10 @@ class MibSynchronizer(object):
             RxEvent.Create: None,
             RxEvent.Delete: None,
             RxEvent.Set: None,
+            RxEvent.Start_Software_Download: None,
+            RxEvent.End_Software_Download: None,
+            RxEvent.Activate_Software: None,
+            RxEvent.Commit_Software: None,
         }
         self._omci_cc_sub_mapping = {
             RxEvent.MIB_Reset: self.on_mib_reset_response,
@@ -152,6 +156,10 @@ class MibSynchronizer(object):
             RxEvent.Create: self.on_create_response,
             RxEvent.Delete: self.on_delete_response,
             RxEvent.Set: self.on_set_response,
+            RxEvent.Start_Software_Download: self.on_software_event,
+            RxEvent.End_Software_Download: self.on_software_event,
+            RxEvent.Activate_Software: self.on_software_event,
+            RxEvent.Commit_Software: self.on_software_event,
         }
         self._onu_dev_subscriptions = {               # DevEvent.enum -> Subscription Object
             DevEvent.OmciCapabilitiesEvent: None
@@ -216,6 +224,7 @@ class MibSynchronizer(object):
         if self._database is not None:
             self._database.save_mib_data_sync(self._device_id,
                                               self._mib_data_sync)
+            self.log.info("mds-updated", device=self._device_id, mds=self._mib_data_sync)
 
     @property
     def last_mib_db_sync(self):
@@ -522,8 +531,9 @@ class MibSynchronizer(object):
             self._attr_diffs = attr_diffs if attr_diffs and len(attr_diffs) else None
             self._audited_olt_db = olt_db
             self._audited_onu_db = onu_db
+            audited_mds = self._audited_onu_db[MDS_KEY]
 
-            mds_equal = self.mib_data_sync == self._audited_onu_db[MDS_KEY]
+            mds_equal = self.mib_data_sync == audited_mds
 
             if mds_equal and all(diff is None for diff in [self._on_olt_only_diffs,
                                                            self._on_onu_only_diffs,
@@ -608,14 +618,6 @@ class MibSynchronizer(object):
 
                 # Save the changed data to the MIB.
                 self._database.set(self.device_id, class_id, instance_id, data)
-
-                # Autonomous creation and deletion of managed entities do not
-                # result in an increment of the MIB data sync value. However,
-                # AVC's in response to a change by the Operator do incur an
-                # increment of the MIB Data Sync.  If here during uploading,
-                # we issued a MIB-Reset which may generate AVC.  (TODO: Focus testing during hardening)
-                if self.state == 'uploading':
-                    self.increment_mib_data_sync()
 
             except KeyError:
                 pass            # NOP
@@ -711,17 +713,16 @@ class MibSynchronizer(object):
                                   status=omci_msg.fields['success_code'],
                                   status_text=self._status_to_text(omci_msg.fields['success_code']),
                                   parameter_error_attributes_mask=omci_msg.fields['parameter_error_attributes_mask'])
-                else:
+
+                elif status != RC.InstanceExists:
                     omci_msg = request.fields['omci_message'].fields
                     class_id = omci_msg['entity_class']
                     entity_id = omci_msg['entity_id']
                     attributes = {k: v for k, v in omci_msg['data'].items()}
 
                     # Save to the database
-                    created = self._database.set(self._device_id, class_id, entity_id, attributes)
-
-                    if created:
-                        self.increment_mib_data_sync()
+                    self._database.set(self._device_id, class_id, entity_id, attributes)
+                    self.increment_mib_data_sync()
 
                     # If the ME contains set-by-create or writeable values that were
                     # not specified in the create command, the ONU will have
@@ -800,10 +801,8 @@ class MibSynchronizer(object):
                     entity_id = omci_msg['entity_id']
 
                     # Remove from the database
-                    deleted = self._database.delete(self._device_id, class_id, entity_id)
-
-                    if deleted:
-                        self.increment_mib_data_sync()
+                    self._database.delete(self._device_id, class_id, entity_id)
+                    self.increment_mib_data_sync()
 
             except KeyError as e:
                 pass            # NOP
@@ -822,36 +821,85 @@ class MibSynchronizer(object):
         if self._omci_cc_subscriptions[RxEvent.Set]:
             if self.state in ['disabled', 'uploading']:
                 self.log.error('rx-in-invalid-state', state=self.state)
+                return
             try:
                 request = msg[TX_REQUEST_KEY]
                 response = msg[RX_RESPONSE_KEY]
+                tx_omci_msg = request.fields['omci_message'].fields
+                rx_omci_msg = response.fields['omci_message'].fields
 
-                if response.fields['omci_message'].fields['success_code'] != RC.Success:
-                    # TODO: Support offline ONTs in post VOLTHA v1.3.0
-                    omci_msg = response.fields['omci_message']
-                    self.log.warn('set-response-failure',
-                                  class_id=omci_msg.fields['entity_class'],
-                                  instance_id=omci_msg.fields['entity_id'],
-                                  status=omci_msg.fields['success_code'],
-                                  status_text=self._status_to_text(omci_msg.fields['success_code']),
-                                  unsupported_attribute_mask=omci_msg.fields['unsupported_attributes_mask'],
-                                  failed_attribute_mask=omci_msg.fields['failed_attributes_mask'])
+                rx_status = rx_omci_msg['success_code']
+                class_id = rx_omci_msg['entity_class']
+                entity_id = rx_omci_msg['entity_id']
+                attributes = dict()
+
+                tx_mask = tx_omci_msg['attributes_mask']
+                rx_fail_mask = 0
+                if rx_status == RC.AttributeFailure:
+                    rx_fail_mask = rx_omci_msg['unsupported_attributes_mask'] | rx_omci_msg['failed_attributes_mask']
+
+                if rx_status == RC.Success:
+                    attributes = {k: v for k, v in tx_omci_msg['data'].items()}
+
+                elif RC.AttributeFailure and tx_mask != rx_fail_mask:
+                    # Partial success, set only those that were good
+                    entity = self._device.me_map[class_id]
+                    good_mask = tx_mask & ~rx_fail_mask
+                    good_attr_indexes = entity.attribute_indices_from_mask(good_mask)
+                    good_attr_names = {attr.field.name for index, attr in enumerate(entity.attributes)
+                                       if index in good_attr_indexes}
+
+                    attributes = {k: v for k, v in tx_omci_msg['data'].items()
+                                  if k in good_attr_names}
                 else:
-                    omci_msg = request.fields['omci_message'].fields
-                    class_id = omci_msg['entity_class']
-                    entity_id = omci_msg['entity_id']
-                    attributes = {k: v for k, v in omci_msg['data'].items()}
+                    self.log.warn('set-response-failure',
+                                  class_id=rx_omci_msg['entity_class'],
+                                  instance_id=rx_omci_msg['entity_id'],
+                                  status=rx_status,
+                                  status_text=self._status_to_text(rx_status),
+                                  unsupported_attribute_mask=rx_omci_msg['unsupported_attributes_mask'],
+                                  failed_attribute_mask=rx_omci_msg['failed_attributes_mask'])
 
-                    # Save to the database (Do not save 'sets' of the mib-data-sync however)
-                    if class_id != OntData.class_id:
-                        modified = self._database.set(self._device_id, class_id, entity_id, attributes)
-                        if modified:
-                            self.increment_mib_data_sync()
+                # Save to the database. A set of MDS in the OntData class results in
+                # an increment. However, we do not save that within the class/entity
+                # portion of the database.
+                if class_id == OntData.class_id and len(attributes) > 0:
+                    self.increment_mib_data_sync()
+
+                elif len(attributes) > 0:
+                    self._database.set(self._device_id, class_id, entity_id, attributes)
+                    self.increment_mib_data_sync()
 
             except KeyError as _e:
                 pass            # NOP
             except Exception as e:
                 self.log.exception('set', e=e)
+
+    def on_software_event(self, _topic, msg):
+        """
+        Process a Software Start, End, Activate, and Commit
+
+        :param _topic: (str) OMCI-RX topic
+        :param msg: (dict) Dictionary with 'rx-response' and 'tx-request' (if any)
+        """
+        self.log.debug('on-software-event', state=self.state)
+
+        # All events for software run this method, checking for one is good enough
+        if self._omci_cc_subscriptions[RxEvent.Start_Software_Download]:
+            if self.state in ['disabled', 'uploading']:
+                self.log.error('rx-in-invalid-state', state=self.state)
+                return
+            try:
+                # Note: all download responses we subscribe to have a 'result' field
+                response = msg[RX_RESPONSE_KEY]
+                if response.fields['omci_message'].fields['success_code'] == RC.Success:
+                    self.increment_mib_data_sync()
+
+            except KeyError as _e:
+                pass            # NOP
+            except Exception as e:
+                self.log.exception('set', e=e)
+
     def on_capabilities_event(self, _topic, msg):
         """
         Process a OMCI capabilties event
