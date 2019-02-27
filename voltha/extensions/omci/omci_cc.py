@@ -58,7 +58,12 @@ class OmciCCRxEvents(IntEnum):
     MIB_Reset = 8,
     Connectivity = 9,
     Get_ALARM_Get = 10,
-    Get_ALARM_Get_Next = 11
+    Get_ALARM_Get_Next = 11,
+    Start_Software_Download = 12,
+    Download_Section = 13,
+    End_Software_Download = 14,
+    Activate_Software = 15,
+    Commit_Software = 15,
 
 
 # abbreviations
