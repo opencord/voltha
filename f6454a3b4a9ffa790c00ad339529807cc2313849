@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "c5279dff_a423c056",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 4
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-02-28T17:23:37Z",
+      "side": 1,
+      "message": "Good point. Moved all to common Retry Timeout and Retry Interval since they all have the same values",
+      "parentUuid": "834f1669_5936a9da",
+      "revId": "f6454a3b4a9ffa790c00ad339529807cc2313849",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "829b8e8a_415241a6",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 4
@@ -30,6 +48,24 @@
       "writtenOn": "2019-02-28T00:34:03Z",
       "side": 1,
       "message": "Do you need to deactivate it? Is it better to have it on for possible further test such as IP address renewing?",
+      "revId": "f6454a3b4a9ffa790c00ad339529807cc2313849",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "238ea5fa_1e370ddb",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 4
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-02-28T17:23:37Z",
+      "side": 1,
+      "message": "I will leave out deactivate from robot test suite since as you say we may follow up with an IP renewing test eventually\nI have however left it in the python driven test where only the particular DHCP test can be run for development purposes",
+      "parentUuid": "829b8e8a_415241a6",
       "revId": "f6454a3b4a9ffa790c00ad339529807cc2313849",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
