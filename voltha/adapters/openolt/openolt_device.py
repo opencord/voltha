@@ -158,10 +158,11 @@ class OpenoltDevice(object):
                                                     self.host_and_port,
                                                     self.extra_args,
                                                     self.device_info)
-        self.flow_mgr = self.flow_mgr_class(self.adapter_agent, self.log,
-                                            self.stub, self.device_id,
+        self.flow_mgr = self.flow_mgr_class(self.log, self.stub,
+                                            self.device_id,
                                             self.data_model.logical_device_id,
-                                            self.platform, self.resource_mgr)
+                                            self.platform, self.resource_mgr,
+                                            self.data_model)
 
         self.alarm_mgr = self.alarm_mgr_class(
             self.log, self.adapter_agent, self.device_id,
@@ -548,7 +549,6 @@ class OpenoltDevice(object):
             # Rebooting to reset the state
             self.reboot()
             self.data_model.olt_delete()
-            del self.data_model
         except Exception as e:
             self.log.error('Failure to delete openolt device', error=e)
             raise e
