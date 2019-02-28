@@ -45,9 +45,9 @@ def remove_leading_line(log_dir, log_file):
         FILE.close()
 
 
-def send_command_to_voltha_cli(log_dir, log_file1, cmd1, log_file2=None, cmd2=None, log_file3=None, cmd3=None):
+def send_command_to_voltha_cli(log_dir, log_file1, cmd1, log_file2=None, cmd2=None, log_file3=None, cmd3=None, host='localhost'):
     output = open(log_dir + '/' + log_file1, 'w')
-    child = pexpect.spawn('ssh -p 30110 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no voltha@localhost')
+    child = pexpect.spawn('ssh -p 30110 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no voltha@%s' % host)
     child.expect('[pP]assword:')
     child.sendline('admin')
     child.expect('\((\\x1b\[\d*;?\d+m){1,2}voltha(\\x1b\[\d*;?\d+m){1,2}\)')
@@ -77,9 +77,9 @@ def send_command_to_voltha_cli(log_dir, log_file1, cmd1, log_file2=None, cmd2=No
     child.close()
 
 
-def send_command_to_onos_cli(log_dir, log_file, cmd):
+def send_command_to_onos_cli(log_dir, log_file, cmd, host='localhost'):
     output = open(log_dir + '/' + log_file, 'w')
-    child = pexpect.spawn('ssh -p 30115 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@localhost')
+    child = pexpect.spawn('ssh -p 30115 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@%s' % host)
     child.expect('[pP]assword:')
     child.sendline('karaf')
     child.expect('(\\x1b\[\d*;?\d+m){1,2}onos> (\\x1b\[\d*;?\d+m){1,2}')
