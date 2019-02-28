@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "834f1669_5936a9da",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 4
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2019-02-28T00:34:03Z",
+      "side": 1,
+      "message": "Can you move all default 60 and 2 into a variable in case we need to change it? The request is valid for other test cases in the wait until keyword succeeds function",
+      "revId": "f6454a3b4a9ffa790c00ad339529807cc2313849",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "829b8e8a_415241a6",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 4
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2019-02-28T00:34:03Z",
+      "side": 1,
+      "message": "Do you need to deactivate it? Is it better to have it on for possible further test such as IP address renewing?",
+      "revId": "f6454a3b4a9ffa790c00ad339529807cc2313849",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
