@@ -71,14 +71,13 @@ TRAP_TO_HOST = 'trap_to_host'
 
 class OpenOltFlowMgr(object):
 
-    def __init__(self, adapter_agent, log, stub, device_id, logical_device_id,
-                 platform, resource_mgr):
-        self.adapter_agent = adapter_agent
+    def __init__(self, log, stub, device_id, logical_device_id,
+                 platform, resource_mgr, data_model):
+        self.data_model = data_model
         self.log = log
         self.stub = stub
         self.device_id = device_id
         self.logical_device_id = logical_device_id
-        self.nni_intf_id = None
         self.platform = platform
         self.logical_flows_proxy = registry('core').get_proxy(
             '/logical_devices/{}/flows'.format(self.logical_device_id))
@@ -206,51 +205,14 @@ class OpenOltFlowMgr(object):
         self.divide_and_add_flow(intf_id, onu_id, uni_id, port_no,
                                  classifier_info, action_info, flow)
 
-    def _is_uni_port(self, port_no):
-        try:
-            port = self.adapter_agent.get_logical_port(
-                self.logical_device_id, 'uni-{}'.format(port_no))
-            if port is not None:
-                return (not port.root_port), port.device_id
-            else:
-                return False, None
-        except Exception as e:
-            self.log.error("error-retrieving-port", e=e)
-            return False, None
-
     def _clear_flow_id_from_rm(self, flow, flow_id, flow_direction):
-        uni_port_no = None
-        child_device_id = None
-        if flow_direction == UPSTREAM:
-            for field in fd.get_ofb_fields(flow):
-                if field.type == fd.IN_PORT:
-                    is_uni, child_device_id = self._is_uni_port(field.port)
-                    if is_uni:
-                        uni_port_no = field.port
-        elif flow_direction == DOWNSTREAM:
-            for field in fd.get_ofb_fields(flow):
-                if field.type == fd.METADATA:
-                    uni_port = field.table_metadata & 0xFFFFFFFF
-                    is_uni, child_device_id = self._is_uni_port(uni_port)
-                    if is_uni:
-                        uni_port_no = field.port
-
-            if uni_port_no is None:
-                for action in fd.get_actions(flow):
-                    if action.type == fd.OUTPUT:
-                        is_uni, child_device_id = \
-                            self._is_uni_port(action.output.port)
-                        if is_uni:
-                            uni_port_no = action.output.port
-
-        if child_device_id:
-            child_device = self.adapter_agent.get_device(child_device_id)
-            pon_intf = child_device.proxy_address.channel_id
-            onu_id = child_device.proxy_address.onu_id
-            uni_id = self.platform.uni_id_from_port_num(uni_port_no) \
-                if uni_port_no is not None else None
-            uni_id = self.platform.uni_id_from_port_num(uni_port_no) \
-                if uni_port_no is not None else None
+        try:
+            pon_intf, onu_id, uni_id \
+                = self.data_model._flow_extract_info(flow, flow_direction)
+        except ValueError:
+            self.log.error("failure extracting pon_intf, onu_id, uni_id info \
+                           from flow")
+        else:
             flows = self.resource_mgr.get_flow_id_info(pon_intf, onu_id,
                                                        uni_id, flow_id)
             assert (isinstance(flows, list))
@@ -268,9 +230,6 @@ class OpenOltFlowMgr(object):
                         return
 
             self.resource_mgr.free_flow_id(pon_intf, onu_id, uni_id, flow_id)
-        else:
-            self.log.error("invalid-info", uni_port_no=uni_port_no,
-                           child_device_id=child_device_id)
 
     def retry_add_flow(self, flow):
         self.log.debug("retry-add-flow")
@@ -324,23 +283,6 @@ class OpenOltFlowMgr(object):
             self.log.debug('no device flow to remove for this flow (normal '
                            'for multi table flows)', flow=flow)
 
-    def _get_ofp_port_name(self, intf_id, onu_id, uni_id):
-        parent_port_no = self.platform.intf_id_to_port_no(intf_id,
-                                                          Port.PON_OLT)
-        child_device = self.adapter_agent.get_child_device(
-            self.device_id, parent_port_no=parent_port_no, onu_id=onu_id)
-        if child_device is None:
-            self.log.error("could-not-find-child-device",
-                           parent_port_no=intf_id, onu_id=onu_id)
-            return (None, None)
-        ports = self.adapter_agent.get_ports(child_device.id,
-                                             Port.ETHERNET_UNI)
-        logical_port = self.adapter_agent.get_logical_port(
-            self.logical_device_id, ports[uni_id].label)
-        ofp_port_name = (logical_port.ofp_port.name,
-                         logical_port.ofp_port.port_no)
-        return ofp_port_name
-
     def get_tp_path(self, intf_id, ofp_port_name, techprofile_id):
         return self.tech_profile[intf_id]. \
             get_tp_path(techprofile_id,
@@ -350,9 +292,8 @@ class OpenOltFlowMgr(object):
                                      ofp_port_name):
         # Remove the TP instance associated with the ONU
         if ofp_port_name is None:
-            ofp_port_name, ofp_port_no = self._get_ofp_port_name(intf_id,
-                                                                 onu_id,
-                                                                 uni_id)
+            ofp_port_name, ofp_port_no \
+                = self.data_model._get_ofp_port_name(intf_id, onu_id, uni_id)
         tp_id = self.resource_mgr.get_tech_profile_id_for_onu(intf_id, onu_id,
                                                               uni_id)
         tp_path = self.get_tp_path(intf_id, ofp_port_name, tp_id)
@@ -401,13 +342,9 @@ class OpenOltFlowMgr(object):
                         self.add_eapol_flow(intf_id, onu_id, uni_id, port_no,
                                             flow, alloc_id, gemport_id,
                                             vlan_id=vlan_id)
-                    parent_port_no = self.platform.intf_id_to_port_no(
-                        intf_id, Port.PON_OLT)
-                    onu_device = self.adapter_agent.get_child_device(
-                        self.device_id, onu_id=onu_id,
-                        parent_port_no=parent_port_no)
-                    (ofp_port_name, ofp_port_no) = self._get_ofp_port_name(
-                        intf_id, onu_id, uni_id)
+                    (ofp_port_name, ofp_port_no) \
+                        = self.data_model._get_ofp_port_name(intf_id, onu_id,
+                                                             uni_id)
                     if ofp_port_name is None:
                         self.log.error("port-name-not-found")
                         return
@@ -417,17 +354,12 @@ class OpenOltFlowMgr(object):
 
                     self.log.debug('Load-tech-profile-request-to-brcm-handler',
                                    tp_path=tp_path)
-                    msg = {'proxy_address': onu_device.proxy_address,
-                           'uni_id': uni_id, 'event': 'download_tech_profile',
-                           'event_data': tp_path}
-
-                    # Send the event message to the ONU adapter
-                    self.adapter_agent.publish_inter_adapter_message(
-                        onu_device.id, msg)
+                    self.data_model.onu_download_tech_profile(
+                        intf_id, onu_id, uni_id, tp_path)
 
                 if classifier[ETH_TYPE] == LLDP_ETH_TYPE:
                     self.log.debug('lldp flow add')
-                    nni_intf_id = self.get_nni_intf_id()
+                    nni_intf_id = self.data_model.olt_nni_intf_id()
                     self.add_lldp_flow(flow, port_no, nni_intf_id)
 
             elif PUSH_VLAN in action:
@@ -457,9 +389,8 @@ class OpenOltFlowMgr(object):
             return alloc_id, gem_port_ids
 
         try:
-            (ofp_port_name, ofp_port_no) = self._get_ofp_port_name(intf_id,
-                                                                   onu_id,
-                                                                   uni_id)
+            (ofp_port_name, ofp_port_no) \
+                = self.data_model._get_ofp_port_name(intf_id, onu_id, uni_id)
             if ofp_port_name is None:
                 self.log.error("port-name-not-found")
                 return alloc_id, gem_port_ids
@@ -588,7 +519,8 @@ class OpenOltFlowMgr(object):
             flow = openolt_pb2.Flow(
                 access_intf_id=intf_id, onu_id=onu_id, uni_id=uni_id,
                 flow_id=flow_id, flow_type=direction, alloc_id=alloc_id,
-                network_intf_id=self.get_nni_intf_id(), gemport_id=gemport_id,
+                network_intf_id=self.data_model.olt_nni_intf_id(),
+                gemport_id=gemport_id,
                 classifier=self.mk_classifier(classifier),
                 action=self.mk_action(action), priority=logical_flow.priority,
                 port_no=port_no, cookie=logical_flow.cookie)
@@ -630,7 +562,7 @@ class OpenOltFlowMgr(object):
                 onu_id=onu_id, uni_id=uni_id, flow_id=flow_id,
                 flow_type=UPSTREAM, access_intf_id=intf_id,
                 gemport_id=gemport_id, alloc_id=alloc_id,
-                network_intf_id=self.get_nni_intf_id(),
+                network_intf_id=self.data_model.olt_nni_intf_id(),
                 priority=logical_flow.priority,
                 classifier=self.mk_classifier(classifier),
                 action=self.mk_action(action),
@@ -673,7 +605,8 @@ class OpenOltFlowMgr(object):
             upstream_flow = openolt_pb2.Flow(
                 access_intf_id=intf_id, onu_id=onu_id, uni_id=uni_id,
                 flow_id=uplink_flow_id, flow_type=UPSTREAM, alloc_id=alloc_id,
-                network_intf_id=self.get_nni_intf_id(), gemport_id=gemport_id,
+                network_intf_id=self.data_model.olt_nni_intf_id(),
+                gemport_id=gemport_id,
                 classifier=self.mk_classifier(uplink_classifier),
                 action=self.mk_action(uplink_action),
                 priority=logical_flow.priority,
@@ -729,7 +662,8 @@ class OpenOltFlowMgr(object):
                 downstream_flow = openolt_pb2.Flow(
                     access_intf_id=intf_id, onu_id=onu_id, uni_id=uni_id,
                     flow_id=downlink_flow_id, flow_type=DOWNSTREAM,
-                    alloc_id=alloc_id, network_intf_id=self.get_nni_intf_id(),
+                    alloc_id=alloc_id,
+                    network_intf_id=self.data_model.olt_nni_intf_id(),
                     gemport_id=gemport_id,
                     classifier=self.mk_classifier(downlink_classifier),
                     action=self.mk_action(downlink_action),
@@ -1138,16 +1072,3 @@ class OpenOltFlowMgr(object):
         else:
             to_hash = dumps(classifier, sort_keys=True)
         return hashlib.md5(to_hash).hexdigest()[:12]
-
-    def get_nni_intf_id(self):
-        if self.nni_intf_id is not None:
-            return self.nni_intf_id
-
-        port_list = self.adapter_agent.get_ports(self.device_id,
-                                                 Port.ETHERNET_NNI)
-        logical_port = self.adapter_agent.get_logical_port(
-            self.logical_device_id, port_list[0].label)
-        self.nni_intf_id = self.platform.intf_id_from_nni_port_num(
-            logical_port.ofp_port.port_no)
-        self.log.debug("nni-intf-d ", nni_intf_id=self.nni_intf_id)
-        return self.nni_intf_id

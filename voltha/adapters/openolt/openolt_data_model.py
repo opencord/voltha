@@ -15,6 +15,7 @@
 #
 import structlog
 import socket
+import voltha.core.flow_decomposer as fd
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
@@ -44,8 +45,7 @@ class OpenOltDataModel(object):
 
         self.adapter_agent.update_device(device)
 
-    def __del__(self):
-        pass
+        self.nni_intf_id = None
 
     def reconcile(self):
         assert self.logical_device_id is not None
@@ -115,11 +115,41 @@ class OpenOltDataModel(object):
         self.adapter_agent.update_device(self.device)
 
     def olt_oper_down(self):
-        self._disable_logical_device()
+        self.__disable_logical_device()
 
     def olt_delete(self):
         ld = self.adapter_agent.get_logical_device(self.logical_device_id)
         self.adapter_agent.delete_logical_device(ld)
+
+    def olt_port_add_update(self, intf_id, intf_type, oper):
+        if oper == "up":
+            oper_status = OperStatus.ACTIVE
+        else:
+            oper_status = OperStatus.DISCOVERED
+
+        if intf_type == "nni":
+            port_type = Port.ETHERNET_NNI
+        elif intf_type == "pon":
+            port_type = Port.PON_OLT
+
+        port_no, label = self.__add_port(intf_id, port_type, oper_status)
+
+        if intf_type == "nni":
+            self.__add_logical_port(port_no, intf_id, oper_status)
+            self.nni_intf_id = intf_id
+
+    def olt_nni_intf_id(self):
+        if self.nni_intf_id is not None:
+            return self.nni_intf_id
+
+        port_list = self.adapter_agent.get_ports(self.device.id,
+                                                 Port.ETHERNET_NNI)
+        logical_port = self.adapter_agent.get_logical_port(
+            self.logical_device_id, port_list[0].label)
+        self.nni_intf_id = self.platform.intf_id_from_nni_port_num(
+            logical_port.ofp_port.port_no)
+        self.log.debug("nni-intf-d ", nni_intf_id=self.nni_intf_id)
+        return self.nni_intf_id
 
     def onu_create(self, intf_id, onu_id, serial_number):
         onu_device = self.adapter_agent.get_child_device(
@@ -156,18 +186,18 @@ class OpenOltDataModel(object):
             self.device.id,
             serial_number=serial_number)
         try:
-            self.adapter_agent.delete_child_device(self.device_id,
+            self.adapter_agent.delete_child_device(self.device.id,
                                                    onu_device.id, onu_device)
         except Exception as e:
             self.log.error('adapter_agent error', error=e)
 
-        ofp_port_name = self._get_uni_ofp_port_name(onu_device)
+        ofp_port_name = self.__get_uni_ofp_port_name(onu_device)
         if ofp_port_name is None:
             self.log.exception("uni-ofp-port-not-found")
             return
 
         try:
-            self._delete_logical_port(onu_device)
+            self.__delete_logical_port(onu_device)
         except Exception as e:
             self.log.error('logical_port delete error', error=e)
         try:
@@ -215,7 +245,7 @@ class OpenOltDataModel(object):
             onu_device.oper_status = OperStatus.DISCOVERED
             self.adapter_agent.update_device(onu_device)
         # Set port oper state to Discovered
-        self.data_model._onu_ports_down(onu_device)
+        self.data_model.__onu_ports_down(onu_device)
 
         onu_adapter_agent.update_interface(onu_device,
                                            {'oper_state': 'down'})
@@ -258,27 +288,89 @@ class OpenOltDataModel(object):
         onu_adapter_agent.create_interface(onu_device,
                                            _OnuIndication(intf_id, onu_id))
 
-    def olt_port_add_update(self, intf_id, intf_type, oper):
-        if oper == "up":
-            oper_status = OperStatus.ACTIVE
+    def onu_download_tech_profile(self, intf_id, onu_id, uni_id, tp_path):
+        onu_device = self.adapter_agent.get_child_device(
+            self.device.id,
+            parent_port_no=self.platform.intf_id_to_port_no(intf_id,
+                                                            Port.PON_OLT),
+            onu_id=onu_id)
+        msg = {'proxy_address': onu_device.proxy_address,
+               'uni_id': uni_id, 'event': 'download_tech_profile',
+               'event_data': tp_path}
+
+        # Send the event message to the ONU adapter
+        self.adapter_agent.publish_inter_adapter_message(
+            onu_device.id, msg)
+
+    # #######################################################################
+    # Flow decomposer utility functions
+    #
+    # Flow related functions that are used by the OpenOLT flow decomposer.
+    # These are all prefixed with _ to denote that they will likely be removed
+    # once OpenOLT adapter transitions back to using core's flow decomposer.
+    # #######################################################################
+
+    def _flow_extract_info(self, flow, flow_direction):
+        uni_port_no = None
+        child_device_id = None
+        if flow_direction == "upstream":
+            for field in fd.get_ofb_fields(flow):
+                if field.type == fd.IN_PORT:
+                    is_uni, child_device_id = self.__is_uni_port(field.port)
+                    if is_uni:
+                        uni_port_no = field.port
+        elif flow_direction == "downstream":
+            for field in fd.get_ofb_fields(flow):
+                if field.type == fd.METADATA:
+                    uni_port = field.table_metadata & 0xFFFFFFFF
+                    is_uni, child_device_id = self.__is_uni_port(uni_port)
+                    if is_uni:
+                        uni_port_no = field.port
+
+            if uni_port_no is None:
+                for action in fd.get_actions(flow):
+                    if action.type == fd.OUTPUT:
+                        is_uni, child_device_id = \
+                            self.__is_uni_port(action.output.port)
+                        if is_uni:
+                            uni_port_no = action.output.port
+
+        if child_device_id:
+            child_device = self.adapter_agent.get_device(child_device_id)
+            pon_intf = child_device.proxy_address.channel_id
+            onu_id = child_device.proxy_address.onu_id
+            uni_id = self.platform.uni_id_from_port_num(uni_port_no) \
+                if uni_port_no is not None else None
         else:
-            oper_status = OperStatus.DISCOVERED
+            raise ValueError
 
-        if intf_type == "nni":
-            port_type = Port.ETHERNET_NNI
-        elif intf_type == "pon":
-            port_type = Port.PON_OLT
+        return pon_intf, onu_id, uni_id
 
-        port_no, label = self._add_port(intf_id, port_type, oper_status)
+    def _get_ofp_port_name(self, intf_id, onu_id, uni_id):
+        parent_port_no = self.platform.intf_id_to_port_no(intf_id,
+                                                          Port.PON_OLT)
+        child_device = self.adapter_agent.get_child_device(
+            self.device.id, parent_port_no=parent_port_no, onu_id=onu_id)
+        if child_device is None:
+            self.log.error("could-not-find-child-device",
+                           parent_port_no=intf_id, onu_id=onu_id)
+            return (None, None)
+        ports = self.adapter_agent.get_ports(child_device.id,
+                                             Port.ETHERNET_UNI)
+        logical_port = self.adapter_agent.get_logical_port(
+            self.logical_device_id, ports[uni_id].label)
+        ofp_port_name = (logical_port.ofp_port.name,
+                         logical_port.ofp_port.port_no)
+        return ofp_port_name
 
-        if intf_type == "nni":
-            self._add_logical_port(port_no, intf_id, oper_status)
-
-    # #################
+    # #######################################################################
     # Private functions
-    # #################
+    #
+    # These functions are prefixed with __ to denote that they are private
+    # to openolt_data_model and should not be called directly from the adapter.
+    # #######################################################################
 
-    def _disable_logical_device(self):
+    def __disable_logical_device(self):
         oper_state = OperStatus.UNKNOWN
         connect_state = ConnectStatus.UNREACHABLE
 
@@ -316,7 +408,7 @@ class OpenOltDataModel(object):
         self.device.connect_status = connect_state
         self.adapter_agent.update_device(self.device)
 
-    def _add_logical_port(self, port_no, intf_id, oper_state):
+    def __add_logical_port(self, port_no, intf_id, oper_state):
         self.log.info('adding-logical-port', port_no=port_no)
 
         label = OpenoltUtils.port_name(port_no, Port.ETHERNET_NNI)
@@ -348,7 +440,7 @@ class OpenOltDataModel(object):
         self.adapter_agent.add_logical_port(self.logical_device_id,
                                             logical_port)
 
-    def _delete_logical_port(self, child_device):
+    def __delete_logical_port(self, child_device):
         logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
             self.data_model.logical_device_id))
         for logical_port in logical_ports:
@@ -362,7 +454,7 @@ class OpenOltDataModel(object):
                     self.data_model.logical_device_id, logical_port)
                 return
 
-    def _onu_ports_down(self, onu_device):
+    def __onu_ports_down(self, onu_device):
         onu_ports = self.proxy.get('devices/{}/ports'.format(onu_device.id))
         for onu_port in onu_ports:
             self.log.debug('onu-ports-down', onu_port=onu_port)
@@ -382,7 +474,7 @@ class OpenOltDataModel(object):
                                onu_ports=onu_ports, onu_port_id=onu_port_id,
                                error=e)
 
-    def _add_port(self, intf_id, port_type, oper_status):
+    def __add_port(self, intf_id, port_type, oper_status):
         port_no = self.platform.intf_id_to_port_no(intf_id, port_type)
 
         label = OpenoltUtils.port_name(port_no, port_type, intf_id)
@@ -397,10 +489,22 @@ class OpenOltDataModel(object):
 
         return port_no, label
 
-    def _get_uni_ofp_port_name(self, child_device):
+    def __get_uni_ofp_port_name(self, child_device):
         logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
             self.data_model.logical_device_id))
         for logical_port in logical_ports:
             if logical_port.device_id == child_device.id:
                 return logical_port.ofp_port.name
         return None
+
+    def __is_uni_port(self, port_no):
+        try:
+            port = self.adapter_agent.get_logical_port(
+                self.logical_device_id, 'uni-{}'.format(port_no))
+            if port is not None:
+                return (not port.root_port), port.device_id
+            else:
+                return False, None
+        except Exception as e:
+            self.log.error("error-retrieving-port", e=e)
+            return False, None
