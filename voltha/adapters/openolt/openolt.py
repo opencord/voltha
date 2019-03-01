@@ -32,7 +32,6 @@ from voltha.registry import registry
 from voltha.adapters.openolt.openolt_flow_mgr import OpenOltFlowMgr
 from voltha.adapters.openolt.openolt_alarms import OpenOltAlarmMgr
 from voltha.adapters.openolt.openolt_statistics import OpenOltStatisticsMgr
-from voltha.adapters.openolt.openolt_bw import OpenOltBW
 from voltha.adapters.openolt.openolt_platform import OpenOltPlatform
 from voltha.adapters.openolt.openolt_resource_manager import OpenOltResourceMgr
 from voltha.adapters.openolt.openolt_data_model import OpenOltDataModel
@@ -49,7 +48,6 @@ OpenOltDefaults = {
         'flow_mgr': OpenOltFlowMgr,
         'alarm_mgr': OpenOltAlarmMgr,
         'stats_mgr': OpenOltStatisticsMgr,
-        'bw_mgr': OpenOltBW
     }
 }
 

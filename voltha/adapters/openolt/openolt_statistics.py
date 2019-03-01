@@ -26,7 +26,7 @@ from voltha.protos.device_pb2 import PmConfig, Port
 
 
 class OpenOltStatisticsMgr(object):
-    def __init__(self, openolt_device, log, platform, **kargs):
+    def __init__(self, openolt_device, log, platform, data_model, **kargs):
 
         """
         kargs are used to pass debugging flags at this time.
@@ -37,6 +37,7 @@ class OpenOltStatisticsMgr(object):
         self.device = openolt_device
         self.log = log
         self.platform = platform
+        self.data_model = data_model
         # Northbound and Southbound ports
         # added to initialize the pm_metrics
         self.northbound_ports = self.init_ports(type="nni")
@@ -60,7 +61,8 @@ class OpenOltStatisticsMgr(object):
                     'pon-ports': self.southbound_ports.values()
                 }
                 self.pm_metrics = OltPmMetrics(
-                    self.device.adapter_agent, self.device.device_id,
+                    self.device.data_model.adapter_agent,
+                    self.data_model._device_id(),
                     self.device.data_model.logical_device_id,
                     grouped=True, freq_override=False, **kwargs)
                 """
@@ -82,8 +84,8 @@ class OpenOltStatisticsMgr(object):
                      for (m, t) in self.pm_metrics.pon_pm_names}
                 pm_config = self.pm_metrics.make_proto()
                 self.log.info("initial-pm-config", pm_config=pm_config)
-                self.device.adapter_agent.update_device_pm_config(pm_config,
-                                                                  init=True)
+                self.device.data_model.adapter_agent.update_device_pm_config(
+                    pm_config, init=True)
                 # Start collecting stats from the device after a brief pause
                 reactor.callLater(10, self.pm_metrics.start_collector)
             except Exception as e:
@@ -102,7 +104,7 @@ class OpenOltStatisticsMgr(object):
         #     # ONOS update
         #     self.update_logical_port_stats(port_stats)
         # # update port object stats
-        # port = self.device.adapter_agent.get_port(self.device.device_id,
+        # port = self.device.adapter_agent.get_port(self.device_id,
         #     port_no=port_stats.intf_id)
         #
         # if port is None:
@@ -117,7 +119,7 @@ class OpenOltStatisticsMgr(object):
         # port.tx_errors = port_stats.tx_error_packets
         #
         # # Add port does an update if port exists
-        # self.device.adapter_agent.add_port(self.device.device_id, port)
+        # self.device.adapter_agent.add_port(self.device_id, port)
 
     def flow_statistics_indication(self, flow_stats):
         self.log.info('flow-stats-collected', stats=flow_stats)
@@ -125,7 +127,7 @@ class OpenOltStatisticsMgr(object):
         # FIXME: etcd problem, do not update objects for now
         # # UNTESTED : the openolt driver does not yet provide flow stats
         # self.device.adapter_agent.update_flow_stats(
-        #       self.device.data_model.logical_device_id,
+        #       self.device.logical_device_id,
         #       flow_id=flow_stats.flow_id, packet_count=flow_stats.tx_packets,
         #       byte_count=flow_stats.tx_bytes)
 
@@ -200,8 +202,9 @@ class OpenOltStatisticsMgr(object):
     def update_logical_port_stats(self, port_stats):
         try:
             label = 'nni-{}'.format(port_stats.intf_id)
-            logical_port = self.device.adapter_agent.get_logical_port(
-                self.device.data_model.logical_device_id, label)
+            logical_port \
+                = self.device.data_model.adapter_agent.get_logical_port(
+                    self.device.data_model.logical_device_id, label)
         except KeyError as e:
             self.log.warn('logical port was not found, it may not have been '
                           'created yet', exception=e)
@@ -224,7 +227,7 @@ class OpenOltStatisticsMgr(object):
 
         self.log.debug('after-stats-update', port=logical_port)
 
-        self.device.adapter_agent.update_logical_port(
+        self.device.data_model.adapter_agent.update_logical_port(
             self.device.data_model.logical_device_id, logical_port)
 
     """
@@ -415,7 +418,7 @@ class OpenOltStatisticsMgr(object):
                     'port_no': port_num,
                     'intf_id': self.platform.intf_id_to_port_no(
                         port_num, Port.ETHERNET_NNI),
-                    "device_id": self.device.device_id
+                    "device_id": self.data_model._device_id()
                 }
                 nni_port = NniPort
                 port = nni_port(**kwargs)
@@ -429,7 +432,7 @@ class OpenOltStatisticsMgr(object):
                                                                  Port.PON_OLT),
                     'pon-id':  self.platform.intf_id_to_port_no(port_num,
                                                                 Port.PON_OLT),
-                    "device_id": self.device.device_id
+                    "device_id": self.data_model._device_id()
                 }
                 pon_port = PonPort
                 port = pon_port(**kwargs)
@@ -494,7 +497,6 @@ class PonPort(object):
         assert 'pon-id' in kwargs, 'PON ID not found'
 
         self._pon_id = kwargs['pon-id']
-        self._device_id = kwargs['device_id']
         self._intf_id = kwargs['intf_id']
         self._port_no = kwargs['port_no']
         self._port_id = 0
