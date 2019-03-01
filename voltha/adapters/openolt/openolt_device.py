@@ -23,7 +23,6 @@ from scapy.layers.l2 import Ether, Dot1Q
 from transitions import Machine
 
 from voltha.protos.device_pb2 import Port
-from voltha.protos.common_pb2 import ConnectStatus
 from voltha.registry import registry
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
@@ -75,7 +74,7 @@ class OpenoltDevice(object):
 
         self.admin_state = "up"
 
-        self.adapter_agent = kwargs['adapter_agent']
+        adapter_agent = kwargs['adapter_agent']
         self.device_num = kwargs['device_num']
         device = kwargs['device']
 
@@ -86,27 +85,21 @@ class OpenoltDevice(object):
         self.flow_mgr_class = kwargs['support_classes']['flow_mgr']
         self.alarm_mgr_class = kwargs['support_classes']['alarm_mgr']
         self.stats_mgr_class = kwargs['support_classes']['stats_mgr']
-        self.bw_mgr_class = kwargs['support_classes']['bw_mgr']
 
         is_reconciliation = kwargs.get('reconciliation', False)
         self.device_id = device.id
         self.host_and_port = device.host_and_port
         self.extra_args = device.extra_args
-        self.log = structlog.get_logger(id=self.device_id,
-                                        ip=self.host_and_port)
+        self.log = structlog.get_logger(ip=self.host_and_port)
         self.proxy = registry('core').get_proxy('/')
 
         self.log.info('openolt-device-init')
 
-        if not is_reconciliation:
-            self.log.info('create data model')
-            self.data_model = self.data_model_class(device,
-                                                    self.adapter_agent,
-                                                    self.platform)
-        else:
+        self.data_model = self.data_model_class(device, adapter_agent,
+                                                self.platform)
+        if is_reconciliation:
             self.log.info('reconcile data model')
             assert device.parent_id is not None
-            assert self.data_model is not None
             self.data_model.reconcile()
 
         # Initialize the OLT state machine
@@ -123,7 +116,7 @@ class OpenoltDevice(object):
         self.channel = grpc.insecure_channel(self.host_and_port)
         self.channel_ready_future = grpc.channel_ready_future(self.channel)
 
-        self.log.info('openolt-device-created', device_id=self.device_id)
+        self.log.info('openolt-device-created')
 
     def post_init(self, event):
         self.log.debug('post_init')
@@ -164,11 +157,10 @@ class OpenoltDevice(object):
                                             self.platform, self.resource_mgr,
                                             self.data_model)
 
-        self.alarm_mgr = self.alarm_mgr_class(
-            self.log, self.adapter_agent, self.device_id,
-            self.data_model.logical_device_id, self.platform)
-        self.stats_mgr = self.stats_mgr_class(self, self.log, self.platform)
-        self.bw_mgr = self.bw_mgr_class(self.log, self.proxy)
+        self.alarm_mgr = self.alarm_mgr_class(self.log, self.platform,
+                                              self.data_model)
+        self.stats_mgr = self.stats_mgr_class(self, self.log, self.platform,
+                                              self.data_model)
 
     def do_state_up(self, event):
         self.log.debug("do_state_up")
@@ -184,7 +176,7 @@ class OpenoltDevice(object):
 
     def indications_thread(self):
         self.log.debug('starting-indications-thread')
-        self.log.debug('connecting to olt', device_id=self.device_id)
+        self.log.debug('connecting to olt')
 
         self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
 
@@ -354,16 +346,11 @@ class OpenoltDevice(object):
         self.log.debug("omci indication", intf_id=omci_indication.intf_id,
                        onu_id=omci_indication.onu_id)
 
-        onu_device = self.adapter_agent.get_child_device(
-            self.device_id, onu_id=omci_indication.onu_id,
-            parent_port_no=self.platform.intf_id_to_port_no(
-                omci_indication.intf_id, Port.PON_OLT), )
-
-        self.adapter_agent.receive_proxied_message(onu_device.proxy_address,
-                                                   omci_indication.pkt)
+        self.data_model.onu_omci_rx(omci_indication.intf_id,
+                                    omci_indication.onu_id,
+                                    omci_indication.pkt)
 
     def packet_indication(self, pkt_indication):
-
         self.log.debug("packet indication",
                        intf_type=pkt_indication.intf_type,
                        intf_id=pkt_indication.intf_id,
@@ -371,53 +358,14 @@ class OpenoltDevice(object):
                        cookie=pkt_indication.cookie,
                        gemport_id=pkt_indication.gemport_id,
                        flow_id=pkt_indication.flow_id)
-
-        if pkt_indication.intf_type == "pon":
-            if pkt_indication.port_no:
-                logical_port_num = pkt_indication.port_no
-            else:
-                # TODO Remove this else block after openolt device has been
-                # fully rolled out with cookie protobuf change
-                try:
-                    onu_id_uni_id = self.resource_mgr. \
-                        get_onu_uni_from_ponport_gemport(
-                            pkt_indication.intf_id, pkt_indication.gemport_id)
-                    onu_id = int(onu_id_uni_id[0])
-                    uni_id = int(onu_id_uni_id[1])
-                    self.log.debug("packet indication-kv", onu_id=onu_id,
-                                   uni_id=uni_id)
-                    if onu_id is None:
-                        raise Exception("onu-id-none")
-                    if uni_id is None:
-                        raise Exception("uni-id-none")
-                    logical_port_num = self.platform.mk_uni_port_num(
-                        pkt_indication.intf_id, onu_id, uni_id)
-                except Exception as e:
-                    self.log.error("no-onu-reference-for-gem",
-                                   gemport_id=pkt_indication.gemport_id, e=e)
-                    return
-
-        elif pkt_indication.intf_type == "nni":
-            logical_port_num = self.platform.intf_id_to_port_no(
-                pkt_indication.intf_id,
-                Port.ETHERNET_NNI)
-
-        pkt = Ether(pkt_indication.pkt)
-
-        self.log.debug("packet indication",
-                       logical_device_id=self.data_model.logical_device_id,
-                       logical_port_no=logical_port_num)
-
-        self.adapter_agent.send_packet_in(
-            logical_device_id=self.data_model.logical_device_id,
-            logical_port_no=logical_port_num,
-            packet=str(pkt))
+        self.data_model.onu_send_packet_in(pkt_indication.intf_type,
+                                           pkt_indication.intf_id,
+                                           pkt_indication.port_no,
+                                           pkt_indication.pkt)
 
     def packet_out(self, egress_port, msg):
         pkt = Ether(msg)
         self.log.debug('packet out', egress_port=egress_port,
-                       device_id=self.device_id,
-                       logical_device_id=self.data_model.logical_device_id,
                        packet=str(pkt).encode("HEX"))
 
         # Find port type
@@ -474,17 +422,6 @@ class OpenoltDevice(object):
                           port_type=egress_port_type)
 
     def send_proxied_message(self, proxy_address, msg):
-        onu_device = self.adapter_agent.get_child_device(
-            self.device_id, onu_id=proxy_address.onu_id,
-            parent_port_no=self.platform.intf_id_to_port_no(
-                proxy_address.channel_id, Port.PON_OLT)
-        )
-        if onu_device.connect_status != ConnectStatus.REACHABLE:
-            self.log.debug('ONU is not reachable, cannot send OMCI',
-                           serial_number=onu_device.serial_number,
-                           intf_id=onu_device.proxy_address.channel_id,
-                           onu_id=onu_device.proxy_address.onu_id)
-            return
         omci = openolt_pb2.OmciMsg(intf_id=proxy_address.channel_id,
                                    onu_id=proxy_address.onu_id, pkt=str(msg))
         self.stub.OmciMsgOut(omci)
@@ -526,8 +463,7 @@ class OpenoltDevice(object):
         self.flow_mgr.repush_all_different_flows()
 
     def disable(self):
-        self.log.debug('sending-deactivate-olt-message',
-                       device_id=self.device_id)
+        self.log.debug('sending-deactivate-olt-message')
 
         try:
             # Send grpc call
@@ -538,8 +474,7 @@ class OpenoltDevice(object):
             self.log.error('Failure to disable openolt device', error=e)
 
     def delete(self):
-        self.log.info('deleting-olt', device_id=self.device_id,
-                      logical_device_id=self.data_model.logical_device_id)
+        self.log.info('deleting-olt')
 
         # Clears up the data from the resource manager KV store
         # for the device
@@ -553,10 +488,10 @@ class OpenoltDevice(object):
             self.log.error('Failure to delete openolt device', error=e)
             raise e
         else:
-            self.log.info('successfully-deleted-olt', device_id=self.device_id)
+            self.log.info('successfully-deleted-olt')
 
     def reenable(self):
-        self.log.debug('reenabling-olt', device_id=self.device_id)
+        self.log.debug('reenabling-olt')
 
         try:
             self.stub.ReenableOlt(openolt_pb2.Empty())
@@ -568,12 +503,11 @@ class OpenoltDevice(object):
 
     def activate_onu(self, intf_id, onu_id, serial_number,
                      serial_number_str):
-        pir = self.bw_mgr.pir(serial_number_str)
         self.log.debug("activating-onu", intf_id=intf_id, onu_id=onu_id,
                        serial_number_str=serial_number_str,
-                       serial_number=serial_number, pir=pir)
+                       serial_number=serial_number)
         onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
-                              serial_number=serial_number, pir=pir)
+                              serial_number=serial_number)
         try:
             self.stub.ActivateOnu(onu)
         except grpc.RpcError as grpc_e:
@@ -592,7 +526,6 @@ class OpenoltDevice(object):
     # needs to change to use serial_number.
     def delete_child_device(self, child_device):
         self.log.debug('sending-deactivate-onu',
-                       olt_device_id=self.device_id,
                        onu_device=child_device,
                        onu_serial_number=child_device.serial_number)
 
@@ -630,7 +563,7 @@ class OpenoltDevice(object):
             self.log.exception("error-deleting-the-onu-on-olt-device", error=e)
 
     def reboot(self):
-        self.log.debug('rebooting openolt device', device_id=self.device_id)
+        self.log.debug('rebooting openolt device')
         try:
             self.stub.Reboot(openolt_pb2.Empty())
         except Exception as e:

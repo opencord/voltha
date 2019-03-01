@@ -15,6 +15,7 @@
 #
 import structlog
 import socket
+from scapy.layers.l2 import Ether
 import voltha.core.flow_decomposer as fd
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.protos.device_pb2 import Port, Device
@@ -51,6 +52,8 @@ class OpenOltDataModel(object):
         assert self.logical_device_id is not None
         self.adapter_agent.reconcile_logical_device(
             self.logical_device_id)
+        # Update device cache
+        self.device = self.get_device(self.device.id)
 
     def olt_create(self, device_info):
         if self.logical_device_id is not None:
@@ -245,7 +248,7 @@ class OpenOltDataModel(object):
             onu_device.oper_status = OperStatus.DISCOVERED
             self.adapter_agent.update_device(onu_device)
         # Set port oper state to Discovered
-        self.data_model.__onu_ports_down(onu_device)
+        self.__onu_ports_down(onu_device)
 
         onu_adapter_agent.update_interface(onu_device,
                                            {'oper_state': 'down'})
@@ -301,6 +304,32 @@ class OpenOltDataModel(object):
         # Send the event message to the ONU adapter
         self.adapter_agent.publish_inter_adapter_message(
             onu_device.id, msg)
+
+    def onu_omci_rx(self, intf_id, onu_id, pkt):
+        onu_device = self.adapter_agent.get_child_device(
+            self.device.id,
+            parent_port_no=self.platform.intf_id_to_port_no(intf_id,
+                                                            Port.PON_OLT),
+            onu_id=onu_id)
+        self.adapter_agent.receive_proxied_message(onu_device.proxy_address,
+                                                   pkt)
+
+    def onu_send_packet_in(self, intf_type, intf_id, port_no, pkt):
+        if intf_type == "pon":
+            if not port_no:
+                raise ValueError("invalid port_no")
+            logical_port_num = port_no
+        elif intf_type == "nni":
+            logical_port_num = self.platform.intf_id_to_port_no(
+                intf_id,
+                Port.ETHERNET_NNI)
+
+        ether_pkt = Ether(pkt)
+
+        self.adapter_agent.send_packet_in(
+            logical_device_id=self.logical_device_id,
+            logical_port_no=logical_port_num,
+            packet=str(ether_pkt))
 
     # #######################################################################
     # Flow decomposer utility functions
@@ -362,6 +391,35 @@ class OpenOltDataModel(object):
         ofp_port_name = (logical_port.ofp_port.name,
                          logical_port.ofp_port.port_no)
         return ofp_port_name
+
+    # #######################################################################
+    # Methods used by Alarm and Statistics Manager (TODO - re-visit)
+    # #######################################################################
+
+    def _adapter_name(self):
+        return self.adapter_agent.adapter_name
+
+    def _device_id(self):
+        return self.device.id
+
+    def _resolve_onu_id(self, onu_id, port_intf_id):
+        try:
+            onu_device = None
+            onu_device = self.adapter_agent.get_child_device(
+                self.device_id,
+                parent_port_no=self.platform.intf_id_to_port_no(
+                    port_intf_id, Port.PON_OLT),
+                onu_id=onu_id)
+        except Exception as inner:
+            self.log.exception('resolve-onu-id', errmsg=inner.message)
+
+        return onu_device
+
+    def create_alarm(self, **kwargs):
+        self.adapter_agent.create_alarm(kwargs)
+
+    def submit_alarm(self, alarm_event):
+        self.adapter_agent.submit_alarm(self.device.id, alarm_event)
 
     # #######################################################################
     # Private functions
@@ -442,7 +500,7 @@ class OpenOltDataModel(object):
 
     def __delete_logical_port(self, child_device):
         logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
-            self.data_model.logical_device_id))
+            self.logical_device_id))
         for logical_port in logical_ports:
             if logical_port.device_id == child_device.id:
                 self.log.debug('delete-logical-port',
@@ -451,7 +509,7 @@ class OpenOltDataModel(object):
                 self.flow_mgr.clear_flows_and_scheduler_for_logical_port(
                     child_device, logical_port)
                 self.adapter_agent.delete_logical_port(
-                    self.data_model.logical_device_id, logical_port)
+                    self.logical_device_id, logical_port)
                 return
 
     def __onu_ports_down(self, onu_device):
@@ -461,11 +519,11 @@ class OpenOltDataModel(object):
             onu_port_id = onu_port.label
             try:
                 onu_logical_port = self.adapter_agent.get_logical_port(
-                    logical_device_id=self.data_model.logical_device_id,
+                    logical_device_id=self.logical_device_id,
                     port_id=onu_port_id)
                 onu_logical_port.ofp_port.state = OFPPS_LINK_DOWN
                 self.adapter_agent.update_logical_port(
-                    logical_device_id=self.data_model.logical_device_id,
+                    logical_device_id=self.logical_device_id,
                     port=onu_logical_port)
                 self.log.debug('cascading-oper-state-to-port-and-logical-port')
             except KeyError as e:
@@ -491,7 +549,7 @@ class OpenOltDataModel(object):
 
     def __get_uni_ofp_port_name(self, child_device):
         logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
-            self.data_model.logical_device_id))
+            self.logical_device_id))
         for logical_port in logical_ports:
             if logical_port.device_id == child_device.id:
                 return logical_port.ofp_port.name
