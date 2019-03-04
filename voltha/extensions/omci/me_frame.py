@@ -339,6 +339,7 @@ class MEFrame(object):
                     entity_id=getattr(self, 'entity_id'),
                     year=dt.year,
                     month=dt.month,
+                    day=dt.day,
                     hour=dt.hour,
                     minute=dt.minute,
                     second=dt.second,
