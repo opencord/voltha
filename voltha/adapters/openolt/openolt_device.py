@@ -23,7 +23,6 @@ from scapy.layers.l2 import Ether, Dot1Q
 from transitions import Machine
 
 from voltha.protos.device_pb2 import Port
-from voltha.registry import registry
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
@@ -91,7 +90,6 @@ class OpenoltDevice(object):
         self.host_and_port = device.host_and_port
         self.extra_args = device.extra_args
         self.log = structlog.get_logger(ip=self.host_and_port)
-        self.proxy = registry('core').get_proxy('/')
 
         self.log.info('openolt-device-init')
 

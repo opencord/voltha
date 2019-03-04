@@ -48,12 +48,14 @@ class OpenOltDataModel(object):
 
         self.nni_intf_id = None
 
+        self.proxy = registry('core').get_proxy('/')
+
     def reconcile(self):
         assert self.logical_device_id is not None
         self.adapter_agent.reconcile_logical_device(
             self.logical_device_id)
         # Update device cache
-        self.device = self.get_device(self.device.id)
+        self.device = self.adapter_agent.get_device(self.device.id)
 
     def olt_create(self, device_info):
         if self.logical_device_id is not None:
@@ -438,7 +440,7 @@ class OpenOltDataModel(object):
                 registry('adapter_loader').get_agent(onu_device.adapter)
             onu_adapter_agent.update_interface(onu_device,
                                                {'oper_state': 'down'})
-            self.onu_ports_down(onu_device)
+            self.__onu_ports_down(onu_device)
 
         # Children devices
         self.adapter_agent.update_child_devices_state(
