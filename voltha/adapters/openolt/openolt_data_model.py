@@ -116,6 +116,7 @@ class OpenOltDataModel(object):
 
     def olt_oper_up(self):
         self.device.parent_id = self.logical_device_id
+        self.device.connect_status = ConnectStatus.REACHABLE
         self.device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(self.device)
 
