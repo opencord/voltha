@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3c2aef55_0e26fe39",
+        "filename": "voltha/adapters/openolt/openolt_data_model.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 422,
+      "author": {
+        "id": 1000405
+      },
+      "writtenOn": "2019-03-06T16:00:04Z",
+      "side": 1,
+      "message": "I think you sould add \"return\" :)",
+      "revId": "f16522636bc3b9e92f28ff6ac54d9c4c4a59acb6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
