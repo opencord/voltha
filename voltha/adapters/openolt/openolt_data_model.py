@@ -419,7 +419,9 @@ class OpenOltDataModel(object):
         return onu_device
 
     def create_alarm(self, **kwargs):
-        return self.adapter_agent.create_alarm(**kwargs)
+        return self.adapter_agent.create_alarm(
+            logical_device_id=self.logical_device_id,
+            **kwargs)
 
     def submit_alarm(self, alarm_event):
         self.adapter_agent.submit_alarm(self.device.id, alarm_event)
