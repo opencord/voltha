@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import collections
 import structlog
 import socket
 from scapy.layers.l2 import Ether
@@ -28,6 +29,13 @@ from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
 from voltha.protos.logical_device_pb2 import LogicalDevice
 from voltha.registry import registry
+
+
+# Onu info cache is hashed on both (intf_id, onu_id) and onu serial number
+OnuId = collections.namedtuple('OnuId', ['intf_id', 'onu_id'])
+OnuInfo = collections.namedtuple('OnuInfo', ['intf_id',
+                                             'onu_id',
+                                             'serial_number'])
 
 
 class OpenOltDataModel(object):
@@ -49,6 +57,9 @@ class OpenOltDataModel(object):
         self.nni_intf_id = None
 
         self.proxy = registry('core').get_proxy('/')
+
+        self._onu_ids = {}
+        self._onu_serial_numbers = {}
 
     def reconcile(self):
         assert self.logical_device_id is not None
@@ -187,6 +198,13 @@ class OpenOltDataModel(object):
             connect_status=ConnectStatus.REACHABLE
         )
 
+        # Add onu info to cache
+        onu_info = OnuInfo(intf_id=intf_id,
+                           onu_id=onu_id,
+                           serial_number=serial_number)
+        self._onu_ids[OnuId(intf_id=intf_id, onu_id=onu_id)] = onu_info
+        self._onu_serial_numbers[serial_number] = onu_info
+
     def onu_delete(self, serial_number):
         onu_device = self.adapter_agent.get_child_device(
             self.device.id,
@@ -211,15 +229,36 @@ class OpenOltDataModel(object):
         except Exception as e:
             self.log.error('port delete error', error=e)
 
-    def onu_id(self, serial_number):
-        onu_device = self.adapter_agent.get_child_device(
-            self.device.id,
-            serial_number=serial_number)
+        # Delete onu info from cache
+        onu_info = self._onu_ids[serial_number]
+        del self._onu_ids[OnuId(intf_id=onu_info.intf_id,
+                                onu_id=onu_info.onu_id)]
+        del self._onu_serial_numbers[serial_number]
 
-        if onu_device:
-            return onu_device.proxy_address.onu_id
-        else:
-            return 0  # Invalid onu id
+    def onu_id(self, serial_number):
+        """ Get onu_id from serial_number
+        Returns: onu_id
+        Raises:
+            ValueError: no onu_id found for serial_number
+        """
+        try:
+            return self._onu_serial_numbers[serial_number].onu_id
+        except KeyError:
+            raise ValueError('onu_id not found, serial_number=%s'
+                             % serial_number)
+
+    def serial_number(self, intf_id, onu_id):
+        """ Get serial_number from intf_id, onu_id
+        Returns: onu_id
+        Raises:
+            ValueError: no serial_number found for intf_id, onu_id
+        """
+        try:
+            return self._onu_ids[OnuId(intf_id=intf_id,
+                                       onu_id=onu_id)].serial_number
+        except KeyError:
+            raise ValueError('serial_number not found, intf_id=%s, onu_id=%s'
+                             % (intf_id, onu_id))
 
     def onu_oper_down(self, intf_id, onu_id):
 

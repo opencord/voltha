@@ -300,9 +300,10 @@ class OpenoltDevice(object):
                                errmsg=disc_alarm_error.message)
             # continue for now.
 
-        onu_id = self.data_model.onu_id(serial_number_str)
-
-        if onu_id == 0:
+        try:
+            onu_id = self.data_model.onu_id(serial_number_str)
+        except ValueError:
+            # FIXME - resource_mgr.get_onu_id() should raise exception
             onu_id = self.resource_mgr.get_onu_id(intf_id)
             if onu_id is None:
                 raise Exception("onu-id-unavailable")
