@@ -89,6 +89,32 @@ class OpenOltFlowMgr(object):
         self._populate_tech_profile_per_pon_port()
         self.retry_add_flow_list = []
 
+    def update_logical_flows(self, flows_to_add, flows_to_remove,
+                             device_rules_map):
+        try:
+            self.update_children_flows(device_rules_map)
+        except Exception as e:
+            self.log.error('Error updating children flows', error=e)
+
+        self.log.debug('logical flows update', flows_to_add=flows_to_add,
+                       flows_to_remove=flows_to_remove)
+
+        for flow in flows_to_add:
+
+            try:
+                self.add_flow(flow)
+            except Exception as e:
+                self.log.error('failed to add flow', flow=flow, e=e)
+
+        for flow in flows_to_remove:
+
+            try:
+                self.remove_flow(flow)
+            except Exception as e:
+                self.log.error('failed to remove flow', flow=flow, e=e)
+
+        self.repush_all_different_flows()
+
     def add_flow(self, flow):
         self.log.debug('add flow', flow=flow)
         classifier_info = dict()
@@ -458,6 +484,9 @@ class OpenOltFlowMgr(object):
         self.resource_mgr.update_gemports_ponport_to_onu_map_on_kv_store(
             gem_port_ids, intf_id, onu_id, uni_id
         )
+
+        for gemport_id in gem_port_ids:
+            self.data_model.gemport_id_add(intf_id, onu_id, gemport_id)
 
         return alloc_id, gem_port_ids
 
