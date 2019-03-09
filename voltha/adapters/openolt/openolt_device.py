@@ -74,8 +74,7 @@ class OpenoltDevice(object):
         self.admin_state = "up"
 
         adapter_agent = kwargs['adapter_agent']
-        self.device_num = kwargs['device_num']
-        device = kwargs['device']
+        self.device_id = kwargs['device_id']
 
         self.data_model_class = kwargs['support_classes']['data_model']
         self.platform_class = kwargs['support_classes']['platform']
@@ -86,18 +85,16 @@ class OpenoltDevice(object):
         self.stats_mgr_class = kwargs['support_classes']['stats_mgr']
 
         is_reconciliation = kwargs.get('reconciliation', False)
-        self.device_id = device.id
-        self.host_and_port = device.host_and_port
-        self.extra_args = device.extra_args
+        self.host_and_port = kwargs['host_and_port']
+        self.extra_args = kwargs['extra_args']
         self.log = structlog.get_logger(ip=self.host_and_port)
 
         self.log.info('openolt-device-init')
 
-        self.data_model = self.data_model_class(device, adapter_agent,
+        self.data_model = self.data_model_class(self.device_id, adapter_agent,
                                                 self.platform)
         if is_reconciliation:
             self.log.info('reconcile data model')
-            assert device.parent_id is not None
             self.data_model.reconcile()
 
         # Initialize the OLT state machine
@@ -301,7 +298,7 @@ class OpenoltDevice(object):
             # continue for now.
 
         try:
-            onu_id = self.data_model.onu_id(serial_number_str)
+            onu_id = self.data_model.onu_id(serial_number=serial_number_str)
         except ValueError:
             # FIXME - resource_mgr.get_onu_id() should raise exception
             onu_id = self.resource_mgr.get_onu_id(intf_id)
@@ -360,6 +357,7 @@ class OpenoltDevice(object):
         self.data_model.onu_send_packet_in(pkt_indication.intf_type,
                                            pkt_indication.intf_id,
                                            pkt_indication.port_no,
+                                           pkt_indication.gemport_id,
                                            pkt_indication.pkt)
 
     def packet_out(self, egress_port, msg):
@@ -437,29 +435,8 @@ class OpenoltDevice(object):
                           flows_to_remove=[f.id for f in flows_to_remove])
             return
 
-        try:
-            self.flow_mgr.update_children_flows(device_rules_map)
-        except Exception as e:
-            self.log.error('Error updating children flows', error=e)
-
-        self.log.debug('logical flows update', flows_to_add=flows_to_add,
-                       flows_to_remove=flows_to_remove)
-
-        for flow in flows_to_add:
-
-            try:
-                self.flow_mgr.add_flow(flow)
-            except Exception as e:
-                self.log.error('failed to add flow', flow=flow, e=e)
-
-        for flow in flows_to_remove:
-
-            try:
-                self.flow_mgr.remove_flow(flow)
-            except Exception as e:
-                self.log.error('failed to remove flow', flow=flow, e=e)
-
-        self.flow_mgr.repush_all_different_flows()
+        self.flow_mgr.update_logical_flows(flows_to_add, flows_to_remove,
+                                           device_rules_map)
 
     def disable(self):
         self.log.debug('sending-deactivate-olt-message')

@@ -110,8 +110,9 @@ class OpenoltAdapter(object):
         kwargs = {
             'support_classes': OpenOltDefaults['support_classes'],
             'adapter_agent': self.adapter_agent,
-            'device': device,
-            'device_num': self.num_devices + 1
+            'device_id': device.id,
+            'host_and_port': device.host_and_port,
+            'extra_args': device.extra_args
         }
         try:
             self.devices[device.id] = OpenoltDevice(**kwargs)

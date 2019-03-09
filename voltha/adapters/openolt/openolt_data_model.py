@@ -31,8 +31,9 @@ from voltha.protos.logical_device_pb2 import LogicalDevice
 from voltha.registry import registry
 
 
-# Onu info cache is hashed on both (intf_id, onu_id) and onu serial number
+# Onu info cache is hashed on onu_id, serial number, gemport_id
 OnuId = collections.namedtuple('OnuId', ['intf_id', 'onu_id'])
+GemPortId = collections.namedtuple('GemPortId', ['intf_id', 'gemport_id'])
 OnuInfo = collections.namedtuple('OnuInfo', ['intf_id',
                                              'onu_id',
                                              'serial_number'])
@@ -40,11 +41,12 @@ OnuInfo = collections.namedtuple('OnuInfo', ['intf_id',
 
 class OpenOltDataModel(object):
 
-    def __init__(self, device, adapter_agent, platform):
+    def __init__(self, device_id, adapter_agent, platform):
         self.log = structlog.get_logger()
 
-        self.device = device
         self.adapter_agent = adapter_agent
+        self.device = self.adapter_agent.get_device(device_id)
+
         self.platform = platform
         self.logical_device_id = None
 
@@ -52,14 +54,20 @@ class OpenOltDataModel(object):
         self.device.connect_status = ConnectStatus.UNREACHABLE
         self.device.oper_status = OperStatus.ACTIVATING
 
-        self.adapter_agent.update_device(device)
+        self.adapter_agent.update_device(self.device)
 
         self.nni_intf_id = None
 
         self.proxy = registry('core').get_proxy('/')
 
+        # Hash map OnuId -> OnuInfo
         self._onu_ids = {}
+
+        # Hash map onu serial_number (string) -> OnuInfo
         self._onu_serial_numbers = {}
+
+        # Hash map GemPortId -> OnuInfo
+        self._onu_gemport_ids = {}
 
     def reconcile(self):
         assert self.logical_device_id is not None
@@ -235,31 +243,6 @@ class OpenOltDataModel(object):
                                 onu_id=onu_info.onu_id)]
         del self._onu_serial_numbers[serial_number]
 
-    def onu_id(self, serial_number):
-        """ Get onu_id from serial_number
-        Returns: onu_id
-        Raises:
-            ValueError: no onu_id found for serial_number
-        """
-        try:
-            return self._onu_serial_numbers[serial_number].onu_id
-        except KeyError:
-            raise ValueError('onu_id not found, serial_number=%s'
-                             % serial_number)
-
-    def serial_number(self, intf_id, onu_id):
-        """ Get serial_number from intf_id, onu_id
-        Returns: onu_id
-        Raises:
-            ValueError: no serial_number found for intf_id, onu_id
-        """
-        try:
-            return self._onu_ids[OnuId(intf_id=intf_id,
-                                       onu_id=onu_id)].serial_number
-        except KeyError:
-            raise ValueError('serial_number not found, intf_id=%s, onu_id=%s'
-                             % (intf_id, onu_id))
-
     def onu_oper_down(self, intf_id, onu_id):
 
         onu_device = self.adapter_agent.get_child_device(
@@ -356,11 +339,17 @@ class OpenOltDataModel(object):
         self.adapter_agent.receive_proxied_message(onu_device.proxy_address,
                                                    pkt)
 
-    def onu_send_packet_in(self, intf_type, intf_id, port_no, pkt):
+    def onu_send_packet_in(self, intf_type, intf_id, port_no, gemport_id, pkt):
         if intf_type == "pon":
-            if not port_no:
-                raise ValueError("invalid port_no")
-            logical_port_num = port_no
+            if port_no:
+                logical_port_num = port_no
+            else:
+                # Get logical_port_num from cache
+                onu_id = self.onu_id(intf_id=intf_id, gemport_id=gemport_id)
+                uni_id = 0  # FIXME - multi-uni support
+                logical_port_num = self.platform.mk_uni_port_num(intf_id,
+                                                                 onu_id,
+                                                                 uni_id)
         elif intf_type == "nni":
             logical_port_num = self.platform.intf_id_to_port_no(
                 intf_id,
@@ -372,6 +361,50 @@ class OpenOltDataModel(object):
             logical_device_id=self.logical_device_id,
             logical_port_no=logical_port_num,
             packet=str(ether_pkt))
+
+    # #######################################################################
+    #
+    # Caching
+    #
+    # #######################################################################
+
+    def onu_id(self, serial_number=None, intf_id=None, gemport_id=None):
+        """ Lookup onu_id by serial_number or (intf_id, gemport_id)
+
+        Returns:
+            onu_id
+        Raises:
+            ValueError -- if no onu_id is found for serial_number
+                          or (intf_id, gemport_id)
+        """
+        try:
+            if serial_number is not None:
+                return self._onu_serial_numbers[serial_number].onu_id
+            elif intf_id is not None and gemport_id is not None:
+                gem = GemPortId(intf_id=intf_id, gemport_id=gemport_id)
+                return self._onu_gemport_ids[gem].onu_id
+        except KeyError:
+            raise ValueError('onu_id not found, serial_number=%s, \
+                             intf_id=%s, gemport_id=%s'
+                             % (serial_number, intf_id, gemport_id))
+
+    def serial_number(self, intf_id, onu_id):
+        """ Get serial_number from intf_id, onu_id
+        Returns: onu_id
+        Raises:
+            ValueError: no serial_number found for intf_id, onu_id
+        """
+        try:
+            return self._onu_ids[OnuId(intf_id=intf_id,
+                                       onu_id=onu_id)].serial_number
+        except KeyError:
+            raise ValueError('serial_number not found, intf_id=%s, onu_id=%s'
+                             % (intf_id, onu_id))
+
+    def gemport_id_add(self, intf_id, onu_id, gemport_id):
+        onu_info = self._onu_ids[OnuId(intf_id=intf_id, onu_id=onu_id)]
+        gem = GemPortId(intf_id=intf_id, gemport_id=gemport_id)
+        self._onu_gemport_ids[gem] = onu_info
 
     # #######################################################################
     # Flow decomposer utility functions
