@@ -264,7 +264,7 @@ class AlarmDbExternal(MibDbApi):
 
         except KeyError:
             if not create:
-                self.log.error('instance-proxy-does-not-exist', device_id=device_id,
+                self.log.debug('instance-proxy-does-not-exist', device_id=device_id,
                                class_id=class_id, instance_id=instance_id)
                 raise
 
