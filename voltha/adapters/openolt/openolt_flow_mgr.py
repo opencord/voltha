@@ -234,7 +234,7 @@ class OpenOltFlowMgr(object):
     def _clear_flow_id_from_rm(self, flow, flow_id, flow_direction):
         try:
             pon_intf, onu_id, uni_id \
-                = self.data_model._flow_extract_info(flow, flow_direction)
+                = self.platform.flow_extract_info(flow, flow_direction)
         except ValueError:
             self.log.error("failure extracting pon_intf, onu_id, uni_id info \
                            from flow")
@@ -318,8 +318,8 @@ class OpenOltFlowMgr(object):
                                      ofp_port_name):
         # Remove the TP instance associated with the ONU
         if ofp_port_name is None:
-            ofp_port_name, ofp_port_no \
-                = self.data_model._get_ofp_port_name(intf_id, onu_id, uni_id)
+            ofp_port_name = self.data_model.serial_number(intf_id, onu_id)
+
         tp_id = self.resource_mgr.get_tech_profile_id_for_onu(intf_id, onu_id,
                                                               uni_id)
         tp_path = self.get_tp_path(intf_id, ofp_port_name, tp_id)
@@ -368,12 +368,8 @@ class OpenOltFlowMgr(object):
                         self.add_eapol_flow(intf_id, onu_id, uni_id, port_no,
                                             flow, alloc_id, gemport_id,
                                             vlan_id=vlan_id)
-                    (ofp_port_name, ofp_port_no) \
-                        = self.data_model._get_ofp_port_name(intf_id, onu_id,
-                                                             uni_id)
-                    if ofp_port_name is None:
-                        self.log.error("port-name-not-found")
-                        return
+                    ofp_port_name = self.data_model.serial_number(intf_id,
+                                                                  onu_id)
                     tp_id = self.resource_mgr.get_tech_profile_id_for_onu(
                         intf_id, onu_id, uni_id)
                     tp_path = self.get_tp_path(intf_id, ofp_port_name, tp_id)
@@ -415,11 +411,10 @@ class OpenOltFlowMgr(object):
             return alloc_id, gem_port_ids
 
         try:
-            (ofp_port_name, ofp_port_no) \
-                = self.data_model._get_ofp_port_name(intf_id, onu_id, uni_id)
-            if ofp_port_name is None:
-                self.log.error("port-name-not-found")
-                return alloc_id, gem_port_ids
+            ofp_port_name = self.data_model.serial_number(intf_id, onu_id)
+            ofp_port_no = self.platform.mk_uni_port_num(intf_id,
+                                                        onu_id, uni_id)
+
             # FIXME: If table id is <= 63 using 64 as table id
             if table_id < DEFAULT_TECH_PROFILE_TABLE_ID:
                 table_id = DEFAULT_TECH_PROFILE_TABLE_ID
@@ -466,7 +461,7 @@ class OpenOltFlowMgr(object):
                 gem_port_ids.append(
                     tech_profile_instance.upstream_gem_port_attribute_list[i].
                     gemport_id)
-        except BaseException as e:
+        except Exception as e:
             self.log.exception(exception=e)
 
         # Update the allocated alloc_id and gem_port_id for the ONU/UNI to KV
