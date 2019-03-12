@@ -17,7 +17,6 @@ import collections
 import structlog
 import socket
 from scapy.layers.l2 import Ether
-import voltha.core.flow_decomposer as fd
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
@@ -223,11 +222,6 @@ class OpenOltDataModel(object):
         except Exception as e:
             self.log.error('adapter_agent error', error=e)
 
-        ofp_port_name = self.__get_uni_ofp_port_name(onu_device)
-        if ofp_port_name is None:
-            self.log.exception("uni-ofp-port-not-found")
-            return
-
         try:
             self.__delete_logical_port(onu_device)
         except Exception as e:
@@ -414,42 +408,6 @@ class OpenOltDataModel(object):
     # once OpenOLT adapter transitions back to using core's flow decomposer.
     # #######################################################################
 
-    def _flow_extract_info(self, flow, flow_direction):
-        uni_port_no = None
-        child_device_id = None
-        if flow_direction == "upstream":
-            for field in fd.get_ofb_fields(flow):
-                if field.type == fd.IN_PORT:
-                    is_uni, child_device_id = self.__is_uni_port(field.port)
-                    if is_uni:
-                        uni_port_no = field.port
-        elif flow_direction == "downstream":
-            for field in fd.get_ofb_fields(flow):
-                if field.type == fd.METADATA:
-                    uni_port = field.table_metadata & 0xFFFFFFFF
-                    is_uni, child_device_id = self.__is_uni_port(uni_port)
-                    if is_uni:
-                        uni_port_no = field.port
-
-            if uni_port_no is None:
-                for action in fd.get_actions(flow):
-                    if action.type == fd.OUTPUT:
-                        is_uni, child_device_id = \
-                            self.__is_uni_port(action.output.port)
-                        if is_uni:
-                            uni_port_no = action.output.port
-
-        if child_device_id:
-            child_device = self.adapter_agent.get_device(child_device_id)
-            pon_intf = child_device.proxy_address.channel_id
-            onu_id = child_device.proxy_address.onu_id
-            uni_id = self.platform.uni_id_from_port_num(uni_port_no) \
-                if uni_port_no is not None else None
-        else:
-            raise ValueError
-
-        return pon_intf, onu_id, uni_id
-
     def _get_ofp_port_name(self, intf_id, onu_id, uni_id):
         parent_port_no = self.platform.intf_id_to_port_no(intf_id,
                                                           Port.PON_OLT)
@@ -623,23 +581,3 @@ class OpenOltDataModel(object):
         self.adapter_agent.add_port(self.device.id, port)
 
         return port_no, label
-
-    def __get_uni_ofp_port_name(self, child_device):
-        logical_ports = self.proxy.get('/logical_devices/{}/ports'.format(
-            self.logical_device_id))
-        for logical_port in logical_ports:
-            if logical_port.device_id == child_device.id:
-                return logical_port.ofp_port.name
-        return None
-
-    def __is_uni_port(self, port_no):
-        try:
-            port = self.adapter_agent.get_logical_port(
-                self.logical_device_id, 'uni-{}'.format(port_no))
-            if port is not None:
-                return (not port.root_port), port.device_id
-            else:
-                return False, None
-        except Exception as e:
-            self.log.error("error-retrieving-port", e=e)
-            return False, None
