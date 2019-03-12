@@ -497,7 +497,7 @@ utest: protos test_runner
 endif
 
 COVERAGE_OPTS=--with-xcoverage --with-xunit --cover-package=voltha,common,ofagent --cover-html\
-              --cover-html-dir=tmp/cover
+              --cover-html-dir=tmp/cover --verbosity=3
 ifneq ($(VOLTHA_BUILD),docker)
 utest-with-coverage: venv protos
 	@ echo "Executing all unit tests and producing coverage results"
