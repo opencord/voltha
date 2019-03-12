@@ -27,6 +27,7 @@ import preprovisioning
 import discovery
 import authentication
 import dhcp
+import unicast
 import logging
 
 DEFAULT_LOG_DIR = '/tmp/voltha_test_results'
@@ -81,5 +82,7 @@ if __name__ == "__main__":
     authentication.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
     dhcp.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
+
+    unicast.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
     time.sleep(5)

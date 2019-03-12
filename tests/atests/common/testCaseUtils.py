@@ -168,3 +168,7 @@ def modify_radius_ip_in_json_using_sed(self, new_ip_addr):
                  % (new_ip_addr, get_dir(self, 'voltha'))
     status = commands.getstatusoutput(sedCommand)[0]
     return status
+
+
+def discover_rg_pod_name():
+    return extract_pod_name('rg-').strip()

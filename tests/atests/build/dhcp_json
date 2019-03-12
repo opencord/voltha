@@ -5,7 +5,7 @@
       "mac":"ca:fe:ca:fe:ca:fe",
       "subnet":"255.255.252.0",
       "broadcast":"10.1.11.255",
-      "router":"10.1.8.1",
+      "router":"10.1.11.1",
       "domain":"8.8.8.8",
       "ttl":"63",
       "lease":"300",

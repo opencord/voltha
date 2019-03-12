@@ -40,16 +40,13 @@ class DHCP(object):
         self.dirs['root'] = None
         self.dirs['voltha'] = None
 
-        self.__rgName = None
+        self.__rgName = testCaseUtils.discover_rg_pod_name()
         self.__fields = None
         self.__deviceId = None
         self.__portNumber = None
 
     def h_set_log_dirs(self, root_dir, voltha_dir, log_dir):
         testCaseUtils.config_dirs(self, log_dir, root_dir, voltha_dir)
-
-    def lookup_rg_pod_name(self):
-        self.__rgName = testCaseUtils.extract_pod_name('rg-').strip()
 
     def discover_authorized_users(self):
         testCaseUtils.send_command_to_onos_cli(testCaseUtils.get_dir(self, 'log'),
@@ -164,6 +161,29 @@ class DHCP(object):
 
         testCaseUtils.print_log_file(self, self.ASSIGN_DHCP_IP_FILENAME)
 
+        procPidDhclient1 = subprocess.Popen(['/usr/bin/kubectl', 'exec', '-n', 'voltha', self.__rgName, '--', 'ps', '-ef'],
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE)
+        procPidDhclient2 = subprocess.Popen(['grep', '-e', 'dhclient'], stdin=procPidDhclient1.stdout,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE)
+        procPidDhclient3 = subprocess.Popen(['awk', "{print $2}"], stdin=procPidDhclient2.stdout,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE)
+
+        procPidDhclient1.stdout.close()
+        procPidDhclient2.stdout.close()
+
+        out, err = procPidDhclient3.communicate()
+        dhclientPid = out.strip()
+        if dhclientPid:
+            procKillDhclient = subprocess.Popen(['/usr/bin/kubectl', 'exec', '-n', 'voltha', self.__rgName, '--', 'kill', dhclientPid],
+                                                stdout=subprocess.PIPE,
+                                                stderr=subprocess.PIPE)
+
+            out, err = procKillDhclient.communicate()
+            assert not err, 'Killing dhclient returned %s' % err
+
     def should_have_dhcp_assigned_ip(self):
         process_output = open('%s/%s' % (testCaseUtils.get_dir(self, 'log'), self.CHECK_ASSIGNED_IP_FILENAME), 'w')
         ifConfigCheck1 = subprocess.Popen(['/usr/bin/kubectl', 'exec', '-n', 'voltha', self.__rgName, '--', 'bash', '-c',
@@ -196,7 +216,6 @@ def run_test(root_dir, voltha_dir, log_dir):
     set_firewall_rules()
     dhcp = DHCP()
     dhcp.h_set_log_dirs(root_dir, voltha_dir, log_dir)
-    dhcp.lookup_rg_pod_name()
     dhcp.discover_authorized_users()
     dhcp.retrieve_authorized_users_device_id_and_port_number()
     dhcp.add_subscriber_access()
