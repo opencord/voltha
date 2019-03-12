@@ -234,7 +234,7 @@ class OpenOltFlowMgr(object):
     def _clear_flow_id_from_rm(self, flow, flow_id, flow_direction):
         try:
             pon_intf, onu_id, uni_id \
-                = self.data_model._flow_extract_info(flow, flow_direction)
+                = self.platform.flow_extract_info(flow, flow_direction)
         except ValueError:
             self.log.error("failure extracting pon_intf, onu_id, uni_id info \
                            from flow")
