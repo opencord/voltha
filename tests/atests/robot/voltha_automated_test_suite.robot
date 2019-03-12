@@ -21,11 +21,13 @@ Library           ../common/preprovisioning.py
 Library           ../common/discovery.py
 Library           ../common/authentication.py
 Library           ../common/dhcp.py
+Library           ../common/unicast.py
 Library           volthaMngr.VolthaMngr
 Library           preprovisioning.Preprovisioning
 Library           discovery.Discovery
 Library           authentication.Authentication
 Library           dhcp.DHCP
+Library           unicast.Unicast
 
 Suite Setup        Start Voltha      
 Suite Teardown     Stop Voltha
@@ -88,7 +90,6 @@ Radius Authentication
     ...                 It uses the wpa_supplicant app to authenticate using EAPOL.
     ...                 We then verify the generated log file confirming all the authentication steps
     A Set Log Dirs      ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
-    Discover RG Pod Name
     Discover Freeradius Pod Name
     Discover Freeradius Ip Addr
     Set Current Freeradius Ip In AAA Json
@@ -108,7 +109,6 @@ Dhcp IP Address Assignment on RG
     ...                 IP address granted to RG upon instantiating the RG pod. Finally we invoke
     ...                 'dhclient' on RG to request a DHCP IP address.
     H Set Log Dirs      ${ROOT_DIR}     ${VOLTHA_DIR}    ${LOG_DIR}
-    Lookup Rg Pod Name
     Set Firewall Rules
     Discover Authorized Users
     Retrieve Authorized Users Device Id And Port Number
@@ -120,6 +120,19 @@ Dhcp IP Address Assignment on RG
     De Assign Default Ip On Rg
     Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Assign Dhcp Ip Addr To Rg
     Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Should Have Dhcp Assigned Ip
+
+Unicast flow setup ctag/stag assignment
+    [Documentation]     Unicast ctag/stag assignment
+    ...                 We call Ping from RG to a non-existant IP address an we ignore the
+    ...                 Destination Host Unreachable message. We then invoke tcpdump on 'pon1'
+    ...                 network looking for ARP request from RG IP address. These packets should
+    ...                 be double tagged with different s and c Tags but matching tag configuration
+    ...                 in sadis entry.
+    U Set Log Dirs      ${ROOT_DIR}     ${VOLTHA_DIR}    ${LOG_DIR}
+    Execute Ping Test
+    Should Have Q In Q Vlan Tagging
+    Retrieve Stag And Ctag From Sadis Entries
+    Stag And Ctag Should Match Sadis Entry
 
 *** Keywords ***
 Start Voltha
