@@ -16,6 +16,7 @@
 
 from voltha.protos.device_pb2 import Port
 import voltha.protos.device_pb2 as dev_pb2
+import voltha.core.flow_decomposer as fd
 
 """
 Encoding of identifiers
@@ -99,6 +100,9 @@ class OpenOltPlatform(object):
     def intf_id_from_uni_port_num(self, port_num):
         return (port_num >> 11) & 0xF
 
+    def onu_id_from_uni_port_num(self, port_num):
+        return (port_num >> 4) & 0x7F
+
     def intf_id_from_pon_port_no(self, port_no):
         return port_no & 0xF
 
@@ -147,3 +151,31 @@ class OpenOltPlatform(object):
             # NNI interface
             return True
         return False
+
+    def flow_extract_info(self, flow, flow_direction):
+        uni_port_no = None
+        if flow_direction == "upstream":
+            for field in fd.get_ofb_fields(flow):
+                if field.type == fd.IN_PORT:
+                    uni_port_no = field.port
+                    break
+        elif flow_direction == "downstream":
+            for field in fd.get_ofb_fields(flow):
+                if field.type == fd.METADATA:
+                    uni_port_no = field.table_metadata & 0xFFFFFFFF
+                    break
+
+            if uni_port_no is None:
+                for action in fd.get_actions(flow):
+                    if action.type == fd.OUTPUT:
+                        uni_port_no = action.output.port
+                        break
+
+        if uni_port_no is None:
+            raise ValueError
+
+        pon_intf = self.platform.intf_id_from_uni_port_num(uni_port_no)
+        onu_id = self.platform.onu_id_from_uni_port_num(uni_port_no)
+        uni_id = self.platform.uni_id_from_port_num(uni_port_no)
+
+        return pon_intf, onu_id, uni_id
