@@ -38,16 +38,13 @@ class Authentication(object):
         self.dirs['root'] = None
         self.dirs['voltha'] = None
         
-        self.__rgName = None
+        self.__rgName = testCaseUtils.discover_rg_pod_name()
         self.__radiusName = None
         self.__radiusIp = None
         
     def a_set_log_dirs(self, root_dir, voltha_dir, log_dir):
         testCaseUtils.config_dirs(self, log_dir, root_dir, voltha_dir)
 
-    def discover_rg_pod_name(self):
-        self.__rgName = testCaseUtils.extract_pod_name('rg-').strip()
-         
     def discover_freeradius_pod_name(self):
         self.__radiusName = testCaseUtils.extract_pod_name('freeradius').strip()
         logging.info('freeradius Name = %s' % self.__radiusName)
@@ -96,7 +93,7 @@ class Authentication(object):
 
         out, err = procPidSupplicant3.communicate()
         supplicantPid = out.strip()
-        
+
         procKillSupplicant1 = subprocess.Popen(['/usr/bin/kubectl', 'exec', '-n', 'voltha', self.__rgName, '--', 'kill', supplicantPid],
                                                stdout=subprocess.PIPE,
                                                stderr=subprocess.PIPE)
@@ -149,7 +146,6 @@ class Authentication(object):
 def run_test(root_dir, voltha_dir, log_dir):
     auth = Authentication()
     auth.a_set_log_dirs(root_dir, voltha_dir, log_dir)
-    auth.discover_rg_pod_name()
     auth.discover_freeradius_pod_name()
     auth.discover_freeradius_ip_addr()
     auth.set_current_freeradius_ip_in_aaa_json()
