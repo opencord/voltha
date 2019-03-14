@@ -21,11 +21,15 @@ import time
 from twisted.internet import reactor
 from scapy.layers.l2 import Ether, Dot1Q
 from transitions import Machine
+from simplejson import dumps
+from google.protobuf.message import Message
+from google.protobuf.json_format import MessageToDict
 
 from voltha.protos.device_pb2 import Port
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
+from voltha.northbound.kafka.kafka_proxy import get_kafka_proxy
 
 
 class OpenoltDevice(object):
@@ -170,6 +174,22 @@ class OpenoltDevice(object):
         self.flow_mgr.reset_flows()
 
     def indications_thread(self):
+
+        def send_indication(msg):
+            topic = "openolt.ind"
+            try:
+                kafka_proxy = get_kafka_proxy()
+                if kafka_proxy and not kafka_proxy.is_faulty():
+                    self.log.debug('kafka-proxy-available')
+                    # convert to JSON string if msg is a protobuf msg
+                    if isinstance(msg, Message):
+                        msg = dumps(MessageToDict(msg, True, True))
+                    kafka_proxy.send_message(topic, dumps(msg))
+                else:
+                    self.log.error('kafka-proxy-unavailable')
+            except Exception, e:
+                self.log.exception('failed-sending-message', e=e)
+
         self.log.debug('starting-indications-thread')
         self.log.debug('connecting to olt')
 
@@ -224,6 +244,8 @@ class OpenoltDevice(object):
                                       admin_state=self.admin_state,
                                       indications=ind)
                         continue
+
+                send_indication(ind)
 
                 # indication handlers run in the main event loop
                 if ind.HasField('olt_ind'):

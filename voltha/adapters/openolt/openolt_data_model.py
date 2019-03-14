@@ -17,6 +17,7 @@ import collections
 import structlog
 import socket
 from scapy.layers.l2 import Ether
+
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
@@ -402,19 +403,6 @@ class OpenOltDataModel(object):
 
     def _device_id(self):
         return self.device.id
-
-    def _resolve_onu_id(self, onu_id, port_intf_id):
-        try:
-            onu_device = None
-            onu_device = self.adapter_agent.get_child_device(
-                self.device_id,
-                parent_port_no=self.platform.intf_id_to_port_no(
-                    port_intf_id, Port.PON_OLT),
-                onu_id=onu_id)
-        except Exception as inner:
-            self.log.exception('resolve-onu-id', errmsg=inner.message)
-
-        return onu_device
 
     def create_alarm(self, **kwargs):
         return self.adapter_agent.create_alarm(
