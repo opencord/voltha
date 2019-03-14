@@ -175,8 +175,7 @@ class OpenoltDevice(object):
 
     def indications_thread(self):
 
-        def send_indication(msg):
-            topic = "openolt.ind"
+        def forward_indication(topic, msg):
             try:
                 kafka_proxy = get_kafka_proxy()
                 if kafka_proxy and not kafka_proxy.is_faulty():
@@ -245,8 +244,6 @@ class OpenoltDevice(object):
                                       indications=ind)
                         continue
 
-                send_indication(ind)
-
                 # indication handlers run in the main event loop
                 if ind.HasField('olt_ind'):
                     reactor.callFromThread(self.olt_indication, ind.olt_ind)
@@ -275,6 +272,7 @@ class OpenoltDevice(object):
                 elif ind.HasField('alarm_ind'):
                     reactor.callFromThread(self.alarm_mgr.process_alarms,
                                            ind.alarm_ind)
+                    forward_indication("openolt.ind.alarm", ind)
                 else:
                     self.log.warn('unknown indication type')
 
