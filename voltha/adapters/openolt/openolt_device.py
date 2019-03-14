@@ -170,6 +170,21 @@ class OpenoltDevice(object):
         self.flow_mgr.reset_flows()
 
     def indications_thread(self):
+
+        def forward_indication(topic, msg):
+            try:
+                kafka_proxy = get_kafka_proxy()
+                if kafka_proxy and not kafka_proxy.is_faulty():
+                    self.log.debug('kafka-proxy-available')
+                    # convert to JSON string if msg is a protobuf msg
+                    if isinstance(msg, Message):
+                        msg = dumps(MessageToDict(msg, True, True))
+                    kafka_proxy.send_message(topic, dumps(msg))
+                else:
+                    self.log.error('kafka-proxy-unavailable')
+            except Exception, e:
+                self.log.exception('failed-sending-message', e=e)
+
         self.log.debug('starting-indications-thread')
         self.log.debug('connecting to olt')
 
@@ -253,6 +268,7 @@ class OpenoltDevice(object):
                 elif ind.HasField('alarm_ind'):
                     reactor.callFromThread(self.alarm_mgr.process_alarms,
                                            ind.alarm_ind)
+                    forward_indication("openolt.ind.alarm", ind)
                 else:
                     self.log.warn('unknown indication type')
 
