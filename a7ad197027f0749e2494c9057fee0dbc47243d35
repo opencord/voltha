@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "45ce9196_05ccd30b",
+        "filename": "tests/atests/common/unicast.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-03-15T18:26:26Z",
+      "side": 1,
+      "message": "I was going by the acceptance criteria which we had reviewed\nMy case is that we have chosen different values for  s/c Tags in Sadis to be able to confirm that the Tags were being applied correctly\nIf the tags had had the same value in sadis then it would have been impossible to confirm that the tags were not interchanged or that the one single tag was being applied in both cases\nHence the test to ensure that the tag values differ",
+      "parentUuid": "08346cf9_13191519",
+      "revId": "a7ad197027f0749e2494c9057fee0dbc47243d35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "88643d91_4b75d1fa",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2019-03-15T17:54:59Z",
       "side": 1,
       "message": "No need for stag and ctag differenciation (see my other comment)",
+      "revId": "a7ad197027f0749e2494c9057fee0dbc47243d35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "775f9853_b9c75b5a",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-03-15T18:26:26Z",
+      "side": 1,
+      "message": "See comment in Test Library",
+      "parentUuid": "88643d91_4b75d1fa",
       "revId": "a7ad197027f0749e2494c9057fee0dbc47243d35",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
