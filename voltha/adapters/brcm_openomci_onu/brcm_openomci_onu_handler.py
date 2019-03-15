@@ -229,6 +229,10 @@ class BrcmOpenomciOnuHandler(object):
             # Note, ONU ID and UNI intf set in add_uni_port method
             self._onu_omci_device.alarm_synchronizer.set_alarm_params(mgr=self.alarms,
                                                                       ani_ports=[self._pon])
+
+            # Start collecting stats from the device after a brief pause
+            reactor.callLater(10, self.pm_metrics.start_collector)
+
             self.enabled = True
         else:
             self.log.info('onu-already-activated')
