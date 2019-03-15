@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "10b40557_02f213a5",
+        "filename": "tests/atests/common/unicast.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-03-15T18:56:33Z",
+      "side": 1,
+      "message": "After second thought, the check for s/c Tag match with sadis is all we need. Having different Tag values in sadis and checking for a match in the packet supersedes the need to check for s/c tag inequality. \nI will remove that test",
+      "parentUuid": "45ce9196_05ccd30b",
+      "revId": "a7ad197027f0749e2494c9057fee0dbc47243d35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "88643d91_4b75d1fa",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 1
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "See comment in Test Library",
       "parentUuid": "88643d91_4b75d1fa",
+      "revId": "a7ad197027f0749e2494c9057fee0dbc47243d35",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "326a2bf8_c9474dcb",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-03-15T18:56:33Z",
+      "side": 1,
+      "message": "See new comment in Test Library",
+      "parentUuid": "775f9853_b9c75b5a",
       "revId": "a7ad197027f0749e2494c9057fee0dbc47243d35",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
