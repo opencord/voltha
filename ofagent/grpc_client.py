@@ -51,6 +51,9 @@ class GrpcClient(object):
         self.packet_in_queue = DeferredQueue()  # queue to receive PacketIn
         self.change_event_queue = DeferredQueue()  # queue change events
 
+        self.count_pkt_in = 0
+        self.count_pkt_out = 0
+
     def start(self):
         self.log.debug('starting', grpc_timeout=self.grpc_timeout)
         self.start_packet_out_stream()
@@ -76,6 +79,8 @@ class GrpcClient(object):
                     if self.stopped:
                         return
                 else:
+                    self.count_pkt_out += 1
+                    self.log.debug('counters grpc_client OUT - {}'.format(self.count_pkt_out))
                     yield packet
 
         def stream_packets_out():
@@ -101,6 +106,8 @@ class GrpcClient(object):
                     self.log.debug('enqued-packet-in',
                               packet_in=packet_in,
                               queue_len=len(self.packet_in_queue.pending))
+                    self.count_pkt_in += 1
+                    self.log.debug('counters grpc_client IN - {}'.format(self.count_pkt_in))
             except _Rendezvous, e:
                 self.log.error('grpc-exception', status=e.code())
                 if e.code() == StatusCode.UNAVAILABLE:
