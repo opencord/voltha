@@ -228,6 +228,16 @@ class OpenOltFlowMgr(object):
             = self.platform.extract_access_from_flow(
             classifier_info[IN_PORT], action_info[OUTPUT])
 
+        if classifier_info.get(ETH_TYPE, 0) == LLDP_ETH_TYPE:
+            self.log.debug('lldp downstream trap add')
+            self.add_lldp_flow(flow, port_no)
+            return
+
+        if classifier_info.get(UDP_SRC, 0) == 67 \
+                and classifier_info.get(UDP_DST, 0) == 68:
+            self.log.debug('ignore dhcp downstream trap add')
+            return
+
         self.divide_and_add_flow(intf_id, onu_id, uni_id, port_no,
                                  classifier_info, action_info, flow)
 
@@ -378,11 +388,6 @@ class OpenOltFlowMgr(object):
                                    tp_path=tp_path)
                     self.data_model.onu_download_tech_profile(
                         intf_id, onu_id, uni_id, tp_path)
-
-                if classifier[ETH_TYPE] == LLDP_ETH_TYPE:
-                    self.log.debug('lldp flow add')
-                    nni_intf_id = self.data_model.olt_nni_intf_id()
-                    self.add_lldp_flow(flow, port_no, nni_intf_id)
 
             elif PUSH_VLAN in action:
                 self.add_upstream_data_flow(intf_id, onu_id, uni_id, port_no,

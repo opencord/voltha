@@ -100,9 +100,6 @@ class OpenOltPlatform(object):
     def intf_id_from_uni_port_num(self, port_num):
         return (port_num >> 11) & 0xF
 
-    def onu_id_from_uni_port_num(self, port_num):
-        return (port_num >> 4) & 0x7F
-
     def intf_id_from_pon_port_no(self, port_no):
         return port_no & 0xF
 
@@ -175,7 +172,7 @@ class OpenOltPlatform(object):
             raise ValueError
 
         pon_intf = self.intf_id_from_uni_port_num(uni_port_no)
-        onu_id = self.onu_id_from_uni_port_num(uni_port_no)
+        onu_id = self.onu_id_from_port_num(uni_port_no)
         uni_id = self.uni_id_from_port_num(uni_port_no)
 
         return pon_intf, onu_id, uni_id
