@@ -178,4 +178,4 @@ class OpenOltPlatform(object):
         onu_id = self.onu_id_from_uni_port_num(uni_port_no)
         uni_id = self.uni_id_from_port_num(uni_port_no)
 
-        return pon_intf, onu_id, uni_id
+        return int(pon_intf), int(onu_id), int(uni_id)
