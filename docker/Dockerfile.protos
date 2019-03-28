@@ -35,6 +35,7 @@ COPY docker/config/Makefile.protos /protos/asfvolt16_olt/Makefile.protos
 WORKDIR /protos/asfvolt16_olt
 RUN make -f Makefile.protos build
 
+COPY voltha/protos/tech_profile.proto /protos/openolt/
 COPY voltha/adapters/openolt/protos/*.proto /protos/openolt/
 COPY docker/config/Makefile.protos /protos/openolt/Makefile.protos
 WORKDIR /protos/openolt
