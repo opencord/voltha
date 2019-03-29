@@ -886,14 +886,14 @@ class GalEthernetProfile(EntityClass):
 class PriorityQueueG(EntityClass):
     class_id = 277
     attributes = [
-        ECA(ShortField("managed_entity_id", None), {AA.R}),
-        ECA(ByteField("queue_configuration_option", None), {AA.R},
+        ECA(ShortField("managed_entity_id", None), {AA.R, AA.W}),
+        ECA(ByteField("queue_configuration_option", None), {AA.R, AA.W},
             range_check=lambda x: 0 <= x <= 1),
-        ECA(ShortField("maximum_queue_size", None), {AA.R}),
+        ECA(ShortField("maximum_queue_size", None), {AA.R, AA.W}),
         ECA(ShortField("allocated_queue_size", None), {AA.R, AA.W}),
         ECA(ShortField("discard_block_counter_reset_interval", None), {AA.R, AA.W}),
         ECA(ShortField("threshold_value_for_discarded_blocks", None), {AA.R, AA.W}),
-        ECA(IntField("related_port", None), {AA.R}),
+        ECA(IntField("related_port", None), {AA.R, AA.W}),
         ECA(ShortField("traffic_scheduler_pointer", 0), {AA.R, AA.W}),
         ECA(ByteField("weight", 1), {AA.R, AA.W}),
         ECA(ShortField("back_pressure_operation", 0), {AA.R, AA.W},
