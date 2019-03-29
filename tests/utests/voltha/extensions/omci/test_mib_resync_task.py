@@ -303,11 +303,11 @@ class TestOmciMibResyncTask(TestCase):
         class_id = PriorityQueueG.class_id
         inst_id = 0
         attributes_olt = {
-            'related_port': int(1234),      # IntField (R/O)
+            'related_port': int(1234),      # IntField (R/W)
             'maximum_queue_size': int(222)  # Only on OLT but read-only
         }
         attributes_onu = {
-            'related_port': int(5678)    # IntField (R/O)
+            'related_port': int(1234)    # IntField (R/W)
         }
         self.onu_db.set(_DEVICE_ID, class_id, inst_id, attributes_onu)
         self.olt_db.set(_DEVICE_ID, class_id, inst_id, attributes_olt)

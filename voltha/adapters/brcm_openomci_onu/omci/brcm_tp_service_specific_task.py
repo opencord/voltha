@@ -21,6 +21,7 @@ from voltha.extensions.omci.omci_me import *
 from voltha.extensions.omci.tasks.task import Task
 from voltha.extensions.omci.omci_defs import *
 from voltha.adapters.brcm_openomci_onu.uni_port import *
+from voltha.extensions.omci.omci_entities import *
 from voltha.adapters.brcm_openomci_onu.pon_port \
     import BRDCM_DEFAULT_VLAN, TASK_PRIORITY, DEFAULT_TPID, DEFAULT_GEM_PAYLOAD
 
@@ -177,6 +178,9 @@ class BrcmTpServiceSpecificTask(Task):
         self.log.debug('function-entry')
 
         omci_cc = self._onu_device.omci_cc
+        gem_pq_associativity = dict()
+        pq_to_related_port = dict()
+        is_related_ports_configurable = False
 
         try:
             ################################################################################
@@ -264,6 +268,8 @@ class BrcmTpServiceSpecificTask(Task):
 
                 if 'instance_id' in v:
                     related_port = v['attributes']['related_port']
+                    pq_to_related_port[k] = related_port
+
                     if v['instance_id'] & 0b1000000000000000:
                         tcont_me = (related_port & 0xffff0000) >> 16
                         if tcont_me not in self.tcont_me_to_queue_map:
@@ -304,22 +310,22 @@ class BrcmTpServiceSpecificTask(Task):
                     # 0 is highest priority and 0x0fff is lowest.
                     self.tcont_me_to_queue_map[tcont.entity_id].sort()
                     self.uni_port_to_queue_map[self._uni_port.entity_id].sort()
-                    # Get the priority queue associated with p-bit that is
-                    # mapped to the gem port.
-                    # p-bit-7 is highest priority and p-bit-0 is lowest
-                    # Gem port associated with p-bit-7 should be mapped to
-                    # highest priority queue and gem port associated with p-bit-0
-                    # should be mapped to lowest priority queue.
+                    # Get the priority queue by indexing the priority value of the gemport.
                     # The self.tcont_me_to_queue_map and self.uni_port_to_queue_map
                     # have priority queue entities ordered in descending order
                     # of priority
-                    for i, p in enumerate(gem_port.pbit_map):
-                        if p == '1':
-                            ul_prior_q_entity_id = \
-                                self.tcont_me_to_queue_map[tcont.entity_id][i]
-                            dl_prior_q_entity_id = \
-                                self.uni_port_to_queue_map[self._uni_port.entity_id][i]
-                            break
+
+                    ul_prior_q_entity_id = \
+                        self.tcont_me_to_queue_map[tcont.entity_id][gem_port.priority_q]
+                    dl_prior_q_entity_id = \
+                        self.uni_port_to_queue_map[self._uni_port.entity_id][gem_port.priority_q]
+
+                    pq_attributes = dict()
+                    pq_attributes["pq_entity_id"] = ul_prior_q_entity_id
+                    pq_attributes["weight"] = gem_port.weight
+                    pq_attributes["scheduling_policy"] = gem_port.scheduling_policy
+                    pq_attributes["priority_q"] = gem_port.priority_q
+                    gem_pq_associativity[gem_port.entity_id] = pq_attributes
 
                     assert ul_prior_q_entity_id is not None and \
                            dl_prior_q_entity_id is not None
@@ -337,6 +343,41 @@ class BrcmTpServiceSpecificTask(Task):
                     # TODO: could also be a case of multicast. Not supported for now
                     self.log.debug("skipping-downstream-gem", gem_port=gem_port)
                     pass
+
+            ################################################################################
+            # Update the PriorityQeue Attributes for the PQ Associated with Gemport
+            #
+            # Entityt ID was created prior to this call. This is a set
+            #
+            #
+
+            ont2g = self._onu_device.query_mib(Ont2G.class_id)
+            qos_config_flexibility_ie = ont2g.get(0, {}).get('attributes', {}).\
+                                        get('qos_configuration_flexibility', None)
+            self.log.debug("qos_config_flexibility",
+                            qos_config_flexibility=qos_config_flexibility_ie)
+
+            if qos_config_flexibility_ie & 0b100000:
+                is_related_ports_configurable = True
+
+            for k, v in gem_pq_associativity.items():
+                if v["scheduling_policy"] == "WRR":
+                    self.log.debug("updating-pq-weight")
+                    msg = PriorityQueueFrame(v["pq_entity_id"], weight=v["weight"])
+                    frame = msg.set()
+                    results = yield omci_cc.send(frame)
+                    self.check_status_and_state(results, 'set-priority-queues-weight')
+                elif v["scheduling_policy"] == "StrictPriority" and \
+                        is_related_ports_configurable:
+                    self.log.debug("updating-pq-priority")
+                    related_port = pq_to_related_port[v["pq_entity_id"]]
+                    related_port = related_port & 0xffff0000
+                    related_port = related_port | v['priority_q'] # Set priority
+                    msg = PriorityQueueFrame(v["pq_entity_id"], related_port=related_port)
+                    frame = msg.set()
+                    results = yield omci_cc.send(frame)
+                    self.check_status_and_state(results, 'set-priority-queues-priority')
+
 
             ################################################################################
             # Update the IEEE 802.1p Mapper Service Profile config
