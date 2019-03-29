@@ -893,7 +893,7 @@ class PriorityQueueG(EntityClass):
         ECA(ShortField("allocated_queue_size", None), {AA.R, AA.W}),
         ECA(ShortField("discard_block_counter_reset_interval", None), {AA.R, AA.W}),
         ECA(ShortField("threshold_value_for_discarded_blocks", None), {AA.R, AA.W}),
-        ECA(IntField("related_port", None), {AA.R}),
+        ECA(IntField("related_port", None), {AA.R, AA.W}),
         ECA(ShortField("traffic_scheduler_pointer", 0), {AA.R, AA.W}),
         ECA(ByteField("weight", 1), {AA.R, AA.W}),
         ECA(ShortField("back_pressure_operation", 0), {AA.R, AA.W},

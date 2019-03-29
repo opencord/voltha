@@ -18,6 +18,9 @@ OMCI Managed Entity Frame support
 """
 from voltha.extensions.omci.omci import *
 from voltha.extensions.omci.me_frame import MEFrame
+from voltha.extensions.omci.omci_entities import PriorityQueueG
+from voltha.extensions.omci.omci_entities import *
+
 
 
 class CardholderFrame(MEFrame):
@@ -937,3 +940,23 @@ class XgPonUpstreamPerformanceMonitoringHistoryDataFrame(MEFrame):
             XgPonUpstreamPerformanceMonitoringHistoryData,
             entity_id,
             MEFrame._attr_to_data(attributes))
+
+
+class PriorityQueueFrame(MEFrame):
+    def __init__(self, entity_id, related_port=None, traffic_scheduler_pointer=None, weight=None):
+
+        self.check_type(entity_id, (int, type(None)))
+        self.check_type(related_port, (int, type(None)))
+        self.check_type(traffic_scheduler_pointer, (int, type(None)))
+        self.check_type(weight, (int, type(None)))
+
+        assert entity_id is not None, "WARNING: Entity_ID not present"
+        data = dict()
+        if related_port is not None:
+            data['related_port'] = related_port
+        if traffic_scheduler_pointer is not None:
+            data['traffic_scheduler_pointer'] = traffic_scheduler_pointer
+        if weight is not None:
+            data['weight'] = weight
+
+        super(PriorityQueueFrame, self).__init__(PriorityQueueG, entity_id, data)
