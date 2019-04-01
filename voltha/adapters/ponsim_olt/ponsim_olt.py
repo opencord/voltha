@@ -856,15 +856,16 @@ class PonSimOltHandler(object):
         if egress_port != self.nni_port.port_no:
             # don't do the vlan manipulation for the NNI port, vlans are already correct
             if pkt.haslayer(Dot1Q):
-                # For QinQ-tagged packets from ONOS:
-                # - Outer header is 802.1AD
-                # - Inner header is 802.1Q
-                # - Send inner header and payload
-                payload = pkt.getlayer(Dot1Q)
-                out_pkt = (
-                    Ether(src=pkt.src, dst=pkt.dst) /
-                    payload
-                )
+                outer_shim = pkt.getlayer(Dot1Q)
+                if isinstance(outer_shim.payload, Dot1Q):
+                    # If double tag, remove the outer tag
+                    out_pkt = (
+                            Ether(src=pkt.src, dst=pkt.dst,
+                                  type=outer_shim.type) /
+                            outer_shim.payload
+                    )
+                else:
+                    out_pkt = pkt
             else:
                 # Add egress port as VLAN tag
                 out_pkt = (
