@@ -26,7 +26,7 @@ import grpc
 import json
 import copy
 import structlog
-from scapy.layers.l2 import Ether, Dot1Q
+from scapy.layers.l2 import Ether, Dot1Q, Dot1AD
 from scapy.layers.inet import IP, Raw
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
@@ -621,8 +621,13 @@ class PonSimOltHandler(object):
             outer_shim = pkt.getlayer(Dot1Q)
 
             if pkt.haslayer(IP) or outer_shim.type == EAP_ETH_TYPE:
-                cvid = outer_shim.vlan
-                logical_port = self.get_subscriber_uni_port(cvid)
+                # We don't have any context about the packet at this point.
+                # Simply assume double-tagged traffic is flowing downstream.
+                if isinstance(outer_shim.payload, Dot1Q):
+                    logical_port = int(self.nni_port.port_no)
+                else:
+                    cvid = outer_shim.vlan
+                    logical_port = self.get_subscriber_uni_port(cvid)
                 popped_frame = (
                         Ether(src=pkt.src, dst=pkt.dst, type=outer_shim.type) /
                         outer_shim.payload
@@ -856,15 +861,19 @@ class PonSimOltHandler(object):
         if egress_port != self.nni_port.port_no:
             # don't do the vlan manipulation for the NNI port, vlans are already correct
             if pkt.haslayer(Dot1Q):
-                # For QinQ-tagged packets from ONOS:
-                # - Outer header is 802.1AD
-                # - Inner header is 802.1Q
-                # - Send inner header and payload
-                payload = pkt.getlayer(Dot1Q)
-                out_pkt = (
-                    Ether(src=pkt.src, dst=pkt.dst) /
-                    payload
-                )
+                if pkt.haslayer(Dot1AD):
+                    outer_shim = pkt.getlayer(Dot1AD)
+                else:
+                    outer_shim = pkt.getlayer(Dot1Q)
+                if isinstance(outer_shim.payload, Dot1Q):
+                    # If double tag, remove the outer tag
+                    out_pkt = (
+                            Ether(src=pkt.src, dst=pkt.dst,
+                                  type=outer_shim.type) /
+                            outer_shim.payload
+                    )
+                else:
+                    out_pkt = pkt
             else:
                 # Add egress port as VLAN tag
                 out_pkt = (
