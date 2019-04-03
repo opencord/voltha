@@ -26,6 +26,7 @@ from voltha.protos.device_pb2 import Port
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
+from voltha.extensions.alarms.olt.olt_conn_lost_alarm import OltConnLostAlarm
 
 
 class OpenoltDevice(object):
@@ -159,10 +160,14 @@ class OpenoltDevice(object):
 
     def do_state_up(self, event):
         self.log.debug("do_state_up")
+        self.log.debug("olt-connection-lost-alarm-cleared")
+        OltConnLostAlarm(self.alarm_mgr.alarms, serial_number = self.device_info.device_serial_number).clear_alarm()
         self.data_model.olt_oper_up()
 
     def do_state_down(self, event):
         self.log.debug("do_state_down")
+        self.log.debug("olt-connection-lost-alarm-raised")
+        OltConnLostAlarm(self.alarm_mgr.alarms, serial_number = self.device_info.device_serial_number).raise_alarm()
         self.data_model.olt_oper_down()
 
     def post_down(self, event):
