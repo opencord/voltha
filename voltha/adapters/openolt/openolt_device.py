@@ -169,8 +169,9 @@ class OpenoltDevice(object):
             "openolt.ind.pkt",
             "openolt.ind.olt")
         self.log.debug('openolt indications thread processing')
+        # block reading kafka
         self.kafka_consumer.read(self.indications_process)
-        self.log.debug('alarm indications thread exited')
+        self.log.debug('openolt indications thread stopped')
 
     def indications_process(self, msg):
         ind = loads(msg)

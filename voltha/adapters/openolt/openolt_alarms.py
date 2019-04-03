@@ -39,7 +39,6 @@ from voltha.extensions.alarms.onu.onu_activation_fail_alarm \
 from voltha.adapters.openolt.openolt_kafka_consumer import KConsumer
 
 
-
 class OpenOltAlarmMgr(object):
     def __init__(self, log, platform, data_model):
         self.log = log
@@ -63,10 +62,12 @@ class OpenOltAlarmMgr(object):
                                errmsg=initerr.message)
             raise Exception(initerr)
 
+        '''
         self.alarms_thread_handle = threading.Thread(
             target=self.alarms_thread)
         self.alarms_thread_handle.setDaemon(True)
         self.alarms_thread_handle.start()
+        '''
 
     def process_alarms(self, alarm_ind):
         try:
