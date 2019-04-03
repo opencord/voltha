@@ -19,7 +19,7 @@ import grpc
 import threading
 from simplejson import dumps
 from twisted.internet import reactor
-from google.protobuf.json_format import MessageToDict
+from google.protobuf.json_format import MessageToJson
 from google.protobuf.message import Message
 from voltha.northbound.kafka.kafka_proxy import get_kafka_proxy
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
@@ -59,18 +59,14 @@ class OpenoltGrpc(object):
                 kafka_proxy = get_kafka_proxy()
                 if kafka_proxy and not kafka_proxy.is_faulty():
                     self.log.debug('kafka-proxy-available')
-                    self.log.debug('shad 1', topic=topic, msg=msg)
-                    # convert to JSON string if msg is a protobuf msg
-                    if isinstance(msg, Message):
-                        self.log.debug('shad 2', topic=topic, msg=msg)
-                        msg = dumps(MessageToDict(msg, True, True))
-                    self.log.debug('shad 3', topic=topic, msg=msg)
-                    kafka_proxy.send_message(topic, dumps(msg))
+                    kafka_proxy.send_message(
+                        topic,
+                        dumps(MessageToJson(msg,
+                                            preserving_proto_field_name=True)))
                 else:
                     self.log.error('kafka-proxy-unavailable')
             except Exception, e:
                 self.log.exception('failed-sending-message', e=e)
-            self.log.debug('shad 4', topic=topic, msg=msg)
 
         self.log.debug('openolt grpc connecting to olt')
 
@@ -162,7 +158,7 @@ class OpenoltGrpc(object):
                         self.device.stats_mgr.flow_statistics_indication,
                         ind.flow_stats)
                 elif ind.HasField('alarm_ind'):
-                    forward_indication("openolt.ind.alarm", ind.alarm_ind)
+                    # forward_indication("openolt.ind.alarm", ind.alarm_ind)
                     reactor.callFromThread(
                         self.device.alarm_mgr.process_alarms, ind.alarm_ind)
                 else:

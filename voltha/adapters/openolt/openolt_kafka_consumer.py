@@ -29,14 +29,13 @@ class KConsumer(object):
     def __init__(self, *topics):
         kafka_proxy = get_kafka_proxy()
         if kafka_proxy and not kafka_proxy.is_faulty():
-            log.debug('kafka-proxy-available')
             self.kafka_endpoint = kafka_proxy.kafka_endpoint
+            log.debug('kafka-proxy-available', endpoint=self.kafka_endpoint)
         else:
             self.log.error('kafka-proxy-unavailable')
 
         conf = {'bootstrap.servers': self.kafka_endpoint,
-                'group.id': "mygroup",
-                'session.timeout.ms': 60000}
+                'group.id': "mygroup"}
 
         logger = logging.getLogger('openolt-kafka-consumer')
         logger.setLevel(logging.DEBUG)
@@ -53,18 +52,19 @@ class KConsumer(object):
 
         # Subscribe to topics
         log.debug('subscribe to topics', topics=topics)
-        self._c.subscribe(list(topics))
+        self.topics = list(topics)
+        self._c.subscribe(self.topics)
 
     def read(self, callback):
         # Read messages from Kafka and hand it to to callback
         try:
             while True:
-                log.debug('polling kafka for alarms')
+                log.debug('polling kafka for messages', topics=self.topics)
                 msg = self._c.poll(timeout=1.0)
                 if msg is None:
                     continue
                 elif not msg.error():
-                    print(msg.value())
+                    log.debug('got a kafka message', topic=msg.topic())
                     callback(msg.value())
                 elif msg.error().code() == KafkaError._PARTITION_EOF:
                     pass
@@ -90,7 +90,8 @@ if __name__ == '__main__':
     """
     Usage:
         python openolt_kafka_consumer.py $(kubectl get pod -o wide \
-            | grep cord-kafka-0 | awk '{print $6}'):9092 foo voltha.heartbeat
+        | grep cord-kafka-0 | awk '{print $6}'):9092 \
+        mygroup openolt.ind.olt openolt.ind.pkt
     """
     optlist, argv = getopt.getopt(sys.argv[1:], 'T:')
     if len(argv) < 3:
@@ -102,8 +103,7 @@ if __name__ == '__main__':
     # Consumer configuration
     # See https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
     conf = {'bootstrap.servers': broker,
-            'group.id': group,
-            'session.timeout.ms': 60000}
+            'group.id': group}
 
     logger = logging.getLogger('openolt-kafka-consumer')
     logger.setLevel(logging.DEBUG)
@@ -117,11 +117,8 @@ if __name__ == '__main__':
     # c = Consumer(conf, logger=logger, debug='fetch')
     c = Consumer(conf, logger=logger)
 
-    def print_assignment(consumer, partitions):
-        print('Assignment:', partitions)
-
     # Subscribe to topics
-    c.subscribe(topics, on_assign=print_assignment)
+    c.subscribe(topics)
 
     # Read messages from Kafka, print to stdout
     try:
@@ -130,6 +127,7 @@ if __name__ == '__main__':
             if msg is None:
                 continue
             elif not msg.error():
+                print('got a kafka message, topic: {0}'.format(msg.topic()))
                 print(msg.value())
             elif msg.error().code() == KafkaError._PARTITION_EOF:
                 # print('End of partition reached {0}/{1}'
