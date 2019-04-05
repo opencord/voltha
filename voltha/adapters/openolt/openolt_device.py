@@ -17,19 +17,14 @@ import binascii
 import grpc
 import structlog
 import time
-import threading
-from twisted.internet import reactor
 from scapy.layers.l2 import Ether, Dot1Q
 from transitions import Machine
-from google.protobuf.message import Message
-from simplejson import loads
 
 from voltha.protos.device_pb2 import Port
 from voltha.adapters.openolt.protos import openolt_pb2
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
-from voltha.extensions.alarms.onu.onu_discovery_alarm import OnuDiscoveryAlarm
 from voltha.adapters.openolt.openolt_grpc import OpenoltGrpc
-from voltha.adapters.openolt.openolt_kafka_consumer import KConsumer
+from voltha.adapters.openolt.openolt_indications import OpenoltIndications
 
 
 class OpenoltDevice(object):
@@ -113,14 +108,13 @@ class OpenoltDevice(object):
 
     def do_state_init(self, event):
         self.log.debug('init')
-        self.indications_thread_handle = threading.Thread(
-            target=self.indications_thread)
-        self.indications_thread_handle.setDaemon(True)
-        self.indications_thread_handle.start()
+        self._indications = OpenoltIndications(self)
+        self._indications.start()
 
     def post_init(self, event):
         self.log.debug('post_init')
         # Initialize gRPC
+        time.sleep(10)
         self._grpc = OpenoltGrpc(self.host_and_port, self)
 
         self.log.info('openolt-device-created')
@@ -162,21 +156,6 @@ class OpenoltDevice(object):
         self.log.debug('post_down')
         self.flow_mgr.reset_flows()
 
-    def indications_thread(self):
-        self.log.debug('openolt indications thread starting')
-        self.kafka_consumer = KConsumer(
-            "openolt.ind.alarm",
-            "openolt.ind.pkt",
-            "openolt.ind.olt")
-        self.log.debug('openolt indications thread processing')
-        # block reading kafka
-        self.kafka_consumer.read(self.indications_process)
-        self.log.debug('openolt indications thread stopped')
-
-    def indications_process(self, msg):
-        ind = loads(msg)
-        self.log.debug("openolt indication", ind=ind)
-
     def olt_indication(self, olt_indication):
         if olt_indication.oper_state == "up":
             self.go_state_up()
@@ -208,15 +187,6 @@ class OpenoltDevice(object):
 
         self.log.debug("onu discovery indication", intf_id=intf_id,
                        serial_number=serial_number_str)
-
-        # Post ONU Discover alarm  20180809_0805
-        try:
-            OnuDiscoveryAlarm(self.alarm_mgr.alarms, pon_id=intf_id,
-                              serial_number=serial_number_str).raise_alarm()
-        except Exception as disc_alarm_error:
-            self.log.exception("onu-discovery-alarm-error",
-                               errmsg=disc_alarm_error.message)
-            # continue for now.
 
         try:
             onu_id = self.data_model.onu_id(serial_number=serial_number_str)

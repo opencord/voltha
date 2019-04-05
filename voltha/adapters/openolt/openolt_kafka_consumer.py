@@ -26,7 +26,7 @@ log = get_logger()
 
 
 class KConsumer(object):
-    def __init__(self, *topics):
+    def __init__(self, callback, *topics):
         kafka_proxy = get_kafka_proxy()
         if kafka_proxy and not kafka_proxy.is_faulty():
             self.kafka_endpoint = kafka_proxy.kafka_endpoint
@@ -55,7 +55,6 @@ class KConsumer(object):
         self.topics = list(topics)
         self._c.subscribe(self.topics)
 
-    def read(self, callback):
         # Read messages from Kafka and hand it to to callback
         try:
             while True:
@@ -65,7 +64,7 @@ class KConsumer(object):
                     continue
                 elif not msg.error():
                     log.debug('got a kafka message', topic=msg.topic())
-                    callback(msg.value())
+                    callback(msg.topic(), msg.value())
                 elif msg.error().code() == KafkaError._PARTITION_EOF:
                     pass
                 else:
