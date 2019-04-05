@@ -17,10 +17,10 @@
 import structlog
 import grpc
 import threading
+import time
 from simplejson import dumps
 from twisted.internet import reactor
 from google.protobuf.json_format import MessageToJson
-from google.protobuf.message import Message
 from voltha.northbound.kafka.kafka_proxy import get_kafka_proxy
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 
@@ -61,8 +61,9 @@ class OpenoltGrpc(object):
                     self.log.debug('kafka-proxy-available')
                     kafka_proxy.send_message(
                         topic,
-                        dumps(MessageToJson(msg,
-                                            preserving_proto_field_name=True)))
+                        dumps(MessageToJson(
+                            msg,
+                            including_default_value_fields=True)))
                 else:
                     self.log.error('kafka-proxy-unavailable')
             except Exception, e:
@@ -128,27 +129,20 @@ class OpenoltGrpc(object):
                 # indication handlers run in the main event loop
                 if ind.HasField('olt_ind'):
                     forward_indication("openolt.ind.olt", ind.olt_ind)
-                    reactor.callFromThread(
-                        self.device.olt_indication, ind.olt_ind)
                 elif ind.HasField('intf_ind'):
-                    reactor.callFromThread(
-                        self.device.intf_indication, ind.intf_ind)
+                    forward_indication("openolt.ind.intf", ind.intf_ind)
                 elif ind.HasField('intf_oper_ind'):
-                    reactor.callFromThread(
-                        self.device.intf_oper_indication, ind.intf_oper_ind)
+                    forward_indication("openolt.ind.intfoper",
+                                       ind.intf_oper_ind)
                 elif ind.HasField('onu_disc_ind'):
-                    reactor.callFromThread(
-                        self.device.onu_discovery_indication, ind.onu_disc_ind)
+                    forward_indication("openolt.ind.onudisc", ind.onu_disc_ind)
                 elif ind.HasField('onu_ind'):
-                    reactor.callFromThread(
-                        self.device.onu_indication, ind.onu_ind)
+                    forward_indication("openolt.ind.onu", ind.onu_ind)
                 elif ind.HasField('omci_ind'):
                     reactor.callFromThread(
                         self.device.omci_indication, ind.omci_ind)
                 elif ind.HasField('pkt_ind'):
                     forward_indication("openolt.ind.pkt", ind.pkt_ind)
-                    reactor.callFromThread(
-                        self.device.packet_indication, ind.pkt_ind)
                 elif ind.HasField('port_stats'):
                     reactor.callFromThread(
                         self.device.stats_mgr.port_statistics_indication,
