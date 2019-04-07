@@ -126,34 +126,4 @@ class OpenoltGrpc(object):
                                       indications=ind)
                         continue
 
-                # indication handlers run in the main event loop
-                if ind.HasField('olt_ind'):
-                    forward_indication("openolt.ind.olt", ind.olt_ind)
-                elif ind.HasField('intf_ind'):
-                    forward_indication("openolt.ind.intf", ind.intf_ind)
-                elif ind.HasField('intf_oper_ind'):
-                    forward_indication("openolt.ind.intfoper",
-                                       ind.intf_oper_ind)
-                elif ind.HasField('onu_disc_ind'):
-                    forward_indication("openolt.ind.onudisc", ind.onu_disc_ind)
-                elif ind.HasField('onu_ind'):
-                    forward_indication("openolt.ind.onu", ind.onu_ind)
-                elif ind.HasField('omci_ind'):
-                    reactor.callFromThread(
-                        self.device.omci_indication, ind.omci_ind)
-                elif ind.HasField('pkt_ind'):
-                    forward_indication("openolt.ind.pkt", ind.pkt_ind)
-                elif ind.HasField('port_stats'):
-                    reactor.callFromThread(
-                        self.device.stats_mgr.port_statistics_indication,
-                        ind.port_stats)
-                elif ind.HasField('flow_stats'):
-                    reactor.callFromThread(
-                        self.device.stats_mgr.flow_statistics_indication,
-                        ind.flow_stats)
-                elif ind.HasField('alarm_ind'):
-                    # forward_indication("openolt.ind.alarm", ind.alarm_ind)
-                    reactor.callFromThread(
-                        self.device.alarm_mgr.process_alarms, ind.alarm_ind)
-                else:
-                    self.log.warn('unknown indication type')
+                forward_indication("openolt.ind", ind)
