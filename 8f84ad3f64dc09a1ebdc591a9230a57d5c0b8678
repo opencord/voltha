@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ee2f8244_c071d58b",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 620,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2019-04-08T21:48:37Z",
+      "side": 1,
+      "message": "This conditional doesn\u0027t check for double tags before removing one tag. In the SiaB use case this likely doesn\u0027t matter.",
+      "revId": "8f84ad3f64dc09a1ebdc591a9230a57d5c0b8678",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
