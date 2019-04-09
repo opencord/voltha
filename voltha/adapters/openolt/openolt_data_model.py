@@ -16,7 +16,7 @@
 import collections
 import structlog
 import socket
-from scapy.layers.l2 import Ether
+from structlog import get_logger
 
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.protos.device_pb2 import Port, Device
@@ -30,6 +30,7 @@ from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
 from voltha.protos.logical_device_pb2 import LogicalDevice
 from voltha.registry import registry
 
+log = get_logger()
 
 # Onu info cache is hashed on onu_id, serial number, gemport_id
 OnuId = collections.namedtuple('OnuId', ['intf_id', 'onu_id'])
@@ -327,7 +328,7 @@ class OpenOltDataModel(object):
         self.adapter_agent.receive_proxied_message(onu_device.proxy_address,
                                                    pkt)
 
-    def onu_send_packet_in(self, intf_type, intf_id, port_no, gemport_id, pkt):
+    def logical_port_num(self, intf_type, intf_id, port_no, gemport_id):
         if intf_type == "pon":
             if port_no:
                 logical_port_num = port_no
@@ -342,13 +343,10 @@ class OpenOltDataModel(object):
             logical_port_num = self.platform.intf_id_to_port_no(
                 intf_id,
                 Port.ETHERNET_NNI)
+        else:
+            raise ValueError('invalid intf_type=%s' % intf_type)
 
-        ether_pkt = Ether(pkt)
-
-        self.adapter_agent.send_packet_in(
-            logical_device_id=self.logical_device_id,
-            logical_port_no=logical_port_num,
-            packet=str(ether_pkt))
+        return logical_port_num
 
     # #######################################################################
     #
