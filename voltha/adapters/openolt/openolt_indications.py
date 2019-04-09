@@ -19,6 +19,8 @@ from google.protobuf.json_format import Parse
 from simplejson import loads
 from twisted.internet import reactor
 import structlog
+from scapy.layers.l2 import Ether, Packet
+from common.frameio.frameio import hexify
 
 from voltha.adapters.openolt.protos import openolt_pb2
 from voltha.adapters.openolt.openolt_kafka_consumer import KConsumer
@@ -65,7 +67,7 @@ class OpenoltIndications(object):
         elif ind.HasField('omci_ind'):
             reactor.callFromThread(self.device.omci_indication, ind.omci_ind)
         elif ind.HasField('pkt_ind'):
-            reactor.callFromThread(self.device.packet_indication, ind.pkt_ind)
+            self.send_packet_in(ind.pkt_ind)
         elif ind.HasField('port_stats'):
             reactor.callFromThread(
                 self.device.stats_mgr.port_statistics_indication,
@@ -79,3 +81,40 @@ class OpenoltIndications(object):
                 self.device.alarm_mgr.process_alarms, ind.alarm_ind)
         else:
             self.log.warn('unknown indication type')
+
+    def send_packet_in(self, pkt_indication):
+        self.log.debug("packet indication",
+                       intf_type=pkt_indication.intf_type,
+                       intf_id=pkt_indication.intf_id,
+                       port_no=pkt_indication.port_no,
+                       cookie=pkt_indication.cookie,
+                       gemport_id=pkt_indication.gemport_id,
+                       flow_id=pkt_indication.flow_id)
+        try:
+            logical_port_num = self.device.data_model.logical_port_num(
+                pkt_indication.intf_type,
+                pkt_indication.intf_id,
+                pkt_indication.port_no,
+                pkt_indication.gemport_id)
+        except ValueError:
+            self.log.error('No logical port found',
+                           intf_type=pkt_indication.intf_type,
+                           intf_id=pkt_indication.intf_id,
+                           port_no=pkt_indication.port_no,
+                           gemport_id=pkt_indication.gemport_id)
+            return
+
+        ether_pkt = Ether(pkt_indication.pkt)
+
+        if isinstance(ether_pkt, Packet):
+            ether_pkt = str(ether_pkt)
+
+        logical_device_id = self.device.data_model.logical_device_id
+        topic = 'packet-in:' + logical_device_id
+
+        self.log.debug('send-packet-in', logical_device_id=logical_device_id,
+                       logical_port_num=logical_port_num,
+                       packet=hexify(ether_pkt))
+
+        self.device.data_model.adapter_agent.event_bus.publish(
+            topic, (logical_port_num, str(ether_pkt)))

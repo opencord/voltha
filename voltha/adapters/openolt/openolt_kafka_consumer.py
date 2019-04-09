@@ -32,7 +32,7 @@ class KConsumer(object):
             self.kafka_endpoint = kafka_proxy.kafka_endpoint
             log.debug('kafka-proxy-available', endpoint=self.kafka_endpoint)
         else:
-            self.log.error('kafka-proxy-unavailable')
+            log.error('kafka-proxy-unavailable')
 
         conf = {'bootstrap.servers': self.kafka_endpoint,
                 'group.id': "mygroup"}

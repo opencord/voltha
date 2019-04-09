@@ -25,6 +25,7 @@ from voltha.adapters.openolt.protos import openolt_pb2
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.adapters.openolt.openolt_grpc import OpenoltGrpc
 from voltha.adapters.openolt.openolt_indications import OpenoltIndications
+from voltha.adapters.openolt.openolt_kafka_admin import KAdmin
 
 
 class OpenoltDevice(object):
@@ -103,6 +104,8 @@ class OpenoltDevice(object):
 
         self.device_info = None
 
+        self._kadmin = KAdmin()
+        self._kadmin.delete_topics(['openolt.ind'])
         self._grpc = None
         self.go_state_init()
 
