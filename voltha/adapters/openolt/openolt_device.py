@@ -25,6 +25,7 @@ from voltha.adapters.openolt.protos import openolt_pb2
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.adapters.openolt.openolt_grpc import OpenoltGrpc
 from voltha.adapters.openolt.openolt_indications import OpenoltIndications
+from voltha.adapters.openolt.openolt_packet import OpenoltPacket
 from voltha.adapters.openolt.openolt_kafka_admin import KAdmin
 
 
@@ -111,6 +112,8 @@ class OpenoltDevice(object):
 
     def do_state_init(self, event):
         self.log.debug('init')
+        self._packet = OpenoltPacket(self)
+        self._packet.start()
         self._indications = OpenoltIndications(self)
         self._indications.start()
 
