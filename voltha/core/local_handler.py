@@ -41,6 +41,7 @@ from voltha.protos.omci_mib_db_pb2 import MibDeviceData
 from voltha.protos.omci_alarm_db_pb2 import AlarmDeviceData
 from requests.api import request
 from common.utils.asleep import asleep
+from voltha.northbound.kafka.kafka_proxy import kafka_send_pb
 
 log = structlog.get_logger()
 
@@ -1116,8 +1117,17 @@ class LocalHandler(VolthaLocalServiceServicer):
             agent = self.core.get_logical_device_agent(packet_out.id)
             agent.packet_out(packet_out.packet_out)
 
-        for request in request_iterator:
-            forward_packet_out(packet_out=request)
+        for req in request_iterator:
+            device_agent = self.core.get_logical_device_agent(req.id)
+            adapter_name = device_agent.device_adapter_agent.name
+
+            if adapter_name == 'openolt':
+                log.debug('fast path pkt-out to kafka')
+                # topic = 'openolt.pktout:{}'.format(req.id)
+                topic = 'voltha.pktout'
+                kafka_send_pb(topic, req)
+            else:
+                forward_packet_out(packet_out=req)
 
         log.debug('stop-stream-packets-out')
 

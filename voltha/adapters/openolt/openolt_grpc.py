@@ -20,8 +20,7 @@ import threading
 import time
 from simplejson import dumps
 from twisted.internet import reactor
-from google.protobuf.json_format import MessageToJson
-from voltha.northbound.kafka.kafka_proxy import get_kafka_proxy
+from voltha.northbound.kafka.kafka_proxy import kafka_send_pb
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 
 
@@ -52,22 +51,6 @@ class OpenoltGrpc(object):
             self.log.debug('openolt grpc started')
 
     def indications_thread(self):
-
-        def forward_indication(topic, msg):
-            try:
-                self.log.debug('forward indication', topic=topic, msg=msg)
-                kafka_proxy = get_kafka_proxy()
-                if kafka_proxy and not kafka_proxy.is_faulty():
-                    self.log.debug('kafka-proxy-available')
-                    kafka_proxy.send_message(
-                        topic,
-                        dumps(MessageToJson(
-                            msg,
-                            including_default_value_fields=True)))
-                else:
-                    self.log.error('kafka-proxy-unavailable')
-            except Exception, e:
-                self.log.exception('failed-sending-message', e=e)
 
         self.log.debug('openolt grpc connecting to olt')
 
@@ -126,4 +109,4 @@ class OpenoltGrpc(object):
                                       indications=ind)
                         continue
 
-                forward_indication("openolt.ind", ind)
+                kafka_send_pb("openolt.ind", ind)

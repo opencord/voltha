@@ -15,18 +15,20 @@
 #
 
 
-from confluent_kafka import Producer as _kafkaProducer
+import threading
 from structlog import get_logger
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.threads import deferToThread
 from zope.interface import implementer
+from google.protobuf.json_format import MessageToJson
+from simplejson import dumps
+from confluent_kafka import Producer as _kafkaProducer
+from confluent_kafka import Consumer, KafkaError
 
 from common.utils.consulhelpers import get_endpoint_from_consul
 from voltha.northbound.kafka.event_bus_publisher import EventBusPublisher
 from voltha.registry import IComponent
-from confluent_kafka import Consumer, KafkaError
-import threading
 
 log = get_logger()
 
@@ -336,3 +338,19 @@ class KafkaProxy(object):
 # Common method to get the singleton instance of the kafka proxy class
 def get_kafka_proxy():
     return KafkaProxy._kafka_instance
+
+def kafka_send_pb(topic, msg):
+    try:
+        log.debug('send protobuf to kafka', topic=topic, msg=msg)
+        kafka_proxy = get_kafka_proxy()
+        if kafka_proxy and not kafka_proxy.is_faulty():
+            log.debug('kafka-proxy-available')
+            kafka_proxy.send_message(
+                topic,
+                dumps(MessageToJson(
+                    msg,
+                    including_default_value_fields=True)))
+        else:
+            log.error('kafka-proxy-unavailable')
+    except Exception, e:
+        log.exception('failed-sending-protobuf', e=e)
