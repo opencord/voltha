@@ -218,7 +218,7 @@ class Main(object):
 
         # May want to specify the gRPC timeout as an arg (in future)
         # Right now, set a default value
-        self.grpc_timeout = 10
+        self.grpc_timeout = 120
 
         verbosity_adjust = (args.verbose or 0) - (args.quiet or 0)
         self.log = setup_logging(self.logconfig,
