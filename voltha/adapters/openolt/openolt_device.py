@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 import binascii
-import grpc
 import structlog
 import time
 from scapy.layers.l2 import Ether, Dot1Q
@@ -107,7 +106,7 @@ class OpenoltDevice(object):
         self.device_info = None
 
         self._kadmin = KAdmin()
-        self._kadmin.delete_topics(['openolt.ind'])
+        self._kadmin.delete_topics(['openolt.ind', 'voltha.pktout'])
         self._grpc = None
         self.go_state_init()
 
