@@ -262,6 +262,7 @@ class Main(object):
 
         reactor.addSystemEventTrigger('before', 'shutdown',
                                       self.shutdown_components)
+        reactor.suggestThreadPoolSize(30)
         reactor.run()
 
 

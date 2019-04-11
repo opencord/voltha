@@ -505,6 +505,7 @@ class Main(object):
             lambda: self.log.info('twisted-reactor-started'))
         reactor.addSystemEventTrigger('before', 'shutdown',
                                       self.shutdown_components)
+        reactor.suggestThreadPoolSize(30)
         reactor.run()
 
     def start_heartbeat(self):
