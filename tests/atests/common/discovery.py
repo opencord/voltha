@@ -38,6 +38,7 @@ class Discovery(object):
         self.__logicalDeviceType = None
         self.__oltType = None
         self.__onuType = None
+        self.__onuCount = None
         self.__fields = []
         self.__logicalDeviceId = None
         self.__oltDeviceId = None
@@ -47,17 +48,21 @@ class Discovery(object):
     def d_set_log_dirs(self, log_dir):
         testCaseUtils.config_dirs(self, log_dir)
 
-    def d_configure(self, logical_device_type, olt_type, onu_type):
+    def d_configure(self, logical_device_type, olt_type, onu_type, onu_count):
         self.__logicalDeviceType = logical_device_type
         self.__oltType = olt_type
         self.__onuType = onu_type
+        self.__onuCount = onu_count
 
     def logical_device(self):
         logging.info('Logical Device Info')
-        statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__logicalDeviceType, 'voltha_devices_after_enable.log')
-        assert statusLines, 'No Logical Devices listed under devices'
+        testCaseUtils.send_command_to_voltha_cli(testCaseUtils.get_dir(self, 'log'),
+                                                 'voltha_logical_devices.log', 'logical_devices')
+        testCaseUtils.print_log_file(self, 'voltha_logical_devices.log')
+        statusLines = testCaseUtils.get_fields_from_grep_command(self, '-i olt', 'voltha_logical_devices.log')
+        assert statusLines, 'No Logical Device listed under logical devices'
         self.__fields = testCaseUtils.parse_fields(statusLines, '|')
-        self.__logicalDeviceId = self.__fields[4].strip()
+        self.__logicalDeviceId = self.__fields[1].strip()
         testCaseUtils.send_command_to_voltha_cli(testCaseUtils.get_dir(self, 'log'),
                                                  'voltha_logical_device.log', 'logical_device ' + self.__logicalDeviceId,
                                                  'voltha_logical_device_ports.log', 'ports', 'voltha_logical_device_flows.log', 'flows')
@@ -69,18 +74,16 @@ class Discovery(object):
 
     def logical_device_ports_should_exist(self):
         statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__oltDeviceId, 'voltha_logical_device_ports.log')
-        assert statusLines, 'No Olt device listed under logical device ports'
+        assert statusLines, 'No Olt ports listed under logical device ports'
         self.__fields = testCaseUtils.parse_fields(statusLines, '|')
         portType = self.__fields[1].strip()
-        assert portType == 'nni', 'Port type for %s does not match expected nni' % self.__oltDeviceId
+        assert portType.count('nni') == 1, 'Port type for %s does not match expected nni' % self.__oltDeviceId
         for onuDeviceId in self.__onuDeviceIds:
             statusLines = testCaseUtils.get_fields_from_grep_command(self, onuDeviceId, 'voltha_logical_device_ports.log')
             assert statusLines, 'No Onu device %s listed under logical device ports' % onuDeviceId
-            lines = statusLines.splitlines()
-            for line in lines:
-                self.__fields = testCaseUtils.parse_fields(line, '|')
-                portType = self.__fields[1].strip()
-                assert portType == 'uni-128', 'Port type for %s does not match expected uni-128' % onuDeviceId
+            self.__fields = testCaseUtils.parse_fields(statusLines, '|')
+            portType = self.__fields[1].strip()
+            assert portType.count('uni') == 1, 'Port type for %s does not match expected uni' % onuDeviceId
 
     def logical_device_should_have_at_least_one_flow(self):
         statusLines = testCaseUtils.get_fields_from_grep_command(self, 'Flows', 'voltha_logical_device_flows.log')
@@ -107,6 +110,7 @@ class Discovery(object):
         statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__onuType, 'voltha_devices_after_enable.log')
         assert statusLines, 'No Onu listed under devices'
         lines = statusLines.splitlines()
+        assert len(lines) == self.__onuCount, 'Onu count mismatch found: %s, should be: %s' % (len(lines), self.__onuCount)
         for line in lines:
             self.__fields = testCaseUtils.parse_fields(line, '|')
             onuDeviceId = self.__fields[1].strip()
@@ -127,7 +131,7 @@ class Discovery(object):
             self.__fields = testCaseUtils.parse_fields(line, '|')
             assert (self.check_states(self.__oltDeviceId) is True), 'States of %s does match expected ' % self.__oltDeviceId
             portType = self.__fields[3].strip()
-            assert (portType == 'ETHERNET_NNI' or portType == 'PON_OLT'),\
+            assert (portType == 'ETHERNET_NNI' or portType == 'PON_OLT' or portType == 'ETHERNET_UNI'),\
                 'Port type for %s does not match expected ETHERNET_NNI or PON_OLT' % self.__oltDeviceId
             if portType == 'PON_OLT':
                 self.__peers = self.__fields[7].strip()
@@ -160,10 +164,12 @@ class Discovery(object):
                     
     def check_states(self, device_id):
         result = True
-        adminState = self.__fields[4].strip()
-        assert adminState == 'ENABLED', 'Admin State of %s not ENABLED' % device_id
-        operatorStatus = self.__fields[5].strip()
-        assert operatorStatus == 'ACTIVE', 'Operator Status of %s not ACTIVE' % device_id
+        stateMatchCount = 0
+        for field in self.__fields:
+            field_no_space = field.strip()
+            if field_no_space == 'ENABLED' or field_no_space == 'ACTIVE':
+                stateMatchCount += 1
+        assert stateMatchCount == 2, 'State of %s is not ENABLED or ACTIVE' % device_id
         return result
 
     def olt_should_have_at_least_one_flow(self):
@@ -185,10 +191,10 @@ class Discovery(object):
                 assert int(plainNumber) > 0, 'Zero number of flows for Onu %s' % onuDeviceId
                       
 
-def run_test(logical_device_type, olt_type, onu_type, log_dir):
+def run_test(logical_device_type, olt_type, onu_type, onu_count, log_dir):
     discovery = Discovery()
     discovery.d_set_log_dirs(log_dir)
-    discovery.d_configure(logical_device_type, olt_type, onu_type)
+    discovery.d_configure(logical_device_type, olt_type, onu_type, onu_count)
     discovery.olt_discovery()
     discovery.onu_discovery()
     discovery.logical_device()

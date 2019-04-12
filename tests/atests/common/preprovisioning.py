@@ -39,23 +39,25 @@ class Preprovisioning(object):
         self.__oltPort = None
         self.__oltType = None
         self.__onuType = None
+        self.__onuCount = None
         self.__fields = []
         self.__oltDeviceId = None
         
     def p_set_log_dirs(self, log_dir):
         testCaseUtils.config_dirs(self, log_dir)
 
-    def p_configure(self, olt_ip_address, olt_port, olt_type, onu_type):
+    def p_configure(self, olt_ip_address, olt_port, olt_type, onu_type, onu_count):
         self.__oltIpAddress = olt_ip_address
         self.__oltPort = olt_port
         self.__oltType = olt_type
         self.__onuType = onu_type
+        self.__onuCount = onu_count
 
     def preprovision_olt(self):
         logging.info('Do PROVISIONING')
         testCaseUtils.send_command_to_voltha_cli(testCaseUtils.get_dir(self, 'log'),
-                                                 'voltha_preprovision_olt.log', 'preprovision_olt -t ponsim_olt -H %s:%s' %
-                                                 (self.__oltIpAddress, self.__oltPort))
+                                                 'voltha_preprovision_olt.log', 'preprovision_olt -t %s -H %s:%s' %
+                                                 (self.__oltType, self.__oltIpAddress, self.__oltPort))
         time.sleep(5)
         
     def status_should_be_success_after_preprovision_command(self):
@@ -84,12 +86,12 @@ class Preprovisioning(object):
            
     def check_states(self, dev_type):
         result = True
-        adminState = self.__fields[7].strip()
-        assert adminState == 'ENABLED', 'Admin State of %s not ENABLED' % dev_type
-        operatorStatus = self.__fields[8].strip()
-        assert operatorStatus == 'ACTIVE', 'Operator Status of %s not ACTIVE' % dev_type
-        connectStatus = self.__fields[9].strip()
-        assert connectStatus == 'REACHABLE', 'Connect Status of %s not REACHABLE' % dev_type
+        stateMatchCount = 0
+        for field in self.__fields:
+            field_no_space = field.strip()
+            if field_no_space == 'ENABLED' or field_no_space == 'ACTIVE' or field_no_space == 'DISCOVERED' or field_no_space == 'REACHABLE':
+                stateMatchCount += 1
+        assert stateMatchCount == 3, 'State of %s is not ENABLED, ACTIVE or DISCOVERED and REACHABLE' % dev_type
         return result
 
     def check_olt_fields_after_enabling(self):
@@ -97,18 +99,17 @@ class Preprovisioning(object):
         assert statusLines, 'No Olt listed under devices'
         self.__fields = testCaseUtils.parse_fields(statusLines, '|')
         assert self.check_states(self.__oltType), 'States of %s does match expected' % self.__oltType
-        hostPort = self.__fields[11].strip()
-        assert hostPort, 'hostPort field is empty'
-        hostPortFields = hostPort.split(":")
-        assert hostPortFields[0] == self.__oltIpAddress or hostPortFields[1] == str(self.__oltPort), \
-            'Olt IP or Port does not match'
-                      
+        for field in self.__fields:
+            if field.strip() == self.__oltIpAddress + ':' + str(self.__oltPort):
+                hostPortCount = True
+        assert hostPortCount, 'hostPort field is empty or Olt IP and/or Port does not match'
+
     def check_onu_fields_after_enabling(self):        
         statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__onuType, 'voltha_devices_after_enable.log')
         assert statusLines, 'No Onu listed under devices'
         lines = statusLines.splitlines()
         lenLines = len(lines)
-        assert lenLines == 1, 'Fixed single onu does not match, ONU Count was %d' % lenLines
+        assert lenLines == self.__onuCount, ' Discovered onu(s) does not match, ONU Count was %d' % lenLines
         for line in lines:
             self.__fields = testCaseUtils.parse_fields(line, '|')
             assert (self.check_states(self.__onuType) is True), 'States of %s does match expected' % self.__onuType
@@ -128,10 +129,10 @@ class Preprovisioning(object):
         testCaseUtils.print_log_file(self, 'voltha_devices_after_enable.log')
 
 
-def run_test(olt_ip_address, olt_port, olt_type, onu_type, log_dir):
+def run_test(olt_ip_address, olt_port, olt_type, onu_type, onu_count, log_dir):
     preprovisioning = Preprovisioning()
     preprovisioning.p_set_log_dirs(log_dir)
-    preprovisioning.p_configure(olt_ip_address, olt_port, olt_type, onu_type)
+    preprovisioning.p_configure(olt_ip_address, olt_port, olt_type, onu_type, onu_count)
     preprovisioning.preprovision_olt()
     preprovisioning.status_should_be_success_after_preprovision_command()
     preprovisioning.query_devices_before_enabling()
