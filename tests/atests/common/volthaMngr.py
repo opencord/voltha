@@ -25,11 +25,15 @@ import testCaseUtils
 import logging
 
 
+
 class VolthaMngr(object):
 
     """
     This class implements voltha startup/shutdown callable helper functions
     """
+
+    DEFAULT_ADAPTER = 'ponsim'
+
     def __init__(self):
         self.dirs = dict()
         self.dirs['root'] = None
@@ -38,25 +42,25 @@ class VolthaMngr(object):
         
     def v_set_log_dirs(self, root_dir, voltha_dir, log_dir):
         testCaseUtils.config_dirs(self, log_dir, root_dir, voltha_dir)
-        
-    def start_all_pods(self):
-        proc1 = subprocess.Popen([testCaseUtils.get_dir(self, 'root') + '/build.sh', 'start'],
+
+    def start_all_pods(self, adapter=DEFAULT_ADAPTER):
+        proc1 = subprocess.Popen([testCaseUtils.get_dir(self, 'root') + '/build.sh', 'start', adapter],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         output = proc1.communicate()[0]
         print(output)
         proc1.stdout.close()
 
-    def stop_all_pods(self):
-        proc1 = subprocess.Popen([testCaseUtils.get_dir(self, 'root') + '/build.sh', 'stop'],
+    def stop_all_pods(self, adapter=DEFAULT_ADAPTER):
+        proc1 = subprocess.Popen([testCaseUtils.get_dir(self, 'root') + '/build.sh', 'stop', adapter],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         output = proc1.communicate()[0]
         print(output)
         proc1.stdout.close()
         
-    def reset_kube_adm(self):
-        proc1 = subprocess.Popen([testCaseUtils.get_dir(self, 'root') + '/build.sh', 'clear'],
+    def reset_kube_adm(self, adapter=DEFAULT_ADAPTER):
+        proc1 = subprocess.Popen([testCaseUtils.get_dir(self, 'root') + '/build.sh', 'clear', adapter],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         output = proc1.communicate()[0]
@@ -123,11 +127,11 @@ def get_all_running_pods():
     return allRunningPods
 
 
-def voltha_initialize(root_dir, voltha_dir, log_dir):
+def voltha_initialize(root_dir, voltha_dir, log_dir, adapter):
     voltha = VolthaMngr()
     voltha.v_set_log_dirs(root_dir, voltha_dir, log_dir)
-    voltha.stop_all_pods()
-    voltha.reset_kube_adm()
-    voltha.start_all_pods()
+    voltha.stop_all_pods(adapter)
+    voltha.reset_kube_adm(adapter)
+    voltha.start_all_pods(adapter)
     voltha.alter_onos_net_cfg()
     voltha.collect_pod_logs()
