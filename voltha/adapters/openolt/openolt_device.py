@@ -18,7 +18,6 @@ import structlog
 import time
 from scapy.layers.l2 import Ether, Dot1Q
 from transitions import Machine
-from twisted.internet import reactor
 
 from voltha.protos.device_pb2 import Port
 from voltha.adapters.openolt.protos import openolt_pb2
@@ -318,7 +317,7 @@ class OpenoltDevice(object):
     def send_proxied_message(self, proxy_address, msg):
         omci = openolt_pb2.OmciMsg(intf_id=proxy_address.channel_id,
                                    onu_id=proxy_address.onu_id, pkt=str(msg))
-        reactor.callInThread(self._grpc.stub.OmciMsgOut, omci)
+        self._grpc.stub.OmciMsgOut(omci)
 
     def update_flow_table(self, flows):
         self.log.debug('No updates here now, all is done in logical flows '
@@ -381,9 +380,19 @@ class OpenoltDevice(object):
                        serial_number=serial_number)
         onu = openolt_pb2.Onu(intf_id=intf_id, onu_id=onu_id,
                               serial_number=serial_number)
-
-        self.log.info('activating onu', serial_number=serial_number_str)
-        reactor.callInThread(self._grpc.stub.ActivateOnu, onu)
+        try:
+            self._grpc.stub.ActivateOnu(onu)
+        except grpc.RpcError as grpc_e:
+            if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
+                self.log.info('onu activation in progress',
+                              serial_number=serial_number_str,
+                              e=grpc_e)
+            else:
+                self.log.error('onu activation failed',
+                               serial_number=serial_number_str,
+                               grpc_error=grpc_e)
+        else:
+            self.log.info('onu-activated', serial_number=serial_number_str)
 
     # FIXME - instead of passing child_device around, delete_child_device
     # needs to change to use serial_number.
