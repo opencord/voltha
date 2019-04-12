@@ -325,6 +325,12 @@ class OpenOltDataModel(object):
             parent_port_no=self.platform.intf_id_to_port_no(intf_id,
                                                             Port.PON_OLT),
             onu_id=onu_id)
+
+        if onu_device is None:
+            self.log.error('onu_omci_rx: onu not found',
+                           intf_id=intf_id, onu_id=onu_id)
+            return
+
         self.adapter_agent.receive_proxied_message(onu_device.proxy_address,
                                                    pkt)
 
