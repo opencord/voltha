@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import binascii
+import grpc
 import structlog
 import time
 from scapy.layers.l2 import Ether, Dot1Q
