@@ -35,6 +35,7 @@ HSIA_FLOW = "HSIA_FLOW"
 
 EAP_ETH_TYPE = 0x888e
 LLDP_ETH_TYPE = 0x88cc
+IPV4_ETH_TYPE = 0x800
 
 IGMP_PROTO = 2
 
@@ -227,6 +228,31 @@ class OpenOltFlowMgr(object):
         (port_no, intf_id, onu_id, uni_id) \
             = self.platform.extract_access_from_flow(
             classifier_info[IN_PORT], action_info[OUTPUT])
+
+        # LLDP flow has nothing to do with any particular subscriber.
+        # So, lets not care about the Tech-profile, meters etc.
+        # Just add the flow and return.
+        if ETH_TYPE in classifier_info and \
+                classifier_info[ETH_TYPE] == LLDP_ETH_TYPE:
+            self.log.debug('lldp flow add')
+            self.add_lldp_flow(flow, port_no)
+            return
+
+        if ETH_TYPE in classifier_info and \
+                classifier_info[ETH_TYPE] == IPV4_ETH_TYPE and \
+                IP_PROTO in classifier_info and \
+                classifier_info[IP_PROTO] == 2:
+            self.log.debug('igmp flow add ignored, not implemented yet')
+            return
+
+        if IP_PROTO in classifier_info and \
+                classifier_info[IP_PROTO] == 17 and \
+                UDP_SRC in classifier_info and \
+                classifier_info[UDP_SRC] == 67:
+            self.log.debug('ignore trap-dhcp-from-nni-flow')
+            # self.add_dhcp_trap_nni(flow, classifier_info, port_no,
+            #                       network_intf_id=0)
+            return
 
         self.divide_and_add_flow(intf_id, onu_id, uni_id, port_no,
                                  classifier_info, action_info, flow)
