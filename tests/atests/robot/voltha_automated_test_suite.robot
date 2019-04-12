@@ -36,12 +36,12 @@ Suite Teardown     Stop Voltha
 ${LOG_DIR}              /tmp/voltha_test_results
 ${ROOT_DIR}             ${EMPTY}
 ${VOLTHA_DIR}           ${EMPTY}
-${ONOS_SSH_PORT}        8101
-${OLT_IP_ADDR}          olt.voltha.svc
 ${OLT_PORT_ID}          50060
-${LOGICAL_TYPE}         olt.voltha.svc
-${OLT_TYPE}             ponsim_olt
-${ONU_TYPE}             ponsim_onu
+${OLT_TYPE}             ${EMPTY}
+${ONU_TYPE}             ${EMPTY}
+${OLT_HOST_IP}          ${EMPTY}
+${ONU_COUNT}            ${EMPTY}
+${ADAPTER}              ${EMPTY}
 ${RETRY_TIMEOUT_60}     60s
 ${RETRY_INTERVAL_2}     2s
 
@@ -53,7 +53,7 @@ Olt Pre Provisioning
     ...                 information. It then verifies that all the physical and logical devices are ACTIVE
     ...                 and REACHEABLE
     P Set Log Dirs      ${LOG_DIR}
-    P Configure         ${OLT_IP_ADDR}    ${OLT_PORT_ID}    ${OLT_TYPE}    ${ONU_TYPE}
+    P Configure         ${OLT_HOST_IP}    ${OLT_PORT_ID}    ${OLT_TYPE}    ${ONU_TYPE}  ${ONU_COUNT}
     Preprovision Olt
     Wait Until Keyword Succeeds    ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Query Devices Before Enabling
     Status Should Be Success After Preprovision Command
@@ -63,7 +63,8 @@ Olt Pre Provisioning
     Status Should Be Success After Enable Command
     Check Olt Fields After Enabling
     Check Onu Fields After Enabling
-    
+    Sleep    60
+
 Olt Onu Discovery
     [Documentation]     Olt Onu Discovery
     ...                 This test covers both Onu Discovery and yet to be developped Olt Discovery
@@ -73,7 +74,7 @@ Olt Onu Discovery
     ...                 Olt or Onu device. Functionality to support multiple ONU accomodated
     ...                 The extent of the flow validation is limited to checking whether number of Flows is > 0
     D Set Log Dirs      ${LOG_DIR}
-    D Configure         ${LOGICAL_TYPE}     ${OLT_TYPE}    ${ONU_TYPE}
+    D Configure         ${OLT_HOST_IP}  ${OLT_TYPE}    ${ONU_TYPE}  ${ONU_COUNT}
     Olt Discovery
     Onu Discovery
     Logical Device
@@ -89,6 +90,7 @@ Radius Authentication
     ...                 This test attempts to perform a Radius Authentication from the RG
     ...                 It uses the wpa_supplicant app to authenticate using EAPOL.
     ...                 We then verify the generated log file confirming all the authentication steps
+    [Tags]              ponsim
     A Set Log Dirs      ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
     Discover Freeradius Pod Name
     Discover Freeradius Ip Addr
@@ -108,6 +110,7 @@ Dhcp IP Address Assignment on RG
     ...                 by calling 'add subscriber access' on onos. We then deassign the default
     ...                 IP address granted to RG upon instantiating the RG pod. Finally we invoke
     ...                 'dhclient' on RG to request a DHCP IP address.
+    [Tags]              ponsim
     H Set Log Dirs      ${ROOT_DIR}     ${VOLTHA_DIR}    ${LOG_DIR}
     Set Firewall Rules
     Discover Authorized Users
@@ -128,32 +131,39 @@ Unicast flow setup ctag/stag assignment
     ...                 network looking for ARP request from RG IP address. These packets should
     ...                 be double tagged with different s and c Tags but matching tag configuration
     ...                 in sadis entry.
+    [Tags]              ponsim
     U Set Log Dirs      ${ROOT_DIR}     ${VOLTHA_DIR}    ${LOG_DIR}
-    Execute Ping Test
-    Should Have Q In Q Vlan Tagging
-    Retrieve Stag And Ctag From Sadis Entries
-    Stag And Ctag Should Match Sadis Entry
+    U Configure         ${ONU_TYPE}     ${ONU_COUNT}
+    Read Sadis Entries From Sadis Json
+    Retrieve Onu Serial Numbers
+    Manage Onu Testing
 
 *** Keywords ***
 Start Voltha
     [Documentation]     Start Voltha infrastructure to run test(s). This includes starting all 
     ...                 Kubernetes Pods and start collection of logs. PonsimV2 has now been
     ...                 containerized and does not need to be managed separately
+    ...                 Initialize working DIRs as well as Adapter specific variables
     ${ROOT_DIR}  ${VOLTHA_DIR}  ${LOG_DIR}  Dir Init    ${LOG_DIR}
     Set Suite Variable  ${ROOT_DIR}
     Set Suite Variable  ${VOLTHA_DIR}
     Set Suite Variable  ${LOG_DIR}   
     V Set Log Dirs      ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
+    ${OLT_TYPE}  ${ONU_TYPE}    ${OLT_HOST_IP}  ${ONU_COUNT}  Adapter Init  ${ADAPTER}
+    Set Suite Variable  ${OLT_TYPE}
+    Set Suite Variable  ${ONU_TYPE}
+    Set Suite Variable  ${OLT_HOST_IP}
+    Set Suite Variable  ${ONU_COUNT}
     Stop Voltha
-    Start All Pods
+    Start All Pods      ${ADAPTER}
     Sleep    60
-    ${pod_status}    Run    kubectl get pods --all-namespaces
-    Log To Console  \n  ${pod_status}
+    ${pod_status}       Run    kubectl get pods --all-namespaces
+    Log To Console      \n${pod_status}\n
     Alter Onos Net Cfg
     
 Stop Voltha
     [Documentation]     Stop Voltha infrastructure. This includes clearing all installation milestones
     ...                 files and stopping all Kubernetes pods
     Collect Pod Logs
-    Stop All Pods
-    Reset Kube Adm 
+    Stop All Pods       ${ADAPTER}
+    Reset Kube Adm      ${ADAPTER}
