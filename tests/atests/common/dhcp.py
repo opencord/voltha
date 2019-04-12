@@ -70,13 +70,14 @@ class DHCP(object):
 
     def should_now_have_two_dhcp_flows(self):
         testCaseUtils.send_command_to_onos_cli(testCaseUtils.get_dir(self, 'log'),
-                                               'voltha_onos_flows.log', 'flows')
+                                               'voltha_onos_flows.log', 'flows -s')
         statusLines = testCaseUtils.get_fields_from_grep_command(self, 'IP_PROTO:17', 'voltha_onos_flows.log')
         assert statusLines, 'No DHCP Detection flows'
         lines = statusLines.splitlines()
+        assert len(lines) == 2, 'Expected 2 DHCP Detection Flows but result was %s' % len(lines)
         for line in lines:
             self.__fields = testCaseUtils.parse_fields(line, ',')
-            inPortStr = self.__fields[10].strip()
+            inPortStr = self.__fields[5].strip()
             selector, delimiter, inPort = inPortStr.partition('=[')
             assert (inPort == 'IN_PORT:2' or inPort == 'IN_PORT:128'), 'DHCP detection flows not associated with expected ports'
 

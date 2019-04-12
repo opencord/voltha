@@ -61,5 +61,23 @@
       "uplink":"0",
       "vlan":"2"
     }
+  },
+  "of:0000626273696d76":{
+    "basic":{
+      "driver":"voltha"
+    },
+    "accessDevice":{
+      "uplink":"0",
+      "vlan":"2"
+    }
+  },
+  "of:0001626273696d76":{
+    "basic":{
+      "driver":"voltha"
+    },
+    "accessDevice":{
+      "uplink":"0",
+      "vlan":"2"
+    }
   }
 }

@@ -16,29 +16,28 @@
 SRC_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 BUILD_DIR="$SRC_DIR/../build"
 
-cd $BUILD_DIR
-
-if [ $# -ne 1 ]
+cd ${BUILD_DIR}
+if [[ $# -ne 2 ]]
   then
-    echo "No arguments supplied"
+    echo "Wrong number of arguments supplied"
     exit 1
 fi
-if [ -z "$1" ]
+if [[ -z "${1}" || -z "${2}" ]]
   then
     echo "Empty argument supplied"
     exit 1
 fi
-if [ $1 == "clear" ]
+if [[ "${1}" == "clear" ]]
   then
     sudo make reset-kubeadm
-elif [ $1 == "start" ]
+elif [[ "${1}" == "start" ]]
   then
     sudo service docker restart
-    sudo make -f Makefile
-elif [ $1 == "stop" ]
+    sudo make -f Makefile ${2}
+elif [[ "${1}" == "stop" ]]
   then
     pods=$( /usr/bin/kubectl get pods --all-namespaces 2>&1 | grep -c -e refused -e resource )
-    if  [ $pods -eq 0 ]
+    if  [[ ${pods} -eq 0 ]]
       then
         sudo make teardown-charts
     fi

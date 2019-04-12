@@ -22,7 +22,7 @@ import time
 import testCaseUtils
 import logging
 import subprocess
-import commands
+import json
 
 
 class Unicast(object):
@@ -42,11 +42,19 @@ class Unicast(object):
         self.__rgName = testCaseUtils.discover_rg_pod_name()
         self.__fields = None
         self.__tcpdumpPid = None
+        self.__onuType = None
+        self.__onuCount = None
+        self.__onuSerialNum = []
         self.__sadisCTag = None
         self.__sadisSTag = None
+        self.__datastore = None
 
     def u_set_log_dirs(self, root_dir, voltha_dir, log_dir):
         testCaseUtils.config_dirs(self, log_dir, root_dir, voltha_dir)
+
+    def u_configure(self, onu_type, onu_count):
+        self.__onuType = onu_type
+        self.__onuCount = onu_count
 
     def execute_ping_test(self):
         logging.info('Ping 1.2.3.4 IP Test')
@@ -144,34 +152,47 @@ class Unicast(object):
             tagCount = line.count('802.1Q')
             assert tagCount == 2, 'Found a non double tagged packet'
 
-    def retrieve_stag_and_ctag_from_sadis_entries(self):
-        logging.info('Retrieving sTag and cTag from Sadis entries')
-        ctagGrepCommand = "grep %s %s/tests/atests/build/sadis_json" % ('cTag', testCaseUtils.get_dir(self, 'voltha'))
-        statusLines = commands.getstatusoutput(ctagGrepCommand)[1]
-        assert statusLines, 'No cTag found in sadis_json'
-        self.__sadisCTag = statusLines.split(':')[1].strip(',')
-        stagGrepCommand = "grep %s %s/tests/atests/build/sadis_json" % ('sTag', testCaseUtils.get_dir(self, 'voltha'))
-        statusLines = commands.getstatusoutput(stagGrepCommand)[1]
-        assert statusLines, 'No sTag found in sadis_json'
-        self.__sadisSTag = statusLines.split(':')[1].strip(',')
+    def retrieve_onu_serial_numbers(self):
+        logging.info('Onu Serial Number Discovery')
+        statusLines = testCaseUtils.get_fields_from_grep_command(self, self.__onuType, 'voltha_devices_after_enable.log')
+        assert statusLines, 'No Onu listed under devices'
+        lines = statusLines.splitlines()
+        assert len(lines) == self.__onuCount, 'Onu count mismatch found: %s, should be: %s' % (len(lines), self.__onuCount)
+        for line in lines:
+            self.__fields = testCaseUtils.parse_fields(line, '|')
+            onuSerialNum = self.__fields[5].strip()
+            self.__onuSerialNum.append(onuSerialNum)
+
+    def retrieve_stag_and_ctag_for_onu(self, onu_serial_num):
+        entries = self.__datastore['org.opencord.sadis']['sadis']['entries']
+        for entry in entries:
+            entry_id = entry['id']
+            if entry_id == onu_serial_num:
+                self.__sadisCTag = entry['cTag']
+                self.__sadisSTag = entry['sTag']
+
+    def read_sadis_entries_from_sadis_json(self):
+        with open('%s/tests/atests/build/sadis_json' % testCaseUtils.get_dir(self, 'voltha'), 'r') as sadis:
+            self.__datastore = json.load(sadis)
 
     def stag_and_ctag_should_match_sadis_file(self, ctag, stag):
-        assert ctag == self.__sadisCTag and stag == self.__sadisSTag, 'cTag and/or sTag do not match value in sadis file\n \
+        assert ctag == str(self.__sadisCTag) and stag == str(self.__sadisSTag), 'cTag and/or sTag do not match value in sadis file\n \
             vlan cTag = %s, sadis cTag = %s : vlan sTag = %s, sadis sTag = %s' % (ctag, self.__sadisCTag, stag, self.__sadisSTag)
 
+    def manage_onu_testing(self):
+        for onuSerial in self.__onuSerialNum:
+            self.retrieve_stag_and_ctag_for_onu(onuSerial)
+            self.execute_ping_test()
+            self.ping_test_should_have_failed()
+            self.should_have_q_in_q_vlan_tagging()
+            self.stag_and_ctag_should_match_sadis_entry()
 
-def run_test(root_dir, voltha_dir, log_dir):
+
+def run_test(onu_type, onu_count, root_dir, voltha_dir, log_dir):
 
     unicast = Unicast()
     unicast.u_set_log_dirs(root_dir, voltha_dir, log_dir)
-    unicast.execute_ping_test()
-    unicast.should_have_q_in_q_vlan_tagging()
-    unicast.retrieve_stag_and_ctag_from_sadis_entries()
-    unicast.stag_and_ctag_should_match_sadis_entry()
-
-
-
-
-
-
-
+    unicast.u_configure(onu_type, onu_count)
+    unicast.read_sadis_entries_from_sadis_json()
+    unicast.retrieve_onu_serial_numbers()
+    unicast.manage_onu_testing()
