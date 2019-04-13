@@ -42,7 +42,10 @@ class OpenoltIndications(object):
 
     def indications_thread(self):
         self.log.debug('openolt indications thread starting')
-        KConsumer(self.indications_process, "openolt.ind")
+
+        KConsumer(self.indications_process,
+                  'openolt.ind-{}'.format(
+                      self.device.host_and_port.split(':')[0]))
 
     def indications_process(self, topic, msg):
 
