@@ -1123,9 +1123,7 @@ class LocalHandler(VolthaLocalServiceServicer):
 
             if adapter_name == 'openolt':
                 log.debug('fast path pkt-out to kafka')
-                # topic = 'openolt.pktout:{}'.format(req.id)
-                topic = 'voltha.pktout'
-                kafka_send_pb(topic, req)
+                kafka_send_pb('voltha.pktout-{}'.format(req.id), req)
             else:
                 forward_packet_out(packet_out=req)
 

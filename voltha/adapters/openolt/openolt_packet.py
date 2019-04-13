@@ -45,7 +45,9 @@ class OpenoltPacket(object):
 
     def packet_thread(self):
         self.log.debug('openolt packet-out thread starting')
-        KConsumer(self.packet_process, 'voltha.pktout')
+        KConsumer(self.packet_process,
+                  'voltha.pktout-{}'.format(
+                      self.device.data_model.logical_device_id))
 
     def packet_process(self, topic, msg):
 

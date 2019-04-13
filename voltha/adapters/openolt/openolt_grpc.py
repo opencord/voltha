@@ -18,7 +18,6 @@ import structlog
 import grpc
 import threading
 import time
-from simplejson import dumps
 from twisted.internet import reactor
 from voltha.northbound.kafka.kafka_proxy import kafka_send_pb
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
@@ -109,4 +108,6 @@ class OpenoltGrpc(object):
                                       indications=ind)
                         continue
 
-                kafka_send_pb("openolt.ind", ind)
+                topic = 'openolt.ind-{}'.format(
+                    self.device.host_and_port.split(':')[0])
+                kafka_send_pb(topic, ind)

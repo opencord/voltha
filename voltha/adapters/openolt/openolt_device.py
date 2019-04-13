@@ -106,14 +106,13 @@ class OpenoltDevice(object):
         self.device_info = None
 
         self._kadmin = KAdmin()
-        self._kadmin.delete_topics(['openolt.ind', 'voltha.pktout'])
+        self._kadmin.delete_topics([
+            'openolt.ind-{}'.format(self.host_and_port.split(':')[0])])
         self._grpc = None
         self.go_state_init()
 
     def do_state_init(self, event):
         self.log.debug('init')
-        self._packet = OpenoltPacket(self)
-        self._packet.start()
         self._indications = OpenoltIndications(self)
         self._indications.start()
 
@@ -134,6 +133,12 @@ class OpenoltDevice(object):
                and self.device_info.device_serial_number != '')
 
         self.data_model.olt_create(self.device_info)
+
+        self._kadmin.delete_topics([
+            'voltha.pktout-{}'.format(self.data_model.logical_device_id)])
+
+        self._packet = OpenoltPacket(self)
+        self._packet.start()
 
         self.resource_mgr = self.resource_mgr_class(self.device_id,
                                                     self.host_and_port,
