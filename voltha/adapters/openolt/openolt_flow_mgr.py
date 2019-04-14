@@ -922,7 +922,7 @@ class OpenOltFlowMgr(object):
     def add_flow_to_device(self, flow, logical_flow):
         self.log.debug('pushing flow to device', flow=flow)
         try:
-            self.stub.FlowAdd(flow)
+            reactor.callInThread(self.stub.FlowAdd, flow)
         except grpc.RpcError as grpc_e:
             if grpc_e.code() == grpc.StatusCode.ALREADY_EXISTS:
                 self.log.warn('flow already exists', e=grpc_e, flow=flow)
