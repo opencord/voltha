@@ -473,12 +473,6 @@ class OpenOltFlowMgr(object):
             tconts = self.tech_profile[intf_id].get_tconts(
                 tech_profile_instance, us_scheduler, ds_scheduler)
 
-            self.stub.CreateTconts(openolt_pb2.Tconts(intf_id=intf_id,
-                                                      onu_id=onu_id,
-                                                      uni_id=uni_id,
-                                                      port_no=ofp_port_no,
-                                                      tconts=tconts))
-
             # Fetch alloc id and gemports from tech profile instance
             alloc_id = tech_profile_instance.us_scheduler.alloc_id
             gem_port_ids = []
@@ -487,6 +481,13 @@ class OpenOltFlowMgr(object):
                 gem_port_ids.append(
                     tech_profile_instance.upstream_gem_port_attribute_list[i].
                     gemport_id)
+
+            reactor.callInThread(self.stub.CreateTconts,
+                                 openolt_pb2.Tconts(intf_id=intf_id,
+                                                    onu_id=onu_id,
+                                                    uni_id=uni_id,
+                                                    port_no=ofp_port_no,
+                                                    tconts=tconts))
         except Exception as e:
             self.log.exception(exception=e)
 
