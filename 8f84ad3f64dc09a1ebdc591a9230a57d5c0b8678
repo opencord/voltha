@@ -16,6 +16,24 @@
       "revId": "8f84ad3f64dc09a1ebdc591a9230a57d5c0b8678",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9d610cd2_0d310d15",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 620,
+      "author": {
+        "id": 1000010
+      },
+      "writtenOn": "2019-04-15T17:48:49Z",
+      "side": 1,
+      "message": "Do you think this is necessary?  I don\u0027t think the old code (without my patch) does that either.",
+      "parentUuid": "ee2f8244_c071d58b",
+      "revId": "8f84ad3f64dc09a1ebdc591a9230a57d5c0b8678",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
