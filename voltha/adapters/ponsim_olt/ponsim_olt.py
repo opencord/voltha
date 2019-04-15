@@ -975,11 +975,6 @@ class PonSimOltHandler(object):
         device.connect_status = ConnectStatus.UNREACHABLE
         self.adapter_agent.update_device(device)
 
-        # Remove the logical device
-        logical_device = self.adapter_agent.get_logical_device(
-            self.logical_device_id)
-        self.adapter_agent.delete_logical_device(logical_device)
-
         # Disable all child devices first
         self.adapter_agent.update_child_devices_state(self.device_id,
                                                       admin_state=AdminState.DISABLED)
@@ -997,16 +992,6 @@ class PonSimOltHandler(object):
             # close the frameio port
             registry('frameio').close_port(self.io_port)
             self.log.info('disabled-frameio-port')
-
-        #  Update the logice device mapping
-        if self.logical_device_id in \
-                self.adapter.logical_device_id_to_root_device_id:
-            del self.adapter.logical_device_id_to_root_device_id[
-                self.logical_device_id]
-
-        # TODO:
-        # 1) Remove all flows from the device
-        # 2) Remove the device from ponsim
 
         self.log.info('disabled', device_id=device.id)
 
@@ -1032,56 +1017,9 @@ class PonSimOltHandler(object):
         # Set all ports to enabled
         self.adapter_agent.enable_all_ports(self.device_id)
 
-        ld = LogicalDevice(
-            # not setting id and datapth_id will let the adapter agent pick id
-            desc=ofp_desc(
-                hw_desc='simulated pon',
-                sw_desc='simulated pon',
-                serial_num=uuid4().hex,
-                dp_desc='n/a'
-            ),
-            switch_features=ofp_switch_features(
-                n_buffers=256,  # TODO fake for now
-                n_tables=2,  # TODO ditto
-                capabilities=(  # TODO and ditto
-                        OFPC_FLOW_STATS
-                        | OFPC_TABLE_STATS
-                        | OFPC_PORT_STATS
-                        | OFPC_GROUP_STATS
-                )
-            ),
-            root_device_id=device.id
-        )
-
-        mac_address = self.get_mac_address(device)
-        ld_initialized = self.adapter_agent.create_logical_device(ld,
-                                                                  dpid=mac_address)
-        cap = OFPPF_1GB_FD | OFPPF_FIBER
-        self.adapter_agent.add_logical_port(ld_initialized.id, LogicalPort(
-            id='nni',
-            ofp_port=ofp_port(
-                port_no=self.ofp_port_no,
-                hw_addr=mac_str_to_tuple(
-                    '00:00:00:00:00:%02x' % self.ofp_port_no),
-                name='nni',
-                config=0,
-                state=OFPPS_LIVE,
-                curr=cap,
-                advertised=cap,
-                peer=cap,
-                curr_speed=OFPPF_1GB_FD,
-                max_speed=OFPPF_1GB_FD
-            ),
-            device_id=device.id,
-            device_port_no=self.nni_port.port_no,
-            root_port=True
-        ))
-
         device = self.adapter_agent.get_device(device.id)
-        device.parent_id = ld_initialized.id
         device.oper_status = OperStatus.ACTIVE
         self.adapter_agent.update_device(device)
-        self.logical_device_id = ld_initialized.id
 
         # Reenable all child devices
         self.adapter_agent.update_child_devices_state(device.id,
