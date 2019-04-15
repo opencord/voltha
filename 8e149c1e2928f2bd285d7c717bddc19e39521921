@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1e68fbe8_03bb86bf",
+        "filename": "tests/atests/common/run_robot.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2019-04-15T20:28:47Z",
+      "side": 1,
+      "message": "Will this ADAPTER parameter be set with bbsim later?",
+      "revId": "8e149c1e2928f2bd285d7c717bddc19e39521921",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "86083db7_6a52a41e",
+        "filename": "tests/atests/common/volthaMngr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2019-04-15T20:28:47Z",
+      "side": 1,
+      "message": "the adapter type will not change during run-time, but initialized at the beginning only. So instead of passing the same parameter everywhere, you may use a global variable and use it. \n\nYou can refine it further by defining a function like: getAdapterType() so you can change from global variable to e.g. config parameter with only changing the getAdapterType() function",
+      "range": {
+        "startLine": 42,
+        "startChar": 0,
+        "endLine": 42,
+        "endChar": 4
+      },
+      "revId": "8e149c1e2928f2bd285d7c717bddc19e39521921",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
