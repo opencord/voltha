@@ -81,6 +81,30 @@
       "revId": "8e149c1e2928f2bd285d7c717bddc19e39521921",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "48b794d0_20e64216",
+        "filename": "tests/atests/common/volthaMngr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-04-16T21:17:57Z",
+      "side": 1,
+      "message": "I\u0027m passing down through the various layers the value of adapter received from the top call\nI could instead save this value with a setAdaptorType() and everywhere I need to refer to it I call getAdapterType()\nI chose the former method\nWhich it better?",
+      "parentUuid": "4829824f_292727ca",
+      "range": {
+        "startLine": 42,
+        "startChar": 0,
+        "endLine": 42,
+        "endChar": 4
+      },
+      "revId": "8e149c1e2928f2bd285d7c717bddc19e39521921",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
