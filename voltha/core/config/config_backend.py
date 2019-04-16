@@ -16,7 +16,6 @@ from consul import Consul, ConsulException
 from common.utils.asleep import asleep
 from requests import ConnectionError
 from twisted.internet.defer import inlineCallbacks, returnValue
-from twisted.internet import reactor
 
 import etcd3
 import structlog
@@ -104,13 +103,13 @@ class ConsulStore(object):
 
     # Proxy methods for consul with retry support
     def _kv_get(self, *args, **kw):
-        return reactor.callInThread(self._retry, 'GET', *args, **kw)
+        return self._retry('GET', *args, **kw)
 
     def _kv_put(self, *args, **kw):
-        return reactor.callInThread(self._retry, 'PUT', *args, **kw)
+        return self._retry('PUT', *args, **kw)
 
     def _kv_delete(self, *args, **kw):
-        return reactor.callInThread(self._retry, 'DELETE', *args, **kw)
+        return self._retry('DELETE', *args, **kw)
 
     def _retry(self, operation, *args, **kw):
         while 1:
