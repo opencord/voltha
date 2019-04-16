@@ -57,6 +57,30 @@
       "revId": "8e149c1e2928f2bd285d7c717bddc19e39521921",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4829824f_292727ca",
+        "filename": "tests/atests/common/volthaMngr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-04-16T20:54:05Z",
+      "side": 1,
+      "message": "adpater is being assigned a default value in the case where none is being provided\nI\u0027ve changed it to use a single Global value of \u0027ponsim\u0027 instead of repeating \u0027ponsim\u0027 everywhere\nAs for the need for a getAdaptorType() function, I instead pass the adapter value from the top level call i.e. \"run_robot.sh\" for ROBOT testing and from \"python auto_test.py -a bbsim\" for example\nI did add an adaptor_init function in auto_test.py to set various values based on adaptor type\nThese values are needed in different test cases.",
+      "parentUuid": "86083db7_6a52a41e",
+      "range": {
+        "startLine": 42,
+        "startChar": 0,
+        "endLine": 42,
+        "endChar": 4
+      },
+      "revId": "8e149c1e2928f2bd285d7c717bddc19e39521921",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
