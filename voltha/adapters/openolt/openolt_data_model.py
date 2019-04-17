@@ -176,12 +176,15 @@ class OpenOltDataModel(object):
             serial_number=serial_number)
 
         if onu_device:
+            raise ValueError('onu already exists')
+            '''
             self.log.debug("data_model onu update", intf_id=intf_id,
                            onu_id=onu_id, serial_number=serial_number)
             onu_device.oper_status = OperStatus.DISCOVERED
             onu_device.connect_status = ConnectStatus.REACHABLE
             self.adapter_agent.update_device(onu_device)
             return
+            '''
 
         self.log.debug("data_model onu create", intf_id=intf_id,
                        onu_id=onu_id, serial_number=serial_number)

@@ -213,9 +213,16 @@ class OpenoltDevice(object):
             if onu_id is None:
                 raise Exception("onu-id-unavailable")
 
-        self.data_model.onu_create(intf_id, onu_id, serial_number_str)
-
-        self.activate_onu(intf_id, onu_id, serial_number, serial_number_str)
+        try:
+            self.data_model.onu_create(intf_id, onu_id, serial_number_str)
+        except Exception as e:
+            self.log.info("ignore onu discover",
+                          intf_id=intf_id,
+                          serial_number=serial_number_str,
+                          reason=e)
+        else:
+            self.activate_onu(intf_id, onu_id, serial_number,
+                              serial_number_str)
 
     def onu_indication(self, onu_indication):
         self.log.debug("onu indication", intf_id=onu_indication.intf_id,
