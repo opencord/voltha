@@ -48,6 +48,9 @@ class KAdmin(object):
     def delete_topics(self, topics):
         kafka_delete_topics(self.admin_client, topics, timeout=0)
 
+    def create_topics(self, topics):
+        kafka_create_topics(self.admin_client, topics)
+
 
 def kafka_create_topics(a, topics):
     """ Create topics """
