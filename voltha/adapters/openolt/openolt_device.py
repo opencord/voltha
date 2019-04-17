@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 import binascii
-import grpc
 import structlog
 import time
 from scapy.layers.l2 import Ether, Dot1Q
@@ -59,7 +58,8 @@ class OpenoltDevice(object):
         {'trigger': 'go_state_connected',
          'source': 'state_init',
          'dest': 'state_connected',
-         'before': 'do_state_connected'},
+         'before': 'do_state_connected',
+         'after': 'post_connected'},
         {'trigger': 'go_state_up',
          'source': ['state_connected', 'state_down'],
          'dest': 'state_up',
@@ -119,11 +119,13 @@ class OpenoltDevice(object):
 
     def post_init(self, event):
         self.log.debug('post_init')
-        # Initialize gRPC
+
+        # FIXME
         time.sleep(10)
+
         self._grpc = OpenoltGrpc(self.host_and_port, self)
 
-        self.log.info('openolt-device-created')
+        reactor.callInThread(self.get_device_info)
 
     def do_state_connected(self, event):
         self.log.debug("do_state_connected")
@@ -155,6 +157,9 @@ class OpenoltDevice(object):
                                               self.data_model)
         self.stats_mgr = self.stats_mgr_class(self, self.log, self.platform,
                                               self.data_model)
+
+    def post_connected(self, event):
+        self._grpc.start()
 
     def do_state_up(self, event):
         self.log.debug("do_state_up")
@@ -451,3 +456,32 @@ class OpenoltDevice(object):
 
     def simulate_alarm(self, alarm):
         self.alarm_mgr.simulate_alarm(alarm)
+
+    def get_device_info(self):
+        self.log.debug('get_device_info')
+        timeout = 60*60
+        delay = 1
+        exponential_back_off = False
+        while True:
+            try:
+                self.device_info \
+                    = self._grpc.stub.GetDeviceInfo(openolt_pb2.Empty())
+                break
+            except Exception as e:
+                if delay > timeout:
+                    self.log.error("openolt grpc timed out connecting to olt")
+                    return
+                else:
+                    self.log.warn(
+                        "openolt grpc retry connecting to olt in %ds: %s"
+                        % (delay, repr(e)))
+                    time.sleep(delay)
+                    if exponential_back_off:
+                        delay += delay
+                    else:
+                        delay += 1
+
+        self.log.info('openolt grpc connected to olt',
+                      device_info=self.device_info)
+
+        self.go_state_connected()

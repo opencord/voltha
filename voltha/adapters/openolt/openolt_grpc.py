@@ -17,7 +17,6 @@
 import structlog
 import grpc
 import threading
-import time
 from twisted.internet import reactor
 from voltha.northbound.kafka.kafka_proxy import kafka_send_pb
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
@@ -32,7 +31,9 @@ class OpenoltGrpc(object):
         self.host_and_port = host_and_port
         self.channel = grpc.insecure_channel(self.host_and_port)
         self.channel_ready_future = grpc.channel_ready_future(self.channel)
+        self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
 
+    def start(self):
         try:
             # Start indications thread
             self.log.debug('openolt grpc starting')
@@ -50,37 +51,6 @@ class OpenoltGrpc(object):
             self.log.debug('openolt grpc started')
 
     def indications_thread(self):
-
-        self.log.debug('openolt grpc connecting to olt')
-
-        self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
-
-        timeout = 60*60
-        delay = 1
-        exponential_back_off = False
-        while True:
-            try:
-                self.device.device_info \
-                    = self.stub.GetDeviceInfo(openolt_pb2.Empty())
-                break
-            except Exception as e:
-                if delay > timeout:
-                    self.log.error("openolt grpc timed out connecting to olt")
-                    return
-                else:
-                    self.log.warn(
-                        "openolt grpc retry connecting to olt in %ds: %s"
-                        % (delay, repr(e)))
-                    time.sleep(delay)
-                    if exponential_back_off:
-                        delay += delay
-                    else:
-                        delay += 1
-
-        self.log.info('openolt grpc connected to olt',
-                      device_info=self.device.device_info)
-
-        self.device.go_state_connected()
 
         self.indications = self.stub.EnableIndication(openolt_pb2.Empty())
 
