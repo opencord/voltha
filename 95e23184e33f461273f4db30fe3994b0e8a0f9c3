@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "34e213b6_d4e106eb",
+        "filename": "tests/atests/common/run_robot.sh",
+        "patchSetId": 3
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-04-17T18:20:13Z",
+      "side": 1,
+      "message": "Obvious mistake fixed after bbsim adapter selection ran with ponsim",
+      "revId": "95e23184e33f461273f4db30fe3994b0e8a0f9c3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
