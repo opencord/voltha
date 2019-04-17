@@ -44,7 +44,7 @@ $(M)/setup:
 	echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /tmp/kubernetes.list
 	sudo cp /tmp/kubernetes.list /etc/apt/sources.list.d/kubernetes.list
 	sudo apt update
-	sudo apt install -y "kubeadm=1.11.3-*" "kubelet=1.11.3-*" "kubectl=1.11.3-*"
+	sudo apt install -y "kubeadm=1.12.7-*" "kubelet=1.12.7-*" "kubectl=1.12.7-*"
 
 /usr/local/bin/helm:
 	curl -L -o /tmp/helm.tgz "https://storage.googleapis.com/kubernetes-helm/helm-v${HELM_VERSION}-${HELM_PLATFORM}.tar.gz"
@@ -58,7 +58,8 @@ $(M)/kubeadm: | $(M)/setup /usr/bin/kubeadm
 	mkdir -p $(HOME)/.kube
 	sudo cp -f /etc/kubernetes/admin.conf $(HOME)/.kube/config
 	sudo chown $(id -u):$(id -g) $(HOME)/.kube/config
-	kubectl apply -f https://docs.projectcalico.org/v2.6/getting-started/kubernetes/installation/hosted/kubeadm/1.6/calico.yaml
+	kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+	kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
 	kubectl taint nodes --all node-role.kubernetes.io/master-
 	touch $@
 
@@ -171,6 +172,8 @@ teardown-charts: remove-chart-milestones
 	helm delete --purge $(shell helm ls -q)
 
 reset-kubeadm: remove-chart-milestones remove-kube-milestones
-	sudo kubeadm reset -f
+	sudo kubeadm reset -f || true
 	sudo iptables -F && sudo iptables -t nat -F && sudo iptables -t mangle -F && sudo iptables -X
-
+	sudo rm -f /var/lib/cni/networks/pon0/* || true
+	sudo rm -f /var/lib/cni/networks/pon1/* || true
+	sudo rm -f /var/lib/cni/networks/k8s-pod-network/* || true
