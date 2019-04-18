@@ -66,18 +66,6 @@ class OpenoltGrpc(object):
             else:
                 self.log.debug("openolt grpc rx indication", indication=ind)
 
-                if self.device.admin_state is "down":
-                    if ind.HasField('intf_oper_ind') \
-                            and (ind.intf_oper_ind.type == "nni"):
-                        self.log.warn('olt is admin down, allow nni ind',
-                                      admin_state=self.device.admin_state,
-                                      indications=ind)
-                    else:
-                        self.log.warn('olt is admin down, ignore indication',
-                                      admin_state=self.admin_state,
-                                      indications=ind)
-                        continue
-
                 topic = 'openolt.ind-{}'.format(
                     self.device.host_and_port.split(':')[0])
                 kafka_send_pb(topic, ind)

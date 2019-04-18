@@ -54,6 +54,18 @@ class OpenoltIndications(object):
 
         self.log.debug("received openolt indication", ind=ind)
 
+        if self.device.admin_state is "down":
+            if ind.HasField('intf_oper_ind') \
+                    and (ind.intf_oper_ind.type == "nni"):
+                self.log.warn('olt is admin down, allow nni ind',
+                              admin_state=self.device.admin_state,
+                              indications=ind)
+            else:
+                self.log.warn('olt is admin down, ignore indication',
+                              admin_state=self.device.admin_state,
+                              indications=ind)
+                return
+
         # indication handlers run in the main event loop
         if ind.HasField('olt_ind'):
             reactor.callFromThread(self.device.olt_indication, ind.olt_ind)
