@@ -292,7 +292,8 @@ class PerformanceIntervals(object):
             self._add_pm_me[key] = entry
 
             if self._add_me_deferred is None:
-                self._add_me_deferred = reactor.callLater(0, self.add_me)
+                if self.state == 'idle':
+                    self._add_me_deferred = reactor.callLater(0, self.add_me)
 
         if (pm_class_id, pm_entity_id) in self._del_pm_me:
             self._del_pm_me.remove((pm_class_id, pm_entity_id))

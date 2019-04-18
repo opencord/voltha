@@ -1025,7 +1025,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 for (ingress, egress), route in self._routes.iteritems():
                     if egress == self._nni_logical_port_no:
                         return [route[1], route[1]]
-                raise Exception('not a single upstream route')
+                # raise Exception('not a single upstream route')
+                self.log.warn('not a single upstream route')
+                return None
             # for a trap flow from the UNI, treat it as if the output port
             # is the NNI of the OLT
             egress_port_no = self._nni_logical_port_no
@@ -1041,7 +1043,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             for (ingress, egress), route in self._routes.iteritems():
                 if egress == self._nni_logical_port_no:
                     return [None, route[1]]
-            raise Exception('not a single upstream route')
+            # raise Exception('not a single upstream route')
+            self.log.warn('not a single upstream route')
+            return None
 
         # If egress_port is not specified (None), we can also can return a
         # "half" route

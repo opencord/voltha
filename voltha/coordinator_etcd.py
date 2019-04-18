@@ -21,6 +21,7 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 from txaioetcd import Client, KeySet, Transaction, CompVersion, OpGet, OpSet, Failed
 from zope.interface import implementer
+from twisted.internet.error import DNSLookupError
 
 from leader import Leader
 from common.utils.asleep import asleep
@@ -207,7 +208,7 @@ class CoordinatorEtcd(object):
         wait_time = self.RETRY_BACKOFF[min(self.retries,
                                            len(self.RETRY_BACKOFF) - 1)]
         self.retries += 1
-        log.error(msg, retry_in=wait_time)
+        log.warn(msg, retry_in=wait_time)
         return asleep(wait_time)
 
     def _clear_backoff(self):
@@ -435,7 +436,7 @@ class CoordinatorEtcd(object):
                 yield self._assert_nonleadership(leader)
 
         except Exception as e:
-            log.exception('unexpected-error-leader-tracking', e=e)
+            log.warn('unexpected-error-leader-tracking', e=e)
 
         finally:
             # Except in shutdown, the loop must continue (after a short delay)
@@ -563,6 +564,10 @@ class CoordinatorEtcd(object):
                     result = yield operation(*args, **kw)
                 self._clear_backoff()
                 break
+            except DNSLookupError, e:
+                log.warn('dns-lookup-failed', operation=operation, args=args,
+                         reason=e)
+                yield self._backoff('dns-lookup-failed')
             except Exception as e:
                 if not self.shutting_down:
                     log.exception(e)
