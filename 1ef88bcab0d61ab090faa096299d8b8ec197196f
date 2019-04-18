@@ -16,6 +16,24 @@
       "revId": "1ef88bcab0d61ab090faa096299d8b8ec197196f",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bee42f53_7eababd6",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 960,
+      "author": {
+        "id": 1000010
+      },
+      "writtenOn": "2019-04-18T14:07:55Z",
+      "side": 0,
+      "message": "It\u0027s for 1.x.  I believe my changes only affect the OLT disable/re-enable sequence.  The logical device still gets created when the OLT is first activated.",
+      "parentUuid": "a70c89d6_43c11592",
+      "revId": "1ef88bcab0d61ab090faa096299d8b8ec197196f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
