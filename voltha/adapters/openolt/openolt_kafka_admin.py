@@ -87,9 +87,9 @@ def kafka_delete_topics(a, topics, timeout=30):
     for topic, f in fs.items():
         try:
             f.result()  # The result itself is None
-            print("Topic {} deleted".format(topic))
+            log.info("Topic {} deleted".format(topic))
         except Exception as e:
-            print("Failed to delete topic {}: {}".format(topic, e))
+            log.error("Failed to delete topic {}: {}".format(topic, e))
 
 
 def kafka_create_partitions(a, topics):
@@ -106,9 +106,9 @@ def kafka_create_partitions(a, topics):
     for topic, f in fs.items():
         try:
             f.result()  # The result itself is None
-            print("Additional partitions created for topic {}".format(topic))
+            log.info("Additional partitions created for topic {}".format(topic))
         except Exception as e:
-            print("Failed to add partitions to topic {}: {}".format(topic, e))
+            log.error("Failed to add partitions to topic {}: {}".format(topic, e))
 
 
 def print_config(config, depth):

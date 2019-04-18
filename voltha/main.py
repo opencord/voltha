@@ -541,7 +541,7 @@ class Main(object):
                     self.log.debug('start-kafka-heartbeat')
                     kafka_proxy.send_message(topic, dumps(message))
                 else:
-                    self.log.error('kafka-proxy-unavailable')
+                    self.log.warn('kafka-proxy-unavailable')
             except Exception, e:
                 self.log.exception('failed-sending-message-heartbeat', e=e)
 
