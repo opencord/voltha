@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a70c89d6_43c11592",
+        "filename": "voltha/adapters/ponsim_olt/ponsim_olt.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 960,
+      "author": {
+        "id": 1000056
+      },
+      "writtenOn": "2019-04-18T14:03:47Z",
+      "side": 0,
+      "message": "Is this change done for 1.x or 2.0?   In 1.x you still need to have logical device creation in the adapters.",
+      "revId": "1ef88bcab0d61ab090faa096299d8b8ec197196f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
