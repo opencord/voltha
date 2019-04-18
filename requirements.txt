@@ -62,10 +62,5 @@ etcd3==0.7.0
 pyparsing==2.2.0
 packaging==17.1
 pexpect==4.6.0
-
-# python-consul>=0.6.1  we need the pre-released version for now, because 0.6.1 does not
-# yet support Twisted. Once this is released, it will be the 0.6.2 version
-git+https://github.com/cablehead/python-consul.git
-
-# Twisted Python kafka client
-git+https://github.com/ciena/afkak.git
+python-consul==1.1.0
+afkak==2.9.0
