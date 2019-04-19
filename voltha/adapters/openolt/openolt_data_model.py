@@ -222,7 +222,7 @@ class OpenOltDataModel(object):
         except Exception as e:
             self.log.error('logical_port delete error', error=e)
         try:
-            self.delete_port(onu_device.serial_number)
+            self.__delete_port(onu_device.serial_number)
         except Exception as e:
             self.log.error('port delete error', error=e)
 
@@ -505,6 +505,17 @@ class OpenOltDataModel(object):
                     child_device, logical_port)
                 self.adapter_agent.delete_logical_port(
                     self.logical_device_id, logical_port)
+                return
+
+    def __delete_port(self, serial_number):
+        ports = self.proxy.get('/devices/{}/ports'.format(
+            self.device_id))
+        for port in ports:
+            if port.label == serial_number:
+                self.log.debug('delete-port',
+                               onu_serial_number=serial_number,
+                               port=port)
+                self.adapter_agent.delete_port(self.device_id, port)
                 return
 
     def __onu_ports_down(self, onu_device):
