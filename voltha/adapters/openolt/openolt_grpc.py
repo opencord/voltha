@@ -17,7 +17,6 @@
 import structlog
 import grpc
 import threading
-from twisted.internet import reactor
 from voltha.northbound.kafka.kafka_proxy import kafka_send_pb
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 
@@ -54,14 +53,18 @@ class OpenoltGrpc(object):
 
         self.indications = self.stub.EnableIndication(openolt_pb2.Empty())
 
+        topic = 'openolt.ind-{}'.format(
+            self.device.host_and_port.split(':')[0])
+
         while True:
             try:
                 # get the next indication from olt
                 ind = next(self.indications)
             except Exception as e:
                 self.log.warn('openolt grpc connection lost', error=e)
-                reactor.callFromThread(self.device.go_state_down)
-                reactor.callFromThread(self.device.go_state_init)
+                ind = openolt_pb2.Indication()
+                ind.olt_ind.oper_state = 'down'
+                kafka_send_pb(topic, ind)
                 break
             else:
                 self.log.debug("openolt grpc rx indication", indication=ind)

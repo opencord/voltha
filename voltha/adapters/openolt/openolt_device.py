@@ -172,6 +172,7 @@ class OpenoltDevice(object):
     def post_down(self, event):
         self.log.debug('post_down')
         self.flow_mgr.reset_flows()
+        self.go_state_init()
 
     def olt_indication(self, olt_indication):
         if olt_indication.oper_state == "up":
