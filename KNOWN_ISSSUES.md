@@ -1,5 +1,5 @@
 
-## `matching-onu-port-label-invalid` error
+### `matching-onu-port-label-invalid` error
 This happens after olt is rebooted.
 
 ```
@@ -26,9 +26,13 @@ device_id: "0001f2c9e5b98ce4"
 }
 ```
 
-## `rx-in-invalid-state` error message in mib_sync.on_set_response
+### `rx-in-invalid-state` error message in mib_sync.on_set_response
 This happens after olt is rebooted.
 
 ```
 64988 20190419T230147.166 ERROR    MainThread mib_sync.on_set_response {'instance_id': 'vcore-0_1555714355', 'vcore_id': '0001', '      state': 'uploading', 'event': 'rx-in-invalid-state', 'device_id': '0001f9e07f8ee9e3'}
 ```
+
+### Eapol flow not added after olt reboot
+
+20190419T234544.680 DEBUG    MainThread openolt_flow_mgr.add_eapol_flow {'instance_id': 'vcore-0_1555716854', 'ip': '10.90.0.122:9191', 'event': 'flow-exists--not-re-adding', 'vcore_id': '0001'}
