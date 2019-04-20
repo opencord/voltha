@@ -439,7 +439,7 @@ class OpenoltDevice(object):
                 serial_number=serial_number)
             self._grpc.stub.DeleteOnu(onu)
         except Exception as e:
-            self.log.exception("error-deleting-the-onu-on-olt-device", error=e)
+            self.log.warn("error-deleting-the-onu-on-olt-device", error=e)
 
     def reboot(self):
         self.log.debug('rebooting openolt device')
