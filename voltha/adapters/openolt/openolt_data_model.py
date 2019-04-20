@@ -220,14 +220,16 @@ class OpenOltDataModel(object):
         self._onu_serial_numbers[serial_number] = onu_info
 
     def onu_delete(self, serial_number):
+        self.log.debug('onu_delete', serial_number=serial_number)
         onu_device = self.adapter_agent.get_child_device(
             self.device.id,
             serial_number=serial_number)
-        try:
+        if onu_device is not None:
             self.adapter_agent.delete_child_device(self.device.id,
                                                    onu_device.id, onu_device)
-        except Exception as e:
-            self.log.error('adapter_agent error', error=e)
+        else:
+            self.log.warn('onu not found', serial_number=serial_number)
+            return
 
         try:
             self.__delete_logical_port(onu_device)
