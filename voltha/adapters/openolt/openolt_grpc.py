@@ -18,18 +18,16 @@ import sys
 import structlog
 import grpc
 import threading
-from structlog import get_logger
 
-from voltha.northbound.kafka.kafka_proxy import kafka_send_pb
+from voltha.adapters.openolt.openolt_kafka_producer import kafka_send_pb
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 
-log = get_logger()
+log = structlog.get_logger()
 
 
 class OpenoltGrpc(object):
     def __init__(self, host_and_port, device):
         super(OpenoltGrpc, self).__init__()
-        self.log = structlog.get_logger()
         log.debug('openolt grpc init')
         self.device = device
         self.host_and_port = host_and_port

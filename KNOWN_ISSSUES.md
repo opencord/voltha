@@ -1,5 +1,6 @@
 
-### `matching-onu-port-label-invalid` error
+### matching-onu-port-label-invalid
+
 This happens after olt is rebooted.
 
 ```
@@ -26,7 +27,8 @@ device_id: "0001f2c9e5b98ce4"
 }
 ```
 
-### `rx-in-invalid-state` error message in mib_sync.on_set_response
+### rx-in-invalid-state
+
 This happens after olt is rebooted.
 
 ```
@@ -36,3 +38,17 @@ This happens after olt is rebooted.
 ### Eapol flow not added after olt reboot
 
 20190419T234544.680 DEBUG    MainThread openolt_flow_mgr.add_eapol_flow {'instance_id': 'vcore-0_1555716854', 'ip': '10.90.0.122:9191', 'event': 'flow-exists--not-re-adding', 'vcore_id': '0001'}
+
+### coordinator_etcd._retry
+
+Happens at startup
+```
+20190420T012854.182 ERROR    MainThread coordinator_etcd._retry {'instance_id': 'vcore-0', 'exception': 'Traceback (most recent call last):\n  File "/voltha/voltha/coordinator_etcd.py", line 564, in _retry\n    result = yield operation(*args, **kw)\nConnectionRefusedError: Connection was refused by other side: 111: Connection refused.', 'event': ConnectionRefusedError('Connection refused',)}
+```
+
+### coordinator_etcd._get
+
+Happens at startup
+```
+20190420T012915.020 ERROR    MainThread coordinator_etcd._get {'instance_id': 'vcore-0', 'exception': 'Traceback (most recent call last):\n  File "/voltha/voltha/coordinator_etcd.py", line 605, in _get\n    (index, result) = yield self._retry(\'GET\', key, **kw)\n  File "/usr/local/lib/python2.7/dist-packages/twisted/internet/defer.py", line 1386, in _inlineCallbacks\n    result = g.send(result)\n  File "/voltha/voltha/coordinator_etcd.py", line 577, in _retry\n    returnValue(result)\nUnboundLocalError: local variable \'result\' referenced before assignment', 'e': UnboundLocalError("local variable 'result' referenced before assignment",), 'event': 'got-exception'}
+```
