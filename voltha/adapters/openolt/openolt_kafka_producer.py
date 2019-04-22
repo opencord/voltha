@@ -25,7 +25,7 @@ log = get_logger()
 def kafka_send_pb(topic, msg):
     try:
         log.debug('send protobuf to kafka', topic=topic, msg=msg)
-        kafka_proxy = registry('kafka_proxy')
+        kafka_proxy = registry('openolt_kafka_proxy')
         if kafka_proxy and not kafka_proxy.is_faulty():
             log.debug('kafka-proxy-available')
             kafka_proxy.send_message(

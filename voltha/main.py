@@ -42,6 +42,7 @@ from voltha.core.config.config_backend import load_backend
 from voltha.northbound.diagnostics import Diagnostics
 from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
 from voltha.northbound.kafka.kafka_proxy import KafkaProxy
+from voltha.adapters.openolt.openolt_kafka_proxy import OpenoltKafkaProxy
 from voltha.northbound.rest.health_check import init_rest_service
 from voltha.protos.common_pb2 import LogLevel
 from voltha.registry import registry, IComponent
@@ -435,6 +436,11 @@ class Main(object):
                     self.args.kafka,
                     config=self.config.get('kafka-proxy', {})
                 )
+            ).start()
+
+            yield registry.register(
+                'openolt_kafka_proxy',
+                OpenoltKafkaProxy(self.args.kafka)
             ).start()
 
             yield registry.register(
