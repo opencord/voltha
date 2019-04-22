@@ -19,8 +19,10 @@ import structlog
 import grpc
 import threading
 
+from voltha.registry import registry
 from voltha.adapters.openolt.openolt_kafka_producer import kafka_send_pb
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
+from voltha.adapters.openolt.openolt_kafka_proxy import OpenoltKafkaProxy
 
 log = structlog.get_logger()
 
@@ -79,4 +81,9 @@ if __name__ == '__main__':
     broker = sys.argv[1]
     host = sys.argv[2]
 
-    process_indications(broker, host)
+    kafka_proxy = registry.register(
+        'openolt_kafka_proxy',
+        OpenoltKafkaProxy(broker)
+    ).start()
+
+    process_indications(host)
