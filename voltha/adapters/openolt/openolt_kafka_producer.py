@@ -17,7 +17,7 @@
 from structlog import get_logger
 from simplejson import dumps
 from google.protobuf.json_format import MessageToJson
-from voltha.northbound.kafka.kafka_proxy import get_kafka_proxy
+from voltha.registry import registry
 
 log = get_logger()
 
@@ -25,7 +25,7 @@ log = get_logger()
 def kafka_send_pb(topic, msg):
     try:
         log.debug('send protobuf to kafka', topic=topic, msg=msg)
-        kafka_proxy = get_kafka_proxy()
+        kafka_proxy = registry('kafka_proxy')
         if kafka_proxy and not kafka_proxy.is_faulty():
             log.debug('kafka-proxy-available')
             kafka_proxy.send_message(
