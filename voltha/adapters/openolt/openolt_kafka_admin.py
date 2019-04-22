@@ -19,22 +19,24 @@
 # Example Admin clients.
 #
 
-from confluent_kafka.admin import AdminClient, NewTopic, NewPartitions, ConfigResource, ConfigSource
+from confluent_kafka.admin import AdminClient, NewTopic, NewPartitions, \
+    ConfigResource, ConfigSource
 from confluent_kafka import KafkaException
 import sys
 import threading
 import logging
 from structlog import get_logger
 
-from voltha.northbound.kafka.kafka_proxy import get_kafka_proxy
+from voltha.registry import registry
 
 logging.basicConfig()
 
 log = get_logger()
 
+
 class KAdmin(object):
     def __init__(self):
-        kafka_proxy = get_kafka_proxy()
+        kafka_proxy = registry('kafka_proxy')
         if kafka_proxy and not kafka_proxy.is_faulty():
             kafka_endpoint = kafka_proxy.kafka_endpoint
             log.debug('kafka-proxy-available', endpoint=kafka_endpoint)

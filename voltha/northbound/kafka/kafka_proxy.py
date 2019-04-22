@@ -331,8 +331,3 @@ class KafkaProxy(object):
 
     def is_faulty(self):
         return self.faulty
-
-
-# Common method to get the singleton instance of the kafka proxy class
-def get_kafka_proxy():
-    return KafkaProxy._kafka_instance

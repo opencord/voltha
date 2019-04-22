@@ -41,7 +41,7 @@ from voltha.core.core import VolthaCore
 from voltha.core.config.config_backend import load_backend
 from voltha.northbound.diagnostics import Diagnostics
 from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
-from voltha.northbound.kafka.kafka_proxy import KafkaProxy, get_kafka_proxy
+from voltha.northbound.kafka.kafka_proxy import KafkaProxy
 from voltha.northbound.rest.health_check import init_rest_service
 from voltha.protos.common_pb2 import LogLevel
 from voltha.registry import registry, IComponent
@@ -534,16 +534,21 @@ class Main(object):
 
         def send_msg():
             try:
-                kafka_proxy = get_kafka_proxy()
+                kafka_proxy = registry('kafka_proxy')
+            except KeyError as e:
+                self.log.warn('kafka-proxy-unavailable')
+            else:
                 if kafka_proxy and not kafka_proxy.is_faulty():
                     self.log.debug('kafka-proxy-available')
                     message['ts'] = arrow.utcnow().timestamp
                     self.log.debug('start-kafka-heartbeat')
-                    kafka_proxy.send_message(topic, dumps(message))
+                    try:
+                        kafka_proxy.send_message(topic, dumps(message))
+                    except Exception, e:
+                        self.log.exception('failed-sending-message-heartbeat',
+                                           e=e)
                 else:
                     self.log.warn('kafka-proxy-unavailable')
-            except Exception, e:
-                self.log.exception('failed-sending-message-heartbeat', e=e)
 
         try:
             lc = LoopingCall(send_msg)
