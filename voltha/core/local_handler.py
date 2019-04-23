@@ -41,7 +41,7 @@ from voltha.protos.omci_mib_db_pb2 import MibDeviceData
 from voltha.protos.omci_alarm_db_pb2 import AlarmDeviceData
 from requests.api import request
 from common.utils.asleep import asleep
-from voltha.adapters.openolt.openolt_kafka_producer import kafka_send_pb
+from voltha.adapters.openolt.openolt_kafka_proxy import kafka_send_pb
 
 log = structlog.get_logger()
 
