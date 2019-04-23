@@ -64,7 +64,10 @@ class OpenoltKafkaProxy(object):
         self.kproducer = Producer(**conf)
 
     def send_message(self, topic, msg, key=None):
-        self.kproducer.produce(topic, msg)
+        try:
+            self.kproducer.produce(topic, msg)
+        except BufferError:
+            log.error('Local producer queue is full')
 
     def is_faulty(self):
         return self.faulty
