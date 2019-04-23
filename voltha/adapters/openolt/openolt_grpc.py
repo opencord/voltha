@@ -20,9 +20,9 @@ import grpc
 import threading
 
 from voltha.registry import registry
-from voltha.adapters.openolt.openolt_kafka_producer import kafka_send_pb
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
-from voltha.adapters.openolt.openolt_kafka_proxy import OpenoltKafkaProxy
+from voltha.adapters.openolt.openolt_kafka_proxy import OpenoltKafkaProxy, \
+    kafka_send_pb
 
 log = structlog.get_logger()
 
