@@ -759,6 +759,7 @@ class PonSimOltHandler(object):
         dhcp_upstream_flows = {}
         eapol_flows = {}
         secondary_flows = []
+        eapol_flow_without_vlan = False
 
         for flow in flows:
             classifier_info = {}
@@ -811,11 +812,27 @@ class PonSimOltHandler(object):
                     self.to_controller(flow)
                     if VLAN_VID in classifier_info:
                         eapol_flows[classifier_info[VLAN_VID]] = flow
+                    else:
+                        eapol_flow_without_vlan = True
 
             self.log.info('out_port', out_port=fd.get_out_port(flow))
 
         flows.extend(self.create_secondary_flows(dhcp_upstream_flows, flows, "DHCP"))
         flows.extend(self.create_secondary_flows(eapol_flows, flows, "EAPOL"))
+
+        # The OLT app is now adding EAPOL flows with VLAN_VID=4091 but Ponsim can't
+        # properly handle this because it uses VLAN_VID to encode the UNI port ID.
+        # Add an EAPOL trap flow with no VLAN_VID match if we see the 4091 match.
+        if 4091 in eapol_flows and not eapol_flow_without_vlan:
+            new_eapol_flow = [
+                fd.mk_flow_stat(
+                    priority=10000,
+                    match_fields=[fd.in_port(1), fd.eth_type(EAP_ETH_TYPE)],
+                    actions=[fd.output(ofp.OFPP_CONTROLLER)]
+                )
+            ]
+            flows.extend(new_eapol_flow)
+            self.log.info('add eapol flow with no VLAN_VID match')
 
         self.log.debug('ctag_map', ctag_map=self.ctag_map)
 
