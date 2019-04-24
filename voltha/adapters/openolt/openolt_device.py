@@ -16,12 +16,13 @@
 import binascii
 import structlog
 import time
+import grpc
 from scapy.layers.l2 import Ether, Dot1Q
 from transitions import Machine
 from twisted.internet import reactor
 
 from voltha.protos.device_pb2 import Port
-from voltha.adapters.openolt.protos import openolt_pb2
+from voltha.adapters.openolt.protos import openolt_pb2, openolt_pb2_grpc
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.adapters.openolt.openolt_grpc import OpenoltGrpc
 from voltha.adapters.openolt.openolt_indications import OpenoltIndications
@@ -109,6 +110,10 @@ class OpenoltDevice(object):
         self._kadmin = KAdmin()
         self._kadmin.delete_topics([
             'openolt.ind-{}'.format(self.host_and_port.split(':')[0])])
+
+        channel = grpc.insecure_channel(self.host_and_port)
+        self.stub = openolt_pb2_grpc.OpenoltStub(channel)
+
         self._grpc = None
         self.go_state_init()
 
@@ -147,7 +152,7 @@ class OpenoltDevice(object):
                                                     self.host_and_port,
                                                     self.extra_args,
                                                     self.device_info)
-        self.flow_mgr = self.flow_mgr_class(self.log, self._grpc.stub,
+        self.flow_mgr = self.flow_mgr_class(self.log, self.stub,
                                             self.device_id,
                                             self.data_model.logical_device_id,
                                             self.platform, self.resource_mgr,
@@ -312,7 +317,7 @@ class OpenoltDevice(object):
                 port_no=egress_port,
                 pkt=send_pkt)
 
-            self._grpc.stub.OnuPacketOut(onu_pkt)
+            self.stub.OnuPacketOut(onu_pkt)
 
         elif egress_port_type == Port.ETHERNET_NNI:
             self.log.debug('sending-packet-to-uplink', egress_port=egress_port,
@@ -324,7 +329,7 @@ class OpenoltDevice(object):
                 intf_id=self.platform.intf_id_from_nni_port_num(egress_port),
                 pkt=send_pkt)
 
-            self._grpc.stub.UplinkPacketOut(uplink_pkt)
+            self.stub.UplinkPacketOut(uplink_pkt)
 
         else:
             self.log.warn('Packet-out-to-this-interface-type-not-implemented',
@@ -334,7 +339,7 @@ class OpenoltDevice(object):
     def send_proxied_message(self, proxy_address, msg):
         omci = openolt_pb2.OmciMsg(intf_id=proxy_address.channel_id,
                                    onu_id=proxy_address.onu_id, pkt=str(msg))
-        reactor.callInThread(self._grpc.stub.OmciMsgOut, omci)
+        reactor.callInThread(self.stub.OmciMsgOut, omci)
 
     def update_flow_table(self, flows):
         self.log.debug('No updates here now, all is done in logical flows '
@@ -356,7 +361,7 @@ class OpenoltDevice(object):
 
         try:
             # Send grpc call
-            self._grpc.stub.DisableOlt(openolt_pb2.Empty())
+            self.stub.DisableOlt(openolt_pb2.Empty())
             self.admin_state = "down"
             self.log.info('openolt device disabled')
         except Exception as e:
@@ -383,7 +388,7 @@ class OpenoltDevice(object):
         self.log.debug('reenabling-olt')
 
         try:
-            self._grpc.stub.ReenableOlt(openolt_pb2.Empty())
+            self.stub.ReenableOlt(openolt_pb2.Empty())
         except Exception as e:
             self.log.error('Failure to reenable openolt device', error=e)
         else:
@@ -399,7 +404,7 @@ class OpenoltDevice(object):
                               serial_number=serial_number)
 
         self.log.info('activating onu', serial_number=serial_number_str)
-        reactor.callInThread(self._grpc.stub.ActivateOnu, onu)
+        reactor.callInThread(self.stub.ActivateOnu, onu)
 
     # FIXME - instead of passing child_device around, delete_child_device
     # needs to change to use serial_number.
@@ -437,14 +442,14 @@ class OpenoltDevice(object):
                 intf_id=child_device.proxy_address.channel_id,
                 onu_id=child_device.proxy_address.onu_id,
                 serial_number=serial_number)
-            self._grpc.stub.DeleteOnu(onu)
+            self.stub.DeleteOnu(onu)
         except Exception as e:
             self.log.warn("error-deleting-the-onu-on-olt-device", error=e)
 
     def reboot(self):
         self.log.debug('rebooting openolt device')
         try:
-            self._grpc.stub.Reboot(openolt_pb2.Empty())
+            self.stub.Reboot(openolt_pb2.Empty())
         except Exception as e:
             self.log.error('something went wrong with the reboot', error=e)
         else:
@@ -452,7 +457,7 @@ class OpenoltDevice(object):
 
     def trigger_statistics_collection(self):
         try:
-            self._grpc.stub.CollectStatistics(openolt_pb2.Empty())
+            self.stub.CollectStatistics(openolt_pb2.Empty())
         except Exception as e:
             self.log.error('Error while triggering statistics collection',
                            error=e)
@@ -470,7 +475,7 @@ class OpenoltDevice(object):
         while True:
             try:
                 self.device_info \
-                    = self._grpc.stub.GetDeviceInfo(openolt_pb2.Empty())
+                    = self.stub.GetDeviceInfo(openolt_pb2.Empty())
                 break
             except Exception as e:
                 if delay > timeout:
