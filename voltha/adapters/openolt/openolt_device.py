@@ -13,18 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import binascii
 import structlog
 import time
+import subprocess
 import grpc
 from scapy.layers.l2 import Ether, Dot1Q
 from transitions import Machine
 from twisted.internet import reactor
 
+from voltha.registry import registry
 from voltha.protos.device_pb2 import Port
 from voltha.adapters.openolt.protos import openolt_pb2, openolt_pb2_grpc
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
-from voltha.adapters.openolt.openolt_grpc import OpenoltGrpc
 from voltha.adapters.openolt.openolt_indications import OpenoltIndications
 from voltha.adapters.openolt.openolt_packet import OpenoltPacket
 from voltha.adapters.openolt.openolt_kafka_admin import KAdmin
@@ -111,6 +113,7 @@ class OpenoltDevice(object):
         self._kadmin.delete_topics([
             'openolt.ind-{}'.format(self.host_and_port.split(':')[0])])
 
+        self.broker = registry('openolt_kafka_proxy').kafka_endpoint
         channel = grpc.insecure_channel(self.host_and_port)
         self.stub = openolt_pb2_grpc.OpenoltStub(channel)
 
@@ -127,8 +130,6 @@ class OpenoltDevice(object):
 
         # FIXME
         time.sleep(10)
-
-        self._grpc = OpenoltGrpc(self.host_and_port, self)
 
         reactor.callInThread(self.get_device_info)
 
@@ -164,7 +165,13 @@ class OpenoltDevice(object):
                                               self.data_model)
 
     def post_connected(self, event):
-        self._grpc.start()
+        # FIXME - better way that avoids absolute paths?
+        self._grpc = subprocess.Popen(
+            ['python',
+             'voltha/voltha/adapters/openolt/openolt_grpc.py',
+             self.broker,
+             self.host_and_port],
+            env={'PYTHONPATH': '/voltha:/voltha/voltha/protos/third_party'})
 
     def do_state_up(self, event):
         self.log.debug("do_state_up")

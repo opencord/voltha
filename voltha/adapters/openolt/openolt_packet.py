@@ -115,7 +115,7 @@ class OpenoltPacket(object):
                 port_no=egress_port,
                 pkt=send_pkt)
 
-            self.device._grpc.stub.OnuPacketOut(onu_pkt)
+            self.device.stub.OnuPacketOut(onu_pkt)
 
         elif egress_port_type == Port.ETHERNET_NNI:
             self.log.debug('sending-packet-to-uplink', egress_port=egress_port,
@@ -128,7 +128,7 @@ class OpenoltPacket(object):
                     egress_port),
                 pkt=send_pkt)
 
-            self.device._grpc.stub.UplinkPacketOut(uplink_pkt)
+            self.device.stub.UplinkPacketOut(uplink_pkt)
 
         else:
             self.log.warn('Packet-out-to-this-interface-type-not-implemented',
