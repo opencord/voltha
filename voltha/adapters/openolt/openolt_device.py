@@ -379,6 +379,9 @@ class OpenoltDevice(object):
     def delete(self):
         self.log.info('deleting-olt')
 
+        # Terminate the grpc subprocess
+        self._grpc.terminate()
+
         # Clears up the data from the resource manager KV store
         # for the device
         del self.resource_mgr
