@@ -15,16 +15,16 @@
 #
 
 import sys
-import structlog
+import time
+import yaml
 import grpc
 import threading
 
+from common.structlog_setup import setup_logging
 from voltha.registry import registry
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
 from voltha.adapters.openolt.openolt_kafka_proxy import OpenoltKafkaProxy, \
     kafka_send_pb
-
-log = structlog.get_logger()
 
 
 class OpenoltGrpc(object):
@@ -69,7 +69,7 @@ def process_indications(host_and_port):
             kafka_send_pb(topic, ind)
             break
         else:
-            # log.debug("openolt grpc rx indication", indication=ind)
+            log.info("openolt grpc rx indication", indication=ind)
             kafka_send_pb(topic, ind)
 
 
@@ -81,9 +81,16 @@ if __name__ == '__main__':
     broker = sys.argv[1]
     host = sys.argv[2]
 
+    log = setup_logging(yaml.load(open('./logconfig.yml', 'r')),
+                        host,
+                        verbosity_adjust=0,
+                        cache_on_use=True)
+
     kafka_proxy = registry.register(
         'openolt_kafka_proxy',
         OpenoltKafkaProxy(broker)
     ).start()
 
-    process_indications(host)
+    while True:
+        process_indications(host)
+        time.sleep(5)
