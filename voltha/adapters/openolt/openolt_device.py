@@ -168,10 +168,12 @@ class OpenoltDevice(object):
         # FIXME - better way that avoids absolute paths?
         self._grpc = subprocess.Popen(
             ['python',
-             'voltha/voltha/adapters/openolt/grpc/openolt_grpc.py',
+             'openolt_grpc.py',
              self.broker,
              self.host_and_port],
-            env={'PYTHONPATH': '/voltha:/voltha/voltha/protos/third_party'})
+            env={'PYTHONPATH': '/voltha:/voltha/voltha/protos/third_party'},
+            cwd='/voltha/voltha/adapters/openolt/grpc',
+        )
 
     def do_state_up(self, event):
         self.log.debug("do_state_up")
