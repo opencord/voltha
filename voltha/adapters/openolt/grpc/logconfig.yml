@@ -30,7 +30,7 @@ handlers:
     stream: ext://sys.stdout
   localRotatingFile:
     class: logging.handlers.RotatingFileHandler
-    filename: /var/log/openolt_grpc.log
+    filename: openolt_grpc.log
     formatter: default
     maxBytes: 2097152
     backupCount: 10
