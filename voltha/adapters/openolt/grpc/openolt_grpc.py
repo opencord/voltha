@@ -69,7 +69,7 @@ def process_indications(host_and_port):
             kafka_send_pb(topic, ind)
             break
         else:
-            log.info("openolt grpc rx indication", indication=ind)
+            log.debug("openolt grpc rx indication", indication=ind)
             kafka_send_pb(topic, ind)
 
 
