@@ -6,12 +6,6 @@ package voltha;
 
 import "google/protobuf/empty.proto";
 import "openflow_13.proto";
-import "bbf_fiber_base.proto";
-import "bbf_fiber_gemport_body.proto";
-import "bbf_fiber_multicast_distribution_set_body.proto";
-import "bbf_fiber_multicast_gemport_body.proto";
-import "bbf_fiber_tcont_body.proto";
-import "bbf_fiber_traffic_descriptor_profile_body.proto";
 
 message PonSimOnuDeviceInfo {
     int32 uni_port = 1;
@@ -53,32 +47,6 @@ message PonSimMetricsRequest {
     int32 port = 1;
 }
 
-message TcontInterfaceConfig {
-    bbf_fiber.TrafficDescriptorProfileData
-        traffic_descriptor_profile_config_data = 1;
-    bbf_fiber.TcontsConfigData tconts_config_data = 2;
-}
-
-message InterfaceConfig {
-    oneof interface_type {
-        bbf_fiber.ChannelgroupConfig channel_group_config = 1;
-        bbf_fiber.ChannelpartitionConfig channel_partition_config = 2;
-        bbf_fiber.ChannelpairConfig channel_pair_config = 3;
-        bbf_fiber.ChannelterminationConfig channel_termination_config = 4;
-        bbf_fiber.OntaniConfig ont_ani_config = 5;
-        bbf_fiber.VOntaniConfig vont_ani_config = 6;
-        bbf_fiber.VEnetConfig venet_config = 7;
-        bbf_fiber.TrafficDescriptorProfileData
-            traffic_descriptor_profile_config_data = 8;
-        bbf_fiber.TcontsConfigData tconts_config_data = 9;
-        bbf_fiber.GemportsConfigData gemports_config_data = 10;
-        bbf_fiber.MulticastGemportsConfigData
-            multicast_gemports_config_data = 11;
-        bbf_fiber.MulticastDistributionSetData
-            multicast_distribution_set_data = 12;
-    }
-}
-
 service PonSim {
     rpc SendFrame(PonSimFrame)
         returns (google.protobuf.Empty) {}
@@ -95,52 +63,4 @@ service PonSim {
     rpc GetStats(PonSimMetricsRequest)
         returns(PonSimMetrics) {}
 
-}
-
-service XPonSim {
-
-    rpc CreateInterface(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc UpdateInterface(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc RemoveInterface(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc CreateTcont(TcontInterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc UpdateTcont(TcontInterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc RemoveTcont(TcontInterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc CreateGemport(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc UpdateGemport(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc RemoveGemport(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc CreateMulticastGemport(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc UpdateMulticastGemport(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc RemoveMulticastGemport(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc CreateMulticastDistributionSet(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc UpdateMulticastDistributionSet(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
-
-    rpc RemoveMulticastDistributionSet(InterfaceConfig)
-        returns(google.protobuf.Empty) {}
 }

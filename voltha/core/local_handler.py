@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 from Queue import Empty as QueueEmpty
-from uuid import uuid4
 
 import structlog
 from google.protobuf.empty_pb2 import Empty
@@ -31,16 +30,15 @@ from voltha.protos.voltha_pb2_grpc import \
 from voltha.protos.voltha_pb2 import \
     VolthaInstance, Adapters, LogicalDevices, LogicalDevice, Ports, \
     LogicalPort, LogicalPorts, Devices, Device, DeviceType, \
-    DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, ChangeEvent, \
-    AlarmFilter, AlarmFilters, SelfTestResponse, OfAgentSubscriber
-from voltha.protos.device_pb2 import PmConfigs, Images, ImageDownload, ImageDownloads
+    DeviceTypes, DeviceGroups, DeviceGroup, AdminState, OperStatus, \
+    ChangeEvent, AlarmFilter, AlarmFilters, SelfTestResponse, \
+    OfAgentSubscriber
+from voltha.protos.device_pb2 import PmConfigs, Images, ImageDownload, \
+    ImageDownloads
 from voltha.protos.common_pb2 import OperationResp, ConnectStatus
-from voltha.protos.bbf_fiber_base_pb2 import AllMulticastDistributionSetData, AllMulticastGemportsConfigData
 from voltha.registry import registry
 from voltha.protos.omci_mib_db_pb2 import MibDeviceData
 from voltha.protos.omci_alarm_db_pb2 import AlarmDeviceData
-from requests.api import request
-from common.utils.asleep import asleep
 from voltha.adapters.openolt.openolt_kafka_proxy import kafka_send_pb
 
 log = structlog.get_logger()
@@ -84,8 +82,6 @@ class LocalHandler(VolthaLocalServiceServicer):
         else:
             self.root = ConfigRoot(VolthaInstance(**self.init_kw))
 
-        self.core.xpon_handler.start(self.root)
-
         log.info('started')
         return self
 
@@ -94,7 +90,6 @@ class LocalHandler(VolthaLocalServiceServicer):
         registry('grpc_server').register(
             add_VolthaLocalServiceServicer_to_server, self)
         log.info('registered')
-
 
     def stop(self):
         log.debug('stopping')
@@ -208,10 +203,12 @@ class LocalHandler(VolthaLocalServiceServicer):
 
         try:
             return self.root.get(
-                '/logical_devices/{}/ports/{}'.format(request.id, request.port_id))
+                '/logical_devices/{}/ports/{}'.format(
+                    request.id, request.port_id))
         except KeyError:
             context.set_details(
-                'Logical port \'{}\' not found on device \'{}\''.format(request.port_id, request.id))
+                'Logical port \'{}\' not found on device \'{}\''.format(
+                    request.port_id, request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return LogicalPort()
 
@@ -380,7 +377,8 @@ class LocalHandler(VolthaLocalServiceServicer):
                 'Newly created device cannot be ' \
                 'in admin state \'{}\''.format(device.admin_state)
             assert device.WhichOneof("address") is not None, \
-                'Device must have one contact address e.g. MAC, IPv4, IPv6, H&P'
+                'Device must have one contact address \
+                e.g. MAC, IPv4, IPv6, H&P'
             error_message = 'Device with {} address \'{}\' already exists'
             for _device in known_devices:
                 if _device.HasField(device.WhichOneof("address")):
@@ -520,8 +518,8 @@ class LocalHandler(VolthaLocalServiceServicer):
             path = '/devices/{}'.format(request.id)
             device = self.root.get(path)
             assert isinstance(request, ImageDownload)
-            self.root.add('/devices/{}/image_downloads'.\
-                    format(request.id), request)
+            self.root.add('/devices/{}/image_downloads'.
+                          format(request.id), request)
             # assert device.admin_state == AdminState.ENABLED, \
             #     'Device to DOWNLOADING_IMAGE cannot be ' \
             #     'in admin state \'{}\''.format(device.admin_state)
@@ -562,13 +560,13 @@ class LocalHandler(VolthaLocalServiceServicer):
             path = '/devices/{}'.format(request.id)
             device = self.root.get(path)
             agent = self.core.get_device_agent(device.id)
-            img_dnld = self.root.get('/devices/{}/image_downloads/{}'.\
-                    format(request.id, request.name))
+            img_dnld = self.root.get('/devices/{}/image_downloads/{}'.
+                                     format(request.id, request.name))
             response = agent.get_image_download_status(img_dnld)
-            #try:
+            # try:
             #    response = self.root.get('/devices/{}/image_downloads/{}'.\
             #            format(request.id, request.name))
-            #except Exception as e:
+            # except Exception as e:
             #    log.exception(e.message)
             return response
 
@@ -595,8 +593,8 @@ class LocalHandler(VolthaLocalServiceServicer):
             return response
 
         try:
-            response = self.root.get('/devices/{}/image_downloads/{}'.\
-                    format(request.id, request.name))
+            response = self.root.get('/devices/{}/image_downloads/{}'.
+                                     format(request.id, request.name))
             return response
 
         except KeyError:
@@ -618,8 +616,8 @@ class LocalHandler(VolthaLocalServiceServicer):
             return response
 
         try:
-            response = self.root.get('/devices/{}/image_downloads'.\
-                    format(request.id))
+            response = self.root.get('/devices/{}/image_downloads'.
+                                     format(request.id))
             return ImageDownloads(items=response)
 
         except KeyError:
@@ -648,8 +646,9 @@ class LocalHandler(VolthaLocalServiceServicer):
             #     'in admin state \'{}\''.format(device.admin_state)
             agent = self.core.get_device_agent(device.id)
             agent.cancel_image_download(request)
-            self.root.remove('/devices/{}/image_downloads/{}'.format(request.id, request.name))
-            
+            self.root.remove('/devices/{}/image_downloads/{}'.
+                             format(request.id, request.name))
+
             return OperationResp(code=OperationResp.OPERATION_SUCCESS)
 
         except KeyError:
@@ -725,7 +724,8 @@ class LocalHandler(VolthaLocalServiceServicer):
         try:
             path = '/devices/{}'.format(request.id)
             device = self.root.get(path)
-            assert device.admin_state == AdminState.DISABLED or device.admin_state == AdminState.PREPROVISIONED, \
+            assert device.admin_state == AdminState.DISABLED \
+                or device.admin_state == AdminState.PREPROVISIONED, \
                 'Device to delete cannot be ' \
                 'in admin state \'{}\''.format(device.admin_state)
 
@@ -794,7 +794,6 @@ class LocalHandler(VolthaLocalServiceServicer):
             return Empty()
 
         try:
-            device = self.root.get('/devices/{}'.format(request.id))
             agent = self.core.get_device_agent(request.id)
             agent.update_device_pm_config(request)
             return Empty()
@@ -898,217 +897,6 @@ class LocalHandler(VolthaLocalServiceServicer):
             context.set_code(StatusCode.NOT_FOUND)
             return DeviceGroup()
 
-    # bbf_fiber rpcs start
-    @twisted_async
-    def GetAllChannelgroupConfig(self, request, context):
-        return self.core.xpon_handler.get_all_channel_group_config(
-            request, context)
-
-    @twisted_async
-    def CreateChannelgroup(self, request, context):
-        return self.core.xpon_handler.create_channel_group(request, context)
-
-    @twisted_async
-    def UpdateChannelgroup(self, request, context):
-        return self.core.xpon_handler.update_channel_group(request, context)
-
-    @twisted_async
-    def DeleteChannelgroup(self, request, context):
-        return self.core.xpon_handler.delete_channel_group(request, context)
-
-    @twisted_async
-    def GetAllChannelpartitionConfig(self, request, context):
-        return self.core.xpon_handler.get_all_channel_partition_config(
-            request, context)
-
-    @twisted_async
-    def CreateChannelpartition(self, request, context):
-        return self.core.xpon_handler.create_channel_partition(
-            request, context)
-
-    @twisted_async
-    def UpdateChannelpartition(self, request, context):
-        return self.core.xpon_handler.update_channel_partition(
-            request, context)
-
-    @twisted_async
-    def DeleteChannelpartition(self, request, context):
-        return self.core.xpon_handler.delete_channel_partition(
-            request, context)
-
-    @twisted_async
-    def GetAllChannelpairConfig(self, request, context):
-        return self.core.xpon_handler.get_all_channel_pair_config(
-            request, context)
-
-    @twisted_async
-    def CreateChannelpair(self, request, context):
-        return self.core.xpon_handler.create_channel_pair(request, context)
-
-    @twisted_async
-    def UpdateChannelpair(self, request, context):
-        return self.core.xpon_handler.update_channel_pair(request, context)
-
-    @twisted_async
-    def DeleteChannelpair(self, request, context):
-        return self.core.xpon_handler.delete_channel_pair(request, context)
-
-    @twisted_async
-    def GetAllChannelterminationConfig(self, request, context):
-        return self.core.xpon_handler.get_all_channel_termination_config(
-            request, context)
-
-    @twisted_async
-    def CreateChanneltermination(self, request, context):
-        return self.core.xpon_handler.create_channel_termination(
-            request, context)
-
-    @twisted_async
-    def UpdateChanneltermination(self, request, context):
-        return self.core.xpon_handler.update_channel_termination(
-            request, context)
-
-    @twisted_async
-    def DeleteChanneltermination(self, request, context):
-        return self.core.xpon_handler.delete_channel_termination(
-            request, context)
-
-    @twisted_async
-    def GetAllOntaniConfig(self, request, context):
-        return self.core.xpon_handler.get_all_ont_ani_config(request, context)
-
-    @twisted_async
-    def CreateOntani(self, request, context):
-        return self.core.xpon_handler.create_ont_ani(request, context)
-
-    @twisted_async
-    def UpdateOntani(self, request, context):
-        return self.core.xpon_handler.update_ont_ani(request, context)
-
-    @twisted_async
-    def DeleteOntani(self, request, context):
-        return self.core.xpon_handler.delete_ont_ani(request, context)
-
-    @twisted_async
-    def GetAllVOntaniConfig(self, request, context):
-        return self.core.xpon_handler.get_all_v_ont_ani_config(
-            request, context)
-
-    @twisted_async
-    def CreateVOntani(self, request, context):
-        return self.core.xpon_handler.create_v_ont_ani(request, context)
-
-    @twisted_async
-    def UpdateVOntani(self, request, context):
-        return self.core.xpon_handler.update_v_ont_ani(request, context)
-
-    @twisted_async
-    def DeleteVOntani(self, request, context):
-        return self.core.xpon_handler.delete_v_ont_ani(request, context)
-
-    @twisted_async
-    def GetAllVEnetConfig(self, request, context):
-        return self.core.xpon_handler.get_all_v_enet_config(request, context)
-
-    @twisted_async
-    def CreateVEnet(self, request, context):
-        return self.core.xpon_handler.create_v_enet(request, context)
-
-    @twisted_async
-    def UpdateVEnet(self, request, context):
-        return self.core.xpon_handler.update_v_enet(request, context)
-
-    @twisted_async
-    def DeleteVEnet(self, request, context):
-        return self.core.xpon_handler.delete_v_enet(request, context)
-
-    @twisted_async
-    def GetAllTrafficDescriptorProfileData(self, request, context):
-        return self.core.xpon_handler.get_all_traffic_descriptor_profile_data(
-            request, context)
-
-    @twisted_async
-    def CreateTrafficDescriptorProfileData(self, request, context):
-        return self.core.xpon_handler.create_traffic_descriptor_profile(
-            request, context)
-
-    @twisted_async
-    def UpdateTrafficDescriptorProfileData(self, request, context):
-        return self.core.xpon_handler.update_traffic_descriptor_profile(
-            request, context)
-
-    @twisted_async
-    def DeleteTrafficDescriptorProfileData(self, request, context):
-        return self.core.xpon_handler.delete_traffic_descriptor_profile(
-            request, context)
-
-    @twisted_async
-    def GetAllTcontsConfigData(self, request, context):
-        return self.core.xpon_handler.get_all_tconts_config_data(
-            request, context)
-
-    @twisted_async
-    def CreateTcontsConfigData(self, request, context):
-        return self.core.xpon_handler.create_tcont(request, context)
-
-    @twisted_async
-    def UpdateTcontsConfigData(self, request, context):
-        return self.core.xpon_handler.update_tcont(request, context)
-
-    @twisted_async
-    def DeleteTcontsConfigData(self, request, context):
-        return self.core.xpon_handler.delete_tcont(request, context)
-
-    @twisted_async
-    def GetAllGemportsConfigData(self, request, context):
-        return self.core.xpon_handler.get_all_gemports_config_data(
-            request, context)
-
-    @twisted_async
-    def CreateGemportsConfigData(self, request, context):
-        return self.core.xpon_handler.create_gem_port(request, context)
-
-    @twisted_async
-    def UpdateGemportsConfigData(self, request, context):
-        return self.core.xpon_handler.update_gem_port(request, context)
-
-    @twisted_async
-    def DeleteGemportsConfigData(self, request, context):
-        return self.core.xpon_handler.delete_gem_port(request, context)
-
-    @twisted_async
-    def GetAllMulticastGemportsConfigData(self, request, context):
-        return AllMulticastGemportsConfigData()
-
-    @twisted_async
-    def CreateMulticastGemportsConfigData(self, request, context):
-        return Empty()
-
-    @twisted_async
-    def UpdateMulticastGemportsConfigData(self, request, context):
-        return Empty()
-
-    @twisted_async
-    def DeleteMulticastGemportsConfigData(self, request, context):
-        return Empty()
-
-    @twisted_async
-    def GetAllMulticastDistributionSetData(self, request, context):
-        return AllMulticastDistributionSetData()
-
-    @twisted_async
-    def CreateMulticastDistributionSetData(self, request, context):
-        return Empty()
-
-    @twisted_async
-    def UpdateMulticastDistributionSetData(self, request, context):
-        return Empty()
-
-    @twisted_async
-    def DeleteMulticastDistributionSetData(self, request, context):
-        return Empty()
-    # bbf_fiber rpcs end
-
     def StreamPacketsOut(self, request_iterator, context):
         log.debug('start-stream-packets-out')
 
@@ -1187,7 +975,8 @@ class LocalHandler(VolthaLocalServiceServicer):
             return AlarmFilter()
 
         try:
-            alarm_filter = self.root.get('/alarm_filters/{}'.format(request.id))
+            alarm_filter = self.root.get('/alarm_filters/{}'.
+                                         format(request.id))
 
             return alarm_filter
         except KeyError:
@@ -1219,7 +1008,7 @@ class LocalHandler(VolthaLocalServiceServicer):
             assert isinstance(request, AlarmFilter)
             alarm_filter = request
             assert alarm_filter.id is not None, 'Local Alarm filter to be ' \
-                                              'created must have id'
+                'created must have id'
         except AssertionError, e:
             context.set_details(e.message)
             context.set_code(StatusCode.INVALID_ARGUMENT)
@@ -1240,7 +1029,6 @@ class LocalHandler(VolthaLocalServiceServicer):
 
         try:
             assert isinstance(request, AlarmFilter)
-            alarm_filter = self.root.get('/alarm_filters/{}'.format(request.id))
             self.root.update('/alarm_filters/{}'.format(request.id), request)
 
             return request
@@ -1339,26 +1127,30 @@ class LocalHandler(VolthaLocalServiceServicer):
 
                 # Start the hearbeat
                 self.ofagent_heartbeat_count = 0
-                self.ofagent_heartbeat_lc = task.LoopingCall(self._ofagent_session_heartbeat)
+                self.ofagent_heartbeat_lc = task.LoopingCall(
+                    self._ofagent_session_heartbeat)
                 self.ofagent_heartbeat_lc.start(self.ofagent_heartbeat_delay)
 
-                log.debug('ofagent-subscriber-connected', subscriber=self.subscriber)
+                log.debug('ofagent-subscriber-connected',
+                          subscriber=self.subscriber)
 
             except _Rendezvous, e:
-                log.error('ofagent-subscriber-failure', exception=repr(e), status=e.code())
+                log.error('ofagent-subscriber-failure',
+                          exception=repr(e), status=e.code())
 
             except Exception as e:
-                log.exception('ofagent-subscriber-unexpected-failure', exception=repr(e))
+                log.exception('ofagent-subscriber-unexpected-failure',
+                              exception=repr(e))
 
         elif self.subscriber.ofagent_id == request.ofagent_id:
             log.debug('ofagent-subscriber-matches-assigned',
-                     current=self.subscriber)
+                      current=self.subscriber)
             # reset counter
             self.ofagent_heartbeat_count = 0
 
         else:
             log.debug('ofagent-subscriber-not-matching-assigned',
-                     current=self.subscriber)
+                      current=self.subscriber)
 
         return self.subscriber
 
@@ -1409,7 +1201,8 @@ class LocalHandler(VolthaLocalServiceServicer):
         log.info('meter-table-update-grpc-request', request=request)
 
         if '/' in request.id:
-            context.set_details('Malformed logical device id \'{}\''.format(request.id))
+            context.set_details('Malformed logical device id \'{}\''.
+                                format(request.id))
             context.set_code(StatusCode.INVALID_ARGUMENT)
             return Empty()
 
@@ -1418,7 +1211,8 @@ class LocalHandler(VolthaLocalServiceServicer):
             agent.update_meter_table(request.meter_mod)
             return Empty()
         except KeyError:
-            context.set_details('Logical device \'{}\' not found'.format(request.id))
+            context.set_details('Logical device \'{}\' not found'.
+                                format(request.id))
             context.set_code(StatusCode.NOT_FOUND)
             return Empty()
 

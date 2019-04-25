@@ -9,7 +9,6 @@ import "google/protobuf/any.proto";
 import "common.proto";
 import "openflow_13.proto";
 import "yang_options.proto";
-import "bbf_fiber_base.proto";
 
 // A Device Type
 message DeviceType {
@@ -300,9 +299,6 @@ message Device {
     // PmConfigs will eventually converted to a child node of the
     // device to falicitata callbacks and to simplify manipulation.
     PmConfigs pm_configs = 131 [(child_node) = {}];
-
-    // Channel Terminations for the OLT device
-    repeated bbf_fiber.ChannelterminationConfig channel_terminations = 132 [(child_node) = {key: "name"}];
 
     repeated ImageDownload image_downloads = 133 [(child_node) = {key: "name"}];
 }
