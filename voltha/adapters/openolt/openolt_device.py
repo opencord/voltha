@@ -273,20 +273,6 @@ class OpenoltDevice(object):
                                     omci_indication.onu_id,
                                     omci_indication.pkt)
 
-    def packet_indication(self, pkt_indication):
-        self.log.debug("packet indication",
-                       intf_type=pkt_indication.intf_type,
-                       intf_id=pkt_indication.intf_id,
-                       port_no=pkt_indication.port_no,
-                       cookie=pkt_indication.cookie,
-                       gemport_id=pkt_indication.gemport_id,
-                       flow_id=pkt_indication.flow_id)
-        self.data_model.onu_send_packet_in(pkt_indication.intf_type,
-                                           pkt_indication.intf_id,
-                                           pkt_indication.port_no,
-                                           pkt_indication.gemport_id,
-                                           pkt_indication.pkt)
-
     def packet_out(self, egress_port, msg):
         pkt = Ether(msg)
         self.log.debug('packet out', egress_port=egress_port,
