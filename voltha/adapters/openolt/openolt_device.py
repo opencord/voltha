@@ -30,6 +30,24 @@ from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.adapters.openolt.openolt_indications import OpenoltIndications
 from voltha.adapters.openolt.openolt_packet import OpenoltPacket
 from voltha.adapters.openolt.openolt_kafka_admin import KAdmin
+from voltha.adapters.openolt.openolt_flow_mgr import OpenOltFlowMgr
+from voltha.adapters.openolt.openolt_alarms import OpenOltAlarmMgr
+from voltha.adapters.openolt.openolt_statistics import OpenOltStatisticsMgr
+from voltha.adapters.openolt.openolt_platform import OpenOltPlatform
+from voltha.adapters.openolt.openolt_resource_manager import OpenOltResourceMgr
+from voltha.adapters.openolt.openolt_data_model import OpenOltDataModel
+
+
+OpenOltDefaults = {
+    'support_classes': {
+        'platform': OpenOltPlatform,
+        'data_model': OpenOltDataModel,
+        'resource_mgr': OpenOltResourceMgr,
+        'flow_mgr': OpenOltFlowMgr,
+        'alarm_mgr': OpenOltAlarmMgr,
+        'stats_mgr': OpenOltStatisticsMgr,
+    }
+}
 
 
 class OpenoltDevice(object):
@@ -81,13 +99,15 @@ class OpenoltDevice(object):
         adapter_agent = kwargs['adapter_agent']
         self.device_id = kwargs['device_id']
 
-        self.data_model_class = kwargs['support_classes']['data_model']
-        self.platform_class = kwargs['support_classes']['platform']
+        self.data_model_class \
+            = OpenOltDefaults['support_classes']['data_model']
+        self.platform_class = OpenOltDefaults['support_classes']['platform']
         self.platform = self.platform_class()
-        self.resource_mgr_class = kwargs['support_classes']['resource_mgr']
-        self.flow_mgr_class = kwargs['support_classes']['flow_mgr']
-        self.alarm_mgr_class = kwargs['support_classes']['alarm_mgr']
-        self.stats_mgr_class = kwargs['support_classes']['stats_mgr']
+        self.resource_mgr_class \
+            = OpenOltDefaults['support_classes']['resource_mgr']
+        self.flow_mgr_class = OpenOltDefaults['support_classes']['flow_mgr']
+        self.alarm_mgr_class = OpenOltDefaults['support_classes']['alarm_mgr']
+        self.stats_mgr_class = OpenOltDefaults['support_classes']['stats_mgr']
 
         is_reconciliation = kwargs.get('reconciliation', False)
         self.host_and_port = kwargs['host_and_port']
