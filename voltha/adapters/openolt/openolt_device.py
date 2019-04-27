@@ -273,64 +273,6 @@ class OpenoltDevice(object):
                                     omci_indication.onu_id,
                                     omci_indication.pkt)
 
-    def packet_out(self, egress_port, msg):
-        pkt = Ether(msg)
-        self.log.debug('packet out', egress_port=egress_port,
-                       packet=str(pkt).encode("HEX"))
-
-        # Find port type
-        egress_port_type = self.platform.intf_id_to_port_type_name(egress_port)
-        if egress_port_type == Port.ETHERNET_UNI:
-
-            if pkt.haslayer(Dot1Q):
-                outer_shim = pkt.getlayer(Dot1Q)
-                if isinstance(outer_shim.payload, Dot1Q):
-                    # If double tag, remove the outer tag
-                    payload = (
-                            Ether(src=pkt.src, dst=pkt.dst,
-                                  type=outer_shim.type) /
-                            outer_shim.payload
-                    )
-                else:
-                    payload = pkt
-            else:
-                payload = pkt
-
-            send_pkt = binascii.unhexlify(str(payload).encode("HEX"))
-
-            self.log.debug(
-                'sending-packet-to-ONU', egress_port=egress_port,
-                intf_id=self.platform.intf_id_from_uni_port_num(egress_port),
-                onu_id=self.platform.onu_id_from_port_num(egress_port),
-                uni_id=self.platform.uni_id_from_port_num(egress_port),
-                port_no=egress_port,
-                packet=str(payload).encode("HEX"))
-
-            onu_pkt = openolt_pb2.OnuPacket(
-                intf_id=self.platform.intf_id_from_uni_port_num(egress_port),
-                onu_id=self.platform.onu_id_from_port_num(egress_port),
-                port_no=egress_port,
-                pkt=send_pkt)
-
-            self.stub.OnuPacketOut(onu_pkt)
-
-        elif egress_port_type == Port.ETHERNET_NNI:
-            self.log.debug('sending-packet-to-uplink', egress_port=egress_port,
-                           packet=str(pkt).encode("HEX"))
-
-            send_pkt = binascii.unhexlify(str(pkt).encode("HEX"))
-
-            uplink_pkt = openolt_pb2.UplinkPacket(
-                intf_id=self.platform.intf_id_from_nni_port_num(egress_port),
-                pkt=send_pkt)
-
-            self.stub.UplinkPacketOut(uplink_pkt)
-
-        else:
-            self.log.warn('Packet-out-to-this-interface-type-not-implemented',
-                          egress_port=egress_port,
-                          port_type=egress_port_type)
-
     def send_proxied_message(self, proxy_address, msg):
         omci = openolt_pb2.OmciMsg(intf_id=proxy_address.channel_id,
                                    onu_id=proxy_address.onu_id, pkt=str(msg))
