@@ -56,7 +56,8 @@ def process_indications(host_and_port):
     stub = openolt_pb2_grpc.OpenoltStub(channel)
     stream = stub.EnableIndication(openolt_pb2.Empty())
 
-    topic = 'openolt.ind-{}'.format(host_and_port.split(':')[0])
+    default_topic = 'openolt.ind-{}'.format(host_and_port.split(':')[0])
+    pktin_topic = 'openolt.pktin-{}'.format(host_and_port.split(':')[0])
 
     while True:
         try:
@@ -66,11 +67,14 @@ def process_indications(host_and_port):
             log.warn('openolt grpc connection lost', error=e)
             ind = openolt_pb2.Indication()
             ind.olt_ind.oper_state = 'down'
-            kafka_send_pb(topic, ind)
+            kafka_send_pb(default_topic, ind)
             break
         else:
             log.debug("openolt grpc rx indication", indication=ind)
-            kafka_send_pb(topic, ind)
+            if ind.HasField('pkt_ind'):
+                kafka_send_pb(pktin_topic, ind)
+            else:
+                kafka_send_pb(default_topic, ind)
 
 
 if __name__ == '__main__':

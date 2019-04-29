@@ -143,8 +143,11 @@ class OpenoltDevice(object):
 
         self.data_model.olt_create(self.device_info)
 
+        # FIXME
         self._kadmin.delete_topics([
             'voltha.pktout-{}'.format(self.data_model.logical_device_id)])
+        self._kadmin.delete_topics(['openolt.pktin-{}'.format(
+            self.host_and_port.split(':')[0])])
 
         self._packet = OpenoltPacket(self)
         self._packet.start()

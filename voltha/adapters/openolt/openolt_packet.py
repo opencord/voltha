@@ -20,6 +20,7 @@ from simplejson import loads
 import structlog
 from scapy.layers.l2 import Ether, Dot1Q
 import binascii
+from scapy.layers.l2 import Packet
 
 from common.frameio.frameio import hexify
 from voltha.protos.openflow_13_pb2 import PacketOut
@@ -33,23 +34,35 @@ class OpenoltPacket(object):
     def __init__(self, device):
         self.log = structlog.get_logger()
         self.device = device
-        self.packet_thread_handle = threading.Thread(
-            target=self.packet_thread)
-        self.packet_thread_handle.setDaemon(True)
+
+        self.packet_out_thread_handle = threading.Thread(
+            target=self.packet_out_thread)
+        self.packet_out_thread_handle.setDaemon(True)
+
+        self.packet_in_thread_handle = threading.Thread(
+            target=self.packet_in_thread)
+        self.packet_in_thread_handle.setDaemon(True)
 
     def start(self):
-        self.packet_thread_handle.start()
+        self.packet_out_thread_handle.start()
+        self.packet_in_thread_handle.start()
 
     def stop(self):
         pass
 
-    def packet_thread(self):
+    def packet_out_thread(self):
         self.log.debug('openolt packet-out thread starting')
-        KConsumer(self.packet_process,
+        KConsumer(self.packet_out_process,
                   'voltha.pktout-{}'.format(
                       self.device.data_model.logical_device_id))
 
-    def packet_process(self, topic, msg):
+    def packet_in_thread(self):
+        self.log.debug('openolt packet-in thread starting')
+        topic = 'openolt.pktin-{}'.format(
+            self.device.host_and_port.split(':')[0])
+        KConsumer(self.packet_in_process, topic)
+
+    def packet_out_process(self, topic, msg):
 
         def get_port_out(opo):
             for action in opo.actions:
@@ -134,3 +147,46 @@ class OpenoltPacket(object):
             self.log.warn('Packet-out-to-this-interface-type-not-implemented',
                           egress_port=egress_port,
                           port_type=egress_port_type)
+
+    def packet_in_process(self, topic, msg):
+
+        ind = Parse(loads(msg), openolt_pb2.Indication(),
+                    ignore_unknown_fields=True)
+        assert(ind.HasField('pkt_ind'))
+        pkt_ind = ind.pkt_ind
+
+        self.log.debug("packet indication",
+                       intf_type=pkt_ind.intf_type,
+                       intf_id=pkt_ind.intf_id,
+                       port_no=pkt_ind.port_no,
+                       cookie=pkt_ind.cookie,
+                       gemport_id=pkt_ind.gemport_id,
+                       flow_id=pkt_ind.flow_id)
+        try:
+            logical_port_num = self.device.data_model.logical_port_num(
+                pkt_ind.intf_type,
+                pkt_ind.intf_id,
+                pkt_ind.port_no,
+                pkt_ind.gemport_id)
+        except ValueError:
+            self.log.error('No logical port found',
+                           intf_type=pkt_ind.intf_type,
+                           intf_id=pkt_ind.intf_id,
+                           port_no=pkt_ind.port_no,
+                           gemport_id=pkt_ind.gemport_id)
+            return
+
+        ether_pkt = Ether(pkt_ind.pkt)
+
+        if isinstance(ether_pkt, Packet):
+            ether_pkt = str(ether_pkt)
+
+        logical_device_id = self.device.data_model.logical_device_id
+        topic = 'packet-in:' + logical_device_id
+
+        self.log.debug('send-packet-in', logical_device_id=logical_device_id,
+                       logical_port_num=logical_port_num,
+                       packet=hexify(ether_pkt))
+
+        self.device.data_model.adapter_agent.event_bus.publish(
+            topic, (logical_port_num, str(ether_pkt)))
