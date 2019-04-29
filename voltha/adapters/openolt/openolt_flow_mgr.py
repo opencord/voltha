@@ -21,8 +21,7 @@ import hashlib
 from simplejson import dumps
 
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
-    ofp_flow_stats, OFPMT_OXM, Flows, FlowGroups, \
-    OFPXMT_OFB_VLAN_VID
+    ofp_flow_stats, OFPMT_OXM, Flows, OFPXMT_OFB_VLAN_VID
 from voltha.protos.device_pb2 import Port
 import voltha.core.flow_decomposer as fd
 from voltha.adapters.openolt.protos import openolt_pb2
@@ -84,19 +83,12 @@ class OpenOltFlowMgr(object):
             '/logical_devices/{}/flows'.format(self.logical_device_id))
         self.flows_proxy = registry('core').get_proxy(
             '/devices/{}/flows'.format(self.device_id))
-        self.root_proxy = registry('core').get_proxy('/')
         self.resource_mgr = resource_mgr
         self.tech_profile = dict()
         self._populate_tech_profile_per_pon_port()
         self.retry_add_flow_list = []
 
-    def update_logical_flows(self, flows_to_add, flows_to_remove,
-                             device_rules_map):
-        try:
-            self.update_children_flows(device_rules_map)
-        except Exception as e:
-            self.log.error('Error updating children flows', error=e)
-
+    def update_logical_flows(self, flows_to_add, flows_to_remove):
         self.log.debug('logical flows update', flows_to_add=flows_to_add,
                        flows_to_remove=flows_to_remove)
 
@@ -992,15 +984,6 @@ class OpenOltFlowMgr(object):
         next_flows.sort(key=lambda f: f.priority, reverse=True)
 
         return next_flows[0]
-
-    def update_children_flows(self, device_rules_map):
-
-        for device_id, (flows, groups) in device_rules_map.iteritems():
-            if device_id != self.device_id:
-                self.root_proxy.update('/devices/{}/flows'.format(device_id),
-                                       Flows(items=flows.values()))
-                self.root_proxy.update('/devices/{}/flow_groups'.format(
-                    device_id), FlowGroups(items=groups.values()))
 
     def clear_flows_and_scheduler_for_logical_port(self, child_device,
                                                    logical_port):

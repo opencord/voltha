@@ -14,17 +14,14 @@
 # limitations under the License.
 #
 
-import binascii
 import structlog
 import time
 import subprocess
 import grpc
-from scapy.layers.l2 import Ether, Dot1Q
 from transitions import Machine
 from twisted.internet import reactor
 
 from voltha.registry import registry
-from voltha.protos.device_pb2 import Port
 from voltha.adapters.openolt.protos import openolt_pb2, openolt_pb2_grpc
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.adapters.openolt.openolt_indications import OpenoltIndications
@@ -302,16 +299,14 @@ class OpenoltDevice(object):
         self.log.debug('No updates here now, all is done in logical flows '
                        'update')
 
-    def update_logical_flows(self, flows_to_add, flows_to_remove,
-                             device_rules_map):
+    def update_logical_flows(self, flows_to_add, flows_to_remove):
         if not self.is_state_up():
             self.log.info('The OLT is not up, we cannot update flows',
                           flows_to_add=[f.id for f in flows_to_add],
                           flows_to_remove=[f.id for f in flows_to_remove])
             return
 
-        self.flow_mgr.update_logical_flows(flows_to_add, flows_to_remove,
-                                           device_rules_map)
+        self.flow_mgr.update_logical_flows(flows_to_add, flows_to_remove)
 
     def disable(self):
         self.log.debug('sending-deactivate-olt-message')

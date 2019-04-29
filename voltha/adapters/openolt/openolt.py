@@ -206,17 +206,14 @@ class OpenoltAdapter(object):
                  'implemented')
         raise NotImplementedError()
 
-    def update_logical_flows(self, device_id, flows_to_add, flows_to_remove,
-                             groups, device_rules_map):
+    def update_logical_flows(self, device_id, flows_to_add, flows_to_remove):
 
         log.info('logical-flows-update', flows_to_add=len(flows_to_add),
                  flows_to_remove=len(flows_to_remove))
         log.debug('logical-flows-details', flows_to_add=flows_to_add,
                   flows_to_remove=flows_to_remove)
-        assert len(groups) == 0, "Cannot yet deal with groups"
         handler = self.devices[device_id]
-        handler.update_logical_flows(flows_to_add, flows_to_remove,
-                                     device_rules_map)
+        handler.update_logical_flows(flows_to_add, flows_to_remove)
 
     def update_pm_config(self, device, pm_configs):
         log.info('update_pm_config - Not implemented yet', device=device,
