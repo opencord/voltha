@@ -28,12 +28,15 @@ from voltha.adapters.openolt.openolt_kafka_consumer import KConsumer
 from voltha.core.flow_decomposer import OUTPUT
 from voltha.protos.device_pb2 import Port
 from voltha.adapters.openolt.protos import openolt_pb2
+from voltha.adapters.openolt.openolt_kafka_admin import KAdmin
 
 
 class OpenoltPacket(object):
     def __init__(self, device):
         self.log = structlog.get_logger()
         self.device = device
+
+        self._kadmin = KAdmin()
 
         self.packet_out_thread_handle = threading.Thread(
             target=self.packet_out_thread)
@@ -43,12 +46,24 @@ class OpenoltPacket(object):
             target=self.packet_in_thread)
         self.packet_in_thread_handle.setDaemon(True)
 
+        self._kadmin.delete_topics([
+            'voltha.pktout-{}'.format(
+                self.device.data_model.logical_device_id)])
+        self._kadmin.delete_topics(['openolt.pktin-{}'.format(
+            self.device.host_and_port.split(':')[0])])
+
     def start(self):
         self.packet_out_thread_handle.start()
         self.packet_in_thread_handle.start()
 
     def stop(self):
-        pass
+        self._kadmin.delete_topics([
+            'voltha.pktout-{}'.format(
+                self.device.data_model.logical_device_id)])
+        self._kadmin.delete_topics(['openolt.pktin-{}'.format(
+            self.device.host_and_port.split(':')[0])])
+
+        # FIXME - kill threads
 
     def packet_out_thread(self):
         self.log.debug('openolt packet-out thread starting')
