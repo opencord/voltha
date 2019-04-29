@@ -58,9 +58,10 @@ class OpenoltPacket(object):
 
     def stop(self):
         self._kadmin.delete_topics([
-            'voltha.pktout-{}'.format(self.data_model.logical_device_id)])
+            'voltha.pktout-{}'.format(
+                self.device.data_model.logical_device_id)])
         self._kadmin.delete_topics(['openolt.pktin-{}'.format(
-            self.host_and_port.split(':')[0])])
+            self.device.host_and_port.split(':')[0])])
 
         # FIXME - kill threads
 
