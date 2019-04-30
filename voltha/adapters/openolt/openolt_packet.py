@@ -22,10 +22,11 @@ from scapy.layers.l2 import Ether, Dot1Q
 import binascii
 from scapy.layers.l2 import Packet
 
+from voltha.protos import openflow_13_pb2 as ofp
 from common.frameio.frameio import hexify
 from voltha.protos.openflow_13_pb2 import PacketOut
 from voltha.adapters.openolt.openolt_kafka_consumer import KConsumer
-from voltha.core.flow_decomposer import OUTPUT
+from voltha.core.flow_decomposer import OUTPUT, in_port
 from voltha.protos.device_pb2 import Port
 from voltha.adapters.openolt.protos import openolt_pb2
 from voltha.adapters.openolt.openolt_kafka_admin import KAdmin
@@ -205,3 +206,28 @@ class OpenoltPacket(object):
 
         self.device.data_model.adapter_agent.event_bus.publish(
             topic, (logical_port_num, str(ether_pkt)))
+
+        self.handle_packet_in_event(logical_port_num, str(ether_pkt))
+
+    def handle_packet_in_event(self, logical_port_no, packet):
+        self.log.debug('handle-packet-in', logical_port_no=logical_port_no)
+        packet_in = ofp.ofp_packet_in(
+            # buffer_id=0,
+            reason=ofp.OFPR_ACTION,
+            # table_id=0,
+            # cookie=0,
+            match=ofp.ofp_match(
+                type=ofp.OFPMT_OXM,
+                oxm_fields=[
+                    ofp.ofp_oxm_field(
+                        oxm_class=ofp.OFPXMC_OPENFLOW_BASIC,
+                        ofb_field=in_port(logical_port_no)
+                    )
+                ]
+            ),
+            data=packet
+        )
+
+        # FIXME - change this to use kafka
+        lh = self.device.data_model.adapter_agent.core.get_local_handler()
+        lh.send_packet_in(self.device.data_model.logical_device_id, packet_in)
