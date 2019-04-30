@@ -36,8 +36,8 @@ def hexify(buffer):
     return ''.join('%02x' % ord(c) for c in buffer)
 
 
-DEFAULT_OMCI_TIMEOUT = 3                         # Seconds
-MAX_OMCI_REQUEST_AGE = 60                        # Seconds
+DEFAULT_OMCI_TIMEOUT = 300                         # Seconds
+MAX_OMCI_REQUEST_AGE = 6000                        # Seconds
 DEFAULT_OMCI_DOWNLOAD_SECTION_SIZE = 31          # Bytes
 
 CONNECTED_KEY = 'connected'
