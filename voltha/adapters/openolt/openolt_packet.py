@@ -197,16 +197,6 @@ class OpenoltPacket(object):
         if isinstance(ether_pkt, Packet):
             ether_pkt = str(ether_pkt)
 
-        logical_device_id = self.device.data_model.logical_device_id
-        topic = 'packet-in:' + logical_device_id
-
-        self.log.debug('send-packet-in', logical_device_id=logical_device_id,
-                       logical_port_num=logical_port_num,
-                       packet=hexify(ether_pkt))
-
-        self.device.data_model.adapter_agent.event_bus.publish(
-            topic, (logical_port_num, str(ether_pkt)))
-
         self.handle_packet_in_event(logical_port_num, str(ether_pkt))
 
     def handle_packet_in_event(self, logical_port_no, packet):
