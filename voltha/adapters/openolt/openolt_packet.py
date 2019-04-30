@@ -24,12 +24,12 @@ from scapy.layers.l2 import Packet
 
 from voltha.protos import openflow_13_pb2 as ofp
 from common.frameio.frameio import hexify
-from voltha.protos.openflow_13_pb2 import PacketOut
 from voltha.adapters.openolt.openolt_kafka_consumer import KConsumer
 from voltha.core.flow_decomposer import OUTPUT, in_port
 from voltha.protos.device_pb2 import Port
 from voltha.adapters.openolt.protos import openolt_pb2
 from voltha.adapters.openolt.openolt_kafka_admin import KAdmin
+from voltha.adapters.openolt.openolt_kafka_proxy import kafka_send_pb
 
 
 class OpenoltPacket(object):
@@ -85,7 +85,7 @@ class OpenoltPacket(object):
                 if action.type == OUTPUT:
                     return action.output.port
 
-        pb = Parse(loads(msg), PacketOut(), ignore_unknown_fields=True)
+        pb = Parse(loads(msg), ofp.PacketOut(), ignore_unknown_fields=True)
 
         logical_device_id = pb.id
         ofp_packet_out = pb.packet_out
@@ -218,6 +218,12 @@ class OpenoltPacket(object):
             data=packet
         )
 
+        packet_in = ofp.PacketIn(id=self.device.data_model.logical_device_id,
+                                 packet_in=packet_in)
+        '''
         # FIXME - change this to use kafka
         lh = self.device.data_model.adapter_agent.core.get_local_handler()
-        lh.send_packet_in(self.device.data_model.logical_device_id, packet_in)
+        lh.core.packet_in_queue.put(packet_in)
+        '''
+
+        kafka_send_pb('voltha.pktin', packet_in)

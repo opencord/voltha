@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from Queue import Empty as QueueEmpty
 
+import threading
+from Queue import Empty as QueueEmpty
+from simplejson import loads
 import structlog
+
 from google.protobuf.empty_pb2 import Empty
+from google.protobuf.json_format import Parse
 from grpc import StatusCode
 from grpc._channel import _Rendezvous
 
 from common.utils.grpc_utils import twisted_async
-from twisted.internet import task
+from twisted.internet import task, reactor
 from common.utils.id_generation import create_cluster_device_id
 from voltha.core.config.config_root import ConfigRoot
 from voltha.protos.openflow_13_pb2 import PacketIn, Flows, FlowGroups, \
@@ -40,6 +44,7 @@ from voltha.registry import registry
 from voltha.protos.omci_mib_db_pb2 import MibDeviceData
 from voltha.protos.omci_alarm_db_pb2 import AlarmDeviceData
 from voltha.adapters.openolt.openolt_kafka_proxy import kafka_send_pb
+from voltha.adapters.openolt.openolt_kafka_consumer import KConsumer
 
 log = structlog.get_logger()
 
@@ -62,6 +67,10 @@ class LocalHandler(VolthaLocalServiceServicer):
         self.ofagent_heartbeat_lc = None
         self.ofagent_is_alive = True
 
+        self.pktin_thread_handle = threading.Thread(
+            target=self.pktin_thread)
+        self.pktin_thread_handle.setDaemon(True)
+
     def start(self, config_backend=None):
         log.debug('starting')
         if config_backend:
@@ -81,6 +90,8 @@ class LocalHandler(VolthaLocalServiceServicer):
                                        kv_store=config_backend)
         else:
             self.root = ConfigRoot(VolthaInstance(**self.init_kw))
+
+        self.pktin_thread_handle.start()
 
         log.info('started')
         return self
@@ -929,6 +940,14 @@ class LocalHandler(VolthaLocalServiceServicer):
                 if self.stopped:
                     break
         log.debug('stop-receive-packets-in')
+
+    def pktin_thread(self):
+        KConsumer(self.openolt_packet_in, 'voltha.pktin')
+
+    def openolt_packet_in(self, topic, msg):
+        # FIXME - not thread safe, test with multiple olts
+        packet_in = Parse(loads(msg), PacketIn(), ignore_unknown_fields=True)
+        self.core.packet_in_queue.put(packet_in)
 
     def send_packet_in(self, device_id, ofp_packet_in):
         """Must be called on the twisted thread"""

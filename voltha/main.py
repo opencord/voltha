@@ -410,6 +410,20 @@ class Main(object):
             self.log = update_logging(instance_id=self.instance_id, vcore_id=self.core_store_id)
 
             yield registry.register(
+                'kafka_proxy',
+                KafkaProxy(
+                    self.args.consul,
+                    self.args.kafka,
+                    config=self.config.get('kafka-proxy', {})
+                )
+            ).start()
+
+            yield registry.register(
+                'openolt_kafka_proxy',
+                OpenoltKafkaProxy(self.args.kafka)
+            ).start()
+
+            yield registry.register(
                 'grpc_server',
                 VolthaGrpcServer(self.args.grpc_port)
             ).start()
@@ -428,20 +442,6 @@ class Main(object):
                                                 args=self.args))
 
             init_rest_service(self.args.rest_port)
-
-            yield registry.register(
-                'kafka_proxy',
-                KafkaProxy(
-                    self.args.consul,
-                    self.args.kafka,
-                    config=self.config.get('kafka-proxy', {})
-                )
-            ).start()
-
-            yield registry.register(
-                'openolt_kafka_proxy',
-                OpenoltKafkaProxy(self.args.kafka)
-            ).start()
 
             yield registry.register(
                 'frameio',
