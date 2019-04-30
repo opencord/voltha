@@ -34,6 +34,15 @@ from voltha.core.logical_device_agent import LogicalDeviceAgent
 from voltha.protos.voltha_pb2 import \
     Device, LogicalDevice, AlarmFilter
 from voltha.registry import IComponent
+from xpon_agent import XponAgent
+from xpon_handler import XponHandler
+from voltha.protos.bbf_fiber_base_pb2 import ChannelgroupConfig, \
+    ChannelpartitionConfig, ChannelpairConfig, OntaniConfig, VOntaniConfig, \
+    VEnetConfig
+from voltha.protos.bbf_fiber_traffic_descriptor_profile_body_pb2 import \
+    TrafficDescriptorProfileData
+from voltha.protos.bbf_fiber_tcont_body_pb2 import TcontsConfigData
+from voltha.protos.bbf_fiber_gemport_body_pb2 import GemportsConfigData
 
 log = structlog.get_logger()
 
@@ -58,6 +67,7 @@ class VolthaCore(object):
             instance_id=instance_id,
             version=version,
             log_level=log_level)
+        self.xpon_handler = XponHandler(self)
         self.local_handler = LocalHandler(
             core=self,
             instance_id=instance_id,
@@ -70,6 +80,7 @@ class VolthaCore(object):
         self.alarm_filter_agent = None
         self.packet_in_queue = Queue()
         self.change_event_queue = Queue()
+        self.xpon_agent = XponAgent(self)
 
     @inlineCallbacks
     def start(self, config_backend=None):
@@ -156,6 +167,11 @@ class VolthaCore(object):
             self._handle_add_device(data)
         elif isinstance(data, LogicalDevice):
             self._handle_add_logical_device(data)
+        elif isinstance(data, (ChannelgroupConfig, ChannelpartitionConfig,
+                               ChannelpairConfig, OntaniConfig, VOntaniConfig,
+                               VEnetConfig, TrafficDescriptorProfileData,
+                               TcontsConfigData, GemportsConfigData)):
+            self.xpon_agent.create_interface(data)
         elif isinstance(data, AlarmFilter):
             self._handle_add_alarm_filter(data)
         else:
@@ -167,6 +183,11 @@ class VolthaCore(object):
             self._handle_remove_device(data)
         elif isinstance(data, LogicalDevice):
             self._handle_remove_logical_device(data)
+        elif isinstance(data, (ChannelgroupConfig, ChannelpartitionConfig,
+                               ChannelpairConfig, OntaniConfig, VOntaniConfig,
+                               VEnetConfig, TrafficDescriptorProfileData,
+                               TcontsConfigData, GemportsConfigData)):
+            self.xpon_agent.remove_interface(data)
         elif isinstance(data, AlarmFilter):
             self._handle_remove_alarm_filter(data)
         else:
@@ -179,8 +200,10 @@ class VolthaCore(object):
         # when a device is added, we attach an observer to it so that we can
         # guard it and propagate changes down to its owner adapter
         assert isinstance(device, Device)
+        path = '/devices/{}'.format(device.id)
         assert device.id not in self.device_agents
         self.device_agents[device.id] = yield DeviceAgent(self, device).start()
+        self.xpon_agent.register_interface(device.id, path, update=False)
 
     @inlineCallbacks
     def _handle_reconcile_existing_device(self, device, reconcile):
@@ -190,10 +213,32 @@ class VolthaCore(object):
         self.device_agents[device.id] = \
             yield DeviceAgent(self, device).start(device=device,
                                                   reconcile=reconcile)
+        path = '/devices/{}'.format(device.id)
+        self.xpon_agent.register_interface(device.id, path, update=False)
+
+        try:
+            # Register for updates to '/tconts/{}'.
+            # Otherwise TrafficDescriptorProfile updates after VOLTHA restart
+            # are dropped at VOLTHA core.
+            tconts = self.local_root_proxy.get('/tconts')
+            for tcont in tconts:
+                try:
+                    olt_device = self.xpon_agent.get_device(tcont, 'olt')
+                except Exception as e:
+                    log.error("exception-getting-olt", e=e)
+                    return
+                if olt_device and olt_device.id == device.id:
+                    tcont_path = '/tconts/{}'.format(tcont.name)
+                    self.xpon_agent.register_interface(device.id, tcont_path)
+        except Exception as e:
+            log.exception("error-fetching-tcont--xpon-may-not-be-supported", e=e)
+
 
     @inlineCallbacks
     def _handle_remove_device(self, device):
         if device.id in self.device_agents:
+            path = '/devices/{}'.format(device.id)
+            self.xpon_agent.unregister_interface(device.id, path, update=False)
             if self.alarm_filter_agent is not None:
                 self.alarm_filter_agent.remove_device_filters(device)
 

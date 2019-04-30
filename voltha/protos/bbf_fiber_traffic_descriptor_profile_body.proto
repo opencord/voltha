@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber;
+import "meta.proto";
+
+enum AdditionalBwEligibilityIndicatorType
+{
+    ADDITIONAL_BW_ELIGIBILITY_INDICATOR_NONE = 0;
+    ADDITIONAL_BW_ELIGIBILITY_INDICATOR_BEST_EFFORT_SHARING = 1;
+    ADDITIONAL_BW_ELIGIBILITY_INDICATOR_NON_ASSURED_SHARING = 2;
+}
+
+message TrafficDescriptorProfileData {
+    string id = 1 [(voltha.access) = READ_ONLY];
+    string name = 2;
+    uint64 fixed_bandwidth = 3;
+    uint64 assured_bandwidth = 4;
+    uint64 maximum_bandwidth = 5;
+    uint32 priority = 6;
+    uint32 weight = 7;
+    AdditionalBwEligibilityIndicatorType additional_bw_eligibility_indicator = 8;
+}

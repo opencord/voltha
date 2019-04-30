@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber_types;
+
+enum AuthMethodType
+{
+    SERIAL_NUMBER               = 0;
+    LOID                        = 1;
+    REGISTRATION_ID             = 2;
+    OMCI                        = 3;
+    DOT1X                       = 4;
+
+}
+enum RamanMitigationType
+{
+    RAMAN_NONE                  = 0;
+    RAMAN_MILLER                = 1;
+    RAMAN_8B10B                 = 2;
+
+}
+enum PonIdOdnClassType
+{
+    CLASS_A                     = 0;
+    CLASS_B                     = 1;
+    CLASS_B_PLUS                = 2;
+    CLASS_C                     = 3;
+    CLASS_C_PLUS                = 4;
+    CLASS_AUTO                  = 255;
+}
+enum ChannelpairSpeedType
+{
+    UNPLANNED_CP_SPEED          = 0;
+    DOWN_10_UP_10               = 1;
+    DOWN_10_UP_2DOT5            = 2;
+    DOWN_2DOT5_UP_2DOT5         = 3;
+}
+enum ChannelpairType
+{
+    CHANNELPAIR                 = 0;
+    CHANNELPAIR_XGS             = 1;
+}
+enum TypeBRoleType
+{
+    PRIMARY                     = 0;
+    SECONDARY                   = 1;
+}
+enum TypeBRoleStateType
+{
+    ACTIVE                      = 0;
+    STANDBY                     = 1;
+}

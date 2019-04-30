@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber;
+import "meta.proto";
+import "bbf_fiber_types.proto";
+
+message ChannelgroupConfigData {
+    uint32 polling_period = 1;
+    bbf_fiber_types.RamanMitigationType raman_mitigation = 2;
+    string system_id = 3;
+}

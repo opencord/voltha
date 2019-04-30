@@ -29,6 +29,7 @@ from google.protobuf.empty_pb2 import Empty
 from simplejson import dumps
 
 from cli.device import DeviceCli
+from cli.xpon import XponCli
 from cli.omci import OmciCli
 from cli.alarm_filters import AlarmFiltersCli
 from cli.logical_device import LogicalDeviceCli
@@ -263,6 +264,21 @@ class VolthaCli(Cmd):
             completions = [d for d in self.logical_device_ids()
                            if d.startswith(text)]
         return completions
+
+    def do_xpon(self, line):
+        """xpon <optional> [device_ID] - Enter xpon level command mode"""
+        device_id = line.strip()
+        if device_id:
+            stub = self.get_stub()
+            try:
+                res = stub.GetDevice(voltha_pb2.ID(id=device_id))
+            except Exception:
+                self.poutput(
+                    self.colorize('Error: ', 'red') + 'No device id ' +
+                    self.colorize(device_id, 'blue') + ' is found')
+                return
+        sub = XponCli(self.get_channel, device_id)
+        sub.cmdloop()
 
     def do_omci(self, line):
         """omci <device_ID> - Enter OMCI level command mode"""

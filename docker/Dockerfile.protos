@@ -30,22 +30,20 @@ COPY docker/config/Makefile.protos /protos/voltha/Makefile.protos
 WORKDIR /protos/voltha
 RUN make -f Makefile.protos build
 
-# FIXME - remove xpon
-# COPY voltha/adapters/asfvolt16_olt/protos/*.proto /protos/asfvolt16_olt/
-# COPY docker/config/Makefile.protos /protos/asfvolt16_olt/Makefile.protos
-# WORKDIR /protos/asfvolt16_olt
-# RUN make -f Makefile.protos build
+COPY voltha/adapters/asfvolt16_olt/protos/*.proto /protos/asfvolt16_olt/
+COPY docker/config/Makefile.protos /protos/asfvolt16_olt/Makefile.protos
+WORKDIR /protos/asfvolt16_olt
+RUN make -f Makefile.protos build
 
 COPY voltha/adapters/openolt/protos/*.proto /protos/openolt/
 COPY docker/config/Makefile.protos /protos/openolt/Makefile.protos
 WORKDIR /protos/openolt
 RUN make -f Makefile.protos build
 
-# FIXME - remove xpon
-# COPY voltha/adapters/cig_olt/protos/*.proto /protos/cig_olt/
-# COPY voltha/adapters/cig_olt/protos/Makefile.protos /protos/cig_olt/Makefile.protos
-# WORKDIR /protos/cig_olt
-# RUN make -f Makefile.protos build
+COPY voltha/adapters/cig_olt/protos/*.proto /protos/cig_olt/
+COPY voltha/adapters/cig_olt/protos/Makefile.protos /protos/cig_olt/Makefile.protos
+WORKDIR /protos/cig_olt
+RUN make -f Makefile.protos build
 
 # Copy the files to a scrach based container to minimize its size
 FROM ${REGISTRY}scratch

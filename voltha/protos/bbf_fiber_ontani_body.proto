@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber;
+
+message OntaniConfigData {
+    bool upstream_fec_indicator = 1;
+    bool mgnt_gemport_aes_indicator = 2;
+}
+message OntaniOperData {
+    uint32 onu_id = 1;
+    uint32 channel_partition_id = 2;
+}

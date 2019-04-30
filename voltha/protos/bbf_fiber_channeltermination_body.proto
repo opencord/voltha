@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber;
+
+message ChannelterminationConfigData {
+    string channelpair_ref = 1;
+    bool meant_for_type_b_primary_role = 2;
+    uint32 ngpon2_twdm_admin_label = 3;
+    uint32 ngpon2_ptp_admin_label = 4;
+    uint32 xgs_ponid = 5;
+    uint32 xgpon_ponid = 6;
+    string gpon_ponid = 7;
+    string pon_tag = 8;
+    uint32 ber_calc_period = 9;
+    string location = 10;
+    string url_to_reach = 11;
+}
+message ChannelterminationOperData {
+    string ponid_display = 1;
+    string type_b_state = 2;
+}

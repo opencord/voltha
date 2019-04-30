@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber;
+import "meta.proto";
+
+message MulticastGemportsConfigData {
+    string id = 1 [(voltha.access) = READ_ONLY];
+    string name = 2;
+    uint32 gemport_id = 3;
+    string itf_ref = 4;
+    uint32 traffic_class = 5;
+    bool is_broadcast = 6;
+}

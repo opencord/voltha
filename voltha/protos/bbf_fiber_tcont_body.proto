@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber;
+import "meta.proto";
+import "bbf_fiber_traffic_descriptor_profile_body.proto";
+
+message TcontsConfigData {
+    string id = 1 [(voltha.access) = READ_ONLY];
+    string name = 2;
+    string interface_reference = 3;
+    string traffic_descriptor_profile_ref = 4;
+    uint32 alloc_id = 5;
+}
+message TcontsOperData {
+    string id = 1 [(voltha.access) = READ_ONLY];
+    string name = 2;
+    uint32 alloc_id = 3;
+}

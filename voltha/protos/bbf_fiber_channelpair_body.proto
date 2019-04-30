@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber;
+import "bbf_fiber_types.proto";
+
+message ChannelpairConfigData {
+    string channelgroup_ref = 1;
+    string channelpartition_ref = 2;
+    string channelpair_type = 3;
+    string channelpair_linerate = 4;
+    uint32 gpon_ponid_interval = 5;
+    bbf_fiber_types.PonIdOdnClassType gpon_ponid_odn_class = 6;
+}
+message ChannelpairOperData {
+    uint32 actual_downstream_lambda = 1;
+    bool primary_ct_assigned = 2;
+    bool secondary_ct_assigned = 3;
+}

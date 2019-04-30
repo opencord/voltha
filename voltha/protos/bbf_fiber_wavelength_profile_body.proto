@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber;
+import "meta.proto";
+
+message WavelengthProfileData {
+    string name = 1;
+    uint32 upstream_channelid = 2;
+    uint32 downstream_channelid = 3;
+    uint32 downstream_wavelength = 4;
+}
+
+message WavelengthProfile {
+    repeated WavelengthProfileData wavelength_profile_data = 1
+        [(voltha.child_node) = {key: "name"}];
+}
+

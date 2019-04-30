@@ -20,6 +20,7 @@ between the Device object and its adapter.
 """
 import structlog
 from copy import deepcopy
+from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 from voltha.core.config.config_proxy import CallbackType
@@ -331,6 +332,8 @@ class DeviceAgent(object):
         if device.admin_state == AdminState.ENABLED and \
                 device.oper_status == OperStatus.ACTIVE and \
                 device.connect_status == ConnectStatus.REACHABLE:
+            self.log.info('replay-create-interfaces ', device=device.id)
+            self.core.xpon_agent.replay_interface(device.id)
             # if device accepts bulk flow update, lets just call that
             if self.device_type.accepts_bulk_flow_update:
                 flows = self.flows_proxy.get('/')  # gather flows

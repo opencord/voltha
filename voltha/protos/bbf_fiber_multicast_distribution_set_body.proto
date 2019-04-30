@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber;
+import "meta.proto";
+import "bbf_fiber_multicast_gemport_body.proto";
+
+enum AllMulticastVlans
+{
+    ALL_MULTICAST_VLANS = 0;
+}
+
+message VlanList {
+    repeated uint32 multicast_vlan_id = 1;
+}
+
+message MulticastDistributionSetData {
+    string id = 1 [(voltha.access) = READ_ONLY];
+    string name = 2;
+    string multicast_gemport_ref = 3;
+    oneof multicast_vlans
+    {
+        AllMulticastVlans all_multicast_vlans = 4;
+        VlanList vlan_list = 5;
+    };
+}

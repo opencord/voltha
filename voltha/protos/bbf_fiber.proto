@@ -1,0 +1,17 @@
+/*
+TOP Level BBF Fiber proto
+*/
+
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber;
+import "bbf_fiber_base.proto";
+import "bbf_fiber_wavelength_profile_body.proto";
+import "bbf_fiber_channelgroup_body.proto";
+import "bbf_fiber_channelpartition_body.proto";
+import "bbf_fiber_channelpair_body.proto";
+import "bbf_fiber_channeltermination_body.proto";
+import "bbf_fiber_ontani_body.proto";
+import "bbf_fiber_v_ontani_body.proto";

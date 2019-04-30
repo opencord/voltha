@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+option go_package = "github.com/opencord/voltha/protos/go/bbf_fiber";
+
+package bbf_fiber;
+
+message VEnetConfigData {
+    string v_ontani_ref = 1;
+}
