@@ -42,8 +42,8 @@ from voltha.protos.bbf_fiber_base_pb2 import AllMulticastDistributionSetData, Al
 from voltha.registry import registry
 from voltha.protos.omci_mib_db_pb2 import MibDeviceData
 from voltha.protos.omci_alarm_db_pb2 import AlarmDeviceData
-from voltha.adapters.openolt.openolt_kafka_proxy import kafka_send_pb
-from voltha.adapters.openolt.openolt_kafka_consumer import KConsumer
+from voltha.adapters.openolt2.openolt_kafka_proxy import kafka_send_pb
+from voltha.adapters.openolt2.openolt_kafka_consumer import KConsumer
 
 log = structlog.get_logger()
 
@@ -1127,7 +1127,7 @@ class LocalHandler(VolthaLocalServiceServicer):
             device_agent = self.core.get_logical_device_agent(req.id)
             adapter_name = device_agent.device_adapter_agent.name
 
-            if adapter_name == 'openolt':
+            if adapter_name == 'openolt2':
                 log.debug('fast path pkt-out to kafka')
                 kafka_send_pb('voltha.pktout-{}'.format(req.id), req)
             else:
