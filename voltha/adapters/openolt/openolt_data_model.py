@@ -16,7 +16,8 @@
 import collections
 import structlog
 import socket
-from scapy.layers.l2 import Ether
+from structlog import get_logger
+
 from voltha.adapters.openolt.openolt_utils import OpenoltUtils
 from voltha.protos.device_pb2 import Port, Device
 from voltha.protos.openflow_13_pb2 import OFPPS_LIVE, OFPPF_FIBER, \
@@ -29,6 +30,7 @@ from voltha.protos.common_pb2 import OperStatus, AdminState, ConnectStatus
 from voltha.protos.logical_device_pb2 import LogicalDevice
 from voltha.registry import registry
 
+log = get_logger()
 
 # Onu info cache is hashed on onu_id, serial number, gemport_id
 OnuId = collections.namedtuple('OnuId', ['intf_id', 'onu_id'])
@@ -67,12 +69,6 @@ class OpenOltDataModel(object):
 
         # Hash map GemPortId -> OnuInfo
         self._onu_gemport_ids = {}
-
-        # Flow manager
-        self.flow_mgr = None
-
-        # packet in gem port
-        self.packet_in_gem_port = dict()
 
     def reconcile(self):
         assert self.logical_device_id is not None
@@ -181,10 +177,22 @@ class OpenOltDataModel(object):
 
         if onu_device:
             self.log.debug("data_model onu update", intf_id=intf_id,
-                           onu_id=onu_id, serial_number=serial_number)
-            onu_device.oper_status = OperStatus.DISCOVERED
-            onu_device.connect_status = ConnectStatus.REACHABLE
-            self.adapter_agent.update_device(onu_device)
+                           onu_id=onu_id, serial_number=serial_number,
+                           oper_state=onu_device.oper_status)
+            if onu_device.oper_status == OperStatus.UNKNOWN:
+                # olt reboot
+                self.log.debug("onu active or activating", intf_id=intf_id,
+                               onu_id=onu_id, serial_number=serial_number,
+                               oper_state=onu_device.oper_status)
+                onu_device.oper_status = OperStatus.DISCOVERED
+                onu_device.connect_status = ConnectStatus.REACHABLE
+                self.adapter_agent.update_device(onu_device)
+            else:
+                # onu activating
+                self.log.debug("onu active or activating", intf_id=intf_id,
+                               onu_id=onu_id, serial_number=serial_number,
+                               oper_state=onu_device.oper_status)
+                raise ValueError
             return
 
         self.log.debug("data_model onu create", intf_id=intf_id,
@@ -211,33 +219,32 @@ class OpenOltDataModel(object):
         self._onu_ids[OnuId(intf_id=intf_id, onu_id=onu_id)] = onu_info
         self._onu_serial_numbers[serial_number] = onu_info
 
-    def onu_delete(self, flow_mgr, onu_device):
-        self.flow_mgr = flow_mgr
-        try:
+    def onu_delete(self, serial_number):
+        self.log.debug('onu_delete', serial_number=serial_number)
+        onu_device = self.adapter_agent.get_child_device(
+            self.device.id,
+            serial_number=serial_number)
+        if onu_device is not None:
             self.adapter_agent.delete_child_device(self.device.id,
                                                    onu_device.id, onu_device)
-        except Exception as e:
-            self.log.error('adapter_agent error', error=e)
+        else:
+            self.log.warn('onu not found', serial_number=serial_number)
+            return
 
         try:
             self.__delete_logical_port(onu_device)
         except Exception as e:
             self.log.error('logical_port delete error', error=e)
-
         try:
-            ports = self.adapter_agent.get_ports(self.device.id, Port.ETHERNET_UNI)
-            for port in ports:
-                for peer in port.peers:
-                    if peer.device_id == onu_device.id:
-                        self.adapter_agent.delete_port(self.device.id, port)
+            self.__delete_port(onu_device.serial_number)
         except Exception as e:
             self.log.error('port delete error', error=e)
-        
+
         # Delete onu info from cache
-        onu_info = self._onu_serial_numbers[onu_device.serial_number]
+        onu_info = self._onu_ids[serial_number]
         del self._onu_ids[OnuId(intf_id=onu_info.intf_id,
                                 onu_id=onu_info.onu_id)]
-        del self._onu_serial_numbers[onu_device.serial_number]
+        del self._onu_serial_numbers[serial_number]
 
     def onu_oper_down(self, intf_id, onu_id):
 
@@ -326,46 +333,40 @@ class OpenOltDataModel(object):
         self.adapter_agent.publish_inter_adapter_message(
             onu_device.id, msg)
 
-    def meter_band(self, meter_id):
-        return self.adapter_agent.get_meter_band(
-            self.logical_device_id, meter_id
-        )
-
     def onu_omci_rx(self, intf_id, onu_id, pkt):
         onu_device = self.adapter_agent.get_child_device(
             self.device.id,
             parent_port_no=self.platform.intf_id_to_port_no(intf_id,
                                                             Port.PON_OLT),
             onu_id=onu_id)
+
+        if onu_device is None:
+            self.log.error('onu_omci_rx: onu not found',
+                           intf_id=intf_id, onu_id=onu_id)
+            return
+
         self.adapter_agent.receive_proxied_message(onu_device.proxy_address,
                                                    pkt)
 
-    def onu_send_packet_in(self, intf_type, intf_id, port_no, gemport_id, pkt):
+    def logical_port_num(self, intf_type, intf_id, port_no, gemport_id):
         if intf_type == "pon":
-            onu_id = self.onu_id(intf_id=intf_id, gemport_id=gemport_id)
-            logical_port_num = None
             if port_no:
                 logical_port_num = port_no
             else:
                 # Get logical_port_num from cache
+                onu_id = self.onu_id(intf_id=intf_id, gemport_id=gemport_id)
                 uni_id = 0  # FIXME - multi-uni support
                 logical_port_num = self.platform.mk_uni_port_num(intf_id,
                                                                  onu_id,
                                                                  uni_id)
-            # Store the gem port through which the packet_in came. Use the same
-            # gem port for packet_out.
-            self.packet_in_gem_port[(intf_id, onu_id, logical_port_num)] = gemport_id
         elif intf_type == "nni":
             logical_port_num = self.platform.intf_id_to_port_no(
                 intf_id,
                 Port.ETHERNET_NNI)
+        else:
+            raise ValueError('invalid intf_type=%s' % intf_type)
 
-        ether_pkt = Ether(pkt)
-
-        self.adapter_agent.send_packet_in(
-            logical_device_id=self.logical_device_id,
-            logical_port_no=logical_port_num,
-            packet=str(ether_pkt))
+        return logical_port_num
 
     # #######################################################################
     #
@@ -411,24 +412,6 @@ class OpenOltDataModel(object):
         gem = GemPortId(intf_id=intf_id, gemport_id=gemport_id)
         self._onu_gemport_ids[gem] = onu_info
 
-    def get_ofp_port_name(self, intf_id, onu_id, uni_id):
-        parent_port_no = self.platform.intf_id_to_port_no(intf_id,
-                                                          Port.PON_OLT)
-        child_device = self.adapter_agent.get_child_device(
-            self.device.id, parent_port_no=parent_port_no, onu_id=onu_id)
-        if child_device is None:
-            self.log.error("could-not-find-child-device",
-                           parent_port_no=intf_id, onu_id=onu_id)
-            return (None, None)
-        ports = self.adapter_agent.get_ports(child_device.id,
-                                             Port.ETHERNET_UNI)
-        logical_port = self.adapter_agent.get_logical_port(
-            self.logical_device_id, ports[uni_id].label)
-        ofp_port_name = (logical_port.ofp_port.name,
-                         logical_port.ofp_port.port_no)
-        return ofp_port_name
-
-
     # #######################################################################
     # Methods used by Alarm and Statistics Manager (TODO - re-visit)
     # #######################################################################
@@ -438,19 +421,6 @@ class OpenOltDataModel(object):
 
     def _device_id(self):
         return self.device.id
-
-    def _resolve_onu_id(self, onu_id, port_intf_id):
-        onu_device = None
-        try:
-            onu_device = self.adapter_agent.get_child_device(
-                self.device_id,
-                parent_port_no=self.platform.intf_id_to_port_no(
-                    port_intf_id, Port.PON_OLT),
-                onu_id=onu_id)
-        except Exception as inner:
-            self.log.exception('resolve-onu-id', errmsg=inner.message)
-
-        return onu_device
 
     def create_alarm(self, **kwargs):
         return self.adapter_agent.create_alarm(
@@ -549,6 +519,17 @@ class OpenOltDataModel(object):
                     child_device, logical_port)
                 self.adapter_agent.delete_logical_port(
                     self.logical_device_id, logical_port)
+                return
+
+    def __delete_port(self, serial_number):
+        ports = self.proxy.get('/devices/{}/ports'.format(
+            self.device_id))
+        for port in ports:
+            if port.label == serial_number:
+                self.log.debug('delete-port',
+                               onu_serial_number=serial_number,
+                               port=port)
+                self.adapter_agent.delete_port(self.device_id, port)
                 return
 
     def __onu_ports_down(self, onu_device):

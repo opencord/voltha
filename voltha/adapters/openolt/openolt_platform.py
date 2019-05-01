@@ -171,9 +171,6 @@ class OpenOltPlatform(object):
                         uni_port_no = action.output.port
                         break
 
-            if uni_port_no is None:
-                uni_port_no = fd.get_metadata_from_write_metadata(flow) & 0xFFFFFFFF
-
         if uni_port_no is None:
             raise ValueError
 

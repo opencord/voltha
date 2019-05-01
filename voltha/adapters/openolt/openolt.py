@@ -29,27 +29,9 @@ from voltha.protos.common_pb2 import LogLevel
 from voltha.protos.common_pb2 import OperationResp
 from voltha.protos.device_pb2 import DeviceType, DeviceTypes
 from voltha.registry import registry
-from voltha.adapters.openolt.openolt_flow_mgr import OpenOltFlowMgr
-from voltha.adapters.openolt.openolt_alarms import OpenOltAlarmMgr
-from voltha.adapters.openolt.openolt_statistics import OpenOltStatisticsMgr
-from voltha.adapters.openolt.openolt_platform import OpenOltPlatform
-from voltha.adapters.openolt.openolt_resource_manager import OpenOltResourceMgr
-from voltha.adapters.openolt.openolt_data_model import OpenOltDataModel
 
 _ = third_party
 log = structlog.get_logger()
-
-
-OpenOltDefaults = {
-    'support_classes': {
-        'platform': OpenOltPlatform,
-        'data_model': OpenOltDataModel,
-        'resource_mgr': OpenOltResourceMgr,
-        'flow_mgr': OpenOltFlowMgr,
-        'alarm_mgr': OpenOltAlarmMgr,
-        'stats_mgr': OpenOltStatisticsMgr,
-    }
-}
 
 
 @implementer(IAdapterInterface)
@@ -108,7 +90,6 @@ class OpenoltAdapter(object):
         log.info('adopt-device', device=device)
 
         kwargs = {
-            'support_classes': OpenOltDefaults['support_classes'],
             'adapter_agent': self.adapter_agent,
             'device_id': device.id,
             'host_and_port': device.host_and_port,
@@ -127,7 +108,6 @@ class OpenoltAdapter(object):
     def reconcile_device(self, device):
         log.info('reconcile-device', device=device)
         kwargs = {
-            'support_classes': OpenOltDefaults['support_classes'],
             'adapter_agent': self.adapter_agent,
             'device': device,
             'device_num': self.num_devices + 1,
@@ -226,17 +206,14 @@ class OpenoltAdapter(object):
                  'implemented')
         raise NotImplementedError()
 
-    def update_logical_flows(self, device_id, flows_to_add, flows_to_remove,
-                             groups, device_rules_map):
+    def update_logical_flows(self, device_id, flows_to_add, flows_to_remove):
 
         log.info('logical-flows-update', flows_to_add=len(flows_to_add),
                  flows_to_remove=len(flows_to_remove))
         log.debug('logical-flows-details', flows_to_add=flows_to_add,
                   flows_to_remove=flows_to_remove)
-        assert len(groups) == 0, "Cannot yet deal with groups"
         handler = self.devices[device_id]
-        handler.update_logical_flows(flows_to_add, flows_to_remove,
-                                     device_rules_map)
+        handler.update_logical_flows(flows_to_add, flows_to_remove)
 
     def update_pm_config(self, device, pm_configs):
         log.info('update_pm_config - Not implemented yet', device=device,
@@ -257,23 +234,9 @@ class OpenoltAdapter(object):
         raise NotImplementedError()
 
     def receive_packet_out(self, logical_device_id, egress_port_no, msg):
-        log.debug('packet-out', logical_device_id=logical_device_id,
+        log.error('DEPRECATED - openolt now uses fast path packet out',
+                  logical_device_id=logical_device_id,
                   egress_port_no=egress_port_no, msg_len=len(msg))
-
-        def ldi_to_di(ldi):
-            di = self.logical_device_id_to_root_device_id.get(ldi)
-            if di is None:
-                logical_device = self.adapter_agent.get_logical_device(ldi)
-                di = logical_device.root_device_id
-                self.logical_device_id_to_root_device_id[ldi] = di
-            return di
-
-        try:
-            device_id = ldi_to_di(logical_device_id)
-            handler = self.devices[device_id]
-            handler.packet_out(egress_port_no, msg)
-        except Exception as e:
-            log.error('packet-out:exception', e=e.message)
 
     def receive_inter_adapter_message(self, msg):
         log.info('rx_inter_adapter_msg - Not implemented')
