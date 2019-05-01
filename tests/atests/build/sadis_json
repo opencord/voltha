@@ -13,7 +13,10 @@
           "id":"PSMO12345678",
           "cTag":33,
           "sTag":44,
-          "nasPortId":"PSMO12345678"
+          "nasPortId":"PSMO12345678",
+          "technologyProfileId":64,
+          "upstreamBandwidthProfile":"High-Speed-Internet",
+          "downstreamBandwidthProfile":"User1-Specific"
         },
         {
           "id":"BBSM00000100",
