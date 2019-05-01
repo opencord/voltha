@@ -620,8 +620,8 @@ class FlowDecomposer(object):
 
         route = self.get_route(in_port_no, out_port_no)
         if route is None:
-            log.error('no-route', in_port_no=in_port_no,
-                      out_port_no=out_port_no, comment='deleting flow')
+            log.warn('no-route', in_port_no=in_port_no,
+                     out_port_no=out_port_no, comment='deleting flow')
             self.flow_delete(flow)
             return device_rules
 

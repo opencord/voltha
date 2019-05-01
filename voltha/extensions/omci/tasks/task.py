@@ -41,9 +41,9 @@ class Task(object):
     DEFAULT_PRIORITY = 128
     MIN_PRIORITY = 0
     MAX_PRIORITY = 255
-    DEFAULT_WATCHDOG_SECS = 10          # 10 seconds
-    MIN_WATCHDOG_SECS = 3               # 3 seconds
-    MAX_WATCHDOG_SECS = 60              # 60 seconds
+    DEFAULT_WATCHDOG_SECS = 1000          # 10 seconds
+    MIN_WATCHDOG_SECS = 300               # 3 seconds
+    MAX_WATCHDOG_SECS = 6000              # 60 seconds
 
     _next_task_id = 0
 

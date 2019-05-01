@@ -55,6 +55,7 @@ DOCKER_BUILD_ARGS = \
 	--build-arg REPOSITORY=$(REPOSITORY) \
 	$(DOCKER_PROXY_ARGS) $(DOCKER_CACHE_ARG) \
 	 --rm --force-rm \
+	 --no-cache \
 	$(DOCKER_BUILD_EXTRA_ARGS)
 
 VENVDIR := venv-$(shell uname -s | tr '[:upper:]' '[:lower:]')

@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from Queue import Empty as QueueEmpty
-from uuid import uuid4
 
+import threading
+from Queue import Empty as QueueEmpty
+from simplejson import loads
 import structlog
+
 from google.protobuf.empty_pb2 import Empty
+from google.protobuf.json_format import Parse
 from grpc import StatusCode
 from grpc._channel import _Rendezvous
 
@@ -39,8 +42,8 @@ from voltha.protos.bbf_fiber_base_pb2 import AllMulticastDistributionSetData, Al
 from voltha.registry import registry
 from voltha.protos.omci_mib_db_pb2 import MibDeviceData
 from voltha.protos.omci_alarm_db_pb2 import AlarmDeviceData
-from requests.api import request
-from common.utils.asleep import asleep
+from voltha.adapters.openolt2.openolt_kafka_proxy import kafka_send_pb
+from voltha.adapters.openolt2.openolt_kafka_consumer import KConsumer
 
 log = structlog.get_logger()
 
@@ -63,6 +66,10 @@ class LocalHandler(VolthaLocalServiceServicer):
         self.ofagent_heartbeat_lc = None
         self.ofagent_is_alive = True
 
+        self.pktin_thread_handle = threading.Thread(
+            target=self.pktin_thread)
+        self.pktin_thread_handle.setDaemon(True)
+
     def start(self, config_backend=None):
         log.debug('starting')
         if config_backend:
@@ -83,6 +90,7 @@ class LocalHandler(VolthaLocalServiceServicer):
         else:
             self.root = ConfigRoot(VolthaInstance(**self.init_kw))
 
+        self.pktin_thread_handle.start()
         self.core.xpon_handler.start(self.root)
 
         log.info('started')
@@ -564,10 +572,10 @@ class LocalHandler(VolthaLocalServiceServicer):
             img_dnld = self.root.get('/devices/{}/image_downloads/{}'.\
                     format(request.id, request.name))
             response = agent.get_image_download_status(img_dnld)
-            #try:
+            # try:
             #    response = self.root.get('/devices/{}/image_downloads/{}'.\
             #            format(request.id, request.name))
-            #except Exception as e:
+            # except Exception as e:
             #    log.exception(e.message)
             return response
 
@@ -793,7 +801,6 @@ class LocalHandler(VolthaLocalServiceServicer):
             return Empty()
 
         try:
-            device = self.root.get('/devices/{}'.format(request.id))
             agent = self.core.get_device_agent(request.id)
             agent.update_device_pm_config(request)
             return Empty()
@@ -1116,8 +1123,15 @@ class LocalHandler(VolthaLocalServiceServicer):
             agent = self.core.get_logical_device_agent(packet_out.id)
             agent.packet_out(packet_out.packet_out)
 
-        for request in request_iterator:
-            forward_packet_out(packet_out=request)
+        for req in request_iterator:
+            device_agent = self.core.get_logical_device_agent(req.id)
+            adapter_name = device_agent.device_adapter_agent.name
+
+            if adapter_name == 'openolt2':
+                log.debug('fast path pkt-out to kafka')
+                kafka_send_pb('voltha.pktout-{}'.format(req.id), req)
+            else:
+                forward_packet_out(packet_out=req)
 
         log.debug('stop-stream-packets-out')
 
@@ -1133,6 +1147,14 @@ class LocalHandler(VolthaLocalServiceServicer):
                 if self.stopped:
                     break
         log.debug('stop-receive-packets-in')
+
+    def pktin_thread(self):
+        KConsumer(self.openolt_packet_in, 'voltha.pktin')
+
+    def openolt_packet_in(self, topic, msg):
+        # FIXME - not thread safe, test with multiple olts
+        packet_in = Parse(loads(msg), PacketIn(), ignore_unknown_fields=True)
+        self.core.packet_in_queue.put(packet_in)
 
     def send_packet_in(self, device_id, ofp_packet_in):
         """Must be called on the twisted thread"""
@@ -1232,7 +1254,6 @@ class LocalHandler(VolthaLocalServiceServicer):
 
         try:
             assert isinstance(request, AlarmFilter)
-            alarm_filter = self.root.get('/alarm_filters/{}'.format(request.id))
             self.root.update('/alarm_filters/{}'.format(request.id), request)
 
             return request
