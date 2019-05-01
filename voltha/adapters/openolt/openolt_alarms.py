@@ -14,8 +14,6 @@
 # limitations under the License.
 #
 
-import threading
-from simplejson import loads
 from voltha.extensions.alarms.device_alarms import DeviceAlarms
 from voltha.extensions.alarms.simulator.simulate_alarms \
     import AdapterAlarmSimulator
@@ -36,7 +34,6 @@ from voltha.extensions.alarms.onu.onu_window_drift_alarm \
     import OnuWindowDriftAlarm
 from voltha.extensions.alarms.onu.onu_activation_fail_alarm \
     import OnuActivationFailAlarm
-from voltha.adapters.openolt.openolt_kafka_consumer import KConsumer
 
 
 class OpenOltAlarmMgr(object):
@@ -61,13 +58,6 @@ class OpenOltAlarmMgr(object):
             self.log.exception("alarmhandler-init-error",
                                errmsg=initerr.message)
             raise Exception(initerr)
-
-        '''
-        self.alarms_thread_handle = threading.Thread(
-            target=self.alarms_thread)
-        self.alarms_thread_handle.setDaemon(True)
-        self.alarms_thread_handle.start()
-        '''
 
     def process_alarms(self, alarm_ind):
         try:
@@ -447,14 +437,3 @@ class OpenOltAlarmMgr(object):
 
     def onu_processing_error_indication(self, onu_processing_error_ind):
         self.log.info('not implemented yet')
-
-    def alarms_thread(self):
-        self.log.debug('alarm indications thread starting')
-        self.kafka_consumer = KConsumer("openolt.ind.alarm")
-        self.log.debug('alarm indications thread processing')
-        self.kafka_consumer.read(self.alarms_process)
-        self.log.debug('alarm indications thread exited')
-
-    def alarms_process(self, msg):
-        alarm = loads(msg)
-        self.log.debug("openolt alarm", alarm=alarm, type=type(alarm))
