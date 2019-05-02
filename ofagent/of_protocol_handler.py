@@ -50,6 +50,9 @@ class OpenFlowProtocolHandler(object):
         self.rpc = rpc
         self.role = None
 
+        self.count_pkt_in = 0
+        self.count_pkt_out = 0
+
     @inlineCallbacks
     def start(self):
         """A new call is made after a fresh reconnect"""
@@ -190,6 +193,8 @@ class OpenFlowProtocolHandler(object):
     def handle_packet_out_request(self, req):
         if self.role == ofp.OFPCR_ROLE_MASTER or self.role == ofp.OFPCR_ROLE_EQUAL:
            self.rpc.send_packet_out(self.device_id, to_grpc(req))
+           self.count_pkt_out += 1
+           log.debug('counters of_protocol_handler OUT - {}'.format(self.count_pkt_out))
 
         elif self.role == ofp.OFPCR_ROLE_SLAVE:
            self.cxn.send(ofp.message.bad_request_error_msg(code=ofp.OFPBRC_IS_SLAVE))
@@ -344,6 +349,8 @@ class OpenFlowProtocolHandler(object):
         if self.role == ofp.OFPCR_ROLE_MASTER or self.role == ofp.OFPCR_ROLE_EQUAL:
            log.info('sending-packet-in', ofp_packet_in=ofp_packet_in)
            self.cxn.send(to_loxi(ofp_packet_in))
+           self.count_pkt_in += 1
+           log.debug('counters of_protocol_handler IN - {}'.format(self.count_pkt_in))
 
     def forward_port_status(self, ofp_port_status):
         self.cxn.send(to_loxi(ofp_port_status))
