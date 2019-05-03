@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "427c7716_8f669fa4",
+        "filename": "voltha/adapters/brcm_openomci_onu/brcm_openomci_onu_handler.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 416,
+      "author": {
+        "id": 1000436
+      },
+      "writtenOn": "2019-05-03T14:49:55Z",
+      "side": 1,
+      "message": "I have seen this, but in times past it did not affect restoring traffic after olt reboots.  \n\nMy only concern is this seems like a solution to the symptom.  The real question is why onos/decomposer sends the vlan tagging flow *before* the onu and its uni ports are up and ready.  \n\nI suspect that the uni logical ports may be being seen as up in onos before the onu handler actually sets them up; i.e while onu is still re-downloading/resyncing the mib.   At the end of mib sync the uni ports should then be seen as up in onos (which then pushes the flow).  This is the normal happy path.\n\nThe problem may be that when the olt reboots the onu uni logical ports are not being set to \"down\" properly in logically/in onos.  Or when the olt returns the uni ports are being set to \"up\" prematurely, causing onos to push flows before proper time. I suspect it could be the latter.\n\nIts something to at least consider and maybe worth a bit of investigation.  Given that, having protections like this in place is not necessarily a bad approach.",
+      "range": {
+        "startLine": 415,
+        "startChar": 63,
+        "endLine": 416,
+        "endChar": 47
+      },
+      "revId": "0b0ac1b223c5308ff4482322eb56669e5688d5fe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
