@@ -22,6 +22,40 @@
       "revId": "0b0ac1b223c5308ff4482322eb56669e5688d5fe",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b019e6e9_e1c9f217",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1105,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-05-03T16:02:38Z",
+      "side": 1,
+      "message": "Adapter should not be updating logical flows in KV store.",
+      "revId": "0b0ac1b223c5308ff4482322eb56669e5688d5fe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "277992b6_223d25f5",
+        "filename": "voltha/core/device_agent.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 330,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-05-03T16:02:38Z",
+      "side": 1,
+      "message": "I dont think adding a local last_data state in the core is a good idea.",
+      "revId": "0b0ac1b223c5308ff4482322eb56669e5688d5fe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
