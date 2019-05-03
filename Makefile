@@ -235,7 +235,7 @@ jenkins-containers: base voltha ofagent netconf consul cli envoy fluentd unum j2
 
 prod-containers: base voltha ofagent netconf shovel onos dashd cli grafana consul tools envoy fluentd unum j2
 
-containers: base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools envoy fluentd unum ponsim j2 alarm-generator test_runner
+containers: base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools fluentd unum ponsim j2 alarm-generator test_runner
 
 base:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-base:${TAG} -f docker/Dockerfile.base .
