@@ -1101,7 +1101,11 @@ class OpenOltFlowMgr(object):
                 self.log.exception('Problem reading this flow', e=e)
 
     def reset_flows(self):
-        self.flows_proxy.update('/', Flows())
+        self.flows_proxy.update('/', Flows(items=[]))
+        self.log.debug("purged-all-device-flows")
+
+        self.logical_flows_proxy.update('/', Flows(items=[]))
+        self.log.debug("purged-all-logical-flows")
 
     """ Add a downstream DHCP trap flow on the NNI interface
     """

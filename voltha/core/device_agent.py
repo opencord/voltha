@@ -327,8 +327,18 @@ class DeviceAgent(object):
     @inlineCallbacks
     def update_device(self, device):
         self.log.debug('updating-device', device=device.id)
+        last_data = self.last_data
         self.last_data = device  # so that we don't propagate back
         self.proxy.update('/', device)
+
+        # If the last device data also is enabled, active and reachable,
+        # dont do anything.
+        if last_data.admin_state == AdminState.ENABLED and \
+                last_data.oper_status == OperStatus.ACTIVE and \
+                last_data.connect_status == ConnectStatus.REACHABLE:
+            self.log.info("device-status-not-changed--nothing-to-do")
+            return
+
         if device.admin_state == AdminState.ENABLED and \
                 device.oper_status == OperStatus.ACTIVE and \
                 device.connect_status == ConnectStatus.REACHABLE:
