@@ -1,4 +1,4 @@
-FROM golang:1.9.2
+FROM golang:1.10
 MAINTAINER Alex Peters <info@alexanderpeters.de>
 
 RUN apt-get update && apt-get install -y apt-transport-https ca-certificates jq curl gnupg2 software-properties-common
