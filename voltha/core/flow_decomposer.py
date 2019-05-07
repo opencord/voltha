@@ -290,7 +290,6 @@ def get_actions(flow):
             actions.extend(instruction.actions.actions)
     return actions
 
-
 def get_ofb_fields(flow):
     assert isinstance(flow, ofp.ofp_flow_stats)
     assert flow.match.type == ofp.OFPMT_OXM
@@ -372,6 +371,24 @@ def get_inner_tag_from_write_metadata(flow):
 # test and extract next table and group information
 def has_next_table(flow):
     return get_goto_table_id(flow) is not None
+
+def has_vlan_mod_action(flow):
+    # set containing possible vlan mod actions
+    vlan_mod_actions_set = set([ofp.OFPAT_PUSH_VLAN, ofp.OFPAT_POP_VLAN, ofp.OFPAT_SET_FIELD])
+    vlan_actions = []
+    for instruction in flow.instructions:
+        if instruction.type == ofp.OFPIT_APPLY_ACTIONS or instruction.type == ofp.OFPIT_WRITE_ACTIONS:
+            for action in instruction.actions.actions:
+                vlan_actions.append(action.type)
+    # actions in the current flow
+    curr_vlan_action_set = set(vlan_actions)
+
+    # See if we have one more vlan mod actions in the current actions present in the flow
+    # Return True if we have at least one vlan mod action, else False.
+    if len(curr_vlan_action_set.intersection(vlan_mod_actions_set)):
+        return True
+    else:
+        return False
 
 def get_group(flow):
     for action in get_actions(flow):
@@ -756,6 +773,31 @@ class FlowDecomposer(object):
                         metadata=metadata_from_write_metadata
                     ))
 
+                elif flow.table_id == 0 and out_port_no is not None \
+                     and not has_vlan_mod_action(flow):
+                    # Transparent upstream flow
+                    log.debug('decomposing-transparent-olt-flow-in-upstream', match=flow.match)
+                    fl_lst, _ = device_rules.setdefault(
+                        egress_hop.device.id, ([], []))
+                    fl_lst.append(mk_flow_stat(
+                        priority=flow.priority,
+                        cookie=flow.cookie,
+                        match_fields=[
+                            in_port(egress_hop.ingress_port.port_no),
+                        ] + [
+                            field for field in get_ofb_fields(flow)
+                            if field.type not in (IN_PORT, )
+                        ],
+                        actions=[
+                            action for action in get_actions(flow)
+                            if action.type != OUTPUT
+                        ] + [
+                            output(egress_hop.egress_port.port_no)
+                        ],
+                        meter_id=meter_id,
+                        metadata=metadata_from_write_metadata
+                    ))
+
                 else:
                     # unknown upstream flow
                     log.error('unknown-upstream-flow', flow=flow,
@@ -770,6 +812,45 @@ class FlowDecomposer(object):
                     assert out_port_no is None
 
                     log.debug('decomposing-olt-flow-in-downstream', match=flow.match)
+                    # For downstream flows without output port action we need to
+                    # recalculate route with the output extracted from the metadata
+                    # to determine the PON port to send to the correct ONU/UNI
+                    egress_port_number = get_egress_port_number_from_metadata(flow)
+
+                    if egress_port_number is not None:
+                        route = self.get_route(in_port_no, egress_port_number)
+                        if route is None:
+                            log.error('no-route-downstream', in_port_no=in_port_no,
+                                      egress_port_number=egress_port_number, comment='deleting flow')
+                            self.flow_delete(flow)
+                            return device_rules
+                        assert len(route) == 2
+                        ingress_hop, egress_hop = route
+
+                    fl_lst, _ = device_rules.setdefault(
+                        ingress_hop.device.id, ([], []))
+                    fl_lst.append(mk_flow_stat(
+                        priority=flow.priority,
+                        cookie=flow.cookie,
+                        match_fields=[
+                            in_port(ingress_hop.ingress_port.port_no)
+                        ] + [
+                            field for field in get_ofb_fields(flow)
+                            if field.type not in (IN_PORT,)
+                        ],
+                        actions=[
+                            action for action in get_actions(flow)
+                        ] + [
+                            output(ingress_hop.egress_port.port_no)
+                        ],
+                        meter_id=meter_id,
+                        metadata=metadata_from_write_metadata
+                    ))
+
+                elif flow.table_id == 0 and out_port_no is not None \
+                     and not has_vlan_mod_action(flow):
+                    # Transparent downstream flow
+                    log.debug('decomposing-transparent-olt-flow-in-downstream', match=flow.match)
                     # For downstream flows without output port action we need to
                     # recalculate route with the output extracted from the metadata
                     # to determine the PON port to send to the correct ONU/UNI
