@@ -454,6 +454,8 @@ class OpenOltFlowMgr(object):
                                                        kwargs,
                                                        us_gem_port_attr_list)
 
+                self.download_tech_profile(intf_id, onu_id, uni_id)
+
             elif classifier[IP_PROTO] == 2:
                 self.log.warn('igmp flow add ignored, not implemented yet')
             else:
@@ -481,19 +483,8 @@ class OpenOltFlowMgr(object):
                                                        kwargs,
                                                        us_gem_port_attr_list)
 
-                (ofp_port_name, ofp_port_no) = \
-                    self.data_model.get_ofp_port_name(intf_id, onu_id, uni_id)
-                if ofp_port_name is None:
-                    self.log.error("port-name-not-found")
-                    return
+                self.download_tech_profile(intf_id, onu_id, uni_id)
 
-                tp_id = self.resource_mgr.get_tech_profile_id_for_onu(intf_id, onu_id, uni_id)
-                tp_path = self.get_tp_path(intf_id, ofp_port_name, tp_id)
-
-                self.log.debug('Load-tech-profile-request-to-brcm-handler',
-                               tp_path=tp_path)
-                self.data_model.onu_download_tech_profile(
-                    intf_id, onu_id, uni_id, tp_path)
         elif PUSH_VLAN in action:
             if VLAN_PCP in classifier:
                 gemport_id = self._get_gem_port_for_pcp(
@@ -505,6 +496,9 @@ class OpenOltFlowMgr(object):
                 self._install_flow_on_all_gemports(self.add_upstream_data_flow,
                                                    kwargs, us_gem_port_attr_list
                                                    )
+
+            self.download_tech_profile(intf_id, onu_id, uni_id)
+
         elif POP_VLAN in action:
             if VLAN_PCP in classifier:
                 gemport_id = self._get_gem_port_for_pcp(
@@ -516,10 +510,28 @@ class OpenOltFlowMgr(object):
                 self._install_flow_on_all_gemports(self.add_downstream_data_flow,
                                                    kwargs, ds_gem_port_attr_list
                                                    )
+
+            self.download_tech_profile(intf_id, onu_id, uni_id)
         else:
             self.log.debug('Invalid-flow-type-to-handle',
                            classifier=classifier,
                            action=action, flow=flow)
+
+    def download_tech_profile(self, intf_id, onu_id, uni_id):
+
+        (ofp_port_name, ofp_port_no) = \
+            self.data_model.get_ofp_port_name(intf_id, onu_id, uni_id)
+        if ofp_port_name is None:
+            self.log.error("port-name-not-found")
+            return
+
+        tp_id = self.resource_mgr.get_tech_profile_id_for_onu(intf_id, onu_id, uni_id)
+        tp_path = self.get_tp_path(intf_id, ofp_port_name, tp_id)
+
+        self.log.debug('Load-tech-profile-request-to-brcm-handler',
+                       tp_path=tp_path)
+        self.data_model.onu_download_tech_profile(
+            intf_id, onu_id, uni_id, tp_path)
 
     def get_scheduler(self, tech_profile_instance, direction, meter_id):
         if direction == Direction.UPSTREAM:
