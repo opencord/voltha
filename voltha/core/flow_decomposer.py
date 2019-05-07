@@ -756,6 +756,31 @@ class FlowDecomposer(object):
                         metadata=metadata_from_write_metadata
                     ))
 
+                elif flow.table_id == 0 and out_port_no is not None:
+                    # This is OLT flow in upstream direction
+                    # Example Transparent flow
+                    log.debug('decomposing-olt-flow-in-upstream', match=flow.match)
+                    fl_lst, _ = device_rules.setdefault(
+                        egress_hop.device.id, ([], []))
+                    fl_lst.append(mk_flow_stat(
+                        priority=flow.priority,
+                        cookie=flow.cookie,
+                        match_fields=[
+                            in_port(egress_hop.ingress_port.port_no),
+                        ] + [
+                            field for field in get_ofb_fields(flow)
+                            if field.type not in (IN_PORT, )
+                        ],
+                        actions=[
+                            action for action in get_actions(flow)
+                            if action.type != OUTPUT
+                        ] + [
+                            output(egress_hop.egress_port.port_no)
+                        ],
+                        meter_id=meter_id,
+                        metadata=metadata_from_write_metadata
+                    ))
+
                 else:
                     # unknown upstream flow
                     log.error('unknown-upstream-flow', flow=flow,
@@ -769,6 +794,44 @@ class FlowDecomposer(object):
                     # OLT flow in downstream direction (unicast traffic)
                     assert out_port_no is None
 
+                    log.debug('decomposing-olt-flow-in-downstream', match=flow.match)
+                    # For downstream flows without output port action we need to
+                    # recalculate route with the output extracted from the metadata
+                    # to determine the PON port to send to the correct ONU/UNI
+                    egress_port_number = get_egress_port_number_from_metadata(flow)
+
+                    if egress_port_number is not None:
+                        route = self.get_route(in_port_no, egress_port_number)
+                        if route is None:
+                            log.error('no-route-downstream', in_port_no=in_port_no,
+                                      egress_port_number=egress_port_number, comment='deleting flow')
+                            self.flow_delete(flow)
+                            return device_rules
+                        assert len(route) == 2
+                        ingress_hop, egress_hop = route
+
+                    fl_lst, _ = device_rules.setdefault(
+                        ingress_hop.device.id, ([], []))
+                    fl_lst.append(mk_flow_stat(
+                        priority=flow.priority,
+                        cookie=flow.cookie,
+                        match_fields=[
+                            in_port(ingress_hop.ingress_port.port_no)
+                        ] + [
+                            field for field in get_ofb_fields(flow)
+                            if field.type not in (IN_PORT,)
+                        ],
+                        actions=[
+                            action for action in get_actions(flow)
+                        ] + [
+                            output(ingress_hop.egress_port.port_no)
+                        ],
+                        meter_id=meter_id,
+                        metadata=metadata_from_write_metadata
+                    ))
+
+                elif flow.table_id == 0 and out_port_no is not None:
+                    # Transparent flow
                     log.debug('decomposing-olt-flow-in-downstream', match=flow.match)
                     # For downstream flows without output port action we need to
                     # recalculate route with the output extracted from the metadata
