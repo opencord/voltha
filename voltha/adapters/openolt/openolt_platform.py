@@ -154,20 +154,26 @@ class OpenOltPlatform(object):
 
     def flow_extract_info(self, flow, flow_direction):
         uni_port_no = None
+        eth_type = None
+
         if flow_direction == "upstream":
             for field in fd.get_ofb_fields(flow):
                 if field.type == fd.IN_PORT:
                     uni_port_no = field.port
                     break
         elif flow_direction == "downstream":
+            for field in fd.get_ofb_fields(flow):
+                if field.type == fd.ETH_TYPE:
+                    eth_type = field.eth_type
+                    break
+
+            uni_port_no = fd.get_metadata_from_write_metadata(flow) & 0xFFFFFFFF
+
             if uni_port_no is None:
                 for action in fd.get_actions(flow):
                     if action.type == fd.OUTPUT:
                         uni_port_no = action.output.port
                         break
-
-            if uni_port_no is None:
-                uni_port_no = fd.get_metadata_from_write_metadata(flow) & 0xFFFFFFFF
 
         if uni_port_no is None:
             raise ValueError
@@ -176,4 +182,4 @@ class OpenOltPlatform(object):
         onu_id = self.onu_id_from_uni_port_num(uni_port_no)
         uni_id = self.uni_id_from_port_num(uni_port_no)
 
-        return int(pon_intf), int(onu_id), int(uni_id)
+        return int(pon_intf), int(onu_id), int(uni_id), eth_type
