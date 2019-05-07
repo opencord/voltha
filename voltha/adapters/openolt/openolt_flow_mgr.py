@@ -299,11 +299,20 @@ class OpenOltFlowMgr(object):
 
     def _clear_flow_id_from_rm(self, flow, flow_id, flow_direction):
         try:
-            pon_intf, onu_id, uni_id \
+            pon_intf, onu_id, uni_id, eth_type \
                 = self.platform.flow_extract_info(flow, flow_direction)
         except ValueError:
-            self.log.error("failure extracting pon_intf, onu_id, uni_id info from flow")
+            self.log.error("failure-extracting-flow-info")
+            return
         else:
+            if eth_type == LLDP_ETH_TYPE:
+                network_intf_id = self.data_model.olt_nni_intf_id()
+                onu_id = -1
+                uni_id = -1
+
+                self.resource_mgr.free_flow_id(network_intf_id, onu_id, uni_id, flow_id)
+                return
+
             flows = self.resource_mgr.get_flow_id_info(pon_intf, onu_id, uni_id, flow_id)
             assert (isinstance(flows, list))
             self.log.debug("retrieved-flows", flows=flows)
