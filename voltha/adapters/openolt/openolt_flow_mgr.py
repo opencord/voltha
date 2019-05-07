@@ -508,7 +508,7 @@ class OpenOltFlowMgr(object):
         elif POP_VLAN in action:
             if VLAN_PCP in classifier:
                 gemport_id = self._get_gem_port_for_pcp(
-                    classifier[VLAN_PCP], us_gem_port_attr_list
+                    classifier[VLAN_PCP], ds_gem_port_attr_list
                 )
                 self.add_downstream_data_flow(intf_id, onu_id, uni_id, port_no, classifier,
                                               action, flow, alloc_id, gemport_id)
