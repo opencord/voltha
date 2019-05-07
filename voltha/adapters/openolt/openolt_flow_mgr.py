@@ -33,6 +33,7 @@ from common.tech_profile.tech_profile import Direction, TechProfile
 
 # Flow categories
 HSIA_FLOW = "HSIA_FLOW"
+HSIA_TRANSPARENT = "HSIA_TRANSPARENT-{}"
 
 EAP_ETH_TYPE = 0x888e
 LLDP_ETH_TYPE = 0x88cc
@@ -166,7 +167,9 @@ class OpenOltFlowMgr(object):
                 self.log.debug('field-type-ipv4-src',
                                ipv4_dst=classifier_info[IPV4_SRC])
             elif field.type == fd.METADATA:
-                pass
+                classifier_info[METADATA] = field.table_metadata
+                self.log.debug('field-type-metadata',
+                               metadata=classifier_info[METADATA])
             else:
                 raise NotImplementedError('field.type={}'.format(
                     field.type))
@@ -297,6 +300,24 @@ class OpenOltFlowMgr(object):
         self.divide_and_add_flow(intf_id, onu_id, uni_id, port_no,
                                  classifier_info, action_info, flow, tp_id, us_meter_id, ds_meter_id)
 
+    def _is_uni_port(self, port_no):
+        try:
+            port = self.data_model.get_logical_port(self.logical_device_id,
+                                                       'uni-{}'.format(port_no))
+            if port is not None:
+                return (not port.root_port), port.device_id
+            else:
+                return False, None
+        except Exception as e:
+            self.log.debug("port-not-found", e=e)
+            return False, None
+
+    def _is_upstream_flow(self, port_no):
+        return self._is_uni_port(port_no)[0]
+
+    def _is_downstream_flow(self, port_no):
+        return not self._is_upstream_flow(port_no)
+
     def _clear_flow_id_from_rm(self, flow, flow_id, flow_direction):
         try:
             pon_intf, onu_id, uni_id, eth_type \
@@ -406,6 +427,18 @@ class OpenOltFlowMgr(object):
         tp_path = self.get_tp_path(intf_id, ofp_port_name, tp_id)
         self.log.debug(" tp-path-in-delete", tp_path=tp_path)
         return self.tech_profile[intf_id].delete_tech_profile_instance(tp_path)
+
+    def is_no_l2_modification_flow(self, classifier, action):
+        no_l2_classifier_set = {IN_PORT, METADATA, VLAN_VID}
+        no_l2_action_set = {OUTPUT}
+        incoming_classifier_set = set(classifier.keys())
+        incoming_action_set = set(action.keys())
+
+        if no_l2_classifier_set.issubset(incoming_classifier_set) and \
+            no_l2_action_set.issubset(incoming_action_set) and \
+                len(incoming_action_set) == 1:
+            return True
+        return False
 
     def divide_and_add_flow(self, intf_id, onu_id, uni_id, port_no, classifier,
                             action, flow, tp_id, us_meter_id, ds_meter_id):
@@ -527,6 +560,32 @@ class OpenOltFlowMgr(object):
                 self._install_flow_on_all_gemports(self.add_downstream_data_flow,
                                                    kwargs, ds_gem_port_attr_list
                                                    )
+
+        elif self.is_no_l2_modification_flow(classifier, action) and \
+                self._is_upstream_flow(classifier[IN_PORT]):
+            kwargs['is_l2_mod_flow'] = False
+            if VLAN_PCP in classifier:
+                kwargs['gemport_id'] = self._get_gem_port_for_pcp(
+                    classifier[VLAN_PCP], us_gem_port_attr_list
+                )
+                self.add_upstream_data_flow(**kwargs)
+            else:
+                self._install_flow_on_all_gemports(self.add_upstream_data_flow,
+                                                   kwargs, us_gem_port_attr_list
+                                                   )
+        elif self.is_no_l2_modification_flow(classifier, action) and \
+                self._is_downstream_flow(classifier[IN_PORT]):
+            kwargs['is_l2_mod_flow'] = False
+            if VLAN_PCP in classifier:
+                kwargs['gemport_id'] = self._get_gem_port_for_pcp(
+                    classifier[VLAN_PCP], ds_gem_port_attr_list
+                )
+                self.add_downstream_data_flow(**kwargs)
+            else:
+                self._install_flow_on_all_gemports(self.add_downstream_data_flow,
+                                                   kwargs, ds_gem_port_attr_list
+                                                   )
+
         else:
             self.log.debug('Invalid-flow-type-to-handle',
                            classifier=classifier,
@@ -871,20 +930,26 @@ class OpenOltFlowMgr(object):
         return alloc_id, gem_port_ids
 
     def add_upstream_data_flow(self, intf_id, onu_id, uni_id, port_no, classifier,
-                               action, logical_flow, alloc_id, gemport_id):
+                               action, logical_flow, alloc_id, gemport_id, is_l2_mod_flow=True):
 
-        classifier[PACKET_TAG_TYPE] = SINGLE_TAG
+        if is_l2_mod_flow:
+            classifier[PACKET_TAG_TYPE] = SINGLE_TAG
+        else:
+            classifier[PACKET_TAG_TYPE] = DOUBLE_TAG
 
         self.add_hsia_flow(intf_id, onu_id, uni_id, port_no, classifier,
                            action, UPSTREAM,
                            logical_flow, alloc_id, gemport_id)
 
     def add_downstream_data_flow(self, intf_id, onu_id, uni_id, port_no, classifier,
-                                 action, logical_flow, alloc_id, gemport_id):
-        classifier[PACKET_TAG_TYPE] = DOUBLE_TAG
-        # Needed ???? It should be already there
-        action[POP_VLAN] = True
-        action[VLAN_VID] = classifier[VLAN_VID]
+                                 action, logical_flow, alloc_id, gemport_id, is_l2_mod_flow=True):
+        if is_l2_mod_flow:
+            classifier[PACKET_TAG_TYPE] = DOUBLE_TAG
+            classifier[POP_VLAN] = True
+            action[VLAN_VID] = classifier[VLAN_VID]
+
+        else:
+            classifier[PACKET_TAG_TYPE] = DOUBLE_TAG
 
         self.add_hsia_flow(intf_id, onu_id, uni_id, port_no, classifier,
                            action, DOWNSTREAM,
@@ -908,8 +973,13 @@ class OpenOltFlowMgr(object):
             # takes priority over flow_cookie to find any available HSIA_FLOW
             # id for the ONU.
 
+            flow_category = HSIA_FLOW
+
+            if self.is_no_l2_modification_flow(classifier, action):
+                flow_category = HSIA_TRANSPARENT.format(classifier[VLAN_VID])
+
             flow_id = self.resource_mgr.get_flow_id(intf_id, onu_id, uni_id,
-                                                    flow_category=HSIA_FLOW,
+                                                    flow_category=flow_category,
                                                     flow_pcp=classifier[VLAN_PCP])
             if flow_id is None:
                 self.log.error("hsia-flow-unavailable")
@@ -927,7 +997,7 @@ class OpenOltFlowMgr(object):
             if self.add_flow_to_device(flow, logical_flow):
                 flow_info = self._get_flow_info_as_json_blob(flow,
                                                              flow_store_cookie,
-                                                             HSIA_FLOW)
+                                                             flow_category)
                 self.update_flow_info_to_kv_store(flow.access_intf_id,
                                                   flow.onu_id, flow.uni_id,
                                                   flow.flow_id, flow_info)

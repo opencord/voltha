@@ -428,6 +428,8 @@ class OpenOltDataModel(object):
                          logical_port.ofp_port.port_no)
         return ofp_port_name
 
+    def get_logical_port(self, logical_device_id, port_id):
+        return self.adapter_agent.get_logical_port(logical_device_id, port_id)
 
     # #######################################################################
     # Methods used by Alarm and Statistics Manager (TODO - re-visit)
