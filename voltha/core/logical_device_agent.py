@@ -29,7 +29,7 @@ from voltha.core.device_graph import DeviceGraph
 from voltha.core.flow_decomposer import FlowDecomposer, \
     flow_stats_entry_from_flow_mod_message, group_entry_from_group_mod, \
     mk_flow_stat, in_port, vlan_vid, vlan_pcp, pop_vlan, output, set_field, \
-    push_vlan, meter_entry_from_meter_mod, get_meter_id_from_flow
+    push_vlan, meter_entry_from_meter_mod, get_meter_id_from_flow, RouteHop
 from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos.device_pb2 import Port
@@ -1019,15 +1019,21 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                           in_port=ingress_port_no,
                           nni_port=self._nni_logical_port_no)
             if ingress_port_no == self._nni_logical_port_no:
-                self.log.info('returning half route')
-                # This is a trap on the NNI Port, both ingress and egress
-                # devices are OLTs.
-                for (ingress, egress), route in self._routes.iteritems():
-                    if egress == self._nni_logical_port_no:
-                        return [route[1], route[1]]
-                raise Exception('not a single upstream route')
-            # for a trap flow from the UNI, treat it as if the output port
-            # is the NNI of the OLT
+                root_device_ports = self.root_proxy.get('/devices/{}/ports'.
+                                                        format(self.self_proxy.
+                                                        get('/').root_device_id)
+                                                        )
+                root_device = self.root_proxy.get('/devices/{}'.
+                                                   format(self.self_proxy.
+                                                   get('/').root_device_id)
+                                                   )
+                for port in root_device_ports:
+                    if port.type == Port.ETHERNET_NNI:
+                        ingress_hop = RouteHop(root_device, port.port_no, port.port_no)
+                        egress_hop = ingress_hop
+                        return [ingress_hop, egress_hop]
+                return None
+
             egress_port_no = self._nni_logical_port_no
 
         # If ingress_port is not specified (None), it may be a wildcarded
