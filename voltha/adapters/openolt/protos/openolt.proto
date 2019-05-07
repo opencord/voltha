@@ -227,6 +227,7 @@ message OnuIndication {
     string oper_state = 3;      // up, down
     string admin_state = 5;     // up, down
     SerialNumber serial_number = 4;
+    bytes registration_id = 6;
 }
 
 message IntfOperIndication {

@@ -28,6 +28,7 @@ from twisted.internet import reactor, task
 from twisted.internet.defer import DeferredQueue, inlineCallbacks, returnValue, TimeoutError
 
 from heartbeat import HeartBeat
+from voltha.extensions.alarms.onu.onu_active_alarm import OnuActiveAlarm
 from voltha.extensions.kpi.onu.onu_pm_metrics import OnuPmMetrics
 from voltha.extensions.kpi.onu.onu_omci_pm import OnuOmciPmMetrics
 from voltha.extensions.alarms.adapter_alarms import AdapterAlarms
@@ -1360,6 +1361,9 @@ class BrcmOpenomciOnuHandler(object):
                     self._mib_download_done.extend(self._get_uni_ids(device))
                     self._execute_queued_tp_task()
 
+                    # raise onu activated alarm
+                    self.onu_active_alarm()
+
                 def failure(_reason):
                     self.log.warn('mib-download-failure-retrying', _reason=_reason)
                     device.reason = 'initial-mib-download-failure-retrying'
@@ -1435,3 +1439,43 @@ class BrcmOpenomciOnuHandler(object):
 
         self.adapter_agent.add_port_reference_to_parent(self.device_id,
                                                         pon_port)
+
+    def onu_active_alarm(self):
+        self.log.debug('function-entry')
+        try:
+            device = self.adapter_agent.get_device(self.device_id)
+            parent_device = self.adapter_agent.get_device(self.parent_id)
+            olt_serial_number = parent_device.serial_number
+            datapath_id = self.get_datapath_id()
+        except Exception as e:
+            self.log.exception("error-handling-onu-active-alarm", e=e)
+            return
+
+        self.log.debug("onu-indication-context-data",
+                       pon_id=self._onu_indication.intf_id,
+                       registration_id=self._onu_indication.registration_id,
+                       device_id=self.device_id,
+                       onu_serial_number=device.serial_number,
+                       olt_serial_number=olt_serial_number)
+        try:
+            OnuActiveAlarm(self.alarms, self.device_id,
+                           self._onu_indication.intf_id,
+                           device.serial_number,
+                           self._onu_indication.registration_id,
+                           olt_serial_number,onu_id=self._onu_indication.onu_id,
+                           datapath_id=datapath_id).raise_alarm()
+        except Exception as active_alarm_error:
+            self.log.exception('onu-activated-alarm-error',
+                               errmsg=active_alarm_error.message)
+
+    def get_datapath_id(self):
+        datapath_hex_id = None
+        try:
+            logical_device = self.adapter_agent.get_logical_device(
+                self.logical_device_id)
+            datapath_hex_id = format(logical_device.datapath_id, '016x')
+            self.log.debug("datapath-hex-id", datapath_hex_id=datapath_hex_id)
+        except Exception as e:
+            self.log.exception('datapath-id-error:', e=e)
+        return datapath_hex_id
+
