@@ -18,7 +18,7 @@ from voltha.protos.events_pb2 import AlarmEventType, AlarmEventSeverity, AlarmEv
 
 class OnuActiveAlarm(AlarmBase):
     def __init__(self, alarm_mgr, device_id, pon_id, onu_serial_number,
-                 reg_id, olt_serial_number, ipv4_address=None):
+                 reg_id, olt_serial_number, ipv4_address=None, onu_id=None, datapath_id=None):
         super(OnuActiveAlarm, self).__init__(alarm_mgr, object_type='ONU',
                                              alarm='ONU_ACTIVATED',
                                              alarm_category=AlarmEventCategory.PON,
@@ -26,19 +26,23 @@ class OnuActiveAlarm(AlarmBase):
                                              alarm_type=AlarmEventType.EQUIPMENT,
                                              alarm_severity=AlarmEventSeverity.CRITICAL)
         self._pon_id = pon_id
+        self._onu_id = onu_id
         self._onu_serial_number = onu_serial_number
         self._device_id = device_id
         self._olt_serial_number = olt_serial_number
         self._host = ipv4_address
         self._reg_id = reg_id
+        self._datapath_id = datapath_id
 
     def get_context_data(self):
         data = {
-            'pon-id': self._pon_id,
-            'serial-number': self._onu_serial_number,
+            'pon_id': self._pon_id,
+            'onu_id': self._onu_id,
+            'serial_number': self._onu_serial_number,
             'olt_serial_number': self._olt_serial_number,
             'device_id': self._device_id,
-            'registration_id': self._reg_id
+            'registration_id': self._reg_id,
+            'datapath_id': self._datapath_id
         }
         if self._host is not None:
             data['host'] = self._host

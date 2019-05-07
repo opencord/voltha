@@ -274,12 +274,10 @@ class OpenOltDataModel(object):
         onu_adapter_agent.update_interface(onu_device,
                                            {'oper_state': 'down'})
 
-    def onu_oper_up(self, intf_id, onu_id):
+    def onu_oper_up(self, onu_indication):
 
-        class _OnuIndication:
-            def __init__(self, intf_id, onu_id):
-                self.intf_id = intf_id
-                self.onu_id = onu_id
+        intf_id = onu_indication.intf_id
+        onu_id = onu_indication.onu_id
 
         onu_device = self.adapter_agent.get_child_device(
             self.device.id,
@@ -310,7 +308,7 @@ class OpenOltDataModel(object):
             return
 
         onu_adapter_agent.create_interface(onu_device,
-                                           _OnuIndication(intf_id, onu_id))
+                                           onu_indication)
 
     def onu_download_tech_profile(self, intf_id, onu_id, uni_id, tp_path):
         onu_device = self.adapter_agent.get_child_device(
