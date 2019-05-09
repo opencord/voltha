@@ -1325,6 +1325,14 @@ class OpenOltFlowMgr(object):
                 self.log.error('failed to add flow',
                                logical_flow=logical_flow, flow=flow,
                                grpc_error=grpc_e)
+                # If the flow addition failed on the device, immediately
+                # free up the flow_id resource from the pool
+                intf_id = flow.access_intf_id if flow.access_intf_id > 0 else flow.network_intf_id
+                onu_id = flow.onu_id
+                uni_id = flow.uni_id
+                flow_id = flow.flow_id
+                self.resource_mgr.free_flow_id(intf_id, onu_id, uni_id, flow_id)
+
             return False
         else:
             self.register_flow(logical_flow, flow)
