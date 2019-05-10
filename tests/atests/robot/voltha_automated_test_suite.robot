@@ -44,6 +44,8 @@ ${ONU_COUNT}            ${EMPTY}
 ${ADAPTER}              ${EMPTY}
 ${RETRY_TIMEOUT_60}     60s
 ${RETRY_INTERVAL_2}     2s
+${PROCEED_TIMEOUT_180}  180s
+
 
 *** Test Cases ***
 Olt Pre Provisioning
@@ -63,7 +65,7 @@ Olt Pre Provisioning
     Status Should Be Success After Enable Command
     Check Olt Fields After Enabling
     Check Onu Fields After Enabling
-    Sleep    60
+    Wait Until Keyword Succeeds   ${PROCEED_TIMEOUT_180}  ${RETRY_INTERVAL_2}    Proceed
 
 Olt Onu Discovery
     [Documentation]     Olt Onu Discovery
