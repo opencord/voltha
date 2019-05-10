@@ -25,7 +25,6 @@ import testCaseUtils
 import logging
 
 
-
 class VolthaMngr(object):
 
     """
@@ -39,7 +38,10 @@ class VolthaMngr(object):
         self.dirs['root'] = None
         self.dirs['voltha'] = None
         self.dirs['log'] = None
-        
+
+        self.__radiusName = None
+        self.__radiusIp = None
+
     def v_set_log_dirs(self, root_dir, voltha_dir, log_dir):
         testCaseUtils.config_dirs(self, log_dir, root_dir, voltha_dir)
 
@@ -98,13 +100,36 @@ class VolthaMngr(object):
                 os.system('/usr/bin/kubectl logs -n %s -f %s onos > %s/%s.log 2>&1 &' %
                           (Namespace, podName, testCaseUtils.get_dir(self, 'log'), podName))
             elif 'calico-node' in podName:
-                    os.system('/usr/bin/kubectl logs -n %s -f %s calico-node > %s/%s.log 2>&1 &' %
-                              (Namespace, podName, testCaseUtils.get_dir(self, 'log'), podName))
+                os.system('/usr/bin/kubectl logs -n %s -f %s calico-node > %s/%s.log 2>&1 &' %
+                          (Namespace, podName, testCaseUtils.get_dir(self, 'log'), podName))
             else:
                 os.system('/usr/bin/kubectl logs -n %s -f %s > %s/%s.log 2>&1 &' %
                           (Namespace, podName, testCaseUtils.get_dir(self, 'log'), podName))
 
-        
+    def discover_freeradius_pod_name(self):
+        self.__radiusName = testCaseUtils.extract_pod_name('freeradius').strip()
+        logging.info('freeradius Name = %s' % self.__radiusName)
+
+    def discover_freeradius_ip_addr(self):
+        ipAddr = testCaseUtils.extract_radius_ip_addr(self.__radiusName)
+        assert ipAddr, 'No IP address listed for freeradius'
+        self.__radiusIp = ipAddr.strip()
+        logging.info('freeradius IP = %s' % self.__radiusIp)
+
+    def prepare_current_freeradius_ip(self):
+        status = testCaseUtils.modify_radius_ip_in_json_using_sed(self, self.__radiusIp)
+        assert (status == 0), 'Setting Radius Ip in Json File did not return Success'
+
+    def alter_freeradius_ip_in_onos_aaa_application_configuration(self):
+        logging.info('Altering the Onos NetCfg AAA apps with Freeradius IP address')
+        logging.debug('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
+                      'http://localhost:30120/onos/v1/network/configuration/apps/ -d @%s/tests/atests/build/aaa_json'
+                      % testCaseUtils.get_dir(self, 'voltha'))
+        os.system('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
+                  'http://localhost:30120/onos/v1/network/configuration/apps/ -d @%s/tests/atests/build/aaa_json'
+                  % testCaseUtils.get_dir(self, 'voltha'))
+
+
 def get_all_running_pods():
     allRunningPods = []
     proc1 = subprocess.Popen(['/usr/bin/kubectl', 'get', 'pods', '--all-namespaces'],
@@ -135,3 +160,7 @@ def voltha_initialize(root_dir, voltha_dir, log_dir, adapter):
     voltha.start_all_pods(adapter)
     voltha.alter_onos_net_cfg()
     voltha.collect_pod_logs()
+    voltha.discover_freeradius_pod_name()
+    voltha.discover_freeradius_ip_addr()
+    voltha.prepare_current_freeradius_ip()
+    voltha.alter_freeradius_ip_in_onos_aaa_application_configuration()

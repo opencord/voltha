@@ -44,6 +44,8 @@ ${ONU_COUNT}            ${EMPTY}
 ${ADAPTER}              ${EMPTY}
 ${RETRY_TIMEOUT_60}     60s
 ${RETRY_INTERVAL_2}     2s
+${PROCEED_TIMEOUT_180}  180s
+
 
 *** Test Cases ***
 Olt Pre Provisioning
@@ -63,7 +65,7 @@ Olt Pre Provisioning
     Status Should Be Success After Enable Command
     Check Olt Fields After Enabling
     Check Onu Fields After Enabling
-    Sleep    60
+    Wait Until Keyword Succeeds   ${PROCEED_TIMEOUT_180}  ${RETRY_INTERVAL_2}    Proceed
 
 Olt Onu Discovery
     [Documentation]     Olt Onu Discovery
@@ -92,10 +94,6 @@ Radius Authentication
     ...                 We then verify the generated log file confirming all the authentication steps
     [Tags]              ponsim
     A Set Log Dirs      ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
-    Discover Freeradius Pod Name
-    Discover Freeradius Ip Addr
-    Set Current Freeradius Ip In AAA Json
-    Alter AAA Application Configuration In Onos Using AAA Json
     Execute Authentication On RG
     Verify Authentication Should Have Started
     Verify Authentication Should Have Completed
@@ -160,7 +158,11 @@ Start Voltha
     ${pod_status}       Run    kubectl get pods --all-namespaces
     Log To Console      \n${pod_status}\n
     Alter Onos Net Cfg
-    
+    Discover Freeradius Pod Name
+    Discover Freeradius Ip Addr
+    Prepare Current Freeradius Ip
+    Alter Freeradius Ip In Onos AAA Application Configuration
+
 Stop Voltha
     [Documentation]     Stop Voltha infrastructure. This includes clearing all installation milestones
     ...                 files and stopping all Kubernetes pods
