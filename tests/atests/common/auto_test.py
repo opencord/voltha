@@ -112,7 +112,7 @@ if __name__ == "__main__":
     volthaMngr.voltha_initialize(ROOT_DIR, VOLTHA_DIR, LOG_DIR, args.adapter)
 
     preprovisioning.run_test(OLT_HOST_IP, 50060, OLT_TYPE, ONU_TYPE, ONU_COUNT, LOG_DIR)
-    time.sleep(60)
+
     discovery.run_test(OLT_HOST_IP, OLT_TYPE, ONU_TYPE, ONU_COUNT, LOG_DIR)
     if args.adapter == 'ponsim':
         authentication.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)

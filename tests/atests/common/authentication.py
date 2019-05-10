@@ -19,7 +19,6 @@ vOLT-HA Authentication Test Case module
 """
 
 import time
-import os
 import subprocess
 import testCaseUtils
 import logging
@@ -45,29 +44,6 @@ class Authentication(object):
     def a_set_log_dirs(self, root_dir, voltha_dir, log_dir):
         testCaseUtils.config_dirs(self, log_dir, root_dir, voltha_dir)
 
-    def discover_freeradius_pod_name(self):
-        self.__radiusName = testCaseUtils.extract_pod_name('freeradius').strip()
-        logging.info('freeradius Name = %s' % self.__radiusName)
-        
-    def discover_freeradius_ip_addr(self):
-        ipAddr = testCaseUtils.extract_radius_ip_addr(self.__radiusName)
-        assert ipAddr, 'No IP address listed for freeradius'
-        self.__radiusIp = ipAddr.strip()
-        logging.info('freeradius IP = %s' % self.__radiusIp)
-        
-    def set_current_freeradius_ip_in_aaa_json(self):
-        status = testCaseUtils.modify_radius_ip_in_json_using_sed(self, self.__radiusIp)
-        assert (status == 0), 'Setting Radius Ip in Json File did not return Success'
-          
-    def alter_aaa_application_configuration_in_onos_using_aaa_json(self):
-        logging.info('Altering the Onos NetCfg AAA apps with Freeradius IP address')
-        logging.debug('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
-                      'http://localhost:30120/onos/v1/network/configuration/apps/ -d @%s/tests/atests/build/aaa_json'
-                      % testCaseUtils.get_dir(self, 'voltha'))
-        os.system('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
-                  'http://localhost:30120/onos/v1/network/configuration/apps/ -d @%s/tests/atests/build/aaa_json'
-                  % testCaseUtils.get_dir(self, 'voltha'))
-     
     def execute_authentication_on_rg(self):
         logging.info('Running Radius Authentication from RG')
         process_output = open('%s/%s' % (testCaseUtils.get_dir(self, 'log'), self.AUTHENTICATE_FILENAME), 'w')
@@ -146,10 +122,6 @@ class Authentication(object):
 def run_test(root_dir, voltha_dir, log_dir):
     auth = Authentication()
     auth.a_set_log_dirs(root_dir, voltha_dir, log_dir)
-    auth.discover_freeradius_pod_name()
-    auth.discover_freeradius_ip_addr()
-    auth.set_current_freeradius_ip_in_aaa_json()
-    auth.alter_aaa_application_configuration_in_onos_using_aaa_json()
     auth.execute_authentication_on_rg()
     auth.verify_authentication_should_have_started()
     auth.verify_authentication_should_have_completed()

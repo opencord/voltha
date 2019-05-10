@@ -28,7 +28,7 @@ class Preprovisioning(object):
     """
     This class implements voltha pre-provisioning test
     """
-    
+
     def __init__(self):
         self.dirs = dict()
         self.dirs['log'] = None
@@ -99,6 +99,7 @@ class Preprovisioning(object):
         assert statusLines, 'No Olt listed under devices'
         self.__fields = testCaseUtils.parse_fields(statusLines, '|')
         assert self.check_states(self.__oltType), 'States of %s does match expected' % self.__oltType
+        hostPortCount = False
         for field in self.__fields:
             if field.strip() == self.__oltIpAddress + ':' + str(self.__oltPort):
                 hostPortCount = True
@@ -128,6 +129,23 @@ class Preprovisioning(object):
                                                  'voltha_devices_after_enable.log', 'devices')
         testCaseUtils.print_log_file(self, 'voltha_devices_after_enable.log')
 
+    def proceed(self):
+        logging.info('Pre-provisioning hold')
+        onuOnline = 0
+        portType = None
+        if self.__oltType == 'ponsim_olt':
+            portType = 'PON_OLT'
+        elif self.__oltType == 'openolt':
+            portType = 'ETHERNET_UNI'
+        while onuOnline < self.__onuCount:
+            testCaseUtils.send_command_to_voltha_cli(testCaseUtils.get_dir(self, 'log'), 'voltha_olt_device.log', 'device ' +
+                                                     self.__oltDeviceId, 'voltha_olt_ports.log', 'ports')
+            statusLines = testCaseUtils.get_fields_from_grep_command(self, portType, 'voltha_olt_ports.log')
+            lines = statusLines.splitlines()
+            onuOnline = len(lines)
+            time.sleep(5)
+        logging.info('All ONUs now Online!')
+
 
 def run_test(olt_ip_address, olt_port, olt_type, onu_type, onu_count, log_dir):
     preprovisioning = Preprovisioning()
@@ -142,3 +160,4 @@ def run_test(olt_ip_address, olt_port, olt_type, onu_type, onu_count, log_dir):
     preprovisioning.query_devices_after_enabling()
     preprovisioning.check_olt_fields_after_enabling()
     preprovisioning.check_onu_fields_after_enabling()
+    preprovisioning.proceed()
