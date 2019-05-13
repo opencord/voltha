@@ -71,7 +71,7 @@
                         </artifactItem>
                         <artifactItem>
                             <groupId>org.opencord</groupId>
-                            <artifactId>aaa</artifactId>
+                            <artifactId>aaa-app</artifactId>
                             <version>${aaa.version}</version>
                             <type>oar</type>
                             <overWrite>true</overWrite>
