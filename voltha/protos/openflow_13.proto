@@ -1630,7 +1630,7 @@ enum ofp_meter_mod_failed_code {
     OFPMMFC_BAD_RATE      = 6;  /* Rate unsupported. */
     OFPMMFC_BAD_BURST     = 7;  /* Burst size unsupported. */
     OFPMMFC_BAD_BAND      = 8;  /* Band unsupported. */
-    OFPMMFC_BAD_BAND_VALUE = 9; /* Band value unsupported. */
+    OFPMMFC_BAD_BAND_DETAIL = 9;  /* Band value unsupported. */
     OFPMMFC_OUT_OF_METERS = 10; /* No more meters available. */
     OFPMMFC_OUT_OF_BANDS  = 11; /* The maximum number of properties
                                  * for a meter has been exceeded. */

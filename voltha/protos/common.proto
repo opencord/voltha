@@ -11,7 +11,7 @@ message ID {
     string id = 1;
 }
 
-message LogLevel {
+message LogLevelMessage {
     option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
     // Logging verbosity level
@@ -24,7 +24,7 @@ message LogLevel {
     }
 }
 
-message AdminState {
+message AdminStateMessage {
     option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
     // Administrative State
@@ -49,7 +49,7 @@ message AdminState {
     }
 }
 
-message OperStatus {
+message OperStatusMessage {
     option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
     // Operational Status
@@ -75,7 +75,7 @@ message OperStatus {
     }
 }
 
-message ConnectStatus {
+message ConnectStatusMessage {
     option (yang_child_rule) = MOVE_TO_PARENT_LEVEL;
 
     // Connectivity Status

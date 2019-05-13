@@ -7,7 +7,7 @@ package voltha;
 import "meta.proto";
 import "google/api/annotations.proto";
 
-message ConfigEventType {
+message ConfigEventTypeMessage {
     enum ConfigEventType {
         add = 0; // A new config has been added
         remove = 1; // A config has been removed
@@ -16,13 +16,13 @@ message ConfigEventType {
 }
 
 message ConfigEvent {
-    ConfigEventType.ConfigEventType type = 1;
+    ConfigEventTypeMessage.ConfigEventType type = 1;
 
     string hash = 2; // hash for this change, can be used for quick lookup
     string data = 3; // the actual new data, in json format
 }
 
-message KpiEventType {
+message KpiEventTypeMessage {
     enum KpiEventType {
         slice = 0; // slice: a set of path/metric data for same time-stamp
         ts = 1; // time-series: array of data for same metric
@@ -79,7 +79,7 @@ message MetricInformation {
  */
 message KpiEvent {
 
-    KpiEventType.KpiEventType type = 1;
+    KpiEventTypeMessage.KpiEventType type = 1;
 
     // Fields used when for slice:
 
@@ -91,11 +91,11 @@ message KpiEvent {
 
 message KpiEvent2 {
     // Type of KPI Event
-    KpiEventType.KpiEventType type = 1;
+    KpiEventTypeMessage.KpiEventType type = 1;
 
     // Fields used when for slice:
     double ts = 2;  // UTC time-stamp of data in slice mode (seconds since epoch)
-                    // of the time this entire KpiEvent was published to the kafka bus
+    // of the time this entire KpiEvent was published to the kafka bus
 
     repeated MetricInformation slice_data = 3;
 }
@@ -103,7 +103,7 @@ message KpiEvent2 {
 /*
  * Identify to the area of the system impacted by the alarm
  */
-message AlarmEventType {
+message AlarmEventTypeMessage {
     enum AlarmEventType {
         COMMUNICATION = 0;
         ENVIRONMENT = 1;
@@ -117,7 +117,7 @@ message AlarmEventType {
 /*
  * Identify to the functional category originating the alarm
  */
-message AlarmEventCategory {
+message AlarmEventCategoryMessage {
     enum AlarmEventCategory {
         PON = 0;
         OLT = 1;
@@ -130,7 +130,7 @@ message AlarmEventCategory {
 /*
  * Active state of the alarm
  */
-message AlarmEventState {
+message AlarmEventStateMessage {
     enum AlarmEventState {
         RAISED = 0;
         CLEARED = 1;
@@ -140,7 +140,7 @@ message AlarmEventState {
 /*
  * Identify the overall impact of the alarm on the system
  */
-message AlarmEventSeverity {
+message AlarmEventSeverityMessage {
     enum AlarmEventSeverity {
         INDETERMINATE = 0;
         WARNING = 1;
@@ -158,16 +158,16 @@ message AlarmEvent {
     string id = 1;
 
     // Refers to the area of the system impacted by the alarm
-    AlarmEventType.AlarmEventType type = 2;
+    AlarmEventTypeMessage.AlarmEventType type = 2;
 
     // Refers to functional category of the alarm
-    AlarmEventCategory.AlarmEventCategory category = 3;
+    AlarmEventCategoryMessage.AlarmEventCategory category = 3;
 
     // Current active state of the alarm
-    AlarmEventState.AlarmEventState state = 4;
+    AlarmEventStateMessage.AlarmEventState state = 4;
 
     // Overall impact of the alarm on the system
-    AlarmEventSeverity.AlarmEventSeverity severity = 5;
+    AlarmEventSeverityMessage.AlarmEventSeverity severity = 5;
 
     // Timestamp at which the alarm was first raised
     float raised_ts = 6;
