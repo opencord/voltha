@@ -71,7 +71,7 @@
                         </artifactItem>
                         <artifactItem>
                             <groupId>org.opencord</groupId>
-                            <artifactId>aaa</artifactId>
+                            <artifactId>aaa-app</artifactId>
                             <version>${aaa.version}</version>
                             <type>oar</type>
                             <overWrite>true</overWrite>
@@ -85,7 +85,7 @@
                         </artifactItem>
                         <artifactItem>
                             <groupId>org.opencord</groupId>
-                            <artifactId>dhcpl2relay</artifactId>
+                            <artifactId>dhcpl2relay-app</artifactId>
                             <version>${dhcpl2relay.version}</version>
                             <type>oar</type>
                             <overWrite>true</overWrite>
