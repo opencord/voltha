@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "13b53870_a91814be",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 6
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-05-13T21:18:42Z",
+      "side": 1,
+      "message": "Modified the method name to exclude the \"In AAA Json\"\nChanged to:\n\"Prepare Current Freeradius Ip\"",
+      "parentUuid": "f26e12ad_c2155542",
+      "revId": "c1d89c843c375461d3fcd952ca09b1a3807e503d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f1522d18_ae14b954",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 6
@@ -30,6 +48,24 @@
       "writtenOn": "2019-05-13T20:54:45Z",
       "side": 1,
       "message": "Same comment as above",
+      "revId": "c1d89c843c375461d3fcd952ca09b1a3807e503d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "206d0cbd_da8942f5",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 6
+      },
+      "lineNbr": 164,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-05-13T21:18:42Z",
+      "side": 1,
+      "message": "As above, changed to:\n\"Alter Freeradius Ip In Onos AAA Application Configuration\"",
+      "parentUuid": "f1522d18_ae14b954",
       "revId": "c1d89c843c375461d3fcd952ca09b1a3807e503d",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
