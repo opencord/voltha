@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f26e12ad_c2155542",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 6
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2019-05-13T20:54:45Z",
+      "side": 1,
+      "message": "Each step in the test case should be self-documented but should not too detailed in how you do it. In other words, later you decide to change IP address not by Json but using something else, the test case can stay as it is, only the implementation will change (python code). In summary, I would remove \"In AAA Json\"",
+      "revId": "c1d89c843c375461d3fcd952ca09b1a3807e503d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f1522d18_ae14b954",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 6
+      },
+      "lineNbr": 164,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2019-05-13T20:54:45Z",
+      "side": 1,
+      "message": "Same comment as above",
+      "revId": "c1d89c843c375461d3fcd952ca09b1a3807e503d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
