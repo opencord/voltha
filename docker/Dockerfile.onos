@@ -49,7 +49,7 @@ RUN chmod 755 ./app-install.sh
 RUN ./app-install.sh
 
 # Create the final image coping over the installed applications from the build stage
-FROM matteoscandolo/onos:1.13.9-rc4
+FROM onosproject/onos:1.13.9-rc4
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
 # The ENV settings must be replicated below as they are not shared between stages
