@@ -35,6 +35,7 @@ from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos.device_pb2 import Port
 from voltha.protos.logical_device_pb2 import LogicalPort
 from voltha.protos.openflow_13_pb2 import Flows, Meters, FlowGroups, ofp_meter_config
+from threading import Lock
 
 _ = third_party
 
@@ -87,6 +88,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self._flows_ids_to_remove = []
             self._flows_to_remove = []
             self._flow_with_unknown_meter = dict()
+            self._group_mods_to_evaluate = []
+            self.lock_for_group_ops = Lock()  # to synchronize consecutive group create requests
 
             self.accepts_direct_logical_flows = False
             self.device_id = self.self_proxy.get('/').root_device_id
@@ -589,6 +592,12 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     # ~~~~~~~~~~~~~~~~~~~~~ LOW LEVEL GROUP HANDLERS ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def store_group_internal(self, group_mod):
+        assert isinstance(group_mod, ofp.ofp_group_mod)
+        assert group_mod.type == ofp.ofp_group_type.OFPGT_ALL # other group types are not supported for now
+
+        self._group_mods_to_evaluate.append(group_mod)  # stored to be processed after update
+
     def group_add(self, group_mod):
         assert isinstance(group_mod, ofp.ofp_group_mod)
 
@@ -602,6 +611,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             group_entry = group_entry_from_group_mod(group_mod)
             groups[group_mod.group_id] = group_entry
             changed = True
+            self.store_group_internal(group_mod)
 
         if changed:
             self.groups_proxy.update('/', FlowGroups(items=groups.values()))
@@ -655,6 +665,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             group_entry = group_entry_from_group_mod(group_mod)
             groups[group_mod.group_id] = group_entry
             changed = True
+            self.store_group_internal(group_mod)
 
         if changed:
             self.groups_proxy.update('/', FlowGroups(items=groups.values()))
@@ -812,6 +823,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                   logical_device_id=self.logical_device_id,
                   flow_groups=flow_groups)
 
+        if not self._group_mods_to_evaluate:
+            return  # there is no group to evaluate
+
         flows = self.flows_proxy.get('/').items
         device_flows_map = self.decompose_rules(flows, flow_groups.items)
         for device_id, (flows, groups) in device_flows_map.iteritems():
@@ -819,6 +833,34 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                                    Flows(items=flows.values()))
             self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
                                    FlowGroups(items=groups.values()))
+
+        # Temporary bypass for open olt
+        # TODO change the flag type, use a new one for groups
+        if self.accepts_direct_logical_flows:
+            # pass the logical groups directly to the adapter
+            self.log.debug('it is a direct logical group bypass')
+            if self.device_adapter_agent is None:
+                self.log.error('No device adapter agent',
+                               device_id=self.device_id,
+                               logical_device_id=self.logical_device_id)
+                return
+
+            try:
+                self.lock_for_group_ops.acquire()  # to synchronize consecutive group requests
+                # call the adapter
+                self.device_adapter_agent.update_logical_groups(self.device_id, self._group_mods_to_evaluate, device_flows_map)
+
+                del self._group_mods_to_evaluate[:]  # empty the list
+            except Exception as e:
+                self.log.error('logical flows bypass error', error=e,
+                               groups=self._group_mods_to_evaluate)
+            finally:
+                self.lock_for_group_ops.release()
+        else:
+
+            for device_id, (flows, groups) in device_flows_map.iteritems():
+                self.root_proxy.update('/devices/{}/flows'.format(device_id), Flows(items=flows.values()))
+                self.root_proxy.update('/devices/{}/flow_groups'.format(device_id), FlowGroups(items=groups.values()))
 
     # ~~~~~~~~~~~~~~~~~~~ APIs NEEDED BY FLOW DECOMPOSER ~~~~~~~~~~~~~~~~~~~~~~
 

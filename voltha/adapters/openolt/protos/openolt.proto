@@ -159,6 +159,29 @@ service Openolt {
         };
     }
 
+    rpc GroupAdd(Group) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/GroupAdd"
+          body: "*"
+        };
+    }
+
+    rpc GroupRemove(Group) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/GroupRemove"
+          body: "*"
+        };
+    }
+
+    rpc GroupModify(Group) returns (Empty) {
+        option (google.api.http) = {
+          post: "/v1/GroupModify"
+          body: "*"
+        };
+    }
+
+
+
     rpc EnableIndication(Empty) returns (stream Indication) {}
 }
 
@@ -374,6 +397,7 @@ message Flow {
     sfixed32 priority = 9;
     fixed64 cookie = 12; // must be provided for any flow with trap_to_host action. Returned in PacketIndication
     fixed32 port_no = 13; // must be provided for any flow with trap_to_host action. Returned in PacketIndication
+    bool resolved_mac = 14;
 }
 
 message SerialNumber {
@@ -481,3 +505,38 @@ message OnuProcessingErrorIndication {
 }
 
 message Empty {}
+
+message Group {
+    enum GroupType {
+        ALL      = 0; /* All (multicast/broadcast) group.  */
+    }
+
+    enum GroupMembersCommand {
+        ADD_MEMBERS = 0;
+        REMOVE_MEMBERS = 1;
+        SET_MEMBERS = 2;
+    }
+
+    GroupType type = 1;
+    uint32 group_id = 2;
+    GroupMembersCommand command = 3;
+    repeated GroupMember members = 4;
+}
+
+/* For use in groups. */
+message GroupMember {
+    enum InterfaceType {
+        PON = 0;
+        EPON_1G_PATH = 1;
+        EPON_10G_PATH = 2;
+    }
+    uint32 interface_id = 1;
+    InterfaceType interface_type = 2;
+    uint32 gem_port_id = 3;
+    Queue queue = 4;
+}
+
+message Queue {
+    uint32 tm_scheduler_id = 1;
+    int32 tm_queue_id = 2;
+}

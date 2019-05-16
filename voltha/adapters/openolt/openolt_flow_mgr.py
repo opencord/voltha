@@ -23,7 +23,8 @@ from simplejson import dumps
 
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
     ofp_flow_stats, OFPMT_OXM, Flows, FlowGroups, \
-    OFPXMT_OFB_VLAN_VID
+    OFPXMT_OFB_VLAN_VID, ofp_group_mod_command, ofp_action_type, \
+    ofp_action_output, ofp_group_mod
 from voltha.protos.device_pb2 import Port
 import voltha.core.flow_decomposer as fd
 from voltha.adapters.openolt.protos import openolt_pb2
@@ -117,6 +118,88 @@ class OpenOltFlowMgr(object):
                 self.log.error('failed to remove flow', flow=flow, e=e)
 
         self.repush_all_different_flows()
+
+    def update_logical_groups(self, groups, device_rules_map):
+        try:
+            self.update_children_flows(device_rules_map)
+        except Exception as e:
+            self.log.error('Error updating children flows', error=e)
+
+        self.log.debug('Logical groups are being evaluated', groups=groups)
+
+        for group in groups:
+
+            if group.command == ofp_group_mod_command.OFPGC_ADD:
+                self.add_group(group)
+            elif group.command == ofp_group_mod_command.OFPGC_MODIFY:
+                self.modify_group(group)
+            elif group.command == ofp_group_mod_command.OFPGC_DELETE:
+                self.log.debug('group delete operation is not supported for now')
+                pass
+
+    def add_group(self, group):
+        assert isinstance(group, ofp_group_mod)
+
+        self.log.info('Group is being created', group=group)
+
+        try:
+            group_proto = openolt_pb2.Group(
+                type=openolt_pb2.Group.ALL,  # all type is supported for now
+                group_id=group.group_id,
+                command=openolt_pb2.Group.ADD_MEMBERS
+            )
+            # build members list and add to the group one by one
+            members = self.build_members(group.members)
+            for member in members:
+                group_proto.members.extend([member])
+
+            self.stub.GroupAdd(group_proto)
+
+        except Exception as e:
+            self.log.error('failed to create group', group=group, e=e)
+
+    def modify_group(self, group):
+        assert isinstance(group, ofp_group_mod)
+
+        self.log.info('Group is being modified', group=group)
+
+        try:
+            group_proto = openolt_pb2.Group(
+                type=openolt_pb2.Group.ALL,  # just all type is supported for now
+                group_id=group.group_id,
+                command=openolt_pb2.Group.SET_MEMBERS
+            )
+            # build members list and add to the group one by one
+            members = self.build_members(group.members)
+            for member in members:
+                group_proto.members.extend([member])
+
+            self.stub.GroupModify(group_proto)
+
+        except Exception as e:
+            self.log.error('failed to modify group', group=group, e=e)
+
+    def build_members(self, of_buckets):
+        self.log.debug('building members for the group', of_buckets=of_buckets)
+        members = list()
+
+        out_port = None  # assumed that just out port instruction is supported for now
+        for of_bucket in of_buckets:
+            for action in of_bucket.actions:
+                if action.type == ofp_action_type.OFPAT_OUTPUT:
+                    out_port = ofp_action_output.port
+
+            if out_port is not None:
+                members.append(openolt_pb2.Member(
+                    interface_id = -1,  # TBD - All TBDs will be handled along with VOL-1594
+                    interface_type = openolt_pb2.Member.PON,
+                    gem_port_id = -1,  # TBD
+                    queue = openolt_pb2.Queue(
+                        tm_scheduler_id = -1,  # TBD
+                        tm_queue_id = -1  # TBD
+                    )
+                ))
+        return members
 
     def add_flow(self, flow):
         self.log.debug('add flow', flow=flow)
