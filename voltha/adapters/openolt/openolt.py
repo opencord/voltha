@@ -238,6 +238,12 @@ class OpenoltAdapter(object):
         handler.update_logical_flows(flows_to_add, flows_to_remove,
                                      device_rules_map)
 
+    def update_logical_groups(self, device_id, groups, device_rules_map):
+        log.info('logical-groups-update', groups=len(groups))
+        log.debug('logical-groups-update', groups=groups)
+        handler = self.devices[device_id]
+        handler.update_logical_groups(groups, device_rules_map)
+
     def update_pm_config(self, device, pm_configs):
         log.info('update_pm_config - Not implemented yet', device=device,
                  pm_configs=pm_configs)
