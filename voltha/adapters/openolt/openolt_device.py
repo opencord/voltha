@@ -510,6 +510,13 @@ class OpenoltDevice(object):
         self.flow_mgr.update_logical_flows(flows_to_add, flows_to_remove,
                                            device_rules_map)
 
+    def update_logical_groups(self, groups, device_rules_map):
+        if not self.is_state_up():
+            self.log.info('The OLT is not up, we cannot update groups', groups=groups)
+            return
+
+        self.flow_mgr.update_logical_groups(groups, device_rules_map)
+
     def disable(self):
         self.log.debug('sending-deactivate-olt-message')
 

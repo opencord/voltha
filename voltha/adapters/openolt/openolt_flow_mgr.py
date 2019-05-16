@@ -23,7 +23,9 @@ from simplejson import dumps
 
 from voltha.protos.openflow_13_pb2 import OFPXMC_OPENFLOW_BASIC, \
     ofp_flow_stats, OFPMT_OXM, Flows, FlowGroups, \
-    OFPXMT_OFB_VLAN_VID
+    OFPXMT_OFB_VLAN_VID, \
+    OFPGC_ADD, OFPGC_MODIFY, OFPGC_DELETE, OFPAT_OUTPUT, \
+    ofp_group_mod
 from voltha.protos.device_pb2 import Port
 import voltha.core.flow_decomposer as fd
 from voltha.adapters.openolt.protos import openolt_pb2
@@ -92,6 +94,19 @@ class OpenOltFlowMgr(object):
         self._populate_tech_profile_per_pon_port()
         self.retry_add_flow_list = []
 
+        # there will be one multicast queue per PON interface.
+        # this map preserves interface id to GEM port mapping
+        self._intf_id_to_mcast_gem_map = dict()
+
+        # group id to group map.
+        # When a group_add request received, we need to cache it temporarily in this map
+        # until the multicast flow referring to this group arrives.
+        # Having installed the multicast flow, we need to send a group_add request containing members for this group
+        # due to BAL requirements. BAL can not set members to a group until the group is associated with
+        # a downstream flow. Thus we need to send group_add operation after the flow associated with
+        # this group is installed.
+        self._group_map = dict()
+
     def update_logical_flows(self, flows_to_add, flows_to_remove,
                              device_rules_map):
         try:
@@ -117,6 +132,84 @@ class OpenOltFlowMgr(object):
                 self.log.error('failed to remove flow', flow=flow, e=e)
 
         self.repush_all_different_flows()
+
+    def update_logical_groups(self, groups, device_rules_map):
+        try:
+            self.update_children_flows(device_rules_map)
+        except Exception as e:
+            self.log.error('Error updating children flows', error=e)
+
+        self.log.debug('Logical groups are being evaluated', groups=groups)
+
+        for group in groups:
+
+            if group.command == OFPGC_ADD:
+                self.add_group(group, False)
+            elif group.command == OFPGC_MODIFY:
+                self.add_group(group, True)
+            elif group.command == OFPGC_DELETE:
+                self.log.debug('group delete operation is not supported for now')
+                pass
+
+    def add_group(self, group, with_member):
+        assert isinstance(group, ofp_group_mod)
+        self.log.debug('add-group')
+
+        try:
+            group_to_olt = openolt_pb2.Group(
+                type=openolt_pb2.Group.ALL,  # all type is supported for now
+                group_id=group.group_id,
+                command=openolt_pb2.Group.SET_MEMBERS
+            )
+
+            if with_member:
+                # build members list and add to the group one by one
+                members = self.build_members(group.buckets)
+                for member in members:
+                    group_to_olt.members.extend([member])
+
+            self.log.info('Sending GroupAdd', group=group, group_to_olt=group_to_olt)
+
+            self.stub.GroupAdd(group_to_olt)
+
+            if with_member:
+                # not needed to preserve the groups in the map after setting members to the group
+                del self._group_map[group.group_id]
+            else:
+                # group has been created without the members in it
+                self._group_map[group.group_id] = group
+                self.log.debug('The group has been added to group_map', group_id=group.group_id)
+
+        except Exception as e:
+            self.log.error('failed to create group', group=group, e=e)
+
+    def build_members(self, of_buckets):
+        self.log.debug('building members of the group', of_buckets=of_buckets)
+        members = list()
+
+        out_port = None  # assumed that just out port instruction is supported for now
+        for of_bucket in of_buckets:
+            for action in of_bucket.actions:
+                if action.type == OFPAT_OUTPUT:
+                    out_port = action.output.port
+
+            if out_port is not None:
+                intf_id = self.platform.intf_id_from_uni_port_num(out_port)
+
+                if intf_id not in self._intf_id_to_mcast_gem_map:
+                    self.log.warn('bucket-skipped', cause='interface can not be mapped to a multicast GEM port',
+                                  intf_id=intf_id)
+                    continue
+
+                members.append(openolt_pb2.GroupMember(
+                    interface_id = intf_id,
+                    interface_type = openolt_pb2.GroupMember.PON,
+                    gem_port_id = self._intf_id_to_mcast_gem_map[intf_id]
+                ))
+
+        self.log.debug('group members have been generated from given OF bucket list',
+                       of_buckets=of_buckets, members=members)
+        return members
 
     def add_flow(self, flow):
         self.log.debug('add flow', flow=flow)
