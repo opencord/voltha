@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "61fa9fcf_4b625148",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 485,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-05-17T08:18:32Z",
+      "side": 1,
+      "message": "Are you working on an old voltha code base? Because CreateTconts doesn\u0027t exist anymore and is replaced with CreateTrafficSchedulers",
+      "revId": "a8f3bca575c659ea3d74203a4df018052a3a4647",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
