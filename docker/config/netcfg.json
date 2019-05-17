@@ -1,127 +1,98 @@
 {
   "apps": {
-    "org.opencord.aaa": {
-      "AAA": {
-        "radiusIp": "172.25.0.100",
-	"nasIp": "5.6.7.8",
-        "radiusServerPort": "1812",
-        "radiusSecret": "SECRET",
-	"bindings" : [
-		{
-		 "mac" : "de:ad:be:ef:ba:11",
-		 "s-tag" : 2,
-		 "c-tag" : 2,
-         "nas_port_id" : "location"
-		},
-                {
-         "mac" : "de:ad:be:ef:ca:fe",
-         "s-tag" : 2,
-         "c-tag" : 122,
-         "nas_port_id" : "location"
-        }
-	  ] 
-    }
- },
-    "org.onosproject.dhcp-relay" : {
-           "dhcprelay" : {
-               "dhcpserverConnectPoint" : "of:00000cafecafecafe/4",
-               "serverip" : "11.11.11.11",
-               "gatewayip" : "9.9.9.9"
+    "org.opencord.dhcpl2relay" : {
+           "dhcpl2relay" : {
+               "dhcpServerConnectPoints" : [ "of:0000626273696d62/65536" ],
+               "useOltUplinkForServerPktInOut" : true
            }
-    }
-  },
-  "devices": {
-    "of:0001aabbccddeeff": {
-      "basic": {
-        "driver": "voltha"
-      },
-      "accessDevice": {
-        "uplink": "0",
-        "vlan": "2"
-      }
     },
-    "of:0001000000000002": {
-      "basic": {
-        "driver": "voltha"
-      },
-      "accessDevice": {
-        "uplink": "0",
-        "vlan": "1001"
-      }
-    },
-    "of:0001000000000003": {
-      "basic": {
-        "driver": "voltha"
-      },
-      "accessDevice": {
-        "uplink": "0",
-        "vlan": "1002"
-      }
-    },
-    "of:0001000000000004": {
-      "basic": {
-        "driver": "voltha"
-      },
-      "accessDevice": {
-        "uplink": "0",
-        "vlan": "1003"
-      }
-    },
-    "of:0001000000000005": {
-      "basic": {
-        "driver": "voltha"
-      },
-      "accessDevice": {
-        "uplink": "0",
-        "vlan": "1004"
-      }
-    },
-    "of:0001000000000006": {
-      "basic": {
-        "driver": "voltha"
-      },
-      "accessDevice": {
-        "uplink": "0",
-        "vlan": "1005"
-      }
-    }
-  },
-  "ports" : { 
-	"of:0000000000000001/2" : {
-           "interfaces" : [
-               {
-                   "name" : "yoyoma1",
-                   "ips"  : [ "10.0.2.1/24" ],
-                   "mac"  : "00:00:00:01:01:00"
-               }
-           ]
-        },
-	"of:00000cafecafecafe/3" : {
-           "interfaces" : [
-               {
-                   "name" : "yoyoma",
-                   "ips"  : [ "10.0.2.2/24" ],
-                   "mac"  : "00:00:00:01:02:00"
-               }
-           ]
-        },"of:00000cafecafecafe/2" : {
-           "interfaces" : [
-               {
-                   "name" : "yoyoma2",
-                   "ips"  : [ "10.0.2.3/24" ],
-                   "mac"  : "00:00:00:01:03:00"
-               }
-           ]
-        },
-	"of:00000cafecafecafe/4" : {
-           "interfaces" : [
-               {
-                   "name" : "yoyoma4",
-                   "ips"  : [ "10.0.2.4/24" ],
-                   "mac"  : "00:00:00:01:04:00"
-               }
-           ]
+    "org.opencord.aaa": {
+        "AAA": {
+            "radiusSecret": "SECRET",
+            "radiusConnectionType" : "socket",
+            "radiusHost" : "freeradius.voltha.svc.cluster.local",
+            "radiusServerPort": "1812"
         }
-
+    },
+    "org.opencord.sadis" : {
+        "sadis" : {
+            "integration" : {
+              "cache" : {
+                "maxsize" : 1000,
+                "ttl" : "PT1m"
+              }
+            },
+            "entries":[
+                {"id" : "BBSIMOLT000", "hardwareIdentifier" : "de:ad:be:ef:ba:11", "uplinkPort" : 65536},
+                {"id" : "EC1721000216", "hardwareIdentifier" : "de:ad:be:ef:ba:11", "uplinkPort" : 65536 },
+                {"id" : "ISKT71e80080", "cTag" : 5, "sTag" : 3, "nasPortId" : "PON 2/1/01/1:1.1.1"},
+                {"id" : "ALPHe3d1cfe3", "cTag" : 4, "sTag" : 3, "nasPortId" : "PON 2/1/02/1:1.1.1"},
+                {"id" : "BBSM00000100", "cTag" : 900, "sTag" : 900, "nasPortId" : "BBSM00000100"},
+                {"id" : "BBSM00000101", "cTag" : 901, "sTag" : 901, "nasPortId" : "BBSM00000101"},
+                {"id" : "BBSM00000102", "cTag" : 902, "sTag" : 902, "nasPortId" : "BBSM00000102"},
+                {"id" : "BBSM00000103", "cTag" : 903, "sTag" : 903, "nasPortId" : "BBSM00000103"},
+                {"id" : "BBSM00000104", "cTag" : 904, "sTag" : 904, "nasPortId" : "BBSM00000104"},
+                {"id" : "BBSM00000105", "cTag" : 905, "sTag" : 905, "nasPortId" : "BBSM00000105"},
+                {"id" : "BBSM00000106", "cTag" : 906, "sTag" : 906, "nasPortId" : "BBSM00000106"},
+                {"id" : "BBSM00000107", "cTag" : 907, "sTag" : 907, "nasPortId" : "BBSM00000107"},
+                {"id" : "BBSM00000108", "cTag" : 908, "sTag" : 908, "nasPortId" : "BBSM00000108"},
+                {"id" : "BBSM00000109", "cTag" : 909, "sTag" : 909, "nasPortId" : "BBSM00000109"},
+                {"id" : "BBSM0000010a", "cTag" : 910, "sTag" : 910, "nasPortId" : "BBSM0000010a"},
+                {"id" : "BBSM0000010b", "cTag" : 911, "sTag" : 911, "nasPortId" : "BBSM0000010b"},
+                {"id" : "BBSM0000010c", "cTag" : 912, "sTag" : 912, "nasPortId" : "BBSM0000010c"},
+                {"id" : "BBSM0000010d", "cTag" : 913, "sTag" : 913, "nasPortId" : "BBSM0000010d"},
+                {"id" : "BBSM0000010e", "cTag" : 914, "sTag" : 914, "nasPortId" : "BBSM0000010e"},
+                {"id" : "BBSM0000010f", "cTag" : 915, "sTag" : 915, "nasPortId" : "BBSM0000010f"},
+                {"id" : "BBSM00000110", "cTag" : 916, "sTag" : 916, "nasPortId" : "BBSM00000110"},
+                {"id" : "BBSM00000111", "cTag" : 917, "sTag" : 917, "nasPortId" : "BBSM00000111"},
+                {"id" : "BBSM00000112", "cTag" : 918, "sTag" : 918, "nasPortId" : "BBSM00000112"},
+                {"id" : "BBSM00000113", "cTag" : 919, "sTag" : 919, "nasPortId" : "BBSM00000113"},
+                {"id" : "BBSM00000114", "cTag" : 920, "sTag" : 920, "nasPortId" : "BBSM00000114"},
+                {"id" : "BBSM00000115", "cTag" : 921, "sTag" : 921, "nasPortId" : "BBSM00000115"},
+                {"id" : "BBSM00000116", "cTag" : 922, "sTag" : 922, "nasPortId" : "BBSM00000116"},
+                {"id" : "BBSM00000117", "cTag" : 923, "sTag" : 923, "nasPortId" : "BBSM00000117"},
+                {"id" : "BBSM00000118", "cTag" : 924, "sTag" : 924, "nasPortId" : "BBSM00000118"},
+                {"id" : "BBSM00000119", "cTag" : 925, "sTag" : 925, "nasPortId" : "BBSM00000119"},
+                {"id" : "BBSM0000011a", "cTag" : 926, "sTag" : 926, "nasPortId" : "BBSM0000011a"},
+                {"id" : "BBSM0000011b", "cTag" : 927, "sTag" : 927, "nasPortId" : "BBSM0000011b"},
+                {"id" : "BBSM0000011c", "cTag" : 928, "sTag" : 928, "nasPortId" : "BBSM0000011c"},
+                {"id" : "BBSM0000011d", "cTag" : 929, "sTag" : 929, "nasPortId" : "BBSM0000011d"},
+                {"id" : "BBSM0000011e", "cTag" : 930, "sTag" : 930, "nasPortId" : "BBSM0000011e"},
+                {"id" : "BBSM0000011f", "cTag" : 931, "sTag" : 931, "nasPortId" : "BBSM0000011f"},
+                {"id" : "BBSM00000120", "cTag" : 932, "sTag" : 932, "nasPortId" : "BBSM00000120"},
+                {"id" : "BBSM00000121", "cTag" : 933, "sTag" : 933, "nasPortId" : "BBSM00000121"},
+                {"id" : "BBSM00000122", "cTag" : 934, "sTag" : 934, "nasPortId" : "BBSM00000122"},
+                {"id" : "BBSM00000123", "cTag" : 935, "sTag" : 935, "nasPortId" : "BBSM00000123"},
+                {"id" : "BBSM00000124", "cTag" : 936, "sTag" : 936, "nasPortId" : "BBSM00000124"},
+                {"id" : "BBSM00000125", "cTag" : 937, "sTag" : 937, "nasPortId" : "BBSM00000125"},
+                {"id" : "BBSM00000126", "cTag" : 938, "sTag" : 938, "nasPortId" : "BBSM00000126"},
+                {"id" : "BBSM00000127", "cTag" : 939, "sTag" : 939, "nasPortId" : "BBSM00000127"},
+                {"id" : "BBSM00000128", "cTag" : 940, "sTag" : 940, "nasPortId" : "BBSM00000128"},
+                {"id" : "BBSM00000129", "cTag" : 941, "sTag" : 941, "nasPortId" : "BBSM00000129"},
+                {"id" : "BBSM0000012a", "cTag" : 942, "sTag" : 942, "nasPortId" : "BBSM0000012a"},
+                {"id" : "BBSM0000012b", "cTag" : 943, "sTag" : 943, "nasPortId" : "BBSM0000012b"},
+                {"id" : "BBSM0000012c", "cTag" : 944, "sTag" : 944, "nasPortId" : "BBSM0000012c"},
+                {"id" : "BBSM0000012d", "cTag" : 945, "sTag" : 945, "nasPortId" : "BBSM0000012d"},
+                {"id" : "BBSM0000012e", "cTag" : 946, "sTag" : 946, "nasPortId" : "BBSM0000012e"},
+                {"id" : "BBSM0000012f", "cTag" : 947, "sTag" : 947, "nasPortId" : "BBSM0000012f"},
+                {"id" : "BBSM00000130", "cTag" : 948, "sTag" : 948, "nasPortId" : "BBSM00000130"},
+                {"id" : "BBSM00000131", "cTag" : 949, "sTag" : 949, "nasPortId" : "BBSM00000131"},
+                {"id" : "BBSM00000132", "cTag" : 950, "sTag" : 950, "nasPortId" : "BBSM00000132"},
+                {"id" : "BBSM00000133", "cTag" : 951, "sTag" : 951, "nasPortId" : "BBSM00000133"},
+                {"id" : "BBSM00000134", "cTag" : 952, "sTag" : 952, "nasPortId" : "BBSM00000134"},
+                {"id" : "BBSM00000135", "cTag" : 953, "sTag" : 953, "nasPortId" : "BBSM00000135"},
+                {"id" : "BBSM00000136", "cTag" : 954, "sTag" : 954, "nasPortId" : "BBSM00000136"},
+                {"id" : "BBSM00000137", "cTag" : 955, "sTag" : 955, "nasPortId" : "BBSM00000137"},
+                {"id" : "BBSM00000138", "cTag" : 956, "sTag" : 956, "nasPortId" : "BBSM00000138"},
+                {"id" : "BBSM00000139", "cTag" : 957, "sTag" : 957, "nasPortId" : "BBSM00000139"},
+                {"id" : "BBSM0000013a", "cTag" : 958, "sTag" : 958, "nasPortId" : "BBSM0000013a"},
+                {"id" : "BBSM0000013b", "cTag" : 959, "sTag" : 959, "nasPortId" : "BBSM0000013b"},
+                {"id" : "BBSM0000013c", "cTag" : 960, "sTag" : 960, "nasPortId" : "BBSM0000013c"},
+                {"id" : "BBSM0000013d", "cTag" : 961, "sTag" : 961, "nasPortId" : "BBSM0000013d"},
+                {"id" : "BBSM0000013e", "cTag" : 962, "sTag" : 962, "nasPortId" : "BBSM0000013e"},
+                {"id" : "BBSM0000013f", "cTag" : 963, "sTag" : 963, "nasPortId" : "BBSM0000013f"}
+            ]
+        }
+    }
   }
 }
