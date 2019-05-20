@@ -326,6 +326,13 @@ class OpenOltFlowMgr(object):
                 self.log.info("initiate-sched-queue-teardown")
                 self.remove_us_scheduler_queues(pon_intf, onu_id, uni_id, tp_instance)
                 self.remove_ds_scheduler_queues(pon_intf, onu_id, uni_id, tp_instance)
+                # Once all the flows are cleared on the OLT for a given subscriber,
+                # lets also reset the ONU handling that subscriber gracefully and then re-initialize it.
+                # FIXME: When we start supporting multiple subscribers per ONU (one per UNI),
+                # it is NOT OK to reset the ONU like this as it might affect other subscribers
+                # on that ONU.
+                self.data_model.onu_oper_down(pon_intf, onu_id)
+                self.data_model.onu_oper_up(pon_intf, onu_id)
 
     def retry_add_flow(self, flow):
         self.log.debug("retry-add-flow")
