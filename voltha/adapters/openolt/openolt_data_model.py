@@ -38,6 +38,12 @@ OnuInfo = collections.namedtuple('OnuInfo', ['intf_id',
                                              'serial_number'])
 
 
+class _OnuIndication:
+    def __init__(self, intf_id, onu_id):
+        self.intf_id = intf_id
+        self.onu_id = onu_id
+
+
 class OpenOltDataModel(object):
 
     def __init__(self, device_id, adapter_agent, platform):
@@ -276,11 +282,6 @@ class OpenOltDataModel(object):
 
     def onu_oper_up(self, intf_id, onu_id):
 
-        class _OnuIndication:
-            def __init__(self, intf_id, onu_id):
-                self.intf_id = intf_id
-                self.onu_id = onu_id
-
         onu_device = self.adapter_agent.get_child_device(
             self.device.id,
             parent_port_no=self.platform.intf_id_to_port_no(intf_id,
@@ -366,6 +367,31 @@ class OpenOltDataModel(object):
             logical_device_id=self.logical_device_id,
             logical_port_no=logical_port_num,
             packet=str(ether_pkt))
+
+    def reset_onu(self, pon_intf, onu_id):
+        # Brings the onu omci state down and then re-creates the onu omci interface
+        # This causes the onu to reset gracefully and it then re-initialize it correctly.
+        onu_device = self.adapter_agent.get_child_device(
+            self.device.id,
+            parent_port_no=self.platform.intf_id_to_port_no(pon_intf,
+                                                            Port.PON_OLT),
+            onu_id=onu_id)
+
+        if onu_device is None:
+            self.log.error("onu-not-found", pon_intf=pon_intf, onu_id=onu_id)
+            return
+
+        onu_adapter_agent = \
+            registry('adapter_loader').get_agent(onu_device.adapter)
+        if onu_adapter_agent is None:
+            self.log.error('onu_adapter_agent-could-not-be-retrieved',
+                           onu_device=onu_device)
+            return
+
+        onu_adapter_agent.update_interface(onu_device,
+                                           {'oper_state': 'down'})
+        onu_adapter_agent.create_interface(onu_device,
+                                           _OnuIndication(pon_intf, onu_id))
 
     # #######################################################################
     #
