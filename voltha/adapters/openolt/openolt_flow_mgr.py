@@ -89,6 +89,15 @@ class OpenOltFlowMgr(object):
         self.root_proxy = registry('core').get_proxy('/')
         self.resource_mgr = resource_mgr
         self.tech_profile = dict()
+        # Dictionary to store the status of HSIA.
+        # Populated when HSIA flow is installed and set to True.
+        # When the HSIA flow is removed, it is set to False.
+        # Finally the entry is evicted from the dictionary when clean-up is
+        # initiated for the subscriber.
+        # Note1: If the subscriber never had HSIA flow installed, there would
+        # be no entry in the dictionary.
+        # Note2: This information can be re-built on voltha restarts.
+        self.hsia_status = dict() # (pon_intf, onu_id, uni_id) -> True/False
         self._populate_tech_profile_per_pon_port()
         self.retry_add_flow_list = []
 
@@ -307,6 +316,10 @@ class OpenOltFlowMgr(object):
             self.log.debug("retrieved-flows", flows=flows)
             for idx in range(len(flows)):
                 if flow_direction == flows[idx]['flow_type']:
+                    # Before we remove this flow, retrieve the flow_category for later reference.
+                    flow_category = flows[idx].get('flow_category')
+                    # Pop the openolt flow which is being removed. The new list will
+                    # will be updated back to KV store.
                     flows.pop(idx)
                     self.update_flow_info_to_kv_store(pon_intf, onu_id,
                                                       uni_id, flow_id, flows)
@@ -316,6 +329,13 @@ class OpenOltFlowMgr(object):
                         # For ex: Case of HSIA where same flow is shared
                         # between DS and US.
                         return
+                    else:
+                        # If no more flows exists for a given flow_id, and the category of
+                        # the flow is HSIA, mark that we have cleared the HSIA for the subscriber.
+                        # This information is useful to gracefully reset and re-initialze the
+                        # ONU after all flows (including HSIA) are cleared for the subscriber.
+                        if flow_category == HSIA_FLOW:
+                            self.hsia_status[(pon_intf, onu_id, uni_id)] = False
 
             self.resource_mgr.free_flow_id(pon_intf, onu_id, uni_id, flow_id)
             flow_list = self.resource_mgr.get_current_flow_ids(pon_intf, onu_id, uni_id)
@@ -326,6 +346,16 @@ class OpenOltFlowMgr(object):
                 self.log.info("initiate-sched-queue-teardown")
                 self.remove_us_scheduler_queues(pon_intf, onu_id, uni_id, tp_instance)
                 self.remove_ds_scheduler_queues(pon_intf, onu_id, uni_id, tp_instance)
+                hsia_status = self.hsia_status.get((pon_intf, onu_id, uni_id), None)
+                if hsia_status == False:
+                    # Once all the flows (including HSIA) are cleared on the OLT for a given subscriber,
+                    # lets also reset the ONU handling that subscriber gracefully and then re-initialize it.
+                    # TODO: When we start supporting multiple subscribers per ONU (one per UNI),
+                    # it is NOT OK to reset the ONU like this as it might affect other subscribers
+                    # on that ONU.
+                    self.hsia_status.pop((pon_intf, onu_id, uni_id), None)
+                    self.data_model.onu_oper_down(pon_intf, onu_id)
+                    self.data_model.onu_oper_up(pon_intf, onu_id)
 
     def retry_add_flow(self, flow):
         self.log.debug("retry-add-flow")
@@ -920,6 +950,10 @@ class OpenOltFlowMgr(object):
                 self.update_flow_info_to_kv_store(flow.access_intf_id,
                                                   flow.onu_id, flow.uni_id,
                                                   flow.flow_id, flow_info)
+                # Mark that we have added hsia flow for the subscriber
+                # It is possible that this flag is marked to True multiple times,
+                # once for each direction.. No harm done!
+                self.hsia_status[(intf_id, onu_id, uni_id)] = True
 
     def add_dhcp_trap_uni(self, intf_id, onu_id, uni_id, port_no, classifier,
                           action, logical_flow, alloc_id, gemport_id):
@@ -1430,6 +1464,7 @@ class OpenOltFlowMgr(object):
 
         self.remove_us_scheduler_queues(pon_port, onu_id, uni_id, tech_profile_instance)
         self.remove_ds_scheduler_queues(pon_port, onu_id, uni_id, tech_profile_instance)
+        self.hsia_status.pop((pon_port, onu_id, uni_id), None)
 
     def generate_stored_id(self, flow_id, direction):
         if direction == UPSTREAM:
