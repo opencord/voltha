@@ -38,6 +38,12 @@ OnuInfo = collections.namedtuple('OnuInfo', ['intf_id',
                                              'serial_number'])
 
 
+class _OnuIndication:
+    def __init__(self, intf_id, onu_id):
+        self.intf_id = intf_id
+        self.onu_id = onu_id
+
+
 class OpenOltDataModel(object):
 
     def __init__(self, device_id, adapter_agent, platform):
@@ -275,11 +281,6 @@ class OpenOltDataModel(object):
                                            {'oper_state': 'down'})
 
     def onu_oper_up(self, intf_id, onu_id):
-
-        class _OnuIndication:
-            def __init__(self, intf_id, onu_id):
-                self.intf_id = intf_id
-                self.onu_id = onu_id
 
         onu_device = self.adapter_agent.get_child_device(
             self.device.id,
