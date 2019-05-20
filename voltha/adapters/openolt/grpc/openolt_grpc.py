@@ -39,7 +39,7 @@ def process_indications(broker, host_and_port):
     stream = stub.EnableIndication(openolt_pb2.Empty())
 
     default_topic = 'openolt.ind-{}'.format(host_and_port.split(':')[0])
-    # pktin_topic = 'openolt.pktin-{}'.format(host_and_port.split(':')[0])
+    pktin_topic = 'openolt.pktin-{}'.format(host_and_port.split(':')[0])
 
     conf = {'bootstrap.servers': broker}
 
@@ -58,7 +58,10 @@ def process_indications(broker, host_and_port):
             break
         else:
             log.debug("openolt grpc rx indication", indication=ind)
-            kafka_send_pb(p, default_topic, ind)
+            if ind.HasField('pkt_ind'):
+                kafka_send_pb(p, pktin_topic, ind)
+            else:
+                kafka_send_pb(p, default_topic, ind)
 
 
 if __name__ == '__main__':
