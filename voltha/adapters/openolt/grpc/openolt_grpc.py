@@ -15,62 +15,50 @@
 #
 
 import sys
-import time
-import yaml
+import structlog
 import grpc
-import threading
+from multiprocessing import Process
+from confluent_kafka import Producer
+from simplejson import dumps
+from google.protobuf.json_format import MessageToJson
 
-from common.structlog_setup import setup_logging
-from voltha.registry import registry
 from voltha.adapters.openolt.protos import openolt_pb2_grpc, openolt_pb2
-from voltha.adapters.openolt.openolt_kafka_proxy import OpenoltKafkaProxy, \
-    kafka_send_pb
 
 
-class OpenoltGrpc(object):
-    def __init__(self, host_and_port, device):
-        super(OpenoltGrpc, self).__init__()
-        log.debug('openolt grpc init')
-        self.device = device
-        self.host_and_port = host_and_port
-        self.channel = grpc.insecure_channel(self.host_and_port)
-        self.stub = openolt_pb2_grpc.OpenoltStub(self.channel)
-
-    def start(self):
-        try:
-            # Start indications thread
-            log.debug('openolt grpc starting')
-            self.indications_thread_handle = threading.Thread(
-                target=process_indications,
-                args=(self.host_and_port,))
-            self.indications_thread_handle.setDaemon(True)
-            self.indications_thread_handle.start()
-        except Exception as e:
-            log.exception('indication start failed', e=e)
-        else:
-            log.debug('openolt grpc started')
+log = structlog.get_logger()
 
 
-def process_indications(host_and_port):
+def kafka_send_pb(p, topic, ind):
+    p.produce(topic, dumps(MessageToJson(
+        ind, including_default_value_fields=True)))
+
+
+def process_indications(broker, host_and_port):
     channel = grpc.insecure_channel(host_and_port)
     stub = openolt_pb2_grpc.OpenoltStub(channel)
     stream = stub.EnableIndication(openolt_pb2.Empty())
 
-    topic = 'openolt.ind-{}'.format(host_and_port.split(':')[0])
+    default_topic = 'openolt.ind-{}'.format(host_and_port.split(':')[0])
+    # pktin_topic = 'openolt.pktin-{}'.format(host_and_port.split(':')[0])
+
+    conf = {'bootstrap.servers': broker}
+
+    p = Producer(**conf)
 
     while True:
         try:
             # get the next indication from olt
+            print('waiting for indication...')
             ind = next(stream)
         except Exception as e:
             log.warn('openolt grpc connection lost', error=e)
             ind = openolt_pb2.Indication()
             ind.olt_ind.oper_state = 'down'
-            kafka_send_pb(topic, ind)
+            kafka_send_pb(p, default_topic, ind)
             break
         else:
             log.debug("openolt grpc rx indication", indication=ind)
-            kafka_send_pb(topic, ind)
+            kafka_send_pb(p, default_topic, ind)
 
 
 if __name__ == '__main__':
@@ -81,16 +69,19 @@ if __name__ == '__main__':
     broker = sys.argv[1]
     host = sys.argv[2]
 
-    log = setup_logging(yaml.load(open('./logconfig.yml', 'r')),
-                        host,
-                        verbosity_adjust=0,
-                        cache_on_use=True)
+    try:
+        # Start indications_process
+        log.debug('openolt grpc starting')
+        indications_process = Process(
+            target=process_indications,
+            args=(broker, host,))
+        indications_process.start()
+    except Exception as e:
+        log.exception('indication start failed', e=e)
+    else:
+        log.debug('openolt grpc started')
 
-    kafka_proxy = registry.register(
-        'openolt_kafka_proxy',
-        OpenoltKafkaProxy(broker)
-    ).start()
-
-    while True:
-        process_indications(host)
-        time.sleep(5)
+    try:
+        indications_process.join()
+    except KeyboardInterrupt:
+        indications_process.terminate()
