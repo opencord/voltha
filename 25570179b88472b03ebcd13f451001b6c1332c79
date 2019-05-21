@@ -22,6 +22,40 @@
       "revId": "25570179b88472b03ebcd13f451001b6c1332c79",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e75b2294_5cf937ea",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2019-05-21T20:39:05Z",
+      "side": 1,
+      "message": "using the ADAPTER word here may be confused with the OLT adapter. So I suggest to use \"SIM_TYPE\" instead",
+      "revId": "25570179b88472b03ebcd13f451001b6c1332c79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "78594604_cd576f57",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1000451
+      },
+      "writtenOn": "2019-05-21T20:39:05Z",
+      "side": 1,
+      "message": "No need to say \"Verify\", it is enough to say: \"Authentication Should Have Started\". Same comment for the following commands",
+      "revId": "25570179b88472b03ebcd13f451001b6c1332c79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
