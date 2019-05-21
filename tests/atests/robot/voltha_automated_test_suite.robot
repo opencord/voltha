@@ -89,16 +89,15 @@ Olt Onu Discovery
     
 Radius Authentication
     [Documentation]     Radius Authentication
-    ...                 This test attempts to perform a Radius Authentication from the RG
-    ...                 It uses the wpa_supplicant app to authenticate using EAPOL.
+    ...                 This test attempts to perform a Radius Authentication from the RG in the case
+    ...                 of the 'ponsim' adpater. It uses the wpa_supplicant app to authenticate using EAPOL.
     ...                 We then verify the generated log file confirming all the authentication steps
-    [Tags]              ponsim
+    ...                 In the case where the adapter is 'bbsim' we simply verify that all ONUs have
+    ...                 authenticated
     A Set Log Dirs      ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
-    Execute Authentication On RG
-    Verify Authentication Should Have Started
-    Verify Authentication Should Have Completed
-    Verify Authentication Should Have Disconnected
-    Verify Authentication Should Have Terminated    
+    A Configure         ${ONU_COUNT}
+    Run Keyword If      '${ADAPTER}' == 'ponsim'      Ponsim Authentication Steps
+    ...  ELSE IF        '${ADAPTER}' == 'bbsim'       BBSim Authentication Verification Step
 
 Dhcp IP Address Assignment on RG
     [Documentation]     DHCP assigned IP Address
@@ -169,3 +168,16 @@ Stop Voltha
     Collect Pod Logs
     Stop All Pods       ${ADAPTER}
     Reset Kube Adm      ${ADAPTER}
+
+Ponsim Authentication Steps
+    [Documentation]     List of steps required to run manual Authentication from RG
+    Execute Authentication On RG
+    Verify Authentication Should Have Started
+    Verify Authentication Should Have Completed
+    Verify Authentication Should Have Disconnected
+    Verify Authentication Should Have Terminated
+
+BBSim Authentication Verification Step
+    [Documentation]     List of steps to verify that all BBSim ONUs have successfully authenticated
+    Should Have All Onus Authenticated
+    

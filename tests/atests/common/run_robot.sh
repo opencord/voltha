@@ -16,7 +16,7 @@
 SRC_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 VOLTHA_DIR="$SRC_DIR/../../.."
 
-echo "Run Robot Framework TEST. Log: $1, Adapter: ${2:-ponsim}"
+echo "Run Voltha Test Automation Suite. Log: $1, Adapter: ${2:-ponsim}"
 cd ${VOLTHA_DIR}
 source env.sh
 if [[ "${2:-ponsim}" == "ponsim" ]]

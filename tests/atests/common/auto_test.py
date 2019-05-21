@@ -114,9 +114,10 @@ if __name__ == "__main__":
     preprovisioning.run_test(OLT_HOST_IP, 50060, OLT_TYPE, ONU_TYPE, ONU_COUNT, LOG_DIR)
 
     discovery.run_test(OLT_HOST_IP, OLT_TYPE, ONU_TYPE, ONU_COUNT, LOG_DIR)
-    if args.adapter == 'ponsim':
-        authentication.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
+    authentication.run_test(ONU_COUNT, ROOT_DIR, VOLTHA_DIR, LOG_DIR, args.adapter)
+
+    if args.adapter == 'ponsim':
         dhcp.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
         unicast.run_test(ONU_TYPE, ONU_COUNT, ROOT_DIR, VOLTHA_DIR, LOG_DIR)
