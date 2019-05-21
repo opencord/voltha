@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8ca22fc5_2d970128",
+        "filename": "tests/atests/common/authentication.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-05-21T19:55:43Z",
+      "side": 1,
+      "message": "Remove the two print statement. They were used for debugging and are no longer needed",
+      "range": {
+        "startLine": 129,
+        "startChar": 0,
+        "endLine": 129,
+        "endChar": 8
+      },
+      "revId": "25570179b88472b03ebcd13f451001b6c1332c79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
