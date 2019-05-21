@@ -23,8 +23,8 @@ HELM_PLATFORM   ?= "linux-amd64"
 
 KAFKA_CHART_VERSION  ?= 0.8.8
 
-ponsim: $(M)/voltha-running $(M)/adapter-ponsim $(M)/voltha-adapter-running
-bbsim:  $(M)/voltha-running $(M)/adapter-bbsim $(M)/voltha-adapter-running
+ponsim: $(M)/voltha-running $(M)/simtype-ponsim $(M)/voltha-simtype-running
+bbsim:  $(M)/voltha-running $(M)/simtype-bbsim $(M)/voltha-simtype-running
 
 $(M)/setup: 
 	echo "MYDIR = ${MYDIR}"
@@ -112,13 +112,13 @@ $(M)/voltha-running: | $(M)/voltha
 	$(HOME)/cord/helm-charts/scripts/wait_for_pods.sh voltha
 	touch $@
 
-$(M)/adapter-bbsim: | $(M)/voltha-running
+$(M)/simtype-bbsim: | $(M)/voltha-running
 	cd $(HOME)/cord/helm-charts; helm upgrade --install ponnet ponnet
 	$(HOME)/cord/helm-charts/scripts/wait_for_pods.sh kube-system
 	cd $(HOME)/cord/helm-charts; helm upgrade --install bbsim bbsim -f configs/seba-ponsim.yaml --set images.bbsim.repository=voltha/voltha-bbsim,images.bbsim.tag=latest,images.bbsim.pullPolicy=Never
 	touch $@
 
-$(M)/adapter-ponsim: | $(M)/voltha-running
+$(M)/simtype-ponsim: | $(M)/voltha-running
 	cd $(HOME)/cord/helm-charts; helm upgrade --install ponnet ponnet
 	$(HOME)/cord/helm-charts/scripts/wait_for_pods.sh kube-system
 	cd $(HOME)/cord/helm-charts; helm upgrade --install ponsimv2 ponsimv2 -f configs/seba-ponsim.yaml --set images.olt.repository=voltha-ponsim,images.olt.tag=latest,images.olt.pullPolicy=Never,images.onu.repository=voltha-ponsim,images.onu.tag=latest,images.onu.pullPolicy=Never,images.rg.repository=voltha-tester,images.rg.tag=latest,images.rg.pullPolicy=Never
@@ -134,7 +134,7 @@ $(M)/pon0-fwd: | $(M)/voltha-running
 	rm /tmp/pon0_group_fwd_mask
 	touch $@
 	
-$(M)/voltha-adapter-running: | $(M)/pon0-fwd
+$(M)/voltha-simtype-running: | $(M)/pon0-fwd
 	$(HOME)/cord/helm-charts/scripts/wait_for_pods.sh
 	until http -a karaf:karaf --ignore-stdin --check-status GET http://127.0.0.1:30120/onos/v1/configuration/org.opencord.olt.impl.Olt; \
 	do \
@@ -148,7 +148,7 @@ $(M)/voltha-adapter-running: | $(M)/pon0-fwd
 
 remove-chart-milestones:
 	cd $(M); sudo rm -f setup kafka kafka-running onos voltha etcd-operator-ready etcd-cluster \
-		voltha-running adapter-ponsim adapter-bbsim pon0-fwd voltha-adapter-running
+		voltha-running simtype-ponsim simtype-bbsim pon0-fwd voltha-simtype-running
 remove-kube-milestones:
 	cd $(M); sudo rm -f kubeadm helm-init
 
