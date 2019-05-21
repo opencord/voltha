@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c4cd886e_9a7c84e1",
+        "filename": "voltha/adapters/openolt/openolt_flow_mgr.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 329,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-05-21T22:26:25Z",
+      "side": 1,
+      "message": "Testing shows that onu reset is happening when eapol flow is removed (after eapol auth passes). The onu reset needs to be done only when the data flow is removed. Maybe this patch needs a bit of a code-reorg - suggest handling the onu reset in the remove_flow() function where the check is done for the type of flow being removed and doing the onu reset logic only for data flows.",
+      "revId": "a1fef14eec044e96d694a08fa66c07cc3c5f2e99",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
