@@ -19,7 +19,9 @@ FROM ${REGISTRY}${REPOSITORY}voltha-base:${TAG}
 
 MAINTAINER Voltha Community <info@opennetworking.org>
 
-RUN apt update && apt install -y iperf isc-dhcp-client tcpdump net-tools iproute2 iputils-ping wpasupplicant
+RUN apt update && apt install -y iperf isc-dhcp-client tcpdump net-tools iproute2 iputils-ping wpasupplicant wget
+RUN wget https://github.com/troglobit/mcjoin/releases/download/v2.4/mcjoin_2.4_amd64.deb
+RUN dpkg -i mcjoin_2.4_amd64.deb
 
 COPY config/igmp.py /usr/local/bin
 COPY config/igmpv3.py /usr/local/bin
