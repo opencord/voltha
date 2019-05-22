@@ -42,6 +42,24 @@
     },
     {
       "key": {
+        "uuid": "3fbd0707_6fc4623f",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-05-22T15:15:55Z",
+      "side": 1,
+      "message": "I will change to `ADAPTER` to `SIMTYPE` in all instance I\u0027ve used it",
+      "parentUuid": "e75b2294_5cf937ea",
+      "revId": "25570179b88472b03ebcd13f451001b6c1332c79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "78594604_cd576f57",
         "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
         "patchSetId": 2
@@ -53,6 +71,24 @@
       "writtenOn": "2019-05-21T20:39:05Z",
       "side": 1,
       "message": "No need to say \"Verify\", it is enough to say: \"Authentication Should Have Started\". Same comment for the following commands",
+      "revId": "25570179b88472b03ebcd13f451001b6c1332c79",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7fa04c83_64922470",
+        "filename": "tests/atests/robot/voltha_automated_test_suite.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1000457
+      },
+      "writtenOn": "2019-05-22T15:15:55Z",
+      "side": 1,
+      "message": "OK, I will drop `Verify` from the name",
+      "parentUuid": "78594604_cd576f57",
       "revId": "25570179b88472b03ebcd13f451001b6c1332c79",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
