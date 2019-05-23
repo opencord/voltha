@@ -61,10 +61,7 @@ Olt Pre Provisioning
     Status Should Be Success After Preprovision Command
     Check Olt Fields Before Enabling
     Enable
-    Wait Until Keyword Succeeds    ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Query Devices After Enabling
-    Status Should Be Success After Enable Command
-    Check Olt Fields After Enabling
-    Check Onu Fields After Enabling
+    Wait Until Keyword Succeeds    ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Validate Number of Devices
     Wait Until Keyword Succeeds   ${PROCEED_TIMEOUT_180}  ${RETRY_INTERVAL_2}    Proceed
 
 Olt Onu Discovery
@@ -184,5 +181,11 @@ Ponsim Authentication Steps
 
 BBSim Authentication Verification Step
     [Documentation]     List of steps to verify that all BBSim ONUs have successfully authenticated
-    Should Have All Onus Authenticated
-    
+    Wait Until Keyword Succeeds    ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Should Have All Onus Authenticated
+   
+Validate Number of Devices
+    [Documentation]    Validate the number of expected onus to be activated
+    Query Devices After Enabling
+    Status Should Be Success After Enable Command
+    Check Olt Fields After Enabling
+    Check Onu Fields After Enabling 
