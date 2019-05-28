@@ -78,9 +78,7 @@ class BrcmOpenomciOnuAdapter(object):
 
         self.broadcom_omci['mib-synchronizer']['state-machine'] = BrcmMibSynchronizer
         self.broadcom_omci['omci-capabilities']['tasks']['get-capabilities'] = BrcmCapabilitiesTask
-
         # Defer creation of omci agent to a lazy init that allows subclasses to override support classes
-
         # register for adapter messages
         self.adapter_agent.register_for_inter_adapter_messages()
 
@@ -341,5 +339,4 @@ class BrcmOpenomciOnuAdapter(object):
 
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
-
 

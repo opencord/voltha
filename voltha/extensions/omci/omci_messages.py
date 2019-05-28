@@ -338,17 +338,6 @@ class OmciAttributeValueChange(OmciMessage):
     ]
 
 
-class OmciTestResult(OmciMessage):
-    name = "TestResult"
-    message_id = 0x1B
-    fields_desc = [
-        ShortField("entity_class", None),
-        ShortField("entity_id", 0)
-        # ME Test specific message contents starts here
-        # TODO: Can this be coded easily with scapy?
-    ]
-
-
 class OmciReboot(OmciMessage):
     name = "OmciOnuReboot"
     message_id = 0x59
@@ -566,4 +555,36 @@ class OmciCommitImageResponse(OmciMessage):
         ShortField("entity_class", 7),   # Always 7 (Software image)
         ShortField("entity_id", None),
         ByteField("result", 0)           # Activate image unconditionally
+    ]
+
+class OmciTest(OmciMessage):
+    name = "OmciTest"
+    message_id = 0x52
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ShortField('self_test', 0x07)
+    ]
+
+
+class OmciTestResponse(OmciMessage):
+    name = "OmciTesResponse"
+    message_id = 0x32
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ByteField("success_code", None)
+    ]
+
+class OmciTestResult(OmciMessage):
+    name = "TestResult"
+    message_id = 0x1B
+    fields_desc = [
+        ShortField("entity_class", None),
+        ShortField("entity_id", 0),
+        ShortField("power_feed_voltage", 1),
+        ShortField('received_optical_power', 3),
+        ShortField('mean_optical_launch_power', 5),
+        ShortField('laser_bias_current', 9),
+        ShortField('temperature', 12)
     ]
