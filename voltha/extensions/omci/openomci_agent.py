@@ -36,6 +36,8 @@ from voltha.extensions.omci.tasks.omci_delete_pm_task import OmciDeletePMRequest
 from voltha.extensions.omci.state_machines.image_agent import ImageDownloadeSTM, OmciSoftwareImageDownloadSTM
 from voltha.extensions.omci.tasks.file_download_task import FileDownloadTask
 from voltha.extensions.omci.tasks.omci_sw_image_upgrade_task import OmciSwImageUpgradeTask
+from voltha.extensions.omci.tasks.onu_test_capabilities_task import \
+    OnuTestCapabilitiesTask
 
 OpenOmciAgentDefaults = {
     'mib-synchronizer': {
@@ -55,7 +57,10 @@ OpenOmciAgentDefaults = {
         'state-machine': OnuOmciCapabilities,   # Implements OMCI capabilities state machine
         'advertise-events': False,              # Advertise events on OpenOMCI event bus
         'tasks': {
-            'get-capabilities': OnuCapabilitiesTask  # Get supported ME and Commands
+            'get-capabilities': OnuCapabilitiesTask, # Get supported ME and
+            # Commands
+            'test-capabilities': OnuTestCapabilitiesTask  # Run Self Test on
+            # ANIG ME.
         }
     },
     'performance-intervals': {

@@ -37,6 +37,7 @@ from voltha.extensions.omci.openomci_agent import OpenOMCIAgent, OpenOmciAgentDe
 from voltha.extensions.omci.omci_me import *
 from voltha.extensions.omci.database.mib_db_dict import MibDbVolatileDict
 from omci.brcm_capabilities_task import BrcmCapabilitiesTask
+from omci.brcm_test_capabilities_task import BrcmTestCapabilitiesTask
 from omci.brcm_get_mds_task import BrcmGetMdsTask
 from omci.brcm_mib_sync import BrcmMibSynchronizer
 from copy import deepcopy
@@ -78,7 +79,8 @@ class BrcmOpenomciOnuAdapter(object):
 
         self.broadcom_omci['mib-synchronizer']['state-machine'] = BrcmMibSynchronizer
         self.broadcom_omci['omci-capabilities']['tasks']['get-capabilities'] = BrcmCapabilitiesTask
-
+        self.broadcom_omci['omci-capabilities']['tasks']['test-capabilities'] \
+            = BrcmTestCapabilitiesTask
         # Defer creation of omci agent to a lazy init that allows subclasses to override support classes
 
         # register for adapter messages
@@ -341,5 +343,4 @@ class BrcmOpenomciOnuAdapter(object):
 
     def unsuppress_alarm(self, filter):
         raise NotImplementedError()
-
 
