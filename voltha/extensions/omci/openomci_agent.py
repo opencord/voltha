@@ -55,7 +55,7 @@ OpenOmciAgentDefaults = {
         'state-machine': OnuOmciCapabilities,   # Implements OMCI capabilities state machine
         'advertise-events': False,              # Advertise events on OpenOMCI event bus
         'tasks': {
-            'get-capabilities': OnuCapabilitiesTask  # Get supported ME and Commands
+            'get-capabilities': OnuCapabilitiesTask # Get supported ME and Commands
         }
     },
     'performance-intervals': {
