@@ -476,4 +476,19 @@ class MEFrame(object):
                     entity_class=getattr(self.entity_class, 'class_id'),
                     entity_id=getattr(self, 'entity_id'),
                ))
-    
+
+    def test(self):
+        """
+        Create a test request frame for this ME
+        :return: (OmciFrame) OMCI Frame
+        """
+        self._check_operation(OP.Test)
+
+        return OmciFrame(
+            transaction_id=None,
+            message_type=OmciTest.message_id,
+            omci_message=OmciTest(
+                entity_class=getattr(self.entity_class, 'class_id'),
+                entity_id=getattr(self, 'entity_id'),
+                self_test=0x07
+            ))
