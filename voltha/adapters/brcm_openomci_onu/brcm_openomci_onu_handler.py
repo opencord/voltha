@@ -55,6 +55,8 @@ from voltha.adapters.brcm_openomci_onu.pon_port import *
 from voltha.adapters.brcm_openomci_onu.uni_port import *
 from voltha.adapters.brcm_openomci_onu.onu_traffic_descriptor import *
 from common.tech_profile.tech_profile import TechProfile
+from voltha.extensions.omci.tasks.omci_test_request import OmciTestRequest
+from voltha.extensions.omci.omci_entities import AniG
 
 OP = EntityOperations
 RC = ReasonCodes
@@ -250,6 +252,20 @@ class BrcmOpenomciOnuHandler(object):
             # Start collecting stats from the device after a brief pause
             reactor.callLater(10, self.pm_metrics.start_collector)
 
+
+            # Code to Run OMCI Test Action
+
+            kwargs_omci_test_action = {
+                OmciTestRequest.DEFAULT_FREQUENCY_KEY:
+                                OmciTestRequest.DEFAULT_COLLECTION_FREQUENCY
+                            }
+            device = self.adapter_agent.get_device(self.device_id)
+            serial_number = device.serial_number
+            test_request = OmciTestRequest(
+                self.omci_agent, self.device_id, AniG, serial_number,
+                self.logical_device_id, exclusive=False,
+                **kwargs_omci_test_action)
+            reactor.callLater(10, test_request.start_collector)
             self.enabled = True
         else:
             self.log.info('onu-already-activated')
