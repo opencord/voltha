@@ -356,7 +356,10 @@ class OMCI_CC(object):
                 omci_entities.entity_id_to_class_map = saved_me_map     # Always restore it.
 
             rx_tid = rx_frame.fields['transaction_id']
-            if rx_tid == 0:
+            msg_type = rx_frame.fields['message_type']
+            # Filter the Test Result frame and route through receive onu
+            # message method.
+            if rx_tid == 0 or msg_type == EntityOperations.TestResult.value:
                 return self._receive_onu_message(rx_frame)
 
             # Previously unreachable if this is the very first round-trip Rx or we

@@ -58,7 +58,7 @@ class Preprovisioning(object):
         testCaseUtils.send_command_to_voltha_cli(testCaseUtils.get_dir(self, 'log'),
                                                  'voltha_preprovision_olt.log', 'preprovision_olt -t %s -H %s:%s' %
                                                  (self.__oltType, self.__oltIpAddress, self.__oltPort))
-        time.sleep(5)
+        time.sleep(30)
         
     def status_should_be_success_after_preprovision_command(self):
         statusLines = testCaseUtils.get_fields_from_grep_command(self, 'success', 'voltha_preprovision_olt.log')
