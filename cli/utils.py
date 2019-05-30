@@ -150,7 +150,7 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
                     pass
                 else:
                     table.add_cell(i, 10000, 'goto-table',
-                                   instruction['goto_table']['table_id'])
+                                   instruction['goto_table']['table_id']) 
             elif itype == 2:
                 table.add_cell(i, 10001, 'write-metadata',
                                instruction['write_metadata']['metadata'])
