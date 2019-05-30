@@ -124,7 +124,11 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
     table = TablePrinter()
     for i, flow in enumerate(flows):
 
-        #table.add_cell(i, 0, 'table_id', value=str(flow['table_id']))
+        if what == 'Device':
+            pass
+        else:
+            table.add_cell(i, 0, 'table_id', value=str(flow['table_id']))
+
         table.add_cell(i, 1, 'priority', value=str(flow['priority']))
         table.add_cell(i, 2, 'cookie', p_cookie(flow['cookie']))
 
@@ -142,9 +146,11 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
                     atype = action['type'][len('OFPAT_'):]
                     table.add_cell(i, *action_printers[atype](action))
             elif itype == 1:
-                pass
-                #table.add_cell(i, 10000, 'goto-table',
-                               #instruction['goto_table']['table_id'])
+                if what == 'Device':
+                    pass
+                else:
+                    table.add_cell(i, 10000, 'goto-table',
+                                   instruction['goto_table']['table_id'])
             elif itype == 2:
                 table.add_cell(i, 10001, 'write-metadata',
                                instruction['write_metadata']['metadata'])
