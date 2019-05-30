@@ -453,7 +453,7 @@ individual metrics.
         }
         try:
             print_pb_as_table('ImageDownload Status:', status, fields_to_omit, self.poutput)
-        except Exception, e:
+        except Exception as e:
             self.poutput('Error {}.  Error:{}'.format(device_id, e))
 
     def do_img_dnld_list(self, line):
@@ -466,7 +466,7 @@ individual metrics.
         try:
             stub = self.get_stub()
             img_dnlds = stub.ListImageDownloads(voltha_pb2.ID(id=device_id))
-        except Exception, e:
+        except Exception as e:
             self.poutput('Error list img dnlds {}.  Error:{}'.format(device_id, e))
             return
         fields_to_omit = {
@@ -475,7 +475,7 @@ individual metrics.
         }
         try:
             print_pb_list_as_table('ImageDownloads:', img_dnlds.items, fields_to_omit, self.poutput)
-        except Exception, e:
+        except Exception as e:
             self.poutput('Error {}.  Error:{}'.format(device_id, e))
 
 
