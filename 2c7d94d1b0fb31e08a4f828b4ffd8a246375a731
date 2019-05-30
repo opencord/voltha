@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3747b9e0_ef565707",
+        "filename": "cli/utils.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 127,
+      "author": {
+        "id": 1000068
+      },
+      "writtenOn": "2019-05-30T18:52:37Z",
+      "side": 1,
+      "message": "Are you sure this won\u0027t remove the columns from the \u0027logical_device\u0027 flows printout?",
+      "revId": "2c7d94d1b0fb31e08a4f828b4ffd8a246375a731",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
