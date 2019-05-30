@@ -26,6 +26,7 @@ import grpc
 import json
 import copy
 import structlog
+import hashlib
 from scapy.layers.l2 import Ether, Dot1Q, Dot1AD
 from scapy.layers.inet import IP, Raw
 from twisted.internet import reactor
@@ -423,6 +424,15 @@ class PonSimOltHandler(object):
             # For now, we use on one NNI port
             return ports[0]
 
+    # Generate a MAC address based on OLT serial_number (i.e., host_and_port)
+    # An example of calculating the same value in the shell:
+    #  $ echo -ne olt0.voltha.svc:50060 | md5sum | cut -c -12
+    def get_mac_address(self, device):
+        hexdig = hashlib.md5(device.serial_number).hexdigest()
+        mac_address = "%s:%s:%s:%s:%s:%s" % (hexdig[0:2], hexdig[2:4], hexdig[4:6], hexdig[6:8], hexdig[8:10], hexdig[10:12])
+        log.info("generated-mac-address", mac_address=mac_address, serial_number=device.serial_number)
+        return mac_address
+
     def activate(self, device):
         self.log.info('activating')
 
@@ -491,7 +501,8 @@ class PonSimOltHandler(object):
             ),
             root_device_id=device.id
         )
-        mac_address = "AA:BB:CC:DD:EE:FF"
+
+        mac_address = self.get_mac_address(device)
         ld_initialized = self.adapter_agent.create_logical_device(ld,
                                                                   dpid=mac_address)
         cap = OFPPF_1GB_FD | OFPPF_FIBER
@@ -1050,7 +1061,8 @@ class PonSimOltHandler(object):
             ),
             root_device_id=device.id
         )
-        mac_address = "AA:BB:CC:DD:EE:FF"
+
+        mac_address = self.get_mac_address(device)
         ld_initialized = self.adapter_agent.create_logical_device(ld,
                                                                   dpid=mac_address)
         cap = OFPPF_1GB_FD | OFPPF_FIBER
