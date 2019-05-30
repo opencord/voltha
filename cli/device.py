@@ -355,7 +355,8 @@ individual metrics.
             self.device_id,
             type=device['type'],
             flows=device['flows']['items'],
-            groups=device['flow_groups']['items']
+            groups=device['flow_groups']['items'],
+            fields_to_omit=['table_id', 'goto-table']
         )
 
     def do_images(self, line):
