@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c451cd06_ed51c4d0",
+        "filename": "voltha/extensions/omci/omci_messages.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 591,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2019-05-30T14:24:41Z",
+      "side": 1,
+      "message": "Is this comment ready to be removed?",
+      "range": {
+        "startLine": 591,
+        "startChar": 8,
+        "endLine": 591,
+        "endChar": 52
+      },
+      "revId": "ba9ab5fda9d9beddca1986f08e0ebf7dca1764b3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1bb8cc4c_0cda2c0c",
+        "filename": "voltha/extensions/omci/state_machines/omci_onu_capabilities.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 268,
+      "author": {
+        "id": 1000016
+      },
+      "writtenOn": "2019-05-30T14:24:41Z",
+      "side": 1,
+      "message": "rather than calling this directly, should it be implemented as a transition in the state machine table (DEFAULT_TRANSITIONS) listed at the top of this file? Perhaps something like this:\n  {\u0027trigger\u0027: \u0027success\u0027, \u0027source\u0027: \u0027in_sync\u0027, \u0027dest\u0027: \u0027test_capabilities\u0027},\n  {\u0027trigger\u0027: \u0027success\u0027, \u0027source\u0027: \u0027test_capabilities\u0027, \u0027dest\u0027: \u0027idle\u0027},\n  {\u0027trigger\u0027: \u0027failure\u0027, \u0027source\u0027: \u0027test_capabilities\u0027, \u0027dest\u0027: \u0027out_of_sync\u0027},\nand drop the existing transitions from in_sync to idle and failure?",
+      "range": {
+        "startLine": 268,
+        "startChar": 8,
+        "endLine": 268,
+        "endChar": 41
+      },
+      "revId": "ba9ab5fda9d9beddca1986f08e0ebf7dca1764b3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
