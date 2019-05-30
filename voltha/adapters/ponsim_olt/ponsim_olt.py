@@ -26,6 +26,7 @@ import grpc
 import json
 import copy
 import structlog
+import hashlib
 from scapy.layers.l2 import Ether, Dot1Q, Dot1AD
 from scapy.layers.inet import IP, Raw
 from twisted.internet import reactor
@@ -491,7 +492,11 @@ class PonSimOltHandler(object):
             ),
             root_device_id=device.id
         )
-        mac_address = "AA:BB:CC:DD:EE:FF"
+        #mac_address = "AA:BB:CC:DD:EE:FF"
+        hexdig = hashlib.md5(device.serial_number).hexdigest()
+        mac_address = "%s:%s:%s:%s:%s:%s" % (hexdig[0:2], hexdig[2:4], hexdig[4:6], hexdig[6:8], hexdig[8:10], hexdig[10:12])
+        log.info("generated-mac-address", mac_address=mac_address, serial_number=device.serial_number)
+
         ld_initialized = self.adapter_agent.create_logical_device(ld,
                                                                   dpid=mac_address)
         cap = OFPPF_1GB_FD | OFPPF_FIBER
