@@ -165,6 +165,8 @@ class OpenOltFlowMgr(object):
                 classifier_info[IPV4_SRC] = field.ipv4_src
                 self.log.debug('field-type-ipv4-src',
                                ipv4_dst=classifier_info[IPV4_SRC])
+            elif field.type == fd.METADATA:
+                pass
             else:
                 raise NotImplementedError('field.type={}'.format(
                     field.type))
