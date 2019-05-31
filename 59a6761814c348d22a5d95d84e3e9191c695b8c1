@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d5df7503_b3945a82",
+        "filename": "cli/utils.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2019-05-31T16:25:45Z",
+      "side": 1,
+      "message": "Instead of making the check for the \"what\" type, I would add an optional parameter \"fields_to_omit\" in the \"print_flows\" function, so everyone that is calling this function can decide what he wants to omit.",
+      "range": {
+        "startLine": 127,
+        "startChar": 8,
+        "endLine": 130,
+        "endChar": 73
+      },
+      "revId": "59a6761814c348d22a5d95d84e3e9191c695b8c1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
