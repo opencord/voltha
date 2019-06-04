@@ -17,6 +17,7 @@
 import arrow
 from task import Task
 from twisted.internet import reactor
+from twisted.internet.task import LoopingCall
 from twisted.internet.defer import failure, inlineCallbacks, TimeoutError
 from voltha.extensions.omci.omci_defs import ReasonCodes, EntityOperations
 from voltha.extensions.omci.omci_me import MEFrame
@@ -44,10 +45,12 @@ class OmciTestRequest(Task):
     name = "ONU OMCI Test Task"
     MAX_TABLE_SIZE = 16 * 1024  # Keep get-next logic reasonable
     OPTICAL_GROUP_NAME = 'PON_Optical'
+    DEFAULT_COLLECTION_FREQUENCY = 60 * 10 # 1 minutes
+    DEFAULT_FREQUENCY_KEY = 'default-collection-frequency'
 
-    def __init__(self, omci_agent, device_id, entity_class, entity_id,
-                 attributes,
-                 exclusive=True, allow_failure=False):
+    def __init__(self, omci_agent, device_id, entity_class, serial_number,
+                 logical_device_id,
+                 exclusive=True, allow_failure=False, **kwargs):
         """
         Class initialization
 
@@ -69,14 +72,18 @@ class OmciTestRequest(Task):
                                               exclusive=exclusive)
         self._device = omci_agent.get_device(device_id)
         self._entity_class = entity_class
-        self._entity_id = entity_id
-        self._attributes = attributes
         self._allow_failure = allow_failure
         self._failed_or_unknown_attributes = set()
         self._results = None
         self._local_deferred = None
         self.device_id = device_id
         self.event_bus = EventBusClient()
+        self.lc = None
+        self.default_freq = self.default_freq = \
+            kwargs.get(OmciTestRequest.DEFAULT_FREQUENCY_KEY,
+                       OmciTestRequest.DEFAULT_COLLECTION_FREQUENCY)
+        self.serial_number = serial_number
+        self.logical_device_id =  logical_device_id
 
     def cancel_deferred(self):
         """
@@ -111,12 +118,21 @@ class OmciTestRequest(Task):
             return None
         return self._results.fields['omci_message'].fields['success']
 
-    def start(self):
+    def start_collector(self, callback=None):
         """
-        Start MIB Capabilities task
+                Start the collection loop for an adapter if the frequency > 0
+
+                :param callback: (callable) Function to call to collect PM data
         """
-        super(OmciTestRequest, self).start()
-        self._local_deferred = reactor.callLater(10, self.perform_test_omci)
+        self.log.info("starting-pm-collection", device_name=self.name)
+        if callback is None:
+            callback = self.perform_test_omci
+
+        if self.lc is None:
+            self.lc = LoopingCall(callback)
+
+        if self.default_freq > 0:
+            self.lc.start(interval=self.default_freq / 10)
 
     def submit_kpis(self, kpi_event):
         """
@@ -142,8 +158,8 @@ class OmciTestRequest(Task):
         metric_data = MetricInformation(
             metadata=MetricMetaData(title=OmciTestRequest.OPTICAL_GROUP_NAME,
                                     ts=arrow.utcnow().float_timestamp,
-                                    logical_device_id=self.device_id,
-                                    serial_no=self.device_id,
+                                    logical_device_id=self.logical_device_id,
+                                    serial_no=self.serial_number,
                                     device_id=onu_device_id,
                                     context={
                                         'events': event_name
@@ -185,14 +201,18 @@ class OmciTestRequest(Task):
         """
         Perform the initial test request
         """
+        ani_g_entities = self._device.configuration.ani_g_entities
+        ani_g_entities_ids = ani_g_entities.keys() if ani_g_entities \
+                                                      is not None else None
+        self._entity_id = ani_g_entities_ids[0]
+
         self.log.info('perform-test', entity_class=self._entity_class,
-                      entity_id=self._entity_id, attributes=self._attributes)
+                      entity_id=self._entity_id)
         try:
             self.strobe_watchdog()
             frame = MEFrame(self._entity_class, self._entity_id, []).test()
             self.strobe_watchdog()
-            result = yield self._device.omci_cc.send(frame, timeout=55)
-            self.strobe_watchdog()
+            result = yield self._device.omci_cc.send(frame)
             if not result.fields['omci_message'].fields['success_code']:
                 self.read_from_event_bus()
             else:
@@ -203,6 +223,5 @@ class OmciTestRequest(Task):
 
         except Exception as e:
             self.log.exception('perform-test', e=e, class_id=self._entity_class,
-                               entity_id=self._entity_id,
-                               attributes=self._attributes)
+                               entity_id=self._entity_id)
             self.deferred.errback(failure.Failure(e))

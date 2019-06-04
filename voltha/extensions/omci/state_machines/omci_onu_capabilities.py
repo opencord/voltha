@@ -20,22 +20,18 @@ from voltha.extensions.omci.onu_device_entry import OnuDeviceEntry, OnuDeviceEve
 from voltha.protos.omci_mib_db_pb2 import OpenOmciEventType
 
 
-
 class OnuOmciCapabilities(object):
     """
     OpenOMCI ONU OMCI Capabilities State machine
     """
-    DEFAULT_STATES = ['disabled', 'out_of_sync', 'in_sync',
-                      'test_capabilities','idle']
+    DEFAULT_STATES = ['disabled', 'out_of_sync', 'in_sync', 'idle']
 
     DEFAULT_TRANSITIONS = [
         {'trigger': 'start', 'source': 'disabled', 'dest': 'out_of_sync'},
         {'trigger': 'synchronized', 'source': 'out_of_sync', 'dest': 'in_sync'},
 
-        {'trigger': 'success', 'source': 'in_sync', 'dest': 'test_capabilities'},
-        {'trigger': 'success', 'source': 'test_capabilities', 'dest': 'idle'},
-        {'trigger': 'failure', 'source': 'test_capabilities', 'dest':
-            'out_of_sync'},
+        {'trigger': 'success', 'source': 'in_sync', 'dest': 'idle'},
+        {'trigger': 'failure', 'source': 'in_sync', 'dest': 'out_of_sync'},
 
         {'trigger': 'not_synchronized', 'source': 'idle', 'dest': 'out_of_sync'},
 
@@ -70,7 +66,6 @@ class OnuOmciCapabilities(object):
         self._timeout_delay = timeout_delay
 
         self._get_capabilities_task = tasks['get-capabilities']
-        self._test_capabilities_task = tasks['test-capabilities']
         self._advertise_events = advertise_events
 
         self._deferred = None
@@ -216,34 +211,6 @@ class OnuOmciCapabilities(object):
         else:
             self._deferred = reactor.callLater(self._timeout_delay,
                                                self.check_in_sync)
-
-    def on_enter_test_capabilities(self):
-        """
-         This method is used putting test action task in queue.
-        :return:None
-        """
-
-        def success(results):
-            self.log.debug('test-capabilities-success', results=results)
-            self._supported_entities = self._current_task.supported_managed_entities
-            self._supported_msg_types = self._current_task.supported_message_types
-            self._current_task = None
-            self._deferred = reactor.callLater(0, self.success)
-
-        def failure(reason):
-            self.log.info('test-capabilities-failure', reason=reason)
-            self._supported_entities = frozenset()
-            self._supported_msg_types = frozenset()
-            self._current_task = None
-            self._deferred = reactor.callLater(self._timeout_delay,
-                                               self.failure)
-
-        self._current_task = self._test_capabilities_task(self._agent,
-                                                          self._device_id)
-        self._task_deferred = self._device.task_runner.queue_task(
-            self._current_task)
-        self._task_deferred.addCallbacks(success, failure)
-
 
     def on_enter_in_sync(self):
         """
