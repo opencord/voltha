@@ -151,11 +151,13 @@ class GrpcClient(object):
             packet_in = yield self.packet_in_queue.get()
             device_id = packet_in.id
             ofp_packet_in = packet_in.packet_in
+            self.log.debug('grpc client to send packet-in')
             self.connection_manager.forward_packet_in(device_id, ofp_packet_in)
             if self.stopped:
                 break
 
     def send_packet_out(self, device_id, packet_out):
+        self.log.debug('grpc client to send packet-out')
         packet_out = PacketOut(id=device_id, packet_out=packet_out)
         self.packet_out_queue.put(packet_out)
 

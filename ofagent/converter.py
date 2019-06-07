@@ -208,8 +208,11 @@ def ofp_flow_stats_to_loxi_flow_stats(pb):
                 actions=[make_loxi_action(a)
                          for a in inst['actions']['actions']])
         elif type == pb2.OFPIT_WRITE_METADATA:
-            return of13.instruction.write_metadata(
-                metadata=inst['write_metadata']['metadata'])
+            if 'metadata' in inst['write_metadata']:
+                return of13.instruction.write_metadata(
+                        metadata=inst['write_metadata']['metadata'])
+            else:
+                return of13.instruction.write_metadata(0)
         elif type == pb2.OFPIT_METER:
             return of13.instruction.meter(
                 meter_id=inst['meter']['meter_id'])
