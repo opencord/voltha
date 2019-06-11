@@ -227,6 +227,8 @@ $(DIRS_FLAKE8):
 
 build: protoc protos go-builder containers
 
+build-test: protoc protos go-builder test-containers
+
 production: protoc protos go-builder prod-containers
 
 jenkins: build
@@ -234,6 +236,8 @@ jenkins: build
 jenkins-containers: base voltha ofagent netconf consul cli envoy fluentd unum j2
 
 prod-containers: base voltha ofagent netconf shovel onos dashd cli grafana consul tools envoy fluentd unum j2
+
+test-containers: base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools fluentd unum ponsim j2 alarm-generator test_runner
 
 containers: base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools envoy fluentd unum ponsim j2 alarm-generator test_runner
 
