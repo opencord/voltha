@@ -160,11 +160,6 @@ class OpenOltPlatform(object):
                     uni_port_no = field.port
                     break
         elif flow_direction == "downstream":
-            for field in fd.get_ofb_fields(flow):
-                if field.type == fd.METADATA:
-                    uni_port_no = field.table_metadata & 0xFFFFFFFF
-                    break
-
             if uni_port_no is None:
                 for action in fd.get_actions(flow):
                     if action.type == fd.OUTPUT:
