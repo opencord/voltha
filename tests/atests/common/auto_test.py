@@ -75,7 +75,7 @@ def simtype_init(simtype=DEFAULT_SIMTYPE):
     if simtype == 'ponsim':
         olt_type = 'ponsim_olt'
         onu_type = 'ponsim_onu'
-        olt_host_ip = 'olt.voltha.svc'
+        olt_host_ip = 'olt0.voltha.svc'
         onu_count = 1
     elif simtype == 'bbsim':
         olt_type = 'openolt'
