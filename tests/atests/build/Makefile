@@ -125,13 +125,13 @@ $(M)/simtype-ponsim: | $(M)/voltha-running
 	touch $@
 
 $(M)/pon0-fwd: | $(M)/voltha-running
-	echo 8 > /tmp/pon0_group_fwd_mask
-	until sudo cp /tmp/pon0_group_fwd_mask /sys/class/net/pon0/bridge/group_fwd_mask; \
+	echo 8 > /tmp/group_fwd_mask
+	for bridge in /sys/class/net/pon*; \
 	do \
-		echo "waiting for pon0..."; \
-		sleep 5; \
+	    echo Setting up forwarding on `basename $$bridge`; \
+	    sudo cp /tmp/group_fwd_mask $$bridge/bridge/group_fwd_mask; \
 	done
-	rm /tmp/pon0_group_fwd_mask
+	rm /tmp/group_fwd_mask
 	touch $@
 	
 $(M)/voltha-simtype-running: | $(M)/pon0-fwd
@@ -161,3 +161,5 @@ reset-kubeadm: remove-chart-milestones remove-kube-milestones
 	sudo rm -f /var/lib/cni/networks/pon*/* || true
 	sudo rm -f /var/lib/cni/networks/nni*/* || true
 	sudo rm -f /var/lib/cni/networks/k8s-pod-network/* || true
+	for br in /sys/class/net/pon*; do sudo ip link delete `basename $$br` type bridge; done || true
+	for br in /sys/class/net/nni*; do sudo ip link delete `basename $$br` type bridge; done || true
