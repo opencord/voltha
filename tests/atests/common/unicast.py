@@ -78,7 +78,7 @@ class Unicast(object):
     def execute_tcpdump(self):
         logging.info('Execute tcpdump')
         process_output = open('%s/%s' % (testCaseUtils.get_dir(self, 'log'), self.TCPDUMP_FILENAME), 'w')
-        tcpdump = subprocess.Popen(['sudo', '/usr/sbin/tcpdump', '-nei', 'pon1'],
+        tcpdump = subprocess.Popen(['sudo', '/usr/sbin/tcpdump', '-nei', 'nni0'],
                                    stdout=process_output,
                                    stderr=process_output)
         self.__tcpdumpPid = tcpdump.pid

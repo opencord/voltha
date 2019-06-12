@@ -79,8 +79,6 @@ $(M)/helm-init: | $(M)/kubeadm /usr/local/bin/helm
 $(HOME)/cord/helm-charts: | $(M)/setup
 	mkdir -p $(HOME)/cord
 	cd $(HOME)/cord; git clone https://gerrit.opencord.org/helm-charts
-	helm repo add cord https://charts.opencord.org
-	helm repo update
 
 $(M)/kafka: | $(HOME)/cord/helm-charts $(M)/helm-init
 	cd $(HOME)/cord/helm-charts && \
@@ -121,12 +119,9 @@ $(M)/simtype-bbsim: | $(M)/voltha-running
 	touch $@
 
 $(M)/simtype-ponsim: | $(M)/voltha-running
-	#cd $(HOME)/cord/helm-charts; helm upgrade --install ponnet ponnet
-	helm install -n ponnet --version 1.1.0 cord/ponnet
+	cd $(HOME)/cord/helm-charts; helm upgrade --install ponnet ponnet
 	$(HOME)/cord/helm-charts/scripts/wait_for_pods.sh kube-system
-	## install previous ponsimv2 chart until SEBA-730 complete
-	helm install -n ponsimv2 --version 1.0.3 cord/ponsimv2
-	#cd $(HOME)/cord/helm-charts; helm upgrade --install ponsimv2 ponsimv2 -f configs/seba-ponsim.yaml --set images.olt.repository=voltha-ponsim,images.olt.tag=latest,images.olt.pullPolicy=Never,images.onu.repository=voltha-ponsim,images.onu.tag=latest,images.onu.pullPolicy=Never,images.rg.repository=voltha-tester,images.rg.tag=latest,images.rg.pullPolicy=Never
+	cd $(HOME)/cord/helm-charts; helm upgrade --install ponsimv2 ponsimv2 -f configs/seba-ponsim.yaml --set images.olt.repository=voltha-ponsim,images.olt.tag=latest,images.olt.pullPolicy=Never,images.onu.repository=voltha-ponsim,images.onu.tag=latest,images.onu.pullPolicy=Never,images.rg.repository=voltha-tester,images.rg.tag=latest,images.rg.pullPolicy=Never
 	touch $@
 
 $(M)/pon0-fwd: | $(M)/voltha-running
@@ -163,6 +158,6 @@ teardown-charts: remove-chart-milestones
 reset-kubeadm: remove-chart-milestones remove-kube-milestones
 	sudo kubeadm reset -f || true
 	sudo iptables -F && sudo iptables -t nat -F && sudo iptables -t mangle -F && sudo iptables -X
-	sudo rm -f /var/lib/cni/networks/pon0/* || true
-	sudo rm -f /var/lib/cni/networks/pon1/* || true
+	sudo rm -f /var/lib/cni/networks/pon*/* || true
+	sudo rm -f /var/lib/cni/networks/nni*/* || true
 	sudo rm -f /var/lib/cni/networks/k8s-pod-network/* || true
