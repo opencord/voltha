@@ -22,21 +22,21 @@ from collections import OrderedDict
 import structlog
 
 from common.event_bus import EventBusClient
-from common.frameio.frameio import hexify
 from voltha.registry import registry
 from voltha.core.config.config_proxy import CallbackType
 from voltha.core.device_graph import DeviceGraph
 from voltha.core.flow_decomposer import FlowDecomposer, \
     flow_stats_entry_from_flow_mod_message, group_entry_from_group_mod, \
-    mk_flow_stat, in_port, vlan_vid, vlan_pcp, pop_vlan, output, set_field, \
+    mk_flow_stat, in_port, vlan_vid, output, set_field, \
     push_vlan, meter_entry_from_meter_mod, get_meter_id_from_flow
 from voltha.protos import third_party
 from voltha.protos import openflow_13_pb2 as ofp
 from voltha.protos.device_pb2 import Port
 from voltha.protos.logical_device_pb2 import LogicalPort
-from voltha.protos.openflow_13_pb2 import Flows, Meters, FlowGroups, ofp_meter_config
+from voltha.protos.openflow_13_pb2 import Flows, Meters, FlowGroups
 
 _ = third_party
+
 
 def mac_str_to_tuple(mac):
     return tuple(int(d, 16) for d in mac.split(':'))
@@ -79,7 +79,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 topic='packet-in:{}'.format(logical_device.id),
                 callback=self.handle_packet_in_event)
 
-            self.log = structlog.get_logger(logical_device_id=logical_device.id)
+            self.log = structlog.get_logger(
+                logical_device_id=logical_device.id)
 
             self._routes = None
             self._no_flow_changes_required = False
@@ -106,8 +107,6 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
                 self.log.debug('this device accepts direct logical flows',
                                device_adapter_type=device_adapter_type)
-
-
 
         except Exception, e:
             self.log.exception('init-error', e=e)
@@ -188,7 +187,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.flow_modify_strict(flow_mod)
 
         else:
-            self.log.warn('unhandled-flow-mod', command=command, flow_mod=flow_mod)
+            self.log.warn('unhandled-flow-mod', command=command,
+                          flow_mod=flow_mod)
 
     def update_meter_table(self, meter_mod):
         command = meter_mod.command
@@ -202,7 +202,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         elif command == ofp.OFPMC_DELETE:
             self.meter_delete(meter_mod)
         else:
-            self.log.warn('unhandled-meter-mod', command=command, flow_mod=meter_mod)
+            self.log.warn('unhandled-meter-mod', command=command,
+                          flow_mod=meter_mod)
 
     def update_group_table(self, group_mod):
 
@@ -221,7 +222,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.log.warn('unhandled-group-mod',
                           command=command, group_mod=group_mod)
 
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~ LOW LEVEL METER HANDLERS ~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~~~~~~~~~~~~~~~~~ LOW LEVEL METER HANDLERS ~~~~~~~~~~~~~~~~~~~~~~~
 
     def meter_add(self, meter_mod):
         assert isinstance(meter_mod, ofp.ofp_meter_mod)
@@ -234,7 +235,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             self.signal_meter_mod_error(ofp.OFPMMFC_METER_EXISTS, meter_mod)
         else:
             meter_entry = meter_entry_from_meter_mod(meter_mod)
-            meter_entry.stats.flow_count = self._flow_with_unknown_meter.get(meter_mod.meter_id, 0)
+            meter_entry.stats.flow_count \
+                = self._flow_with_unknown_meter.get(meter_mod.meter_id, 0)
             self._flow_with_unknown_meter.pop(meter_mod.meter_id, None)
             meters[meter_mod.meter_id] = meter_entry
             changed = True
@@ -255,7 +257,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         else:
             # replace existing meter entry with new meter definition
             new_meter_entry = meter_entry_from_meter_mod(meter_mod)
-            new_meter_entry.stats.flow_count = meters[meter_id].stats.flow_count
+            new_meter_entry.stats.flow_count \
+                = meters[meter_id].stats.flow_count
             meters[meter_id] = new_meter_entry
             changed = True
 
@@ -288,7 +291,6 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         if flows_changed:
             self.flows_proxy.update('/', Meters(items=flows))
 
-
     @staticmethod
     def check_meter_id_overlapping(meters, meter_mod):
         for meter in meters:
@@ -298,9 +300,6 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def signal_meter_mod_error(self, error_code, meter_mod):
         pass  # TODO
-
-
-
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~ LOW LEVEL FLOW HANDLERS ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -359,14 +358,15 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                         meter.stats.flow_count += 1
                     elif command == ofp.OFPFC_DELETE_STRICT:
                         meter.stats.flow_count -= 1
-                    self.meters_proxy.update('/', Meters(items=meters.values()))
+                    self.meters_proxy.update('/',
+                                             Meters(items=meters.values()))
                     self.log.debug("meters updated based on flow count stats",
-                               meters=meters.values())
+                                   meters=meters.values())
             except KeyError:
-                self.log.warn("meter id is not found in meters", meter_id=meter_id)
+                self.log.warn("meter id is not found in meters",
+                              meter_id=meter_id)
                 self._flow_with_unknown_meter[meter_id] = \
                     self._flow_with_unknown_meter.get(meter_id, 0) + 1
-
 
     def flow_delete(self, mod):
         assert isinstance(mod, (ofp.ofp_flow_mod, ofp.ofp_flow_stats))
@@ -476,7 +476,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         # Check if flow.table_id is covered by flow_mod.table_id
         if flow_mod.table_id != ofp.OFPTT_ALL and \
-                        flow.table_id != flow_mod.table_id:
+                flow.table_id != flow_mod.table_id:
             return False
 
         # Check out_port
@@ -515,7 +515,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 for action in instruction.actions.actions:
                     assert isinstance(action, ofp.ofp_action)
                     if action.type == ofp.OFPAT_OUTPUT and \
-                        action.output.port == out_port:
+                            action.output.port == out_port:
                         return True
 
         # otherwise...
@@ -533,8 +533,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 for action in instruction.actions.actions:
                     assert isinstance(action, ofp.ofp_action)
                     if action.type == ofp.OFPAT_GROUP and \
-                        action.group.group_id == group_id:
-                            return True
+                            action.group.group_id == group_id:
+                        return True
 
         # otherwise...
         return False
@@ -544,11 +544,10 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         assert isinstance(flow, ofp.ofp_flow_stats)
         for instruction in flow.instructions:
             if instruction.type == ofp.OFPIT_METER and \
-               instruction.meter.meter_id == meter_id:
-                    return True
+                    instruction.meter.meter_id == meter_id:
+                return True
 
         return False
-
 
     def flows_delete_by_group_id(self, flows, group_id):
         """
@@ -672,7 +671,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
         proxy = self.port_proxy[port_id]
         port = proxy.get('/')
-        port.ofp_port.config = port.ofp_port.config & ~ofp.OFPPC_PORT_DOWN | ofp.OFPPC_PORT_DOWN
+        port.ofp_port.config \
+            = port.ofp_port.config & ~ofp.OFPPC_PORT_DOWN | ofp.OFPPC_PORT_DOWN
         proxy.update('/', port)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ PACKET_OUT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -732,7 +732,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         desired_flow_ids = set(f.id for f in flows.items)
 
         self._flows_ids_to_add = desired_flow_ids.difference(current_flow_ids)
-        self._flows_ids_to_remove = current_flow_ids.difference(desired_flow_ids)
+        self._flows_ids_to_remove \
+            = current_flow_ids.difference(desired_flow_ids)
         self._flows_to_remove = []
         for f in current_flows.items:
             if f.id in self._flows_ids_to_remove:
@@ -749,7 +750,6 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                       adding_flows=len(self._flows_ids_to_add),
                       removing_flows=len(self._flows_ids_to_remove))
 
-
     def _flow_table_updated(self, flows):
         self.log.debug('flow-table-updated',
                        logical_device_id=self.logical_device_id)
@@ -762,21 +762,29 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             groups = self.groups_proxy.get('/').items
             device_rules_map = self.decompose_rules(flows.items, groups)
 
-            # TODO we have to evolve this into a policy-based, event based pattern
-            # This is a raw implementation of the specific use-case with certain
-            # built-in assumptions, and not yet device vendor specific. The policy-
-            # based refinement will be introduced that later.
+            # TODO we have to evolve this into a policy-based, event based
+            # pattern.
+            # This is a raw implementation of the specific use-case with
+            # certain built-in assumptions, and not yet device vendor specific.
+            # The policy-based refinement will be introduced that later.
 
+            for device_id, (d_flows, groups) in device_rules_map.iteritems():
+
+                self.root_proxy.update('/devices/{}/flows'.format(device_id),
+                                       Flows(items=d_flows.values()))
+                self.root_proxy.update(
+                    '/devices/{}/flow_groups'.format(device_id),
+                    FlowGroups(items=groups.values()))
 
             # Temporary bypass for openolt
 
             if self.accepts_direct_logical_flows:
-                #give the logical flows directly to the adapter
+                # give the logical flows directly to the adapter
                 self.log.debug('it is an direct logical flow bypass')
                 if self.device_adapter_agent is None:
                     self.log.error('No device adapter agent',
                                    device_id=self.device_id,
-                                   logical_device_id = self.logical_device_id)
+                                   logical_device_id=self.logical_device_id)
                     return
 
                 flows_to_add = []
@@ -784,33 +792,23 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                     if f.id in self._flows_ids_to_add:
                         flows_to_add.append(f)
 
-
                 self.log.debug('flows to remove',
                                flows_to_remove=self._flows_to_remove,
                                flows_ids=self._flows_ids_to_remove)
 
                 try:
                     self.device_adapter_agent.update_logical_flows(
-                        self.device_id, flows_to_add, self._flows_to_remove,
-                        groups, device_rules_map)
+                        self.device_id, flows_to_add, self._flows_to_remove)
                 except Exception as e:
                     self.log.error('logical flows bypass error', error=e,
                                    flows=flows)
-            else:
-
-                for device_id, (flows, groups) in device_rules_map.iteritems():
-
-                    self.root_proxy.update('/devices/{}/flows'.format(device_id),
-                                           Flows(items=flows.values()))
-                    self.root_proxy.update('/devices/{}/flow_groups'.format(device_id),
-                                           FlowGroups(items=groups.values()))
 
     # ~~~~~~~~~~~~~~~~~~~~ GROUP TABLE UPDATE HANDLING ~~~~~~~~~~~~~~~~~~~~~~~~
 
     def _group_table_updated(self, flow_groups):
         self.log.debug('group-table-updated',
-                  logical_device_id=self.logical_device_id,
-                  flow_groups=flow_groups)
+                       logical_device_id=self.logical_device_id,
+                       flow_groups=flow_groups)
 
         flows = self.flows_proxy.get('/').items
         device_flows_map = self.decompose_rules(flows, flow_groups.items)
@@ -873,7 +871,6 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         del self.port_proxy[port.id]
         del self.port_status_has_changed[port.id]
 
-
         self.local_handler.send_port_change_event(
             device_id=self.logical_device_id,
             port_status=ofp.ofp_port_status(
@@ -886,7 +883,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         old_port = self.port_proxy[port.id].get('/')
         if old_port.ofp_port != port.ofp_port:
             self.port_status_has_changed[port.id] = True
-        else :
+        else:
             self.port_status_has_changed[port.id] = False
 
     def _port_changed(self, port):
@@ -917,9 +914,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 self.root_proxy, logical_ports)
             self._default_rules = self._generate_default_rules(graph)
             root_ports = [p for p in logical_ports if p.root_port]
-            assert len(root_ports) == 1, 'Only one root port supported at this time'
+            assert len(root_ports) == 1, \
+                'Only one root port supported at this time'
             self._nni_logical_port_no = root_ports[0].ofp_port.port_no
-
 
     def _generate_default_rules(self, graph):
 
@@ -931,8 +928,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         def leaf_device_default_rules(device):
             ports = self.root_proxy.get('/devices/{}/ports'.format(device.id))
             upstream_ports = [
-                port for port in ports if port.type == Port.PON_ONU \
-                                            or port.type == Port.VENET_ONU
+                port for port in ports
+                if port.type == Port.PON_ONU or port.type == Port.VENET_ONU
             ]
             assert len(upstream_ports) == 1
             downstream_ports = [
@@ -946,7 +943,7 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
             if len(downstream_ports) == 0:
                 return None, None
             # assert len(downstream_ports) == 1
-            upstream_port  = upstream_ports[0]
+            upstream_port = upstream_ports[0]
             flows = OrderedDict()
             for downstream_port in downstream_ports:
                 flows.update(OrderedDict((f.id, f) for f in [
@@ -957,7 +954,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                             vlan_vid(ofp.OFPVID_PRESENT | 0)
                         ],
                         actions=[
-                            set_field(vlan_vid(ofp.OFPVID_PRESENT | device.vlan)),
+                            set_field(vlan_vid(
+                                ofp.OFPVID_PRESENT | device.vlan)),
                             output(upstream_port.port_no)
                         ]
                     ),
@@ -969,7 +967,8 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                         ],
                         actions=[
                             push_vlan(0x8100),
-                            set_field(vlan_vid(ofp.OFPVID_PRESENT | device.vlan)),
+                            set_field(vlan_vid(
+                                ofp.OFPVID_PRESENT | device.vlan)),
                             output(upstream_port.port_no)
                         ]
                     ),
@@ -1003,15 +1002,16 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
 
     def get_route(self, ingress_port_no, egress_port_no):
         """
-        Returns the ingress and egress devices corresponding to the ingress_port_no
-        and egress_port.
-        If egress_port_no is CONTROLLER the egress device is always the OLT, while
-        the ingress device depends on if the ingress_port_no is UNI or NNI.
-        If egress_port_no is not specified, a half route is returned with only
-        the ingress device specified.
+        Returns the ingress and egress devices corresponding to the
+        ingress_port_no and egress_port.
+        If egress_port_no is CONTROLLER the egress device is always the OLT,
+        while the ingress device depends on if the ingress_port_no is UNI or
+        NNI.  If egress_port_no is not specified, a half route is returned with
+        only the ingress device specified.
         """
         self._assure_cached_tables_up_to_date()
-        self.log.info('getting-route', eg_port=egress_port_no, in_port=ingress_port_no,
+        self.log.info('getting-route', eg_port=egress_port_no,
+                      in_port=ingress_port_no,
                       nni_port=self._nni_logical_port_no)
         if egress_port_no is not None and \
                 (egress_port_no & 0x7fffffff) == ofp.OFPP_CONTROLLER:
@@ -1025,7 +1025,9 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
                 for (ingress, egress), route in self._routes.iteritems():
                     if egress == self._nni_logical_port_no:
                         return [route[1], route[1]]
-                raise Exception('not a single upstream route')
+                # raise Exception('not a single upstream route')
+                self.log.warn('not a single upstream route')
+                return None
             # for a trap flow from the UNI, treat it as if the output port
             # is the NNI of the OLT
             egress_port_no = self._nni_logical_port_no
@@ -1035,13 +1037,15 @@ class LogicalDeviceAgent(FlowDecomposer, DeviceGraph):
         # in which case we need to create a half-route where only the egress
         # hop is filled, the first hope is None
         if ingress_port_no is None and \
-                        egress_port_no == self._nni_logical_port_no:
+                egress_port_no == self._nni_logical_port_no:
             # We can use the 2nd hop of any upstream route, so just find the
             # first upstream:
             for (ingress, egress), route in self._routes.iteritems():
                 if egress == self._nni_logical_port_no:
                     return [None, route[1]]
-            raise Exception('not a single upstream route')
+            # raise Exception('not a single upstream route')
+            self.log.warn('not a single upstream route')
+            return None
 
         # If egress_port is not specified (None), we can also can return a
         # "half" route

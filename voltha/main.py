@@ -41,7 +41,8 @@ from voltha.core.core import VolthaCore
 from voltha.core.config.config_backend import load_backend
 from voltha.northbound.diagnostics import Diagnostics
 from voltha.northbound.grpc.grpc_server import VolthaGrpcServer
-from voltha.northbound.kafka.kafka_proxy import KafkaProxy, get_kafka_proxy
+from voltha.northbound.kafka.kafka_proxy import KafkaProxy
+from voltha.adapters.openolt2.openolt_kafka_proxy import OpenoltKafkaProxy
 from voltha.northbound.rest.health_check import init_rest_service
 from voltha.protos.common_pb2 import LogLevel
 from voltha.registry import registry, IComponent
@@ -409,6 +410,20 @@ class Main(object):
             self.log = update_logging(instance_id=self.instance_id, vcore_id=self.core_store_id)
 
             yield registry.register(
+                'kafka_proxy',
+                KafkaProxy(
+                    self.args.consul,
+                    self.args.kafka,
+                    config=self.config.get('kafka-proxy', {})
+                )
+            ).start()
+
+            yield registry.register(
+                'openolt_kafka_proxy',
+                OpenoltKafkaProxy(self.args.kafka)
+            ).start()
+
+            yield registry.register(
                 'grpc_server',
                 VolthaGrpcServer(self.args.grpc_port)
             ).start()
@@ -427,15 +442,6 @@ class Main(object):
                                                 args=self.args))
 
             init_rest_service(self.args.rest_port)
-
-            yield registry.register(
-                'kafka_proxy',
-                KafkaProxy(
-                    self.args.consul,
-                    self.args.kafka,
-                    config=self.config.get('kafka-proxy', {})
-                )
-            ).start()
 
             yield registry.register(
                 'frameio',
@@ -505,6 +511,7 @@ class Main(object):
             lambda: self.log.info('twisted-reactor-started'))
         reactor.addSystemEventTrigger('before', 'shutdown',
                                       self.shutdown_components)
+        reactor.suggestThreadPoolSize(300)
         reactor.run()
 
     def start_heartbeat(self):
@@ -533,16 +540,21 @@ class Main(object):
 
         def send_msg():
             try:
-                kafka_proxy = get_kafka_proxy()
+                kafka_proxy = registry('kafka_proxy')
+            except KeyError as e:
+                self.log.warn('kafka-proxy-unavailable')
+            else:
                 if kafka_proxy and not kafka_proxy.is_faulty():
                     self.log.debug('kafka-proxy-available')
                     message['ts'] = arrow.utcnow().timestamp
                     self.log.debug('start-kafka-heartbeat')
-                    kafka_proxy.send_message(topic, dumps(message))
+                    try:
+                        kafka_proxy.send_message(topic, dumps(message))
+                    except Exception, e:
+                        self.log.exception('failed-sending-message-heartbeat',
+                                           e=e)
                 else:
-                    self.log.error('kafka-proxy-unavailable')
-            except Exception, e:
-                self.log.exception('failed-sending-message-heartbeat', e=e)
+                    self.log.warn('kafka-proxy-unavailable')
 
         try:
             lc = LoopingCall(send_msg)

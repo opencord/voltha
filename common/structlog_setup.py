@@ -38,7 +38,8 @@ def setup_logging(log_config, instance_id,
 
     # Configure standard logging
     logging.config.dictConfig(log_config)
-    logging.root.level -= 10 * verbosity_adjust
+    # logging.root.level -= 10 * verbosity_adjust
+    logging.root.level = 40  # ERROR
 
     structlog.configure(
         processors=[
