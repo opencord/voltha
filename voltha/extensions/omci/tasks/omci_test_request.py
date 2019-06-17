@@ -44,7 +44,7 @@ class OmciTestRequest(Task):
     name = "ONU OMCI Test Task"
     MAX_TABLE_SIZE = 16 * 1024  # Keep get-next logic reasonable
     OPTICAL_GROUP_NAME = 'PON_Optical'
-    DEFAULT_COLLECTION_FREQUENCY = 60 * 10 # 1 minute
+    DEFAULT_COLLECTION_FREQUENCY = 600 * 10 # 10 minutes
     DEFAULT_FREQUENCY_KEY = 'default-collection-frequency'
 
     def __init__(self, omci_agent, device_id, entity_class, serial_number,
@@ -83,6 +83,8 @@ class OmciTestRequest(Task):
                        OmciTestRequest.DEFAULT_COLLECTION_FREQUENCY)
         self.serial_number = serial_number
         self.logical_device_id =  logical_device_id
+        topic = 'omci-rx:{}:{}'.format(self.device_id, 'Test_Result')
+        self.msg = self.event_bus.subscribe(topic, self.process_messages)
 
     def cancel_deferred(self):
         """
@@ -187,14 +189,6 @@ class OmciTestRequest(Task):
             result_frame[key] = long(value)
         self.publish_metrics(result_frame, event_name, onu_device_id)
 
-    def read_from_event_bus(self):
-        """
-        Get the test action result from event bus.
-        :return: None
-        """
-        topic = 'omci-rx:{}:{}'.format(self.device_id, 'Test_Result')
-        self.msg = self.event_bus.subscribe(topic, self.process_messages)
-
     @inlineCallbacks
     def perform_test_omci(self):
         """
@@ -209,10 +203,10 @@ class OmciTestRequest(Task):
                       entity_id=self._entity_id)
         try:
             frame = MEFrame(self._entity_class, self._entity_id, []).test()
-            self.strobe_watchdog()
             result = yield self._device.omci_cc.send(frame)
             if not result.fields['omci_message'].fields['success_code']:
-                self.read_from_event_bus()
+                self.log.info('Self-Test Submitted Successfully',code=result.fields[
+                    'omci_message'].fields['success_code'])
             else:
                 raise TestFailure('Test Failure: {}'.format(
                     result.fields['omci_message'].fields['success_code']))
