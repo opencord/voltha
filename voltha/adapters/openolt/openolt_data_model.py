@@ -146,6 +146,7 @@ class OpenOltDataModel(object):
 
     def olt_oper_down(self):
         self.__disable_logical_device()
+        self.__cache_flush()
 
     def olt_delete(self):
         ld = self.adapter_agent.get_logical_device(self.logical_device_id)
@@ -225,14 +226,15 @@ class OpenOltDataModel(object):
             self.log.error('logical_port delete error', error=e)
 
         try:
-            ports = self.adapter_agent.get_ports(self.device.id, Port.ETHERNET_UNI)
+            ports = self.adapter_agent.get_ports(self.device.id,
+                                                 Port.ETHERNET_UNI)
             for port in ports:
                 for peer in port.peers:
                     if peer.device_id == onu_device.id:
                         self.adapter_agent.delete_port(self.device.id, port)
         except Exception as e:
             self.log.error('port delete error', error=e)
-        
+
         # Delete onu info from cache
         onu_info = self._onu_serial_numbers[onu_device.serial_number]
         del self._onu_ids[OnuId(intf_id=onu_info.intf_id,
@@ -354,7 +356,8 @@ class OpenOltDataModel(object):
                                                                  uni_id)
             # Store the gem port through which the packet_in came. Use the same
             # gem port for packet_out.
-            self.packet_in_gem_port[(intf_id, onu_id, logical_port_num)] = gemport_id
+            self.packet_in_gem_port[(intf_id, onu_id, logical_port_num)] \
+                = gemport_id
         elif intf_type == "nni":
             logical_port_num = self.platform.intf_id_to_port_no(
                 intf_id,
@@ -428,6 +431,10 @@ class OpenOltDataModel(object):
                          logical_port.ofp_port.port_no)
         return ofp_port_name
 
+    def __cache_flush(self):
+        self._onu_ids.clear()
+        self._onu_serial_numbers.clear()
+        self._onu_gemport_ids.clear()
 
     # #######################################################################
     # Methods used by Alarm and Statistics Manager (TODO - re-visit)
