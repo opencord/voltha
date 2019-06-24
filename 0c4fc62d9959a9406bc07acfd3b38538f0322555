@@ -16,6 +16,24 @@
       "revId": "0c4fc62d9959a9406bc07acfd3b38538f0322555",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "06a03f02_2189c2d4",
+        "filename": "voltha/adapters/openolt/openolt_data_model.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 437,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-06-24T05:43:48Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "41e09aa9_0bd35500",
+      "revId": "0c4fc62d9959a9406bc07acfd3b38538f0322555",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
