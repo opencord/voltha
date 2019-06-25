@@ -41,9 +41,11 @@ ${OLT_TYPE}             ${EMPTY}
 ${ONU_TYPE}             ${EMPTY}
 ${OLT_HOST_IP}          ${EMPTY}
 ${ONU_COUNT}            ${EMPTY}
-${ADAPTER}              ${EMPTY}
+${SIMTYPE}              ${EMPTY}
 ${RETRY_TIMEOUT_60}     60s
 ${RETRY_INTERVAL_2}     2s
+${PROCEED_TIMEOUT_180}  180s
+
 
 *** Test Cases ***
 Olt Pre Provisioning
@@ -59,11 +61,8 @@ Olt Pre Provisioning
     Status Should Be Success After Preprovision Command
     Check Olt Fields Before Enabling
     Enable
-    Wait Until Keyword Succeeds    ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Query Devices After Enabling
-    Status Should Be Success After Enable Command
-    Check Olt Fields After Enabling
-    Check Onu Fields After Enabling
-    Sleep    60
+    Wait Until Keyword Succeeds    ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Validate Number of Devices
+    Wait Until Keyword Succeeds   ${PROCEED_TIMEOUT_180}  ${RETRY_INTERVAL_2}    Proceed
 
 Olt Onu Discovery
     [Documentation]     Olt Onu Discovery
@@ -87,20 +86,15 @@ Olt Onu Discovery
     
 Radius Authentication
     [Documentation]     Radius Authentication
-    ...                 This test attempts to perform a Radius Authentication from the RG
-    ...                 It uses the wpa_supplicant app to authenticate using EAPOL.
+    ...                 This test attempts to perform a Radius Authentication from the RG in the case
+    ...                 of the 'ponsim' simtype. It uses the wpa_supplicant app to authenticate using EAPOL.
     ...                 We then verify the generated log file confirming all the authentication steps
-    [Tags]              ponsim
+    ...                 In the case where the simtype is 'bbsim' we simply verify that all ONUs have
+    ...                 authenticated. We do this by executing the 'aaa-users command on onos
     A Set Log Dirs      ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
-    Discover Freeradius Pod Name
-    Discover Freeradius Ip Addr
-    Set Current Freeradius Ip In AAA Json
-    Alter AAA Application Configuration In Onos Using AAA Json
-    Execute Authentication On RG
-    Verify Authentication Should Have Started
-    Verify Authentication Should Have Completed
-    Verify Authentication Should Have Disconnected
-    Verify Authentication Should Have Terminated    
+    A Configure         ${ONU_COUNT}
+    Run Keyword If      '${SIMTYPE}' == 'ponsim'      Ponsim Authentication Steps
+    ...  ELSE IF        '${SIMTYPE}' == 'bbsim'       BBSim Authentication Verification Step
 
 Dhcp IP Address Assignment on RG
     [Documentation]     DHCP assigned IP Address
@@ -143,27 +137,55 @@ Start Voltha
     [Documentation]     Start Voltha infrastructure to run test(s). This includes starting all 
     ...                 Kubernetes Pods and start collection of logs. PonsimV2 has now been
     ...                 containerized and does not need to be managed separately
-    ...                 Initialize working DIRs as well as Adapter specific variables
+    ...                 Initialize working DIRs as well as Simtype specific variables. We also 
+    ...                 setup Freeradius and restart AAA app in onos in preparation for 
+    ...                 authentication test case
     ${ROOT_DIR}  ${VOLTHA_DIR}  ${LOG_DIR}  Dir Init    ${LOG_DIR}
     Set Suite Variable  ${ROOT_DIR}
     Set Suite Variable  ${VOLTHA_DIR}
     Set Suite Variable  ${LOG_DIR}   
     V Set Log Dirs      ${ROOT_DIR}    ${VOLTHA_DIR}    ${LOG_DIR}
-    ${OLT_TYPE}  ${ONU_TYPE}    ${OLT_HOST_IP}  ${ONU_COUNT}  Adapter Init  ${ADAPTER}
+    ${OLT_TYPE}  ${ONU_TYPE}    ${OLT_HOST_IP}  ${ONU_COUNT}  Simtype Init  ${SIMTYPE}
     Set Suite Variable  ${OLT_TYPE}
     Set Suite Variable  ${ONU_TYPE}
     Set Suite Variable  ${OLT_HOST_IP}
     Set Suite Variable  ${ONU_COUNT}
     Stop Voltha
-    Start All Pods      ${ADAPTER}
+    Start All Pods      ${SIMTYPE}
     Sleep    60
     ${pod_status}       Run    kubectl get pods --all-namespaces
     Log To Console      \n${pod_status}\n
     Alter Onos Net Cfg
-    
+    Discover Freeradius Pod Name
+    Discover Freeradius Ip Addr
+    Prepare Current Freeradius Ip
+    Alter Freeradius Ip In Onos AAA Application Configuration
+    Deactivate Aaa App In Onos
+    Sleep   5
+    Activate Aaa App In Onos
+
 Stop Voltha
     [Documentation]     Stop Voltha infrastructure. This includes clearing all installation milestones
     ...                 files and stopping all Kubernetes pods
     Collect Pod Logs
-    Stop All Pods       ${ADAPTER}
-    Reset Kube Adm      ${ADAPTER}
+    Stop All Pods       ${SIMTYPE}
+    Reset Kube Adm      ${SIMTYPE}
+
+Ponsim Authentication Steps
+    [Documentation]     List of steps required to run manual Authentication from RG
+    Execute Authentication On RG
+    Authentication Should Have Started
+    Authentication Should Have Completed
+    Authentication Should Have Disconnected
+    Authentication Should Have Terminated
+
+BBSim Authentication Verification Step
+    [Documentation]     List of steps to verify that all BBSim ONUs have successfully authenticated
+    Wait Until Keyword Succeeds    ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Should Have All Onus Authenticated
+   
+Validate Number of Devices
+    [Documentation]    Validate the number of expected onus to be activated
+    Query Devices After Enabling
+    Status Should Be Success After Enable Command
+    Check Olt Fields After Enabling
+    Check Onu Fields After Enabling 

@@ -74,7 +74,7 @@ class DHCP(object):
         statusLines = testCaseUtils.get_fields_from_grep_command(self, 'IP_PROTO:17', 'voltha_onos_flows.log')
         assert statusLines, 'No DHCP Detection flows'
         lines = statusLines.splitlines()
-        assert len(lines) == 2, 'Expected 2 DHCP Detection Flows but result was %s' % len(lines)
+        assert len(lines) >= 2, 'Expected at least 2 DHCP Detection Flows but result was %s' % len(lines)
         for line in lines:
             self.__fields = testCaseUtils.parse_fields(line, ',')
             inPortStr = self.__fields[5].strip()
