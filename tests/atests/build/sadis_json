@@ -169,7 +169,7 @@
           "nasId":"B100-NASID"
         },
         {  
-          "id":"olt.voltha.svc:50060",
+          "id":"olt0.voltha.svc:50060",
           "uplinkPort":2
         },
         {

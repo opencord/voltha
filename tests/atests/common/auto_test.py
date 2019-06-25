@@ -31,7 +31,7 @@ import unicast
 import logging
 
 DEFAULT_LOG_DIR = '/tmp/voltha_test_results'
-DEFAULT_ADAPTER = 'ponsim'
+DEFAULT_SIMTYPE = 'ponsim'
 logging.basicConfig(level=logging.INFO)
 
 
@@ -66,18 +66,18 @@ def dir_init(log_dir=DEFAULT_LOG_DIR, voltha_dir=os.environ['VOLTHA_BASE']):
     return root_dir, voltha_dir, log_dir
 
 
-def adapter_init(adapter=DEFAULT_ADAPTER):
+def simtype_init(simtype=DEFAULT_SIMTYPE):
     """
 
-    :param adapter: ponsim or bbsim
+    :param simtype: ponsim or bbsim
     :return: olt_type, onu_type, olt_host_ip, onu_count
     """
-    if adapter == 'ponsim':
+    if simtype == 'ponsim':
         olt_type = 'ponsim_olt'
         onu_type = 'ponsim_onu'
-        olt_host_ip = 'olt.voltha.svc'
+        olt_host_ip = 'olt0.voltha.svc'
         onu_count = 1
-    elif adapter == 'bbsim':
+    elif simtype == 'bbsim':
         olt_type = 'openolt'
         onu_type = 'brcm_openomci_onu'
         olt_host_ip = 'bbsim.voltha.svc'
@@ -102,21 +102,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='VOLTHA Automated Testing')
     parser.add_argument('-l', dest='logDir', default=DEFAULT_LOG_DIR,
                         help='log directory (default: %s).' % DEFAULT_LOG_DIR)
-    parser.add_argument('-a', dest='adapter', choices=['ponsim', 'bbsim'], default=DEFAULT_ADAPTER,
-                        help='adapter (default: %s).' % DEFAULT_ADAPTER)
+    parser.add_argument('-a', dest='simtype', choices=['ponsim', 'bbsim'], default=DEFAULT_SIMTYPE,
+                        help='simtype (default: %s).' % DEFAULT_SIMTYPE)
     args = parser.parse_args()
 
     ROOT_DIR, VOLTHA_DIR, LOG_DIR = dir_init(args.logDir)
-    OLT_TYPE, ONU_TYPE, OLT_HOST_IP, ONU_COUNT = adapter_init(args.adapter)
+    OLT_TYPE, ONU_TYPE, OLT_HOST_IP, ONU_COUNT = simtype_init(args.simtype)
     
-    volthaMngr.voltha_initialize(ROOT_DIR, VOLTHA_DIR, LOG_DIR, args.adapter)
+    volthaMngr.voltha_initialize(ROOT_DIR, VOLTHA_DIR, LOG_DIR, args.simtype)
 
     preprovisioning.run_test(OLT_HOST_IP, 50060, OLT_TYPE, ONU_TYPE, ONU_COUNT, LOG_DIR)
-    time.sleep(60)
-    discovery.run_test(OLT_HOST_IP, OLT_TYPE, ONU_TYPE, ONU_COUNT, LOG_DIR)
-    if args.adapter == 'ponsim':
-        authentication.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
+    discovery.run_test(OLT_HOST_IP, OLT_TYPE, ONU_TYPE, ONU_COUNT, LOG_DIR)
+
+    authentication.run_test(ONU_COUNT, ROOT_DIR, VOLTHA_DIR, LOG_DIR, args.simtype)
+
+    if args.simtype == 'ponsim':
         dhcp.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
 
         unicast.run_test(ONU_TYPE, ONU_COUNT, ROOT_DIR, VOLTHA_DIR, LOG_DIR)
