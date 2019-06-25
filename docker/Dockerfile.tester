@@ -29,3 +29,5 @@ COPY config/igmpv3.py /usr/local/bin
 RUN chmod 755 /usr/local/bin/igmp.py
 
 COPY config/wpa_supplicant.conf /etc/wpa_supplicant/
+COPY config/wpa_supplicant_fail.conf /etc/wpa_supplicant/
+COPY config/wpa_readme.md /README.md
