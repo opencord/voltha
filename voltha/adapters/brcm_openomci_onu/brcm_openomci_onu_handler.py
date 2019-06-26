@@ -1040,7 +1040,11 @@ class BrcmOpenomciOnuHandler(object):
 
             # Clear mib_download_done list as OMCI SM is going to reset
             for uni_id in self._get_uni_ids(onu_device):
-                self._mib_download_done.remove(uni_id)
+                try:
+                    self._mib_download_done.remove(uni_id)
+                except ValueError:
+                    pass
+
             # Let TP download happen again
             for uni_id in self._in_progress_tp_task:
                 self._in_progress_tp_task[uni_id].clear()
