@@ -1,0 +1,7 @@
+Code-Review+2: Andy Bavier <andy@opennetworking.org>
+Verified+1: Jenkins Jenkins <do-not-reply@opencord.org>
+Submitted-by: Matteo Scandolo <teo@opennetworking.org>
+Submitted-at: Thu, 27 Jun 2019 16:42:28 +0000
+Reviewed-on: https://gerrit.opencord.org/14433
+Project: voltha
+Branch: refs/heads/voltha-1.7
