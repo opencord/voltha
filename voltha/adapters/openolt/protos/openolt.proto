@@ -103,6 +103,8 @@ service Openolt {
         };
     }
 
+    rpc GetPonIf(Interface) returns (IntfIndication) { }
+
     rpc DisablePonIf(Interface) returns (Empty) {
         option (google.api.http) = {
             post: "/v1/DisablePonIf"
