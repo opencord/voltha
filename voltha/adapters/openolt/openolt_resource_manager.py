@@ -315,7 +315,7 @@ class OpenOltResourceMgr(object):
         self.resource_mgrs[intf_id].remove_flow_id_info(intf_onu_id,
                                                         flow_id)
 
-    def free_pon_resources_for_onu(self, pon_intf_id_onu_id):
+    def free_pon_resources_for_onu(self, pon_intf_id_onu_id, reset_onu_id_pool=True):
 
         pon_intf_id = pon_intf_id_onu_id[0]
         onu_id = pon_intf_id_onu_id[1]
@@ -341,9 +341,10 @@ class OpenOltResourceMgr(object):
             for flow_id in flow_ids:
                 self.free_flow_id(pon_intf_id, onu_id, uni_id, flow_id)
 
-        self.resource_mgrs[pon_intf_id].free_resource_id(pon_intf_id,
-                                                         PONResourceManager.ONU_ID,
-                                                         onu_id)
+        if reset_onu_id_pool:
+            self.resource_mgrs[pon_intf_id].free_resource_id(pon_intf_id,
+                                                             PONResourceManager.ONU_ID,
+                                                             onu_id)
 
         # Clear resource map associated with (pon_intf_id, gemport_id) tuple.
         self.resource_mgrs[pon_intf_id].remove_resource_map(pon_intf_id_onu_id)

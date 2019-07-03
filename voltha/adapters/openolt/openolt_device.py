@@ -204,7 +204,16 @@ class OpenoltDevice(object):
                     try:
                         pon_intf_id_onu_id = (pon_intf_id, onu_id, uni_id)
                         # Free any PON resources that were reserved for the ONU
-                        self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id)
+                        # Note: Since the ONU device is not deleted in the voltha core during
+                        # OLT post_down handling, we should not reset the ONU ID pool on the
+                        # resource manager.
+                        # The voltha core is aware of the ONU ID, and we need to ensure that ONU
+                        # IDs are not re-used for new ONUs after OLT comes back. If we reset the
+                        # ONU ID pool during OLT post_down there is a possibility that newer ONUs
+                        # may get the conflicting ONU IDs already assigned for pre-existing ONUs.
+                        # Passing the 'reset_onu_id_pool' as False, ensures that the ONU ID pool
+                        # is not reset during OLT down scenario.
+                        self.resource_mgr.free_pon_resources_for_onu(pon_intf_id_onu_id, False)
                         # Free tech_profile id for ONU
                         self.resource_mgr.remove_tech_profile_id_for_onu(pon_intf_id, onu_id, uni_id)
                         # Free meter_ids for the ONU
