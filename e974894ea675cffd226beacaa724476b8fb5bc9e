@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8e323e5c_3d45c06a",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1000127
+      },
+      "writtenOn": "2019-07-03T03:11:03Z",
+      "side": 1,
+      "message": "The \u0027option\u0027 body is missing in this protobuf definition but present in the copy of openolt.proto at agent and bbsim proto definitions.",
+      "revId": "e974894ea675cffd226beacaa724476b8fb5bc9e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
