@@ -16,6 +16,24 @@
       "revId": "e974894ea675cffd226beacaa724476b8fb5bc9e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "33d85789_8d8e448e",
+        "filename": "voltha/adapters/openolt/protos/openolt.proto",
+        "patchSetId": 1
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1000187
+      },
+      "writtenOn": "2019-07-03T18:29:05Z",
+      "side": 1,
+      "message": "Fixed in a subsequent commit",
+      "parentUuid": "8e323e5c_3d45c06a",
+      "revId": "e974894ea675cffd226beacaa724476b8fb5bc9e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
