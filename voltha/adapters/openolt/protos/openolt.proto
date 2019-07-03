@@ -54,6 +54,13 @@ service Openolt {
         };
     }
 
+    rpc GetOnuInfo(Onu) returns (OnuIndication){
+        option (google.api.http) = {
+          post: "/v1/GetOnuInfo"
+          body: "*"
+        };
+    }
+
     rpc OmciMsgOut(OmciMsg) returns (Empty) {
         option (google.api.http) = {
           post: "/v1/OmciMsgOut"
