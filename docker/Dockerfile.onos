@@ -28,7 +28,7 @@ RUN ./mvn_settings.sh
 ADD config/dependencies.xml .
 RUN mvn dependency:copy -Dmdep.useBaseVersion=true -DoutputDirectory=${DOWNLOAD_ROOT} -Dsilent=true -f dependencies.xml -s mvn_settings.xml
 
-FROM onosproject/onos:1.13.9-rc4 as install
+FROM onosproject/onos:1.13.9 as install
 MAINTAINER Open Networking Foundation <info@opennetworking.org>
 
 # The ENV settings must be replicated below as they are not shared between stages
