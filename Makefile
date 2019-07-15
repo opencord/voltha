@@ -28,6 +28,8 @@ ifeq ($(TARGET_TAG),)
 TARGET_TAG := latest
 endif
 
+ARCH=$(subst aarch64,arm64,$(subst x86_64,amd64,$(patsubst i%86,386,$(shell uname -m))))
+
 # If no DOCKER_HOST_IP is specified grab a v4 IP address associated with
 # the default gateway
 ifeq ($(DOCKER_HOST_IP),)
@@ -53,6 +55,7 @@ DOCKER_BUILD_ARGS = \
 	--build-arg TAG=$(TAG) \
 	--build-arg REGISTRY=$(REGISTRY) \
 	--build-arg REPOSITORY=$(REPOSITORY) \
+	--build-arg ARCH=$(ARCH) \
 	$(DOCKER_PROXY_ARGS) $(DOCKER_CACHE_ARG) \
 	 --rm --force-rm \
 	$(DOCKER_BUILD_EXTRA_ARGS)
