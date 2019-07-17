@@ -111,7 +111,7 @@ action_printers = {
 }
 
 
-def print_flows(what, id, type, flows, groups, printfn=_printfn):
+def print_flows(what, id, type, flows, groups, printfn=_printfn, flows_info=[], fields_to_omit=[]):
 
     header = ''.join([
         '{} '.format(what),
@@ -124,9 +124,31 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
     table = TablePrinter()
     for i, flow in enumerate(flows):
 
-        table.add_cell(i, 0, 'table_id', value=str(flow['table_id']))
-        table.add_cell(i, 1, 'priority', value=str(flow['priority']))
-        table.add_cell(i, 2, 'cookie', p_cookie(flow['cookie']))
+        if flows_info:
+            flow_info = flows_info[i]
+        else:
+            flow_info = dict()
+
+        if 'table_id' not in fields_to_omit:
+            table.add_cell(i, 0, 'table_id', value=str(flow['table_id']))
+        if 'flow_id' not in fields_to_omit and 'flow_id' in flow_info:
+            table.add_cell(i, 1, 'flow_id', value=str(flow_info['flow_id']))
+        if 'flow_category' not in fields_to_omit and 'flow_category' in flow_info:
+            table.add_cell(i, 2, 'flow_category', value=str(flow_info['flow_category']))
+        if 'flow_type' not in fields_to_omit and 'flow_type' in flow_info:
+            table.add_cell(i, 3, 'flow_type', value=str(flow_info['flow_type']))
+        if 'priority' not in fields_to_omit:
+            table.add_cell(i, 4, 'priority', value=str(flow['priority']))
+        if 'gemport_id' not in fields_to_omit and 'gemport_id' in flow_info:
+            table.add_cell(i, 5, 'gemport_id', value=str(flow_info['gemport_id']))
+        if 'alloc_id' not in fields_to_omit and 'alloc_id' in flow_info:
+            table.add_cell(i, 6, 'alloc_id', value=str(flow_info['alloc_id']))
+        if 'o_pbits' not in fields_to_omit and 'o_pbits' in flow_info:
+            table.add_cell(i, 7, 'o_pbits', value=str(flow_info['o_pbits']))
+        if 'pon_intf_onu_id' not in fields_to_omit and 'pon_intf_onu_id' in flow_info:
+            table.add_cell(i, 8, 'intf_onu_id', value=str(flow_info['pon_intf_onu_id']))
+        if 'cookie' not in fields_to_omit:
+            table.add_cell(i, 9, 'cookie', p_cookie(flow['cookie']))
 
         assert flow['match']['type'] == 'OFPMT_OXM'
         for field in flow['match']['oxm_fields']:
@@ -142,16 +164,20 @@ def print_flows(what, id, type, flows, groups, printfn=_printfn):
                     atype = action['type'][len('OFPAT_'):]
                     table.add_cell(i, *action_printers[atype](action))
             elif itype == 1:
-                table.add_cell(i, 10000, 'goto-table',
-                               instruction['goto_table']['table_id'])
+                if 'goto-table' not in fields_to_omit:
+                    table.add_cell(i, 10000, 'goto-table',
+                                   instruction['goto_table']['table_id'])
             elif itype == 2:
-                table.add_cell(i, 10001, 'write-metadata',
-                               instruction['write_metadata']['metadata'])
+                if 'write-metadata' not in fields_to_omit:
+                    table.add_cell(i, 10001, 'write-metadata',
+                                   instruction['write_metadata']['metadata'])
             elif itype == 5:
-                table.add_cell(i, 10002, 'clear-actions', [])
+                if 'clear-actions' not in fields_to_omit:
+                    table.add_cell(i, 10002, 'clear-actions', [])
             elif itype == 6:
-                table.add_cell(i, 10003, 'meter',
-                               instruction['meter']['meter_id'])
+                if 'meter' not in fields_to_omit:
+                    table.add_cell(i, 10003, 'meter',
+                                   instruction['meter']['meter_id'])
             else:
                 raise NotImplementedError(
                     'not handling instruction type {}'.format(itype))

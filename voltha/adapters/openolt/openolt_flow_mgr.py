@@ -34,6 +34,9 @@ from common.tech_profile.tech_profile import Direction, TechProfile
 # Flow categories
 HSIA_FLOW = "HSIA_FLOW"
 HSIA_TRANSPARENT = "HSIA_TRANSPARENT-{}"
+DHCP_FLOW = "DHCP_FLOW"
+EAPOL_FLOW = "EAPOL_FLOW"
+LLDP_FLOW = "LLDP_FLOW"
 
 EAP_ETH_TYPE = 0x888e
 LLDP_ETH_TYPE = 0x88cc
@@ -1005,7 +1008,7 @@ class OpenOltFlowMgr(object):
                 action=self.mk_action(action), priority=logical_flow.priority,
                 port_no=port_no, cookie=logical_flow.cookie)
 
-            if self.add_flow_to_device(flow, logical_flow):
+            if self.add_flow_to_device(flow, logical_flow, flow_store_cookie):
                 flow_info = self._get_flow_info_as_json_blob(flow,
                                                              flow_store_cookie,
                                                              flow_category)
@@ -1050,9 +1053,10 @@ class OpenOltFlowMgr(object):
                 port_no=port_no,
                 cookie=logical_flow.cookie)
 
-            if self.add_flow_to_device(dhcp_flow, logical_flow):
+            if self.add_flow_to_device(dhcp_flow, logical_flow, flow_store_cookie):
                 flow_info = self._get_flow_info_as_json_blob(dhcp_flow,
-                                                             flow_store_cookie)
+                                                             flow_store_cookie,
+                                                             DHCP_FLOW)
                 self.update_flow_info_to_kv_store(dhcp_flow.access_intf_id,
                                                   dhcp_flow.onu_id,
                                                   dhcp_flow.uni_id,
@@ -1101,9 +1105,10 @@ class OpenOltFlowMgr(object):
                 vlan_id | 0x1000)]))
             logical_flow.match.type = OFPMT_OXM
 
-            if self.add_flow_to_device(upstream_flow, logical_flow):
+            if self.add_flow_to_device(upstream_flow, logical_flow, flow_store_cookie):
                 flow_info = self._get_flow_info_as_json_blob(upstream_flow,
-                                                             flow_store_cookie)
+                                                             flow_store_cookie,
+                                                             EAPOL_FLOW)
                 self.update_flow_info_to_kv_store(upstream_flow.access_intf_id,
                                                   upstream_flow.onu_id,
                                                   upstream_flow.uni_id,
@@ -1171,9 +1176,9 @@ class OpenOltFlowMgr(object):
                                                   uni_id))]))
 
             if self.add_flow_to_device(downstream_flow,
-                                       downstream_logical_flow):
+                                       downstream_logical_flow, flow_store_cookie):
                 flow_info = self._get_flow_info_as_json_blob(
-                    downstream_flow, flow_store_cookie)
+                    downstream_flow, flow_store_cookie, EAPOL_FLOW)
                 self.update_flow_info_to_kv_store(
                     downstream_flow.access_intf_id, downstream_flow.onu_id,
                     downstream_flow.uni_id, downstream_flow.flow_id,
@@ -1247,9 +1252,9 @@ class OpenOltFlowMgr(object):
             self.log.debug('add dhcp downstream trap', classifier=classifier,
                            action=action, flow=downstream_flow,
                            port_no=port_no)
-            if self.add_flow_to_device(downstream_flow, logical_flow):
+            if self.add_flow_to_device(downstream_flow, logical_flow, flow_store_cookie):
                 flow_info = self._get_flow_info_as_json_blob(downstream_flow,
-                                                             flow_store_cookie)
+                                                             flow_store_cookie, DHCP_FLOW)
                 self.update_flow_info_to_kv_store(
                     network_intf_id, onu_id, uni_id, flow_id, flow_info)
 
@@ -1300,9 +1305,10 @@ class OpenOltFlowMgr(object):
             self.log.debug('add lldp downstream trap', classifier=classifier,
                            action=action, flow=downstream_flow,
                            port_no=port_no)
-            if self.add_flow_to_device(downstream_flow, logical_flow):
+            if self.add_flow_to_device(downstream_flow, logical_flow, flow_store_cookie):
                 flow_info = self._get_flow_info_as_json_blob(downstream_flow,
-                                                             flow_store_cookie)
+                                                             flow_store_cookie,
+                                                             LLDP_FLOW)
                 self.update_flow_info_to_kv_store(
                     network_intf_id, onu_id, uni_id, flow_id, flow_info)
 
@@ -1410,7 +1416,7 @@ class OpenOltFlowMgr(object):
         self.log.debug('No subscriber flow found', port=port)
         return None
 
-    def add_flow_to_device(self, flow, logical_flow):
+    def add_flow_to_device(self, flow, logical_flow, flow_store_cookie=None):
         self.log.debug('pushing flow to device', flow=flow)
         try:
             self.stub.FlowAdd(flow)
@@ -1431,6 +1437,12 @@ class OpenOltFlowMgr(object):
 
             return False
         else:
+            intf_onu_id = (flow.access_intf_id if flow.access_intf_id > 0 else flow.network_intf_id,
+                           flow.onu_id, flow.uni_id)
+            logical_flow.intf_tuple.append(str(intf_onu_id))
+            if flow_store_cookie is not None:
+                logical_flow.flow_store_cookie = flow_store_cookie
+
             self.register_flow(logical_flow, flow)
             return True
 

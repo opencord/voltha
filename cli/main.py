@@ -21,6 +21,7 @@ import sys
 from optparse import make_option
 from time import sleep, time
 
+import etcd3
 import grpc
 import requests
 from cmd2 import Cmd, options
@@ -43,6 +44,7 @@ from cli.utils import pb2dict
 
 defs = dict(
     # config=os.environ.get('CONFIG', './cli.yml'),
+    etcd=os.environ.get('ETCD', 'etcd-cluster.default.svc.cluster.local:2379'),
     consul=os.environ.get('CONSUL', 'localhost:8500'),
     voltha_grpc_endpoint=os.environ.get('VOLTHA_GRPC_ENDPOINT',
                                         'localhost:50055'),
@@ -56,7 +58,7 @@ banner = """\
 __ _____| | |_| |_  __ _   / __| |  |_ _|
 \ V / _ \ |  _| ' \/ _` | | (__| |__ | |
  \_/\___/_|\__|_||_\__,_|  \___|____|___|
-(to exit type quit or hit Ctrl-D)
+(to exit type quit or exit or hit Ctrl-D)
 """
 
 
@@ -88,10 +90,11 @@ class VolthaCli(Cmd):
     del Cmd.do_load
     del Cmd.do__relative_load
 
-    def __init__(self, voltha_grpc, voltha_sim_rest, global_request=False):
+    def __init__(self, voltha_grpc, voltha_sim_rest, etcd, global_request=False):
         VolthaCli.voltha_grpc = voltha_grpc
         VolthaCli.voltha_sim_rest = voltha_sim_rest
         VolthaCli.global_request = global_request
+        VolthaCli.etcd = etcd
         Cmd.__init__(self)
         self.prompt = '(' + self.colorize(
             self.colorize(self.prompt, 'blue'), 'bold') + ') '
@@ -153,6 +156,10 @@ class VolthaCli(Cmd):
         """Reset CLI history"""
         while self.history:
             self.history.pop()
+
+    def do_exit(self,line):
+        """exit from CLI"""
+        quit()
 
     def do_launch(self, line):
         """If Voltha is not running yet, launch it"""
@@ -220,7 +227,7 @@ class VolthaCli(Cmd):
             self.poutput( self.colorize('Error: ', 'red') +
                             'There is no such device')
             raise Exception('<device-id> is not a valid one')
-        sub = DeviceCli(device_id, self.get_stub)
+        sub = DeviceCli(device_id, self.get_stub, self.etcd)
         sub.cmdloop()
 
     def do_logical_device(self, line):
@@ -868,6 +875,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '-C', '--consul', action='store', default=defs['consul'], help=_help)
 
+    _help = '<hostname>:<port> to etcd container (default: %s)' % defs['etcd']
+    parser.add_argument(
+        '-E', '--etcd', action='store', default=defs['etcd'], help=_help)
+
     _help = 'Lookup Voltha endpoints based on service entries in Consul'
     parser.add_argument(
         '-L', '--lookup', action='store_true', help=_help)
@@ -908,7 +919,10 @@ if __name__ == '__main__':
         args.sim_rest_endpoint = '{}:{}'.format(services[0]['ServiceAddress'],
                                                 services[0]['ServicePort'])
 
-    c = VolthaCli(args.grpc_endpoint, args.sim_rest_endpoint,
+    host = args.etcd.split(':')[0].strip()
+    port = int(args.etcd.split(':')[1].strip())
+    etcd = etcd3.client(host=host, port=port)
+    c = VolthaCli(args.grpc_endpoint, args.sim_rest_endpoint, etcd,
                   args.global_request)
     c.poutput(banner)
     c.load_history()

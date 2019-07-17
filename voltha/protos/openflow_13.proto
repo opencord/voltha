@@ -1808,19 +1808,21 @@ message ofp_flow_stats_request {
 
 /* Body of reply to OFPMP_FLOW request. */
 message ofp_flow_stats {
-    uint64 id = 14;            /* Unique ID of flow within device. */
-    uint32 table_id = 1;       /* ID of table flow came from. */
-    uint32 duration_sec = 2;   /* Time flow has been alive in seconds. */
-    uint32 duration_nsec = 3;  /* Time flow has been alive in nanoseconds
-                                  beyond duration_sec. */
-    uint32 priority = 4;       /* Priority of the entry. */
-    uint32 idle_timeout = 5;   /* Number of seconds idle before expiration. */
-    uint32 hard_timeout = 6;   /* Number of seconds before expiration. */
-    uint32 flags = 7;          /* Bitmap of OFPFF_* flags. */
-    uint64 cookie = 8;         /* Opaque controller-issued identifier. */
-    uint64 packet_count = 9;   /* Number of packets in flow. */
-    uint64 byte_count = 10;    /* Number of bytes in flow. */
-    ofp_match match = 12;      /* Description of fields. Variable size. */
+    uint64 id = 14;                /* Unique ID of flow within device. */
+    repeated string intf_tuple = 15; /* the tuple of (intf_id, onu_id, uni_id) for each flow */
+    uint32 table_id = 1;           /* ID of table flow came from. */
+    uint32 duration_sec = 2;       /* Time flow has been alive in seconds. */
+    uint32 duration_nsec = 3;      /* Time flow has been alive in nanoseconds
+                                      beyond duration_sec. */
+    uint32 priority = 4;           /* Priority of the entry. */
+    uint32 idle_timeout = 5;       /* Number of seconds idle before expiration. */
+    uint32 hard_timeout = 6;       /* Number of seconds before expiration. */
+    uint32 flags = 7;              /* Bitmap of OFPFF_* flags. */
+    uint64 cookie = 8;             /* Opaque controller-issued identifier. */
+    uint64 packet_count = 9;       /* Number of packets in flow. */
+    uint64 byte_count = 10;        /* Number of bytes in flow. */
+    string flow_store_cookie = 11; /* Opaque controller-issued identifier. */
+    ofp_match match = 12;          /* Description of fields. Variable size. */
     repeated ofp_instruction instructions = 13; /* Instruction set
                                                    (0 or more) */
 };

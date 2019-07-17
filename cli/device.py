@@ -30,16 +30,25 @@ _ = third_party
 from voltha.protos import voltha_pb2, common_pb2
 import sys
 import json
+import unicodedata
+import ast
 from google.protobuf.json_format import MessageToDict
 
 # Since proto3 won't send fields that are set to 0/false/"" any object that
 # might have those values set in them needs to be replicated here such that the
 # fields can be adequately
 
+FLOW_ID_INFO_PATH = '{}/{}/flow_id_info/{}'
+FLOW_IDS_PATH = '{}/{}/flow_ids'
+technology = 'xgspon'
+PATH_PREFIX0 = 'service/voltha/resource_manager/{}'
+PATH_PREFIX = PATH_PREFIX0.format(technology)
+PATH = '{}/{}'
+
 
 class DeviceCli(Cmd):
 
-    def __init__(self, device_id, get_stub):
+    def __init__(self, device_id, get_stub, etcd):
         Cmd.__init__(self)
         self.get_stub = get_stub
         self.device_id = device_id
@@ -47,6 +56,7 @@ class DeviceCli(Cmd):
             self.colorize('device {}'.format(device_id), 'red'), 'bold') + ') '
         self.pm_config_last = None
         self.pm_config_dirty = False
+        self.etcd = etcd
 
     def cmdloop(self):
         self._cmdloop()
@@ -347,15 +357,99 @@ individual metrics.
                                    omit_fields, self.poutput, dividers=100,
                                    show_nulls=True)
 
+    def get_flow_id(self, id_str):
+        # original representation of the flow id
+        # there is a mask for upstream flow ids of openolt adapter as 0x1 << 15 | flow_id
+        # ponsim and other flow does not need any modification
+        if int(id_str) >= 0x1 << 15:
+            flow_id = int(id_str) ^ 0x1 << 15
+        else:
+            flow_id = int(id_str)
+
+        return flow_id
+
+    def flow_exist(self, pon_intf_onu_id, flow_id):
+        # checks whether the flow still exists in ETCD or not
+        flow_ids_path = FLOW_IDS_PATH.format(self.device_id, pon_intf_onu_id)
+        path_to_flow_ids = PATH.format(PATH_PREFIX, flow_ids_path)
+        (flow_ids, _) = self.etcd.get(path_to_flow_ids)
+        if flow_ids is None:
+            return False
+        else:
+            if flow_id in eval(flow_ids):
+                return True
+            else:
+                return False
+
+    def update_repeated_ids_dict(self,flow_id, repeated_ids):
+        # updates how many times an id is seen
+        if str(flow_id) in repeated_ids:
+            repeated_ids[str(flow_id)] += 1
+        else:
+            repeated_ids[str(flow_id)] = 1
+        return repeated_ids
+
+    def get_flow_index(self,flow, flow_info_all):
+        if 'flow_store_cookie' in flow:
+            for i, flow_info in enumerate(flow_info_all):
+                if unicodedata.normalize('NFKD', flow['flow_store_cookie']).encode('ascii', 'ignore') == flow_info['flow_store_cookie']:
+                    return i
+            return None
+        else: #only one flow or those flows that are not added to device
+            return 0
+
     def do_flows(self, line):
         """Show flow table for device"""
         device = pb2dict(self.get_device(-1))
+        flows_info = list()
+        flows = device['flows']['items']
+        for i, flow in enumerate(flows):
+            flow_info = dict()
+            if unicodedata.normalize('NFKD', device['type']).encode('ascii', 'ignore') == 'openolt':
+                flow_id = self.get_flow_id(flow['id'])
+            else:
+                flow_id = int(flow['id'])
+
+            flow_info.update({'flow_id' : str(flow_id)})
+
+            if 'intf_tuple' in flow and len(flow['intf_tuple']) > 0:    # we have extra flow info in ETCD!!!
+                pon_intf_onu_id = unicodedata.normalize('NFKD', flow['intf_tuple'][0]).encode('ascii', 'ignore')
+                flow_info.update({'pon_intf_onu_id': pon_intf_onu_id})
+
+                # check if the flow info still exists in ETCD
+                if self.flow_exist(pon_intf_onu_id, flow_id):
+                    flow_id_info_path = FLOW_ID_INFO_PATH.format(self.device_id, pon_intf_onu_id, flow_id)
+                    path_to_flow_info = PATH.format(PATH_PREFIX, flow_id_info_path)
+                    (flow_info_all, _) = self.etcd.get(path_to_flow_info)
+                    flow_info_all = ast.literal_eval(flow_info_all)
+                    flow_info_index = self.get_flow_index(flow, flow_info_all)
+
+                    if flow_info_index is not None:
+                        flow_info_all = flow_info_all[flow_info_index]
+                        if 'gemport_id' in flow_info_all:
+                            flow_info.update({'gemport_id': flow_info_all['gemport_id']})
+
+                        if 'alloc_id' in flow_info_all:
+                            flow_info.update({'alloc_id': flow_info_all['alloc_id']})
+
+                        if 'flow_type' in flow_info_all:
+                            flow_info.update({'flow_type': flow_info_all['flow_type']})
+
+                        if 'o_pbits' in flow_info_all['classifier']:
+                            flow_info.update({'o_pbits': flow_info_all['classifier']['o_pbits']})
+
+                        if 'flow_category' in flow_info_all:
+                            flow_info.update({'flow_category': flow_info_all['flow_category']})
+
+            flows_info.append(flow_info)
         print_flows(
             'Device',
             self.device_id,
             type=device['type'],
             flows=device['flows']['items'],
-            groups=device['flow_groups']['items']
+            groups=device['flow_groups']['items'],
+            flows_info=flows_info,
+            fields_to_omit = ['table_id', 'goto-table']
         )
 
     def do_images(self, line):
