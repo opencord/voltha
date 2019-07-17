@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "44de5c2a_8048c483",
+        "filename": "docker/Dockerfile.ofagent",
+        "patchSetId": 4
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2019-07-17T19:27:23Z",
+      "side": 1,
+      "message": "Can ARCH be set in the voltha-base image as env variable, so that in this (or all) child Dockerfiles then only need to reference ARCH and not to the test",
+      "revId": "371d55ad5c55bc64b77fd2be0ec0bdfb74328dba",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
