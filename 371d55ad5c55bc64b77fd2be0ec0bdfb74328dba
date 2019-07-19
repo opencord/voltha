@@ -16,6 +16,24 @@
       "revId": "371d55ad5c55bc64b77fd2be0ec0bdfb74328dba",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f31f3a57_d044b48a",
+        "filename": "docker/Dockerfile.ofagent",
+        "patchSetId": 4
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1000533
+      },
+      "writtenOn": "2019-07-19T09:01:55Z",
+      "side": 1,
+      "message": "Define the ARCH in the Makefile, add it to --build-arg, and set the default value of ARCH to amd64 in the Dockerfile; Please review.",
+      "parentUuid": "44de5c2a_8048c483",
+      "revId": "371d55ad5c55bc64b77fd2be0ec0bdfb74328dba",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
