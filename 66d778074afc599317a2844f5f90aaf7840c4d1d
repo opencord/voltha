@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "61149a00_dc2ff666",
+        "filename": "voltha/adapters/openolt/mcast_ip2mac.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1000498
+      },
+      "writtenOn": "2019-07-22T14:57:16Z",
+      "side": 1,
+      "message": "mcast_ip address is represented in integer in VOLTHA, not String. However, this method considers ip address as String. It would be better to consider mcast_ip argument as integer in this method.",
+      "revId": "66d778074afc599317a2844f5f90aaf7840c4d1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "531fd5bd_ac4ca876",
+        "filename": "voltha/adapters/openolt/mcast_ip2mac.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1000498
+      },
+      "writtenOn": "2019-07-22T14:57:16Z",
+      "side": 1,
+      "message": "this method returns mcast mac address as a string in xx:xx:xx:xx:xx:xx representation. However we need byte array (with size 6) representation of mac address in VOLTHA. OpenOLT Agent needs this representation.",
+      "revId": "66d778074afc599317a2844f5f90aaf7840c4d1d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
