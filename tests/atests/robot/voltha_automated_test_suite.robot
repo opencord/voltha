@@ -96,27 +96,23 @@ Radius Authentication
     Run Keyword If      '${SIMTYPE}' == 'ponsim'      Ponsim Authentication Steps
     ...  ELSE IF        '${SIMTYPE}' == 'bbsim'       BBSim Authentication Verification Step
 
-Dhcp IP Address Assignment on RG
+Dhcp IP Address Assignment
     [Documentation]     DHCP assigned IP Address
+    ...                 In the case where the simtype is 'ponsim' we do the following:
     ...                 A DHCP server is configured and Activated on Onos. We need to change
     ...                 the Firewall rules so as to allow packets to flow between RG and OLT/ONU
     ...                 We also must add a second DHCP flow rule in onos in the direction from NNI
     ...                 by calling 'add subscriber access' on onos. We then deassign the default
     ...                 IP address granted to RG upon instantiating the RG pod. Finally we invoke
     ...                 'dhclient' on RG to request a DHCP IP address.
-    [Tags]              ponsim
+    ...                 In the case where the symtype is 'bbsim' we simply confirm that all ONUs
+    ...                 were assigned an IP address. This happens automatically once all ONUs have
+    ...                 been authenticated and the DHCP requests transition between the bbsim
+    ...                 dhclient, dhcp server via the dhcpl2relay
     H Set Log Dirs      ${ROOT_DIR}     ${VOLTHA_DIR}    ${LOG_DIR}
-    Set Firewall Rules
-    Discover Authorized Users
-    Retrieve Authorized Users Device Id And Port Number
-    Add Subscriber Access
-    Should Now Have Two Dhcp Flows
-    Add Dhcp Server Configuration Data In Onos
-    Activate Dhcp Server In Onos
-    Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Query For Default Ip On Rg
-    De Assign Default Ip On Rg
-    Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Assign Dhcp Ip Addr To Rg
-    Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Should Have Dhcp Assigned Ip
+    H Configure         ${ONU_COUNT}
+    Run Keyword If      '${SIMTYPE}' == 'ponsim'      Ponsim DHCP Steps
+    ...  ELSE IF        '${SIMTYPE}' == 'bbsim'       BBSim DHCP Verification Step
 
 Unicast flow setup ctag/stag assignment
     [Documentation]     Unicast ctag/stag assignment
@@ -184,8 +180,26 @@ BBSim Authentication Verification Step
     Wait Until Keyword Succeeds    ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Should Have All Onus Authenticated
    
 Validate Number of Devices
-    [Documentation]    Validate the number of expected onus to be activated
+    [Documentation]     Validate the number of expected onus to be activated
     Query Devices After Enabling
     Status Should Be Success After Enable Command
     Check Olt Fields After Enabling
     Check Onu Fields After Enabling 
+
+Ponsim DHCP Steps
+    [Documentation]     List of steps required to run DHCP IP Address Assignment on RG
+    Set Firewall Rules
+    Discover Authorized Users
+    Extract Authorized User Device Id And Port Number
+    Add Onu Bound Dhcp Flows
+    Should Now Have Two Dhcp Flows
+    Add Dhcp Server Configuration Data In Onos
+    Activate Dhcp Server In Onos
+    Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Query For Default Ip On Rg
+    De Assign Default Ip On Rg
+    Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Assign Dhcp Ip Addr To Rg
+    Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}    Should Have Dhcp Assigned Ip
+
+BBSim DHCP Verification Step
+    [Documentation]     Validate that all ONUs were assigned an IP address
+    Wait Until Keyword Succeeds  ${RETRY_TIMEOUT_60}    ${RETRY_INTERVAL_2}     Should Have Ips Assigned To All Onus

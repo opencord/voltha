@@ -1,0 +1,7 @@
+{
+  "org.opencord.dhcpl2relay" : {
+    "dhcpl2relay" : {
+      "useOltUplinkForServerPktInOut" : true
+    }
+  }
+}

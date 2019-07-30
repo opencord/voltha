@@ -172,3 +172,20 @@ def modify_radius_ip_in_json_using_sed(self, new_ip_addr):
 
 def discover_rg_pod_name():
     return extract_pod_name('rg0').strip()
+
+
+def retrieve_authorized_users_device_id_and_port_number(status_line):
+    fields = parse_fields(status_line, ',')
+    deviceField = fields[2].strip()
+    deviceStr, equal, deviceId = deviceField.partition('=')
+    device_Id = deviceId
+    portField = fields[4].strip()
+    portNumStr, equal, portNum = portField.partition('=')
+    portNumber = portNum
+    return device_Id, portNumber
+
+
+def add_subscriber_access(self, device_id, port_number):
+    send_command_to_onos_cli(get_dir(self, 'log'),
+                             'voltha_add_subscriber_access.log', 'volt-add-subscriber-access %s %s'
+                             % (device_id, port_number))

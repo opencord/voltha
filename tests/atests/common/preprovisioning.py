@@ -132,19 +132,25 @@ class Preprovisioning(object):
     def proceed(self):
         logging.info('Pre-provisioning hold')
         onuOnline = 0
-        portType = None
         if self.__oltType == 'ponsim_olt':
             portType = 'PON_OLT'
+            while onuOnline < self.__onuCount:
+                testCaseUtils.send_command_to_voltha_cli(testCaseUtils.get_dir(self, 'log'), 'voltha_olt_device.log', 'device ' +
+                                                         self.__oltDeviceId, 'voltha_olt_ports.log', 'ports')
+                statusLines = testCaseUtils.get_fields_from_grep_command(self, portType, 'voltha_olt_ports.log')
+                lines = statusLines.splitlines()
+                onuOnline = len(lines)
+                time.sleep(5)
+                logging.info('All ONUs now Online!')
         elif self.__oltType == 'openolt':
-            portType = 'ETHERNET_UNI'
-        while onuOnline < self.__onuCount:
-            testCaseUtils.send_command_to_voltha_cli(testCaseUtils.get_dir(self, 'log'), 'voltha_olt_device.log', 'device ' +
-                                                     self.__oltDeviceId, 'voltha_olt_ports.log', 'ports')
-            statusLines = testCaseUtils.get_fields_from_grep_command(self, portType, 'voltha_olt_ports.log')
-            lines = statusLines.splitlines()
-            onuOnline = len(lines)
-            time.sleep(5)
-        logging.info('All ONUs now Online!')
+            while onuOnline < self.__onuCount:
+                testCaseUtils.send_command_to_onos_cli(testCaseUtils.get_dir(self, 'log'),
+                                                       'voltha_onu_auth.log', 'aaa-users')
+                statusLines = testCaseUtils.get_fields_from_grep_command(self, 'AUTHORIZED', 'voltha_onu_auth.log')
+                lines = statusLines.splitlines()
+                onuOnline = len(lines)
+                time.sleep(5)
+            logging.info('All ONUs now AUTHORIZED')
 
 
 def run_test(olt_ip_address, olt_port, olt_type, onu_type, onu_count, log_dir):
@@ -157,7 +163,7 @@ def run_test(olt_ip_address, olt_port, olt_type, onu_type, onu_count, log_dir):
     preprovisioning.check_olt_fields_before_enabling()
     preprovisioning.enable()
     preprovisioning.status_should_be_success_after_enable_command()
+    preprovisioning.proceed()
     preprovisioning.query_devices_after_enabling()
     preprovisioning.check_olt_fields_after_enabling()
     preprovisioning.check_onu_fields_after_enabling()
-    preprovisioning.proceed()
