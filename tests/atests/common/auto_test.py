@@ -117,7 +117,7 @@ if __name__ == "__main__":
 
     authentication.run_test(ONU_COUNT, ROOT_DIR, VOLTHA_DIR, LOG_DIR, args.simtype)
 
-    if args.simtype == 'ponsim':
-        dhcp.run_test(ROOT_DIR, VOLTHA_DIR, LOG_DIR)
+    dhcp.run_test(ONU_COUNT, ROOT_DIR, VOLTHA_DIR, LOG_DIR, args.simtype)
 
+    if args.simtype == 'ponsim':
         unicast.run_test(ONU_TYPE, ONU_COUNT, ROOT_DIR, VOLTHA_DIR, LOG_DIR)

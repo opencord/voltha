@@ -90,6 +90,12 @@ class VolthaMngr(object):
         os.system('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
                   'http://localhost:30120/onos/v1/network/configuration/apps/ -d @%s/tests/atests/build/sadis_json'
                   % testCaseUtils.get_dir(self, 'voltha'))
+        logging.debug('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
+                      'http://localhost:30120/onos/v1/network/configuration/apps/ -d @%s/tests/atests/build/dhcpl2relay_json'
+                      % testCaseUtils.get_dir(self, 'voltha'))
+        os.system('curl --user karaf:karaf -X POST -H "Content-Type: application/json" '
+                  'http://localhost:30120/onos/v1/network/configuration/apps/ -d @%s/tests/atests/build/dhcpl2relay_json'
+                  % testCaseUtils.get_dir(self, 'voltha'))
 
     def collect_pod_logs(self):
         logging.info('Collect logs from all Pods')

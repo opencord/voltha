@@ -19,162 +19,159 @@
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM00000100",
+          "id":"BBSM00000001",
           "cTag":55,
           "sTag":66,
-          "nasPortId":"BBSM00000100",
+          "nasPortId":"BBSM00000001",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM00000101",
+          "id":"BBSM00000002",
           "cTag":56,
           "sTag":66,
-          "nasPortId":"BBSM00000101",
+          "nasPortId":"BBSM00000002",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM00000102",
+          "id":"BBSM00000003",
           "cTag":57,
           "sTag":66,
-          "nasPortId":"BBSM00000102",
+          "nasPortId":"BBSM00000003",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM00000103",
+          "id":"BBSM00000004",
           "cTag":58,
           "sTag":66,
-          "nasPortId":"BBSM00000103",
+          "nasPortId":"BBSM00000004",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM00000104",
+          "id":"BBSM00000005",
           "cTag":60,
           "sTag":77,
-          "nasPortId":"BBSM00000104",
+          "nasPortId":"BBSM00000005",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM00000105",
+          "id":"BBSM00000006",
           "cTag":61,
           "sTag":77,
-          "nasPortId":"BBSM00000105",
+          "nasPortId":"BBSM00000006",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM00000106",
+          "id":"BBSM00000007",
           "cTag":62,
           "sTag":77,
-          "nasPortId":"BBSM00000106",
+          "nasPortId":"BBSM00000007",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM00000107",
+          "id":"BBSM00000008",
           "cTag":63,
           "sTag":77,
-          "nasPortId":"BBSM00000107",
+          "nasPortId":"BBSM00000008",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM00000108",
+          "id":"BBSM00000009",
           "cTag":70,
           "sTag":88,
-          "nasPortId":"BBSM00000108",
+          "nasPortId":"BBSM00000009",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM00000109",
+          "id":"BBSM0000000a",
           "cTag":71,
           "sTag":88,
-          "nasPortId":"BBSM00000109",
+          "nasPortId":"BBSM0000000a",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM0000010a",
+          "id":"BBSM0000000b",
           "cTag":72,
           "sTag":88,
-          "nasPortId":"BBSM0000010a",
+          "nasPortId":"BBSM0000000b",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM0000010b",
+          "id":"BBSM0000000c",
           "cTag":73,
           "sTag":88,
-          "nasPortId":"BBSM0000010b",
+          "nasPortId":"BBSM0000000c",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM0000010c",
+          "id":"BBSM0000000d",
           "cTag":80,
           "sTag":99,
-          "nasPortId":"BBSM0000010c",
+          "nasPortId":"BBSM0000000d",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM0000010d",
+          "id":"BBSM0000000e",
           "cTag":81,
           "sTag":99,
-          "nasPortId":"BBSM0000010d",
+          "nasPortId":"BBSM0000000e",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM0000010e",
+          "id":"BBSM0000000f",
           "cTag":82,
           "sTag":99,
-          "nasPortId":"BBSM0000010e",
+          "nasPortId":"BBSM0000000f",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"BBSM0000010f",
+          "id":"BBSM00000010",
           "cTag":83,
           "sTag":99,
-          "nasPortId":"BBSM0000010f",
+          "nasPortId":"BBSM00000010",
           "technologyProfileId":64,
           "upstreamBandwidthProfile":"High-Speed-Internet",
           "downstreamBandwidthProfile":"User1-Specific"
         },
         {
-          "id":"1d1d1d1d1d1d11",
+          "id":"BBSIMOLT000",
           "hardwareIdentifier":"00:1b:22:00:b1:78",
           "ipAddress":"192.168.1.252",
-          "nasId":"B100-NASID"
+          "uplinkPort":65536,
+          "nasId":"BBSIMOLT000"
         },
         {  
           "id":"olt0.voltha.svc:50060",
           "uplinkPort":2
-        },
-        {
-          "id":"BBSIMOLT000",
-          "uplinkPort":65536
         }
       ]
     },
