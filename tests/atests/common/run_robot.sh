@@ -24,5 +24,5 @@ if [[ "${2:-ponsim}" == "ponsim" ]]
     robot -d $1 -v LOG_DIR:$1/voltha_test_results -v SIMTYPE:ponsim ./tests/atests/robot/voltha_automated_test_suite.robot
 elif [[ "${2}" == "bbsim" ]]
     then
-      robot -d $1 -v LOG_DIR:$1/voltha_test_results -v SIMTYPE:bbsim -e ponsim ./tests/atests/robot/voltha_automated_test_suite.robot
+      robot -d $1 -v LOG_DIR:$1/voltha_test_results -v SIMTYPE:bbsim -e ponsim --noncritical nc ./tests/atests/robot/voltha_automated_test_suite.robot
 fi

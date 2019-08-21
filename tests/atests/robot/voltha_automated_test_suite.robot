@@ -109,6 +109,7 @@ Dhcp IP Address Assignment
     ...                 were assigned an IP address. This happens automatically once all ONUs have
     ...                 been authenticated and the DHCP requests transition between the bbsim
     ...                 dhclient, dhcp server via the dhcpl2relay
+    [Tags]    nc
     H Set Log Dirs      ${ROOT_DIR}     ${VOLTHA_DIR}    ${LOG_DIR}
     H Configure         ${ONU_COUNT}
     Run Keyword If      '${SIMTYPE}' == 'ponsim'      Ponsim DHCP Steps
