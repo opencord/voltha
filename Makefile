@@ -107,7 +107,7 @@ FETCH_BUILD_IMAGE_LIST = \
        maven:3-jdk-8-alpine \
        onosproject/onos:1.10.9 \
        opennms/horizon-core-web:19.0.1-1 \
-       portainer/portainer:1.15.2 \
+       portainer/portainer:linux-amd64-1.15.2 \
        ubuntu:xenial
 
 # find compose -type f | xargs grep image: | awk '{print $NF}' | grep -v voltha- | sed -e 's/\"//g' -e 's/\${REGISTRY}//g' -e 's/:\${.*:-/:/g' -e 's/\}//g' -e '/:.*$/!s/$/:latest/g' | sort -u | sed -e 's/^/        /g' -e 's/$/ \\/g'

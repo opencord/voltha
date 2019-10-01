@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ${REGISTRY}portainer/portainer:1.15.2 as base
+FROM ${REGISTRY}portainer/portainer:linux-amd64-1.15.2 as base
 
 FROM ${REGISTRY}alpine:3.6 as work
 COPY --from=base / /work
