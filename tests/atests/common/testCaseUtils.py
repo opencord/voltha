@@ -82,9 +82,9 @@ def send_command_to_onos_cli(log_dir, log_file, cmd, host='localhost'):
     child = pexpect.spawn('ssh -p 30115 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@%s' % host)
     child.expect('[pP]assword:')
     child.sendline('karaf')
-    child.expect('(\\x1b\[\d*;?\d+m){1,2}onos> (\\x1b\[\d*;?\d+m){1,2}')
+    child.expect('(\\x1b\[\d*;?\d+m){1,2}(onos>|karaf@root >) (\\x1b\[\d*;?\d+m){1,2}')
     child.sendline(cmd)
-    child.expect('(\\x1b\[\d*;?\d+m){1,2}onos> (\\x1b\[\d*;?\d+m){1,2}')
+    child.expect('(\\x1b\[\d*;?\d+m){1,2}(onos>|karaf@root >) (\\x1b\[\d*;?\d+m){1,2}')
 
     output.write(child.before)
     
