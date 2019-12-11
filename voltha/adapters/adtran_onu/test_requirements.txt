@@ -3,3 +3,4 @@ pytest < 4.1
 pytest-cov
 pytest-twisted
 virtualenv
+attrs==19.1.0
