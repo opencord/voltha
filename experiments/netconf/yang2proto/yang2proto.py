@@ -107,6 +107,9 @@ class Protobuf(object):
         for l in ylist.ylist:
             self._print_list(l, out, level + 1)
 
+        for inner in ylist.containers:
+            self._print_container(inner, out, level + 1)
+
         out.append(''.join([spaces, '}\n']))
 
 
@@ -135,7 +138,7 @@ class Protobuf(object):
     def _print_enumeration(self, yang_enum, out, spaces):
         enumspaces = ''.join([spaces, '    '])
         for idx, e in enumerate(yang_enum):
-            out.append(''.join([enumspaces, '{}\n'.format(e)]))
+            out.append(''.join([enumspaces, '{}\n'.format(e.replace('-', '_'))]))
 
     def print_proto(self):
         out = []
