@@ -84,7 +84,8 @@ DOCKER_IMAGE_LIST = \
 	config-push \
 	j2 \
 	alarm-generator \
-	test_runner
+	test_runner \
+	python-ci
 
 # The following list was scavanged from the compose / stack files as well as
 # from the Dockerfiles. If nothing else it highlights that VOLTHA is not
@@ -186,6 +187,7 @@ help:
 	@echo "unum         : Build the unum docker container"
 	@echo "ponsim       : Build the ponsim docker container"
 	@echo "j2           : Build the Jinja2 template container"
+	@echo "python-ci    : Build the Python CI template container"
 	@echo "alarm-generator : Build the alarm-generator container"
 	@echo "test_runner  : Build a container from which tests are run"
 	@echo "start        : Start VOLTHA on the current system"
@@ -235,7 +237,7 @@ jenkins-containers: base voltha ofagent netconf consul cli envoy fluentd unum j2
 
 prod-containers: base voltha ofagent netconf shovel onos dashd cli grafana consul tools envoy fluentd unum j2
 
-containers: base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools envoy fluentd unum ponsim j2 alarm-generator test_runner
+containers: base voltha ofagent netconf shovel onos tester config-push dashd cli portainer grafana nginx consul tools envoy fluentd unum ponsim j2 alarm-generator test_runner python-ci
 
 base:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-base:${TAG} -f docker/Dockerfile.base .
@@ -350,6 +352,9 @@ ponsim:
 
 j2:
 	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-j2:${TAG} -f docker/Dockerfile.j2 docker
+
+python-ci:
+	docker build $(DOCKER_BUILD_ARGS) -t ${REGISTRY}${REPOSITORY}voltha-python-ci:${TAG} -f docker/Dockerfile.python-ci docker
 
 alarm-generator:
 ifneq ($(VOLTHA_BUILD),docker)
