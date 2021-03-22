@@ -50,7 +50,7 @@ Twisted==17.9.0
 txaioetcd==0.3.0
 urllib3==1.22
 pyang==1.7.3
-lxml==3.6.4
+lxml==4.6.3
 nosexcover==1.0.11
 zmq==0.0.0
 pyzmq==16.0.3
