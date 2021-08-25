@@ -46,7 +46,7 @@ structlog==17.2.0
 termcolor==1.1.0
 transitions==0.6.4
 treq==17.8.0
-Twisted==17.9.0
+Twisted==20.3.0
 txaioetcd==0.3.0
 urllib3==1.22
 pyang==1.7.3
