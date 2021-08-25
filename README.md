@@ -1,3 +1,10 @@
+# DEPRECATED
+
+[![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
+
+`VOLTHA 1.7` was the last release that officially supported the `voltha` core written in python as the core container for VOLTHA.
+From `2.0` onwards the voltha core has been rewritten in go [voltha-go](https://github.com/opencord/voltha-go). This codebase is going to be removed after the VOLTHA 2.8 release LTS support ends in December 2022.
+
 # VOLTHA
 
 ## What is Voltha?
