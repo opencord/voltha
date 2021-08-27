@@ -48,7 +48,7 @@ transitions==0.6.4
 treq==17.8.0
 Twisted==17.9.0
 txaioetcd==0.3.0
-urllib3==1.22
+urllib3==1.26.5
 pyang==1.7.3
 lxml==3.6.4
 nosexcover==1.0.11
